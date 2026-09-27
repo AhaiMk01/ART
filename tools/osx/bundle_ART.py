@@ -267,6 +267,7 @@ def extra_files(opts):
         ]),
         ('Contents/Resources/share/icons/Adwaita', [
              find_under(pref, 'share/icons/Adwaita/scalable'),
+             find_under(pref, 'share/icons/Adwaita/symbolic'),
              find_under(pref, 'share/icons/Adwaita/index.theme'),
              find_under(pref, 'share/icons/Adwaita/cursors'),
         ]),

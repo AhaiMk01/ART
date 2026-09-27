@@ -148,7 +148,8 @@ def extra_files(opts, msys_env, tempdir):
         ] + exiftool),
         ('share/icons/Adwaita', [
             D('share/icons/Adwaita/scalable'),
-            D('share/icons/Adwaita/index.theme'), 
+            D('share/icons/Adwaita/symbolic'),
+            D('share/icons/Adwaita/index.theme'),
             D('share/icons/Adwaita/cursors'),
         ]),
         ('lib', [

@@ -144,7 +144,8 @@ def extra_files(opts):
     return [
         ('share/icons/Adwaita', [
             D('/usr/share/icons/Adwaita/scalable'),
-            D('/usr/share/icons/Adwaita/index.theme'), 
+            D('/usr/share/icons/Adwaita/symbolic'),
+            D('/usr/share/icons/Adwaita/index.theme'),
             D('/usr/share/icons/Adwaita/cursors'),
         ]),
         ('lib', [
