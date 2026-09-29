@@ -139,6 +139,9 @@ FILEBROWSER_DELETEDIALOG_HEADER;Fájl törlésének megerősítése:
 FILEBROWSER_DELETEDIALOG_ALL;Valóban szeretné mind a <b>%1</b> kukában lévő fájlt véglegesen törölni?
 FILEBROWSER_DELETEDIALOG_SELECTED;Valóban szeretné a kukában lévő <b>%1</b> kijelölt fájlt véglegesen törölni?
 FILEBROWSER_DELETEDIALOG_SELECTEDINCLPROC;Valóban szeretné a kukában lévő <b>%1</b> kijelölt fájlt véglegesen törölni <b>beleértve</b> feldolgozott képfájl változatokat is?
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_TITLE;Profil törlésének megerősítése
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_MSG;Az alábbi <b>%1</b> fájlnak pillanatképei vannak, amelyek <b>véglegesen törlődnek</b>, ha törli a feldolgozási profiljukat. Mégis folytatja?
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_MSG_SINGLE;A(z) <b>%1</b> fájlnak pillanatképei vannak, amelyek <b>véglegesen törlődnek</b>, ha törli a feldolgozási profilját. Mégis folytatja?
 FILEBROWSER_EMPTYTRASHHINT;Véglegesen törlődik minden kukában lévő fájl.
 FILEBROWSER_EXTPROGMENU;Felhasználói parancsok
 FILEBROWSER_FLATFIELD;Flat-Field referenciakép
@@ -1088,6 +1091,12 @@ PREFERENCES_FORRAW;Raw fotókhoz
 PREFERENCES_FSTRIP_SAME_THUMB_HEIGHT;Ugyanaz a bélyegkép magasság a Filmszalagnál és a Fájlböngészőnél
 PREFERENCES_FSTRIP_SAME_THUMB_HEIGHT_HINT;Az eltérő bélyegkép méret több feldolgozási időt igényel minden alkalommal, amikor a Szerkesztő lap és a Fájlböngésző között vált.
 PREFERENCES_GIMPPATH;GIMP telepítés könyvtára
+PREFERENCES_GPU;GPU-gyorsítás
+PREFERENCES_GPU_DEVICE_AUTO;Automatikus
+PREFERENCES_GPU_DEVICE_LABEL;Eszköz:
+PREFERENCES_GPU_ENABLED;GPU-gyorsítás használata néhány erőforrásigényes művelethez
+PREFERENCES_GPU_NO_DEVICES;Ezen a rendszeren nem található Vulkan-eszköz, ezért a GPU-gyorsítás nem érhető el. Ez általában azt jelenti, hogy nincs telepítve Vulkan-betöltő vagy -illesztőprogram.
+PREFERENCES_GPU_TOOLTIP;Ha nem található megfelelő eszköz, automatikusan a CPU-ra vált.
 PREFERENCES_HIGHLIGHT_SELECTED_THUMBNAILS;Kijelölt bélyegképek kiemelése
 PREFERENCES_HISTOGRAMPOSITIONLEFT;Hisztogram a bal panelen
 PREFERENCES_HISTOGRAM_TOOLTIP;Ha engedélyezve van, a munkaprofilt használja a fő hisztogram és a Navigátor megjelenítésére, ellenkező esetben a gamma-korrigált kimeneti profil kerül felhasználásra.
@@ -1906,6 +1915,7 @@ TP_RESIZE_CM;cm
 TP_RESIZE_IN;in
 TP_RESIZE_W;Szélesség:
 TP_RESIZE_WIDTH;Szélesség
+TP_RESIZE_COPY_PPI_TO_EXIF;PPI másolása az EXIF-be
 TP_RGBCURVES_BLUE;B
 TP_RGBCURVES_CHANNEL;Csatorna
 TP_RGBCURVES_GREEN;G

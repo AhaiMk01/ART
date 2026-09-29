@@ -159,6 +159,9 @@ FILEBROWSER_DELETEDIALOG_HEADER;파일삭제 확인
 FILEBROWSER_DELETEDIALOG_ALL;쓰레기 통에 있는 <b>%1</b>장 파일을 모두 삭제합니까?
 FILEBROWSER_DELETEDIALOG_SELECTED;선택한 <b>%1</b>장 파일을 삭제합니까?
 FILEBROWSER_DELETEDIALOG_SELECTEDINCLPROC;큐처리에 있는 파일을 <b>포함하여</b> 선택함<b>%1</b>장의 파일을 삭제합니까?
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_TITLE;프로파일 적용해제 확인
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_MSG;아래 <b>%1</b>개 파일에는 편집과정 기록이 있으며, 처리 프로파일을 적용해제하면 <b>영구적으로 삭제</b>됩니다. 계속하시겠습니까?
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_MSG_SINGLE;파일 <b>%1</b>에는 편집과정 기록이 있으며, 처리 프로파일을 적용해제하면 <b>영구적으로 삭제</b>됩니다. 계속하시겠습니까?
 FILEBROWSER_EMPTYTRASHHINT;쓰레기 통에 있는 모두 파일을 <b>완전히</b> 삭제합니다.
 FILEBROWSER_EXTPROGMENU;사용자 설정 명령 (command)
 FILEBROWSER_FLATFIELD;센서의 오점 그늘 제거
@@ -1120,6 +1123,12 @@ PREFERENCES_FORRAW;raw화상
 PREFERENCES_FSTRIP_SAME_THUMB_HEIGHT;파일 브라우저와 편집패널의 썸네일 크기를 똑같이 함.
 PREFERENCES_FSTRIP_SAME_THUMB_HEIGHT_HINT;썸네일 크기가 다르면 편집 패널 - 파일 브라우저 전환에 긴 시간이 걸립니다.
 PREFERENCES_GIMPPATH;GIMP 설치 디렉토리
+PREFERENCES_GPU;GPU 가속
+PREFERENCES_GPU_DEVICE_AUTO;자동
+PREFERENCES_GPU_DEVICE_LABEL;장치:
+PREFERENCES_GPU_ENABLED;일부 부하가 큰 작업에 GPU 가속 사용
+PREFERENCES_GPU_NO_DEVICES;이 시스템에서 Vulkan 장치를 찾을 수 없어 GPU 가속을 사용할 수 없습니다. 일반적으로 Vulkan 로더나 드라이버가 설치되어 있지 않다는 뜻입니다.
+PREFERENCES_GPU_TOOLTIP;적합한 장치를 찾지 못하면 자동으로 CPU를 사용합니다.
 PREFERENCES_HIGHLIGHT_SELECTED_THUMBNAILS;하이라이트가 선택된 썸네일
 PREFERENCES_HISTOGRAMPOSITIONLEFT;왼쪽 패널에 히스토그램 표시
 PREFERENCES_HISTOGRAM_TOOLTIP;이것을 우효화하면 히스토그램과 네비게이터 표시에 출력 프로파일（감마적용）대신 작업 프로파일을 사용합니다.

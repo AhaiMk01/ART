@@ -184,6 +184,9 @@ FILEBROWSER_DELETEDIALOG_ALL;Alle <b>%1</b> bestanden in de prullenbak verwijder
 FILEBROWSER_DELETEDIALOG_HEADER;Verwijderen bestand bevestigen:
 FILEBROWSER_DELETEDIALOG_SELECTED;Geselecteerde <b>%1</b> bestanden verwijderen?
 FILEBROWSER_DELETEDIALOG_SELECTEDINCLPROC;Geselecteerde <b>%1</b> bestanden <b>inclusief</b> een versie die door de verwerkingsrij is gemaakt verwijderen?
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_TITLE;Bevestiging profiel wissen
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_MSG;De onderstaande <b>%1</b> bestand(en) hebben snapshots die <b>definitief worden verwijderd</b> als u hun verwerkingsprofiel wist. Toch doorgaan?
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_MSG_SINGLE;Het bestand <b>%1</b> heeft snapshots die <b>definitief worden verwijderd</b> als u het verwerkingsprofiel wist. Toch doorgaan?
 FILEBROWSER_EMPTYTRASHHINT;Alle bestanden in de prullenbak permanent verwijderen
 FILEBROWSER_EXTPROGMENU;Gebruikersopdrachten
 FILEBROWSER_FLATFIELD;Vlakveld
@@ -1115,6 +1118,12 @@ PREFERENCES_FORRAW;Voor RAW-bestanden
 PREFERENCES_FSTRIP_SAME_THUMB_HEIGHT_HINT;Verschillende groottes van miniaturen vereist meer verwerkingstijd wanneer je wisselt tussen het enkel-tabs Bewerkingsvenster en de Navigator
 PREFERENCES_FSTRIP_SAME_THUMB_HEIGHT;Zelfde hoogte miniaturen in Filmstrip en Bestandsnavigator
 PREFERENCES_GIMPPATH;Installatiemap GIMP
+PREFERENCES_GPU;GPU-versnelling
+PREFERENCES_GPU_DEVICE_AUTO;Automatisch
+PREFERENCES_GPU_DEVICE_LABEL;Apparaat:
+PREFERENCES_GPU_ENABLED;GPU-versnelling gebruiken voor sommige zware bewerkingen
+PREFERENCES_GPU_NO_DEVICES;Er is geen Vulkan-apparaat gevonden op dit systeem, dus GPU-versnelling is niet beschikbaar. Dit betekent meestal dat er geen Vulkan-loader of -stuurprogramma is geïnstalleerd.
+PREFERENCES_GPU_TOOLTIP;Valt automatisch terug op de CPU als er geen geschikt apparaat wordt gevonden.
 PREFERENCES_HIGHLIGHT_SELECTED_THUMBNAILS;Markeer geselecteerde miniaturen
 PREFERENCES_HISTOGRAMPOSITIONLEFT;Histogram in linkerpaneel
 PREFERENCES_HISTOGRAM_TOOLTIP;Indien ingeschakeld wordt het werkprofiel gebruikt om het histogram te genereren. Zo niet, dan wordt het gamma-gecorrigeerde uitvoerprofiel gebruikt. 
@@ -1939,6 +1948,7 @@ TP_RESIZE_SPECIFY;Specificeer:
 TP_RESIZE_UNIT;Eenheid
 TP_RESIZE_W;Breedte:
 TP_RESIZE_WIDTH;Breedte
+TP_RESIZE_COPY_PPI_TO_EXIF;Kopieer PPI naar EXIF
 TP_RGBCURVES_BLUE;B
 TP_RGBCURVES_CHANNEL;Kanaal
 TP_RGBCURVES_GREEN;G

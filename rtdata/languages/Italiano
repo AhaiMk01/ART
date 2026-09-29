@@ -171,6 +171,9 @@ FILEBROWSER_DELETEDIALOG_ALL;Sei sicuro di voler cancellare <b>%1</b> file nel c
 FILEBROWSER_DELETEDIALOG_HEADER;Conferma eliminazione del file
 FILEBROWSER_DELETEDIALOG_SELECTED;Sei sicuro di voler cancellare i <b>%1</b> file selezionati?
 FILEBROWSER_DELETEDIALOG_SELECTEDINCLPROC;Sei sicuro di voler cancellare i <b>%1</b> file selezionati <b>inclusa</b> la versione in coda di sviluppo?
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_TITLE;Conferma cancellazione profilo
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_MSG;I <b>%1</b> file seguenti hanno delle istantanee che verranno <b>eliminate definitivamente</b> se cancelli il loro profilo di sviluppo. Procedere comunque?
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_MSG_SINGLE;Il file <b>%1</b> ha delle istantanee che verranno <b>eliminate definitivamente</b> se cancelli il suo profilo di sviluppo. Procedere comunque?
 FILEBROWSER_EMPTYTRASHHINT;Elimina permanentemente tutti i file nel cestino.
 FILEBROWSER_EXTPROGMENU;Apri con
 FILEBROWSER_FLATFIELD;Flat Field
@@ -1136,6 +1139,12 @@ PREFERENCES_FORRAW;Per foto raw
 PREFERENCES_FSTRIP_SAME_THUMB_HEIGHT;Stessa altezza delle miniatura tra Rullino e Navigatore
 PREFERENCES_FSTRIP_SAME_THUMB_HEIGHT_HINT;Miniature di diversa grandezza richiedono maggior tempo durante il passaggio tra Modifica e Navigatore.
 PREFERENCES_GIMPPATH;Cartella d'installazione di GIMP
+PREFERENCES_GPU;Accelerazione GPU
+PREFERENCES_GPU_DEVICE_AUTO;Auto
+PREFERENCES_GPU_DEVICE_LABEL;Dispositivo:
+PREFERENCES_GPU_ENABLED;Usa l'accelerazione GPU per alcune operazioni onerose
+PREFERENCES_GPU_NO_DEVICES;Nessun dispositivo Vulkan trovato su questo sistema, quindi l'accelerazione GPU non è disponibile. Di solito significa che non è installato alcun loader o driver Vulkan.
+PREFERENCES_GPU_TOOLTIP;Se non viene trovato alcun dispositivo adatto, passa automaticamente alla CPU.
 PREFERENCES_HIGHLIGHT_SELECTED_THUMBNAILS;Evidenzia miniature selezionate
 PREFERENCES_HISTOGRAMPOSITIONLEFT;Istogramma nel pannello sinistro
 PREFERENCES_HISTOGRAM_TOOLTIP;Se abilitato, Navigatore e Istogramma usano il Profilo di Lavoro anziché il Profilo di Uscita (con gamma)

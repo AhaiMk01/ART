@@ -103,6 +103,7 @@ EXIFFILTER_FOCALLEN;Distancia focal
 EXIFFILTER_IMAGETYPE;Tipo de imagen
 EXIFFILTER_ISO;ISO
 EXIFFILTER_LENS;Lente
+EXIFFILTER_ORIENTATION;Orientación
 EXIFFILTER_METADATAFILTER;Activar filtros de metadatos
 EXIFFILTER_SHUTTER;Tiempo de exposición
 EXIFFILTER_SOFTWARE;Software
@@ -119,6 +120,7 @@ EXIFPANEL_RESETALLHINT;Restablecer todas las etiquetas a los valores predetermin
 EXIFPANEL_RESETHINT;Restablecer etiquetas seleccionadas a los valores predeterminados.
 EXIFPANEL_BASIC_GROUP;Básico
 EXIFPANEL_VALUE_NOT_SHOWN;No mostrado
+EXIFPANEL_METADATUM_TOOLTIP;<b>Etiqueta: </b>%1\n<b>Clave: </b>%2\n<b>Valor: </b>%3
 EXPORT_BYPASS;Pasos de procesamiento a saltar
 EXPORT_BYPASS_ALL;Seleccionar / Deseleccionar todo
 EXPORT_BYPASS_DEFRINGE;Saltar eliminación de halos
@@ -144,6 +146,8 @@ EXPORT_RAW_DMETHOD;Método de interpolación
 EXPORT_USE_FAST_PIPELINE;Dedicado (procesamiento completo en imagen redimensionada)
 EXPORT_USE_FAST_PIPELINE_TIP;Usar una cadena de procesamiento dedicada para las imágenes en el modo de exportación rápida, que cambia la velocidad por la calidad. El cambio de tamaño de la imagen se realiza lo antes posible, en lugar de hacerlo al final como en la cadena normal. La aceleración puede ser significativa, pero prepárese para ver defectos y una degradación general de la calidad de salida.
 EXPORT_USE_NORMAL_PIPELINE;Estándar (saltar algunos pasos, cambiar el tamaño al final)
+EXTERNAL_MASK_ASPECT_RATIO_WARNING;Advertencia: la relación de aspecto de la imagen y de la máscara externa no coinciden
+EXTERNAL_MASK_LOAD_FAILED_WARNING;Advertencia: no se pudo cargar la máscara externa desde "%1"
 FILEBROWSER_APPLYPROFILE;Aplicar
 FILEBROWSER_APPLYPROFILE_PARTIAL;Aplicar - parcial
 FILEBROWSER_AUTODARKFRAME;Toma negra automática
@@ -162,6 +166,9 @@ FILEBROWSER_DELETEDIALOG_HEADER;Confirmación de eliminación de archivos:
 FILEBROWSER_DELETEDIALOG_ALL;¿Está seguro de que quiere eliminar todos los archivos <b>%1</b> de la papelera?
 FILEBROWSER_DELETEDIALOG_SELECTED;¿Está seguro de que quiere eliminar los archivos seleccionados <b>%1</b>?
 FILEBROWSER_DELETEDIALOG_SELECTEDINCLPROC;¿Está seguro de que quiere eliminar los archivos seleccionados <b>%1</b> <b>incluyendo</b> una versión procesada en cola?
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_TITLE;Confirmar borrado del perfil
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_MSG;Los <b>%1</b> archivo(s) siguientes tienen instantáneas que se <b>eliminarán permanentemente</b> si borra su perfil de procesamiento. ¿Continuar de todos modos?
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_MSG_SINGLE;El archivo <b>%1</b> tiene instantáneas que se <b>eliminarán permanentemente</b> si borra su perfil de procesamiento. ¿Continuar de todos modos?
 FILEBROWSER_EMPTYTRASHHINT;Eliminar todos los archivos de la papelera de forma permanente.
 FILEBROWSER_EXTPROGMENU;Comandos de usuario
 FILEBROWSER_FLATFIELD;Campo plano
@@ -189,6 +196,7 @@ FILEBROWSER_POPUPOPENINEDITOR;Abrir en Editor
 FILEBROWSER_POPUPPROCESS;Poner en la cola
 FILEBROWSER_POPUPPROCESSFAST;Poner en la cola (exportación rápida)
 FILEBROWSER_POPUPPROFILEOPERATIONS;Operaciones con perfiles
+FILEBROWSER_POPUPQINSPECT;Inspección rápida
 FILEBROWSER_POPUPRANK;Asignar puntuación
 FILEBROWSER_POPUPRANK0;Sin puntuación
 FILEBROWSER_POPUPRANK1;Puntuación 1 *
@@ -212,6 +220,9 @@ FILEBROWSER_RANK3_TOOLTIP;Puntuación 3 *\nAtajo: <b>Mayús-3</b>
 FILEBROWSER_RANK4_TOOLTIP;Puntuación 4 *\nAtajo: <b>Mayús-4</b>
 FILEBROWSER_RANK5_TOOLTIP;Puntuación 5 *\nAtajo: <b>Mayús-5</b>
 FILEBROWSER_RENAMEDLGLABEL;Renombrar archivo(s)
+FILEBROWSER_RENAME_DIALOG_LOAD_TIP;Cargar ajustes desde archivo
+FILEBROWSER_RENAME_DIALOG_SAVE_TIP;Guardar ajustes en archivo
+FILEBROWSER_RENAME_DIALOG_RESET_TIP;Restablecer los ajustes a los valores predeterminados
 FILEBROWSER_RESETDEFAULTPROFILE;Restablecer al valor predeterminado
 FILEBROWSER_SELECTDARKFRAME;Seleccionar toma negra...
 FILEBROWSER_SELECTFLATFIELD;Seleccionar campo plano...
@@ -259,10 +270,15 @@ FILECHOOSER_FILTER_ANY;Todos los archivos
 FILECHOOSER_FILTER_COLPROF;Perfiles de color (*.icc)
 FILECHOOSER_FILTER_CURVE;Archivos de curva
 FILECHOOSER_FILTER_LCP;Perfiles de corrección de lentes
+FILECHOOSER_FILTER_INI;Archivos de configuración (*.ini)
 FILECHOOSER_FILTER_PP;Perfiles de procesamiento
 FILECHOOSER_FILTER_SAME;El mismo formato que la foto actual
 FILECHOOSER_FILTER_TIFF;Archivos TIFF
 FILECHOOSER_FILTER_LUT;Archivos LUT compatibles
+FONTCHOOSER_FAMILY;Familia
+FONTCHOOSER_PREVIEW_TEXT;El veloz murciélago hindú comía feliz cardillo y kiwi
+FONTCHOOSER_SIZE;Tamaño
+FONTCHOOSER_TITLE;Seleccionar fuente
 GENERAL_ABOUT;Acerca de
 GENERAL_AFTER;Después
 GENERAL_APPLY;Aplicar
@@ -280,7 +296,11 @@ GENERAL_DISABLED;Desactivado
 GENERAL_ENABLE;Activar
 GENERAL_ENABLED;Activado
 GENERAL_FILE;Archivo
+GENERAL_HIGH;Alto
 GENERAL_LANDSCAPE;Paisaje
+GENERAL_LOAD;Cargar
+GENERAL_LOW;Bajo
+GENERAL_MEDIUM;Medio
 GENERAL_NA;n/a
 GENERAL_NO;No
 GENERAL_NONE;Ninguno
@@ -292,10 +312,12 @@ GENERAL_SAVE;Guardar
 GENERAL_SAVE_AS;Guardar como...
 GENERAL_SLIDER;Control deslizante
 GENERAL_UNCHANGED;(Sin cambios)
+GENERAL_UNKNOWN;Desconocido
 GENERAL_WARNING;Advertencia
 GENERAL_DEPRECATED;Obsoleto
 GENERAL_DEPRECATED_TOOLTIP;¡Obsoleto! Se eliminará en una versión futura.
 GIMP_PLUGIN_INFO;¡Bienvenido al plugin GIMP de ART!\nUna vez que termine de editar, simplemente cierre la ventana principal de ART y la imagen se importará a GIMP automáticamente.
+HIDPI_PREVIEW;Activar el modo píxel a píxel (mostrar las imágenes\nusando la resolución nativa de la pantalla).
 HISTOGRAM_RAW_STATS_TOOLTIP;mín: %1 (%2), máx: %3 (%4), pico: %5 (%6)\n    rango: %7 EV, valores: %8, píxels: %9
 HISTOGRAM_TOOLTIP_B;Mostrar/Ocultar histograma azul.
 HISTOGRAM_TOOLTIP_BAR;Mostrar/Ocultar barra indicadora RGB.
@@ -613,6 +635,8 @@ HISTORY_MSG_EPD_DELTAEMASK;AT - máscara de similitud de color
 HISTORY_MSG_EPD_DRAWNMASK;AT - máscara de pincel
 HISTORY_MSG_EPD_PARAMETRICMASK;AT - máscara paramétrica
 HISTORY_MSG_EPD_MASK_POSTPROCESS;TB - post-procesamiento de máscara
+HISTORY_MSG_EPD_LINKEDMASK;AT - máscara enlazada
+HISTORY_MSG_EPD_EXTERNALMASK;AT - máscara externa
 HISTORY_MSG_EXPOSURE_BLACK;Exposición - Punto negro
 HISTORY_MSG_EXPOSURE_HRBLUR;Exposición - Suavizado de la propagación de color
 HISTORY_MSG_FILMNEGATIVE_BALANCE;NP - Salida de referencia
@@ -647,6 +671,8 @@ HISTORY_MSG_LOCALCONTRAST_DELTAEMASK;Contraste local - máscara de similitud de 
 HISTORY_MSG_LOCALCONTRAST_DRAWNMASK;Contraste local - máscara de pincel
 HISTORY_MSG_LOCALCONTRAST_PARAMETRICMASK;Contraste local - máscara paramétrica
 HISTORY_MSG_LOCALCONTRAST_MASK_POSTPROCESS;Contraste local - post-procesamiento de máscara
+HISTORY_MSG_LOCALCONTRAST_LINKEDMASK;Contraste local - máscara enlazada
+HISTORY_MSG_LOCALCONTRAST_EXTERNALMASK;Contraste local - máscara externa
 HISTORY_MSG_LOGENC_AUTO;Log - Automático
 HISTORY_MSG_LOGENC_AUTOGAIN;Log - Ganancia automática
 HISTORY_MSG_LOGENC_REGULARIZATION;Log - Regularización
@@ -675,6 +701,7 @@ HISTORY_MSG_RAW_BORDER;Borde raw
 HISTORY_MSG_RESIZE_ALLOWUPSCALING;Cambiar tamaño - Permitir ampliación
 HISTORY_MSG_RESIZE_PPI;Cambiar tamaño - PPP
 HISTORY_MSG_RESIZE_UNIT;Cambiar tamaño - Unidad
+HISTORY_MSG_RESIZE_COPY_PPI_TO_EXIF;Cambiar tamaño - Copiar PPP a EXIF
 HISTORY_MSG_SHARPENING_AUTORADIUS;Enfoque de la captura - Radio RLD automático
 HISTORY_MSG_SHARPENING_BLUR;Enfoque de la captura - Radio de desenfoque
 HISTORY_MSG_SHARPENING_CONTRAST;Enfoque de la captura - Umbral de contraste
@@ -713,6 +740,11 @@ HISTORY_MSG_SMOOTHING_NOISE_STRENGTH;Suavizado - intensidad del ruido
 HISTORY_MSG_SMOOTHING_NOISE_COARSENESS;Suavizado - rugosidad del ruido
 HISTORY_MSG_SMOOTHING_HALATION_SIZE;Suavizado - intensidad del halo
 HISTORY_MSG_SMOOTHING_HALATION_COLOR;Suavizado - tinte del halo
+HISTORY_MSG_SMOOTHING_WAVELETS_STRENGTH;Suavizado - intensidad de wavelets
+HISTORY_MSG_SMOOTHING_WAVELETS_LEVELS;Suavizado - niveles de wavelets
+HISTORY_MSG_SMOOTHING_WAVELETS_GAMMA;Suavizado - gamma de wavelets
+HISTORY_MSG_SMOOTHING_LINKEDMASK;Suavizado - máscara enlazada
+HISTORY_MSG_SMOOTHING_EXTERNALMASK;Suavizado - máscara externa
 HISTORY_MSG_SOFTLIGHT_ENABLED;Luz tenue
 HISTORY_MSG_SOFTLIGHT_STRENGTH;Luz tenue - Intensidad
 HISTORY_MSG_SPOT;Eliminación de manchas
@@ -831,6 +863,7 @@ IPTCPANEL_TITLEHINT;Introduzca un nombre corto y legible para la imagen, este pu
 IPTCPANEL_TRANSREFERENCE;ID de trabajo
 IPTCPANEL_TRANSREFERENCEHINT;Introduzca un número o identificador necesario para el control o seguimiento del flujo de trabajo.
 LABMASKS_AREA_MASK_EMPTY_WARNING;Advertencia: la combinación actual de formas de área da como resultado una máscara vacía
+LINKED_MASK_NOT_FOUND_WARNING;Advertencia: no se encontró la máscara enlazada "%1->%2"
 MAIN_BUTTON_FULLSCREEN;Pantalla completa
 MAIN_BUTTON_ICCPROFCREATOR;Creador del perfil ICC
 MAIN_BUTTON_NAVNEXT_TOOLTIP;Navegar a la siguiente imagen relativa a la imagen abierta en el editor.\nAtajo: <b>Mayús-F4</b>\n\nNavegar a la siguiente imagen relativa a la miniatura seleccionada actualmente en el explorador de archivos o la tira de película:\nAtajo: <b>F4</b>
@@ -901,6 +934,7 @@ MAIN_TOOLTIP_BACKCOLOR2;Color de fondo de la vista previa: <b>blanco</b>\nAtajo:
 MAIN_TOOLTIP_BACKCOLOR3;Color de fondo de la vista previa: <b>gris medio</b>\nAtajo: <b>9</b>
 MAIN_TOOLTIP_BEFOREAFTERLOCK;<b>Bloquear</b> / <b>Desbloquear</b> la vista <b>Antes</b>\n\n<b>Bloquear</b>: mantiene la vista <b>Antes</b> inalterada.\n<b>Desbloquear</b>: la vista <b>Antes</b> se mantiene sincronizada con la vista <b>Después</b>.
 MAIN_TOOLTIP_FALSECOLORS;Alternar la indicación de la exposición mediante color falso.\nAtajo: <b>Mayús-e</b>\n\nClave (Rango IRE):\n%1
+MAIN_TOOLTIP_GRIDOVERLAY;Mostrar/ocultar la superposición de cuadrícula.\nAtajo: <b>Ctrl-g</b>
 MAIN_TOOLTIP_HIDEHP;Mostrar/Ocultar el panel izquierdo (incluyendo la historia).\nAtajo: <b>l</b>
 MAIN_TOOLTIP_INDCLIPPEDH;Indicación de altas luces recortadas.\nAtajo: <b>&gt;</b>
 MAIN_TOOLTIP_INDCLIPPEDS;Indicación de sombras recortadas.\nAtajo: <b>&lt;</b>
@@ -1098,6 +1132,13 @@ PREFERENCES_FORRAW;Para fotos raw
 PREFERENCES_FSTRIP_SAME_THUMB_HEIGHT;La misma altura de miniatura en la tira de película y el explorador de archivos
 PREFERENCES_FSTRIP_SAME_THUMB_HEIGHT_HINT;Tener un tamaño de miniatura separado requerirá más tiempo de procesamiento cada vez que cambie entre la pestaña de editor único y el explorador de archivos.
 PREFERENCES_GIMPPATH;Carpeta de instalación de GIMP
+PREFERENCES_GPU;Aceleración por GPU
+PREFERENCES_GPU_DEVICE_AUTO;Auto
+PREFERENCES_GPU_DEVICE_LABEL;Dispositivo:
+PREFERENCES_GPU_ENABLED;Usar la aceleración por GPU para algunas operaciones costosas
+PREFERENCES_GPU_NO_DEVICES;No se ha encontrado ningún dispositivo Vulkan en este sistema, por lo que la aceleración por GPU no está disponible. Normalmente significa que no hay instalado ningún cargador (loader) ni controlador de Vulkan.
+PREFERENCES_GPU_TOOLTIP;Recurre automáticamente a la CPU si no se encuentra ningún dispositivo adecuado.
+PREFERENCES_HIGHLIGHT_SELECTED_THUMBNAILS;Resaltar las miniaturas seleccionadas
 PREFERENCES_HISTOGRAMPOSITIONLEFT;Histograma en el panel izquierdo
 PREFERENCES_HISTOGRAM_TOOLTIP;Si está activado, el perfil de trabajo se usa para renderizar el histograma principal y el panel navegador, de lo contrario se usa el perfil de salida gamma corregido.
 PREFERENCES_HLTHRESHOLD;Umbral de altas luces recortadas
@@ -1152,6 +1193,7 @@ PREFERENCES_PREVDEMO;Precisión de la vista previa
 PREFERENCES_PREVDEMO_FAST;Rápido
 PREFERENCES_PREVDEMO_LABEL;Método de interpolación usado para la vista previa al <100% de zoom:
 PREFERENCES_PREVDEMO_SIDECAR;Como en ARP
+PREFERENCES_PREVIEW_RESAMPLING_QUALITY;Calidad de remuestreo de la imagen de vista previa con zoom <100%:
 PREFERENCES_PRINTER;Prueba en pantalla
 PREFERENCES_PROFILEHANDLING;Tratamiento de los perfiles de procesamiento
 PREFERENCES_PROFILELOADPR;Prioridad de carga de los perfiles de procesamiento
@@ -1168,9 +1210,11 @@ PREFERENCES_PROFILE_SAVE_OUTPUT_EMBEDDED;Incrustar en los metadatos
 PREFERENCES_PRTINTENT;Intención de renderizado
 PREFERENCES_PRTPROFILE;Perfil de color
 PREFERENCES_PSPATH;Carpeta de instalación de Adobe Photoshop
+PREFERENCES_QINSPECT_POPUP_SIZE;Tamaño de la ventana de inspección rápida (como % del tamaño de la ventana)
 PREFERENCES_REMEMBERZOOMPAN;Recordar el nivel de zoom y la posición
 PREFERENCES_REMEMBERZOOMPAN_TOOLTIP;Recuerda el nivel de zoom y la posición de la imagen actual cuando se abre una nueva imagen.\n\nEsta opción solo funciona en el "Modo de pestañas de un solo editor" y cuando el "Método de interpolación usado para la vista previa con un zoom <100%" está establecido como "Como en ARP".
 PREFERENCES_REMEMBER_METADATA_FILTERS;Recordar filtros de metadatos
+PREFERENCES_REMEMBER_RENAME_OPTIONS;Recordar los ajustes de renombrado/copia de archivos
 PREFERENCES_SAVE_TP_OPEN_NOW;Guardar el estado contraído/expandido de las herramientas ahora
 PREFERENCES_SELECTLANG;Seleccionar idioma
 PREFERENCES_SERIALIZE_TIFF_READ;Ajustes de lectura TIFF
@@ -1189,6 +1233,11 @@ PREFERENCES_SND_LNGEDITPROCDONE;El procesamiento del editor ha finalizado
 PREFERENCES_SND_BATCHQUEUEDONE;Trabajos en cola finalizados
 PREFERENCES_SND_THRESHOLDSECS;Después de segundos
 PREFERENCES_STARTUPIMDIR;Carpeta de imágenes en el arranque
+PREFERENCES_SURROUND_VERYBRIGHT;Compensación de luz ambiental: entorno muy brillante
+PREFERENCES_SURROUND_BRIGHT;Compensación de luz ambiental: entorno brillante
+PREFERENCES_SURROUND_OFF;Compensación de luz ambiental: ninguna
+PREFERENCES_SURROUND_DIM;Compensación de luz ambiental: entorno tenue
+PREFERENCES_SURROUND_DARK;Compensación de luz ambiental: entorno oscuro
 PREFERENCES_TAB_BROWSER;Explorador de archivos
 PREFERENCES_TAB_COLORMGR;Gestión del color
 PREFERENCES_TAB_DYNAMICPROFILE;Reglas de perfil dinámico
@@ -1715,6 +1764,10 @@ TP_LABMASKS_POSTPROCESS;Post-procesamiento de máscara
 TP_LABMASKS_POSTPROCESS_CURVE;Curva tonal
 TP_LABMASKS_POSTPROCESS_POSTERIZATION;Posterización
 TP_LABMASKS_POSTPROCESS_SMOOTHING;Suavizado
+TP_LABMASKS_LINKEDMASK;Máscara enlazada
+TP_LABMASKS_EXTERNALMASK;Máscara externa
+TP_LABMASKS_EXTERNALMASK_SELECT;Seleccionar archivo de máscara...
+TP_LABMASKS_EXTERNALMASK_FILENAME;Archivo de máscara
 TP_LENSGEOM_AUTOCROP;Recorte automático
 TP_LENSGEOM_FILL;Relleno automático
 TP_GEOM_LABEL;Geometría
@@ -1899,6 +1952,7 @@ TP_RESIZE_CM;cm
 TP_RESIZE_IN;in
 TP_RESIZE_W;Ancho:
 TP_RESIZE_WIDTH;Ancho
+TP_RESIZE_COPY_PPI_TO_EXIF;Copiar PPP a EXIF
 TP_RGBCURVES_BLUE;B
 TP_RGBCURVES_CHANNEL;Canal
 TP_RGBCURVES_GREEN;G
@@ -1944,6 +1998,7 @@ TP_SMOOTHING_MODE_NLMEANS;Medias no locales
 TP_SMOOTHING_MODE_LENS;Desenfoque de lente
 TP_SMOOTHING_MODE_MOTION;Desenfoque de movimiento
 TP_SMOOTHING_MODE_NOISE;Añadir ruido
+TP_SMOOTHING_MODE_WAVELETS;Wavelets
 TP_SMOOTHING_NOISE_COARSENESS;Rugosidad
 TP_SMOOTHING_CHANNEL;Canal
 TP_SMOOTHING_CHANNEL_L;Luminancia
@@ -1959,6 +2014,7 @@ TP_SMOOTHING_NUMBLADES;Hojas
 TP_SMOOTHING_ANGLE;Ángulo
 TP_SMOOTHING_CURVATURE;Curvatura
 TP_SMOOTHING_OFFSET;Desplazamiento
+TP_SMOOTHING_WAVELETS_LEVELS;Niveles
 TP_SOFTLIGHT_LABEL;Luz tenue
 TP_SOFTLIGHT_STRENGTH;Intensidad
 TP_SPOT_COUNTLABEL;%1 punto(s)
@@ -2027,11 +2083,21 @@ ZOOMPANEL_ZOOMIN;Aumentar zoom\nAtajo: <b>+</b>
 ZOOMPANEL_ZOOMOUT;Reducir zoom\nAtajo: <b>-</b>
 # added with automatic translation
 HISTORY_MSG_COLORCORRECTION_HSL_GAMMA;CC - gamma
+HISTORY_MSG_COLORCORRECTION_LINKEDMASK;CC - máscara enlazada
+HISTORY_MSG_COLORCORRECTION_EXTERNALMASK;CC - máscara externa
 PREFERENCES_MONITOR_GAMUT;Gama del monitor
 PREFERENCES_OSCOLORMGMT_INFO;La gestión del color está integrada en el entorno del sistema operativo/escritorio y activada globalmente.\nUtilice las funciones de su entorno para establecer el perfil del monitor y, a continuación, seleccione aquí la gama más adecuada.
 TP_COLORCORRECTION_HSL_GAMMA;Gamma
+TP_COLORCORRECTION_LUT_PRESET;Preajuste
 PREFERENCES_MONPROFILE_WARN_SRGB;En este sistema operativo/entorno de escritorio solo se admite sRGB como perfil de monitor.
 HISTORY_MSG_GRAIN_COLOR;Grano de película - Modo
 TP_GRAIN_MODE;Modo
 TP_GRAIN_COLOR;Color
 TP_GRAIN_BW;Blanco y negro
+FILEBROWSER_BROWSEPATH_RECURSIVE_TOOLTIP;Buscar imágenes recursivamente en los subdirectorios.
+FILEBROWSER_RENAME_DIALOG_COPY_LABEL;Copiar archivo(s)
+RENAME_DIALOG_ERROR_COPY;Error al copiar %1 a %2
+RENAME_DIALOG_FILENAMES_COPY;Archivos a copiar
+PROGRESSBAR_FILE_RENAME;Renombrando archivos...
+PROGRESSBAR_FILE_COPY;Copiando archivos...
+PROGRESSBAR_FILE_DELETE;Eliminando archivos...

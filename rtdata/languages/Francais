@@ -94,6 +94,7 @@ EXIFPANEL_RESETALLHINT;Réinitialiser toutes les étiquettes à leur valeur init
 EXIFPANEL_RESETHINT;Réinitialiser les étiquettes sélectionnées à la valeur initiale
 EXIFPANEL_BASIC_GROUP;De base
 EXIFPANEL_VALUE_NOT_SHOWN;Non montrée
+EXIFPANEL_METADATUM_TOOLTIP;<b>Tag : </b>%1\n<b>Clé : </b>%2\n<b>Valeur : </b>%3
 EXPORT_BYPASS;Étapes de traitement à ignorer
 EXPORT_BYPASS_ALL;Sélectionner / Désélectionner tout
 EXPORT_BYPASS_DEFRINGE;Ignorer la Correction des Franges Colorées
@@ -139,6 +140,9 @@ FILEBROWSER_DELETEDIALOG_HEADER;Confirmation de la suppression de fichier
 FILEBROWSER_DELETEDIALOG_ALL;Êtes-vous sûr de vouloir effacer tous les <b>%1</b> fichiers de la corbeille ?
 FILEBROWSER_DELETEDIALOG_SELECTED;Êtes-vous sûr de voulor effacer les <b>%1</b> fichiers sélectionnés ?
 FILEBROWSER_DELETEDIALOG_SELECTEDINCLPROC;Êtes-vous sûr de vouloir effacer les fichiers <b>%1</b> sélectionnés <b>y-compris</b> une version en file de traitement ?
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_TITLE;Confirmer la remise à zéro du profil
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_MSG;Les <b>%1</b> fichier(s) ci-dessous ont des instantanés qui seront <b>supprimés définitivement</b> si vous remettez à zéro leur profil de traitement. Continuer quand même ?
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_MSG_SINGLE;Le fichier <b>%1</b> a des instantanés qui seront <b>supprimés définitivement</b> si vous remettez à zéro son profil de traitement. Continuer quand même ?
 FILEBROWSER_EMPTYTRASHHINT;Effacer définitivement les fichiers de la corbeille
 FILEBROWSER_EXTPROGMENU;Commandes utilisateur
 FILEBROWSER_FLATFIELD;Champ Uniforme
@@ -166,6 +170,7 @@ FILEBROWSER_POPUPOPENINEDITOR;Ouvrir dans l'éditeur
 FILEBROWSER_POPUPPROCESS;Mettre dans la file de traitement
 FILEBROWSER_POPUPPROCESSFAST;Mettre dans la file de traitement (Export Rapide)
 FILEBROWSER_POPUPPROFILEOPERATIONS;Opérations sur les profils
+FILEBROWSER_POPUPQINSPECT;Inspection rapide
 FILEBROWSER_POPUPRANK;Rang
 FILEBROWSER_POPUPRANK0;Aucun
 FILEBROWSER_POPUPRANK1;Rang 1 * 
@@ -519,6 +524,7 @@ HISTORY_MSG_473;PS - Utiliser LMMSE
 HISTORY_MSG_474;PS - Égaliser
 HISTORY_MSG_475;PS - Égaliser par canal
 HISTORY_MSG_485;Correction d'Objectif
+HISTORY_MSG_486;Corr. d'Obj. - Appareil photo
 HISTORY_MSG_487;Corr. d'Obj. - Objectif
 HISTORY_MSG_488;Compression de la Plage Dynamique
 HISTORY_MSG_489;CPD - Détail
@@ -706,6 +712,9 @@ HISTORY_MSG_SMOOTHING_NOISE_STRENGTH;Lissage - Force du masque
 HISTORY_MSG_SMOOTHING_MASK_POSTPROCESS;Lissage - Post-traitement du masque
 HISTORY_MSG_SMOOTHING_HALATION_SIZE;Lissage - Force du halo
 HISTORY_MSG_SMOOTHING_HALATION_COLOR;Lissage - Teinte du halo
+HISTORY_MSG_SMOOTHING_WAVELETS_STRENGTH;Lissage - force des ondelettes
+HISTORY_MSG_SMOOTHING_WAVELETS_LEVELS;Lissage - niveaux des ondelettes
+HISTORY_MSG_SMOOTHING_WAVELETS_GAMMA;Lissage - gamma des ondelettes
 HISTORY_MSG_SMOOTHING_NOISE_COARSENESS;Lissage - Dureté du bruit
 HISTORY_MSG_SMOOTHING_LINKEDMASK;Lissage - Masque lié
 HISTORY_MSG_SMOOTHING_EXTERNALMASK;Lissage - Masque externe
@@ -1096,6 +1105,12 @@ PREFERENCES_FORRAW;Pour les images raw
 PREFERENCES_FSTRIP_SAME_THUMB_HEIGHT;Taille de vignette identique entre la Pellicule et le Navigateur de Fichiers
 PREFERENCES_FSTRIP_SAME_THUMB_HEIGHT_HINT;Avoir une hauteur de vignettes différente demandera plus de temp de traitement à chaque fois que vous baculerez entre le mode Éditeur Onglet Unique et le Navigateur de Fichiers.
 PREFERENCES_GIMPPATH;Dossier d'intallation de GIMP
+PREFERENCES_GPU;Accélération GPU
+PREFERENCES_GPU_DEVICE_AUTO;Auto
+PREFERENCES_GPU_DEVICE_LABEL;Périphérique :
+PREFERENCES_GPU_ENABLED;Utiliser l'accélération GPU pour certaines opérations coûteuses
+PREFERENCES_GPU_NO_DEVICES;Aucun périphérique Vulkan n'a été trouvé sur ce système, l'accélération GPU n'est donc pas disponible. Cela signifie généralement qu'aucun chargeur (loader) ou pilote Vulkan n'est installé.
+PREFERENCES_GPU_TOOLTIP;Bascule automatiquement sur le CPU si aucun périphérique adapté n'est trouvé.
 PREFERENCES_HIGHLIGHT_SELECTED_THUMBNAILS;Mettre en surbrillance les vignettes sélectionnées
 PREFERENCES_HISTOGRAMPOSITIONLEFT;Histogramme dans le panneau de gauche
 PREFERENCES_HISTOGRAM_TOOLTIP;Si activé, le profil colorimétrique de travail est utilisé pour les données d'histogramme et le panneau Navigateur, sinon le profil colorimétrique de travail de sortie "gamma-corrigé" est utilisé.
@@ -1168,6 +1183,7 @@ PREFERENCES_PROFILE_SAVE_OUTPUT_EMBEDDED;Inclure dans les metadata
 PREFERENCES_PRTINTENT;Intention de rendu
 PREFERENCES_PRTPROFILE;Profil colorimétrique
 PREFERENCES_PSPATH;Dossier d'installation d'Adobe Photoshop
+PREFERENCES_QINSPECT_POPUP_SIZE;Taille de la fenêtre d'inspection rapide (en % de la fenêtre)
 PREFERENCES_REMEMBERZOOMPAN;Se souvenir du niveau de zoom et de la position de l'image
 PREFERENCES_REMEMBERZOOMPAN_TOOLTIP;Retient le niveau de zoom et la position de l'image courante lors de l'ouverture d'une nouvelle image.\n\nCette option ne fonctionne que dans le mode "Onglet Éditeur Unique" et quand "Méthode de dématriçage utilisée pour l'aperçu à un zoom <100%" est fixé à "Comme dans profil ARP"
 PREFERENCES_REMEMBER_METADATA_FILTERS;Se souvenir des filtres des metadonnées
@@ -1278,6 +1294,7 @@ QUEUE_FORMAT_TITLE;Format du fichier
 QUEUE_LOCATION_FOLDER;Enregistrer dans le dossier
 QUEUE_LOCATION_TEMPLATE;Utiliser le modèle
 QUEUE_LOCATION_TEMPLATE_TOOLTIP;Spécifiez l'emplacement de sortie en fonction de l'emplacement, du classement, de l'état de la corbeille ou de la position dans la file d'attente de la photo source.\n\nEn utilisant le chemin d'accès suivant comme exemple :\n<b>/home/tom/photos/2010-10-31/photo1.raw</b>\nla signification des chaînes de formatage est la suivante :\n<b>%d4</b> = <i>home</i>\n<b>%d3</b> = <i>tom</i>\n<b>%d2</b> = <i>photos</i>\n<b>%d1</b> = <i>31/10/2010</i> \n<b>%f</b> = <i>photo1</i>\n<b>%p1</b> = <i>/home/tom/photos/2010-10-31/</i>\n<b>%p2</b> = <i>/home/tom/photos/</i>\n<b>%p3</b> = <i>/home/tom/</i>\n<b>%p4</b> = <i>/home/</i>\n\n<b>%r</b> sera remplacé par le classement de la photo. Si la photo n'est pas classée, '<i>0</i>' est utilisé. Si la photo est dans la corbeille, '<i>x</i>' est utilisé.\n\n<b>%s1</b>, ..., <b>%s9</b> sera remplacé par la position initiale de la photo dans la file d'attente au moment du démarrage de la file d'attente. Le nombre spécifie le remplissage, par ex. <b>%s3</b> donne '<i>001</i>'.\n\n<b>%n</b> sera remplacé par le nom de l'instantané actuellement appliqué. Si aucun instantané n’existe ou n’est sélectionné, la chaîne vide sera utilisée. <b>%u</b> peut être utilisé à la place de <b>%n</b> pour remplacer les espaces par des traits de soulignement dans le nom de l'instantané.\n\nSi vous souhaitez enregistrer l'image de sortie à côté de l'image source, écrivez :\n<b>%p1/%f</b>\n\nSi vous souhaitez enregistrer l'image de sortie dans un dossier nommé '<i>converti</i>' situé dans le dossier de la photo source, écrivez :\ n<b>%p1/converted/%f</b>\n\nSi vous souhaitez enregistrer l'image de sortie dans\n'<i>/home/tom/photos/converted/2010-10-31</i>', écrivez :\n<b>%p2/converted/%d1/%f</b>
+QUEUE_LOCATION_TITLE;Emplacement de sortie
 ​QUEUE_LOCATION_TITLE;Emplacement de sortie
 QUEUE_STARTSTOP_TOOLTIP;Démarre ou arrête le traitement des images dans la file.\n\nRaccourci : <b>Ctrl</b>+<b>s</b>
 RENAME_DIALOG_BASEDIR;Répertoire
@@ -1554,7 +1571,7 @@ TP_FILMNEGATIVE_PICK;Echantillonner les points Blanc et Noir
 TP_FILMNEGATIVE_RED;Ratio de Rouge
 TP_FILMNEGATIVE_COLORSPACE;Espace colorimétrique d'inversion:
 TP_FILMNEGATIVE_COLORSPACE_INPUT;Espace colorimétrique d'entrée
-TP_FILMNEGATIVE_COLORSPACE_TOOLTIPSélectionnez l'espace colorimétrique utilisé pour effectuer l'inversion négative:\n<b>Espace colorimétrique d'entrée</b>: effectuez l'inversion avant l'application du profil d'entrée, comme dans les versions précédentes de RT.\n<b>Espace colorimétrique de travail</b>: effectue l'inversion après le profil d'entrée, en utilisant le profil de travail actuellement sélectionné.
+TP_FILMNEGATIVE_COLORSPACE_TOOLTIP;Sélectionnez l'espace colorimétrique utilisé pour effectuer l'inversion négative:\n<b>Espace colorimétrique d'entrée</b>: effectuez l'inversion avant l'application du profil d'entrée, comme dans les versions précédentes de RT.\n<b>Espace colorimétrique de travail</b>: effectue l'inversion après le profil d'entrée, en utilisant le profil de travail actuellement sélectionné.
 TP_FILMNEGATIVE_COLORSPACE_WORKING;Espace colorimétrique de travail
 TP_FILMNEGATIVE_OUT_LEVEL;Niveau de sortie
 TP_FILMNEGATIVE_REF_LABEL;Entrée RGB: %1
@@ -1902,6 +1919,7 @@ TP_RESIZE_APPLIESTO;S'applique à :
 TP_RESIZE_CROPPEDAREA;La zone rognée
 TP_RESIZE_FITBOX;Une boîte englobante
 TP_RESIZE_FULLIMAGE;L'image entière
+TP_RESIZE_H;Hauteur :
 TP_RESIZE_HEIGHT;Hauteur
 TP_RESIZE_LABEL;Redimensionnement
 TP_RESIZE_SCALE;Échelle
@@ -1958,6 +1976,7 @@ TP_SMOOTHING_MODE_NLMEANS;Outils non-locaux
 TP_SMOOTHING_MODE_LENS;Flou d'objectif
 TP_SMOOTHING_MODE_MOTION;Flou de mouvement
 TP_SMOOTHING_MODE_NOISE;Ajouter du bruit
+TP_SMOOTHING_MODE_WAVELETS;Ondelettes
 TP_SMOOTHING_NOISE_COARSENESS;Dureté
 TP_SMOOTHING_CHANNEL;Canal
 TP_SMOOTHING_CHANNEL_L;Luminance
@@ -1973,6 +1992,7 @@ TP_SMOOTHING_NUMBLADES;Diaphragme (nb de lames)
 TP_SMOOTHING_ANGLE;Angle
 TP_SMOOTHING_CURVATURE;Courbure
 TP_SMOOTHING_OFFSET;Décalage
+TP_SMOOTHING_WAVELETS_LEVELS;Niveaux
 TP_SOFTLIGHT_LABEL;Lumière douce
 TP_SOFTLIGHT_STRENGTH;Force
 TP_SPOT_COUNTLABEL;%1 point(s)
@@ -2049,4 +2069,11 @@ HISTORY_MSG_GRAIN_COLOR;Grain du film - Mode
 TP_GRAIN_MODE;Mode
 TP_GRAIN_COLOR;Couleur
 TP_GRAIN_BW;N&B
+FILEBROWSER_BROWSEPATH_RECURSIVE_TOOLTIP;Rechercher les images récursivement dans les sous-dossiers.
+FILEBROWSER_RENAME_DIALOG_COPY_LABEL;Copier le(s) fichier(s)
+RENAME_DIALOG_ERROR_COPY;Échec de la copie de %1 vers %2
+RENAME_DIALOG_FILENAMES_COPY;Fichiers à copier
+PROGRESSBAR_FILE_RENAME;Renommage des fichiers...
+PROGRESSBAR_FILE_COPY;Copie des fichiers...
+PROGRESSBAR_FILE_DELETE;Suppression des fichiers...
 TP_COLORCORRECTION_LUT_PRESET;Préréglage

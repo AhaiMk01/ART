@@ -168,6 +168,9 @@ FILEBROWSER_DELETEDIALOG_HEADER;ファイル削除確認
 FILEBROWSER_DELETEDIALOG_ALL;ゴミ箱の中にある<b>%1</b>枚のファイル全てを削除しますか？
 FILEBROWSER_DELETEDIALOG_SELECTED;選択した<b>%1</b>枚のファイルを削除しますか？
 FILEBROWSER_DELETEDIALOG_SELECTEDINCLPROC;キュー処理に保持されているファイルを<b>含め</b> 選択した<b>%1</b>枚のファイルを削除しますか？
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_TITLE;プロファイルのクリアの確認
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_MSG;以下の <b>%1</b> 個のファイルにはスナップショットがあり、処理プロファイルをクリアすると<b>完全に削除</b>されます。このまま続行しますか?
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_MSG_SINGLE;ファイル <b>%1</b> にはスナップショットがあり、処理プロファイルをクリアすると<b>完全に削除</b>されます。このまま続行しますか?
 FILEBROWSER_EMPTYTRASHHINT;ゴミ箱の中のファイルを全て<b>完全に</b> 削除します
 FILEBROWSER_EXTPROGMENU;ユーザーコマンド
 FILEBROWSER_FLATFIELD;フラットフィールド
@@ -1129,6 +1132,12 @@ PREFERENCES_FORRAW;raw画像
 PREFERENCES_FSTRIP_SAME_THUMB_HEIGHT;ファイルブラウザと編集パネルのサムネイルのサイズを同じにする
 PREFERENCES_FSTRIP_SAME_THUMB_HEIGHT_HINT;サムネイルのサイズが異なると 編集パネルとファイルブラウザ間の切り替えで 余分な処理時間がかかります
 PREFERENCES_GIMPPATH;GIMP インストール ディレクトリ
+PREFERENCES_GPU;GPU アクセラレーション
+PREFERENCES_GPU_DEVICE_AUTO;自動
+PREFERENCES_GPU_DEVICE_LABEL;デバイス:
+PREFERENCES_GPU_ENABLED;負荷の高い一部の処理に GPU アクセラレーションを使用
+PREFERENCES_GPU_NO_DEVICES;このシステムでは Vulkan デバイスが見つからなかったため、GPU アクセラレーションは利用できません。通常は、Vulkan ローダーまたはドライバーがインストールされていないことを意味します。
+PREFERENCES_GPU_TOOLTIP;適切なデバイスが見つからない場合は、自動的に CPU に切り替わります。
 PREFERENCES_HIGHLIGHT_SELECTED_THUMBNAILS;ハイライト選択済サムネイル
 PREFERENCES_HISTOGRAMPOSITIONLEFT;左パネルにヒストグラム
 PREFERENCES_HISTOGRAM_TOOLTIP;これを有効にすると ヒストグラムとナビゲーターの表示に 出力プロファイル（ガンマ適用）の代わりに作業プロファイルを使います

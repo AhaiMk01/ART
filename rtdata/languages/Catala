@@ -100,6 +100,7 @@ EXIFFILTER_FOCALLEN;Distància focal
 EXIFFILTER_IMAGETYPE;Tipus d'imatge
 EXIFFILTER_ISO;ISO
 EXIFFILTER_LENS;Lent
+EXIFFILTER_ORIENTATION;Orientació
 EXIFFILTER_METADATAFILTER;Activa els filtres de metadades
 EXIFFILTER_SHUTTER;Temps d'exposició
 EXIFFILTER_SOFTWARE;Programari
@@ -116,6 +117,7 @@ EXIFPANEL_RESETALLHINT;Restableix totes les etiquetes als valors predeterminats.
 EXIFPANEL_RESETHINT;Restableix les etiquetes seleccionades als valors predeterminats.
 EXIFPANEL_BASIC_GROUP;Bàsic
 EXIFPANEL_VALUE_NOT_SHOWN;No mostrat
+EXIFPANEL_METADATUM_TOOLTIP;<b>Etiqueta: </b>%1\n<b>Clau: </b>%2\n<b>Valor: </b>%3
 EXPORT_BYPASS;Passos de processament a saltar
 EXPORT_BYPASS_ALL;Selecciona / Desselecciona tot
 EXPORT_BYPASS_DEFRINGE;Salta l'eliminació d'halos
@@ -141,6 +143,8 @@ EXPORT_RAW_DMETHOD;Mètode d'interpolació
 EXPORT_USE_FAST_PIPELINE;Dedicat (processament complet en imatge redimensionada)
 EXPORT_USE_FAST_PIPELINE_TIP;Utilitzar una cadena de processament dedicada per a les imatges en el mode d'exportació ràpida, que canvia la velocitat per la qualitat. El canvi de mida de la imatge es realitza al més aviat possible, en lloc de fer-ho al final com a la cadena normal. L'acceleració pot ser significativa, però prepareu-vos per veure defectes i una degradació general de la qualitat de sortida.
 EXPORT_USE_NORMAL_PIPELINE;Estàndard (saltar alguns passos, canviar la mida al final)
+EXTERNAL_MASK_ASPECT_RATIO_WARNING;Advertiment: la relació d'aspecte de la imatge i de la màscara externa no coincideixen
+EXTERNAL_MASK_LOAD_FAILED_WARNING;Advertiment: no s'ha pogut carregar la màscara externa des de "%1"
 FILEBROWSER_APPLYPROFILE;Aplica
 FILEBROWSER_APPLYPROFILE_PARTIAL;Aplica - parcial
 FILEBROWSER_AUTODARKFRAME;Presa negra automàtica
@@ -159,6 +163,9 @@ FILEBROWSER_DELETEDIALOG_HEADER;Confirmació d'eliminació de fitxers:
 FILEBROWSER_DELETEDIALOG_ALL;Esteu segurs que voleu eliminar tots els fitxers <b>%1</b> de la paperera?
 FILEBROWSER_DELETEDIALOG_SELECTED;Esteu segurs que voleu eliminar els fitxers seleccionats <b>%1</b>?
 FILEBROWSER_DELETEDIALOG_SELECTEDINCLPROC;Esteu segurs que voleu eliminar els fitxers seleccionats <b>%1</b> <b>incloent</b> una versió processada en cua?
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_TITLE;Confirma l'esborrat del perfil
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_MSG;Els <b>%1</b> fitxer(s) següents tenen instantànies que se <b>suprimiran permanentment</b> si esborreu el seu perfil de processament. Voleu continuar igualment?
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_MSG_SINGLE;El fitxer <b>%1</b> té instantànies que se <b>suprimiran permanentment</b> si n'esborreu el perfil de processament. Voleu continuar igualment?
 FILEBROWSER_EMPTYTRASHHINT;Eliminar tots els fitxers de la paperera de forma permanent.
 FILEBROWSER_EXTPROGMENU;Ordres d'usuari
 FILEBROWSER_FLATFIELD;Camp pla
@@ -186,6 +193,7 @@ FILEBROWSER_POPUPOPENINEDITOR;Obre a l'editor
 FILEBROWSER_POPUPPROCESS;Posa a la cua
 FILEBROWSER_POPUPPROCESSFAST;Posa a la cua (exportació ràpida)
 FILEBROWSER_POPUPPROFILEOPERATIONS;Operacions amb perfils
+FILEBROWSER_POPUPQINSPECT;Inspecció ràpida
 FILEBROWSER_POPUPRANK;Assigna puntuació
 FILEBROWSER_POPUPRANK0;Sense puntuació
 FILEBROWSER_POPUPRANK1;Puntuació 1 *
@@ -209,6 +217,9 @@ FILEBROWSER_RANK3_TOOLTIP;Puntuació 3 *\nDrecera: <b>Majús-3</b>
 FILEBROWSER_RANK4_TOOLTIP;Puntuació 4 *\nDrecera: <b>Majús-4</b>
 FILEBROWSER_RANK5_TOOLTIP;Puntuació 5 *\nDrecera: <b>Majús-5</b>
 FILEBROWSER_RENAMEDLGLABEL;Canvia el nom a fitxer(s)
+FILEBROWSER_RENAME_DIALOG_LOAD_TIP;Carrega la configuració des d'un fitxer
+FILEBROWSER_RENAME_DIALOG_SAVE_TIP;Desa la configuració en un fitxer
+FILEBROWSER_RENAME_DIALOG_RESET_TIP;Restableix la configuració als valors predeterminats
 FILEBROWSER_RESETDEFAULTPROFILE;Restableix al valor predeterminat
 FILEBROWSER_SELECTDARKFRAME;Selecciona presa negra...
 FILEBROWSER_SELECTFLATFIELD;Selecciona camp pla...
@@ -241,6 +252,7 @@ FILEBROWSER_SHOWUNCOLORHINT;Mostra imatges sense etiqueta de color.\nDrecera: <b
 FILEBROWSER_SHOWUNRANKHINT;Mostra imatges sense puntuació.\nDrecera: <b>0</b>
 FILEBROWSER_SORT_LABEL;Ordre de les miniatures
 FILEBROWSER_SORT_FILENAME;Nom del fitxer
+FILEBROWSER_SORT_FILENAME_REV;Nom del fitxer (invers)
 FILEBROWSER_SORT_DATE;Data
 FILEBROWSER_SORT_DATE_REV;Data (invers)
 FILEBROWSER_SORT_MODTIME;Hora modificació del fitxer
@@ -255,10 +267,14 @@ FILECHOOSER_FILTER_ANY;Tots els fitxers
 FILECHOOSER_FILTER_COLPROF;Perfils de color (*.icc)
 FILECHOOSER_FILTER_CURVE;Fitxers de corba
 FILECHOOSER_FILTER_LCP;Perfils de correcció de lents
+FILECHOOSER_FILTER_INI;Fitxers de configuració (*.ini)
 FILECHOOSER_FILTER_PP;Perfils de processament
 FILECHOOSER_FILTER_SAME;El mateix format que la foto actual
 FILECHOOSER_FILTER_TIFF;Fitxers TIFF
 FILECHOOSER_FILTER_LUT;Fitxers LUT compatibles
+FONTCHOOSER_FAMILY;Família
+FONTCHOOSER_SIZE;Mida
+FONTCHOOSER_TITLE;Selecciona el tipus de lletra
 GENERAL_ABOUT;Sobre
 GENERAL_AFTER;Després
 GENERAL_APPLY;Aplica
@@ -276,7 +292,11 @@ GENERAL_DISABLED;Desactivat
 GENERAL_ENABLE;Activa
 GENERAL_ENABLED;Activat
 GENERAL_FILE;Fitxer
+GENERAL_HIGH;Alt
 GENERAL_LANDSCAPE;Paisatge
+GENERAL_LOAD;Carrega
+GENERAL_LOW;Baix
+GENERAL_MEDIUM;Mitjà
 GENERAL_NA;n/a
 GENERAL_NO;No
 GENERAL_NONE;Cap
@@ -288,10 +308,12 @@ GENERAL_SAVE;Desa
 GENERAL_SAVE_AS;Desa com...
 GENERAL_SLIDER;Control lliscant
 GENERAL_UNCHANGED;(Sense canvis)
+GENERAL_UNKNOWN;Desconegut
 GENERAL_WARNING;Advertiment
 GENERAL_DEPRECATED;Obsolet
 GENERAL_DEPRECATED_TOOLTIP;¡Obsolet! S'eliminarà en una versió futura.
 GIMP_PLUGIN_INFO;Benvingut a l'extensió GIMP d'ART!\nUna vegada que acabeu d'editar, simplement tanqueu la finestra principal d'ART i la imatge s'importarà a GIMP automàticament.
+HIDPI_PREVIEW;Activa el mode píxel a píxel (mostra les imatges\namb la resolució nativa de la pantalla).
 HISTOGRAM_RAW_STATS_TOOLTIP;mín: %1 (%2), màx: %3 (%4), pic: %5 (%6)\n    rang: %7 EV, valors: %8, píxels: %9
 HISTOGRAM_TOOLTIP_B;Mostra/Oculta histograma blau.
 HISTOGRAM_TOOLTIP_BAR;Mostra/Oculta barra indicadora RGB.
@@ -609,8 +631,11 @@ HISTORY_MSG_EPD_DELTAEMASK;AT - màscara de similitud de color
 HISTORY_MSG_EPD_DRAWNMASK;AT - màscara de pinzell
 HISTORY_MSG_EPD_PARAMETRICMASK;AT - màscara paramètrica
 HISTORY_MSG_EPD_MASK_POSTPROCESS;TB - post-processament de màscara
+HISTORY_MSG_EPD_LINKEDMASK;AT - màscara enllaçada
+HISTORY_MSG_EPD_EXTERNALMASK;AT - màscara externa
 HISTORY_MSG_EXPOSURE_BLACK;Exposició - Punt negre
 HISTORY_MSG_EXPOSURE_HRBLUR;Exposició - Suavitzat de la propagació de color
+HISTORY_MSG_FILMNEGATIVE_BALANCE;FN - Sortida de referència
 ISTORY_MSG_FILMNEGATIVE_BALANCE;NP - Sortida de referència
 HISTORY_MSG_FILMNEGATIVE_ENABLED;Negatiu de pel·lícula
 HISTORY_MSG_FILMNEGATIVE_FILMBASE;Color base de la pel·lícula
@@ -643,6 +668,8 @@ HISTORY_MSG_LOCALCONTRAST_DELTAEMASK;Contrast local - màscara de similitud de c
 HISTORY_MSG_LOCALCONTRAST_DRAWNMASK;Contrast local - màscara de pinzell
 HISTORY_MSG_LOCALCONTRAST_PARAMETRICMASK;Contrast local - màscara paramètrica
 HISTORY_MSG_LOCALCONTRAST_MASK_POSTPROCESS;Contrast local - post-processament de màscara
+HISTORY_MSG_LOCALCONTRAST_LINKEDMASK;Contrast local - màscara enllaçada
+HISTORY_MSG_LOCALCONTRAST_EXTERNALMASK;Contrast local - màscara externa
 HISTORY_MSG_LOGENC_AUTO;Log - Automàtic
 HISTORY_MSG_LOGENC_AUTOGAIN;Log - Guany automàtic
 HISTORY_MSG_LOGENC_REGULARIZATION;Log - Regularització
@@ -671,6 +698,7 @@ HISTORY_MSG_RAW_BORDER;Vora raw
 HISTORY_MSG_RESIZE_ALLOWUPSCALING;Canvia mida - Permet l'ampliació
 HISTORY_MSG_RESIZE_PPI;Canvia mida - PPP
 HISTORY_MSG_RESIZE_UNIT;Canvia mida - Unitat
+HISTORY_MSG_RESIZE_COPY_PPI_TO_EXIF;Canvia mida - Copia PPP a EXIF
 HISTORY_MSG_SHARPENING_AUTORADIUS;Enfocament de la captura - Radi RLD automàtic
 HISTORY_MSG_SHARPENING_BLUR;Enfocament de la captura - Radi de desenfocament
 HISTORY_MSG_SHARPENING_CONTRAST;Enfocament de la captura - Llindar de contrast
@@ -709,6 +737,11 @@ HISTORY_MSG_SMOOTHING_NOISE_STRENGTH;Suavitzat - intensitat del soroll
 HISTORY_MSG_SMOOTHING_NOISE_COARSENESS;Suavitzat - rugositat del soroll
 HISTORY_MSG_SMOOTHING_HALATION_SIZE;Suavitzat - intensitat de l'halo
 HISTORY_MSG_SMOOTHING_HALATION_COLOR;Suavitzat - tint de l'halo
+HISTORY_MSG_SMOOTHING_WAVELETS_STRENGTH;Suavitzat - intensitat de wavelets
+HISTORY_MSG_SMOOTHING_WAVELETS_LEVELS;Suavitzat - nivells de wavelets
+HISTORY_MSG_SMOOTHING_WAVELETS_GAMMA;Suavitzat - gamma de wavelets
+HISTORY_MSG_SMOOTHING_LINKEDMASK;Suavitzat - màscara enllaçada
+HISTORY_MSG_SMOOTHING_EXTERNALMASK;Suavitzat - màscara externa
 HISTORY_MSG_SOFTLIGHT_ENABLED;Llum tènue
 HISTORY_MSG_SOFTLIGHT_STRENGTH;Llum tènue - Intensitat
 HISTORY_MSG_SPOT;Eliminació de taques
@@ -827,6 +860,7 @@ IPTCPANEL_TITLEHINT;Introduïu un nom curt i llegible per a la imatge, aquest po
 IPTCPANEL_TRANSREFERENCE;ID de tasca
 IPTCPANEL_TRANSREFERENCEHINT;Introduïu un número o identificador necessari per al control o seguiment del flux de treball.
 LABMASKS_AREA_MASK_EMPTY_WARNING;Advertiment: la combinació actual de formes d'àrea dóna com a resultat una màscara buida
+LINKED_MASK_NOT_FOUND_WARNING;Advertiment: no s'ha trobat la màscara enllaçada "%1->%2"
 MAIN_BUTTON_FULLSCREEN;Pantalla completa
 MAIN_BUTTON_ICCPROFCREATOR;Creador del perfil ICC
 MAIN_BUTTON_NAVNEXT_TOOLTIP;Navega a la següent imatge relativa a la imatge oberta a l'editor.\nDrecera: <b>Majús-F4</b>\n\nNavega a la següent imatge relativa a la miniatura seleccionada actualment a l'explorador de fitxers o la tira de pel·lícula:\nDrecera: <b>F4</b>
@@ -897,6 +931,7 @@ MAIN_TOOLTIP_BACKCOLOR2;Color de fons de la vista prèvia: <b>blanc</b>\nDrecera
 MAIN_TOOLTIP_BACKCOLOR3;Color de fons de la vista prèvia: <b>gris mitjà</b>\nDrecera: <b>9</b>
 MAIN_TOOLTIP_BEFOREAFTERLOCK;<b>Bloqueja</b> / <b>Desbloqueja</b> la vista <b>Abans</b>\n\n<b>Bloqueja</b>: manté la vista <b>Abans</b> inalterada.\n<b>Desbloqueja</b>: la vista <b>Abans</b> es manté sincronitzada amb la vista <b>Després</b>.
 MAIN_TOOLTIP_FALSECOLORS;Alterna la indicació de l'exposició mitjançant color fals.\nDrecera: <b>Majús-e</b>\n\nClau (Rang IRE):\n%1
+MAIN_TOOLTIP_GRIDOVERLAY;Mostra/amaga la superposició de graella.\nDrecera: <b>Ctrl-g</b>
 MAIN_TOOLTIP_HIDEHP;Mostra/Oculta el panell esquerre (incloent la història).\nDrecera: <b>l</b>
 MAIN_TOOLTIP_INDCLIPPEDH;Indicació d'altes llums retallades.\nDrecera: <b>&gt;</b>
 MAIN_TOOLTIP_INDCLIPPEDS;Indicació d'ombres retallades.\nDrecera: <b>&lt;</b>
@@ -1094,6 +1129,13 @@ PREFERENCES_FORRAW;Per a fotos raw
 PREFERENCES_FSTRIP_SAME_THUMB_HEIGHT;La mateixa alçada de miniatura a la tira de pel·lícula i l'explorador de fitxers
 PREFERENCES_FSTRIP_SAME_THUMB_HEIGHT_HINT;Tenir una mida de miniatura separada requerirà més temps de processament cada vegada que canvieu entre la pestanya d'editor únic i l'explorador de fitxers.
 PREFERENCES_GIMPPATH;Carpeta d'instal·lació de GIMP
+PREFERENCES_GPU;Acceleració per GPU
+PREFERENCES_GPU_DEVICE_AUTO;Auto
+PREFERENCES_GPU_DEVICE_LABEL;Dispositiu:
+PREFERENCES_GPU_ENABLED;Utilitza l'acceleració per GPU per a algunes operacions costoses
+PREFERENCES_GPU_NO_DEVICES;No s'ha trobat cap dispositiu Vulkan en aquest sistema, per la qual cosa l'acceleració per GPU no està disponible. Normalment vol dir que no hi ha instal·lat cap carregador (loader) ni controlador de Vulkan.
+PREFERENCES_GPU_TOOLTIP;Recorre automàticament a la CPU si no es troba cap dispositiu adequat.
+PREFERENCES_HIGHLIGHT_SELECTED_THUMBNAILS;Ressalta les miniatures seleccionades
 PREFERENCES_HISTOGRAMPOSITIONLEFT;Histograma al panell esquerre
 PREFERENCES_HISTOGRAM_TOOLTIP;Si està activat, el perfil de treball es fa servir per renderitzar l'histograma principal i el panell navegador, en cas contrari es fa servir el perfil de sortida gamma corregit.
 PREFERENCES_HLTHRESHOLD;Llindar d'altes llums retallades
@@ -1148,6 +1190,7 @@ PREFERENCES_PREVDEMO;Precisió de la vista prèvia
 PREFERENCES_PREVDEMO_FAST;Ràpid
 PREFERENCES_PREVDEMO_LABEL;Mètode d'interpolació utilitzat per a la vista prèvia al <100% de zoom:
 PREFERENCES_PREVDEMO_SIDECAR;Com en ARP
+PREFERENCES_PREVIEW_RESAMPLING_QUALITY;Qualitat del remostreig de la imatge de vista prèvia amb zoom <100%:
 PREFERENCES_PRINTER;Prova en pantalla
 PREFERENCES_PROFILEHANDLING;Tractament dels perfils de processament
 PREFERENCES_PROFILELOADPR;Prioritat de càrrega dels perfils de processament
@@ -1164,9 +1207,11 @@ PREFERENCES_PROFILE_SAVE_OUTPUT_EMBEDDED;Incrusta a les metadades
 PREFERENCES_PRTINTENT;Intenció de renderitzat
 PREFERENCES_PRTPROFILE;Perfil de color
 PREFERENCES_PSPATH;Carpeta d'instal·lació d'Adobe Photoshop
+PREFERENCES_QINSPECT_POPUP_SIZE;Mida de la finestra d'inspecció ràpida (com a % de la mida de la finestra)
 PREFERENCES_REMEMBERZOOMPAN;Recorda el nivell de zoom i la posició
 PREFERENCES_REMEMBERZOOMPAN_TOOLTIP;Recorda el nivell de zoom i la posició de la imatge actual quan s'obre una nova imatge.\n\nAquesta opció només funciona al "Mode de pestanyes d'un sol editor" i quan el "Mètode d'interpolació utilitzat per a la vista prèvia amb un zoom <100%" està establert com a "Com en ARP".
 PREFERENCES_REMEMBER_METADATA_FILTERS;Recorda filtres de metadades
+PREFERENCES_REMEMBER_RENAME_OPTIONS;Recorda la configuració de canvi de nom/còpia de fitxers
 PREFERENCES_SAVE_TP_OPEN_NOW;Desa l'estat tancat/obert de les eines ara
 PREFERENCES_SELECTLANG;Selecciona idioma
 PREFERENCES_SERIALIZE_TIFF_READ;Configuració de lectura TIFF
@@ -1185,6 +1230,11 @@ PREFERENCES_SND_LNGEDITPROCDONE;El processament de l'editor ha finalitzat
 PREFERENCES_SND_BATCHQUEUEDONE;Treballs en cua finalitzats
 PREFERENCES_SND_THRESHOLDSECS;Després de segons
 PREFERENCES_STARTUPIMDIR;Carpeta d'imatges a l'arrencada
+PREFERENCES_SURROUND_VERYBRIGHT;Compensació de llum ambient: entorn molt brillant
+PREFERENCES_SURROUND_BRIGHT;Compensació de llum ambient: entorn brillant
+PREFERENCES_SURROUND_OFF;Compensació de llum ambient: cap
+PREFERENCES_SURROUND_DIM;Compensació de llum ambient: entorn tènue
+PREFERENCES_SURROUND_DARK;Compensació de llum ambient: entorn fosc
 PREFERENCES_TAB_BROWSER;Explorador de fitxers
 PREFERENCES_TAB_COLORMGR;Gestió del color
 PREFERENCES_TAB_DYNAMICPROFILE;Regles de perfil dinàmic
@@ -1711,6 +1761,10 @@ TP_LABMASKS_POSTPROCESS;Post-processament de màscara
 TP_LABMASKS_POSTPROCESS_CURVE;Corba tonal
 TP_LABMASKS_POSTPROCESS_POSTERIZATION;Posterització
 TP_LABMASKS_POSTPROCESS_SMOOTHING;Suavitzat
+TP_LABMASKS_LINKEDMASK;Màscara enllaçada
+TP_LABMASKS_EXTERNALMASK;Màscara externa
+TP_LABMASKS_EXTERNALMASK_SELECT;Selecciona fitxer de màscara...
+TP_LABMASKS_EXTERNALMASK_FILENAME;Fitxer de màscara
 TP_LENSGEOM_AUTOCROP;Retallada automàtica
 TP_LENSGEOM_FILL;Emplenat automàtic
 TP_GEOM_LABEL;Geometria
@@ -1895,6 +1949,7 @@ TP_RESIZE_CM;cm
 TP_RESIZE_IN;in
 TP_RESIZE_W;Amplada:
 TP_RESIZE_WIDTH;Amplada
+TP_RESIZE_COPY_PPI_TO_EXIF;Copia PPP a EXIF
 TP_RGBCURVES_BLUE;B
 TP_RGBCURVES_CHANNEL;Canal
 TP_RGBCURVES_GREEN;G
@@ -1940,6 +1995,7 @@ TP_SMOOTHING_MODE_NLMEANS;Mitjanes no locals
 TP_SMOOTHING_MODE_LENS;Desenfocament de lent
 TP_SMOOTHING_MODE_MOTION;Desenfocament de moviment
 TP_SMOOTHING_MODE_NOISE;Afegeix soroll
+TP_SMOOTHING_MODE_WAVELETS;Wavelets
 TP_SMOOTHING_NOISE_COARSENESS;Rugositat
 TP_SMOOTHING_CHANNEL;Canal
 TP_SMOOTHING_CHANNEL_L;Luminància
@@ -1955,6 +2011,7 @@ TP_SMOOTHING_NUMBLADES;Fulles
 TP_SMOOTHING_ANGLE;Angle
 TP_SMOOTHING_CURVATURE;Curvatura
 TP_SMOOTHING_OFFSET;Desplaçament
+TP_SMOOTHING_WAVELETS_LEVELS;Nivells
 TP_SOFTLIGHT_LABEL;Llum tènue
 TP_SOFTLIGHT_STRENGTH;Intensitat
 TP_SPOT_COUNTLABEL;%1 punt(s)
@@ -2023,11 +2080,21 @@ ZOOMPANEL_ZOOMIN;Augmenta el zoom\nDrecera: <b>+</b>
 ZOOMPANEL_ZOOMOUT;Redueix el zoom\nDrecera: <b>-</b>
 # added with automatic translation
 HISTORY_MSG_COLORCORRECTION_HSL_GAMMA;CC - gamma
+HISTORY_MSG_COLORCORRECTION_LINKEDMASK;CC - màscara enllaçada
+HISTORY_MSG_COLORCORRECTION_EXTERNALMASK;CC - màscara externa
 PREFERENCES_MONITOR_GAMUT;Gamut del monitor
 PREFERENCES_OSCOLORMGMT_INFO;La gestió del color està integrada al sistema operatiu/entorn d'escriptori i s'habilita globalment.\nUtilitzeu les instal·lacions del vostre entorn per configurar el perfil del monitor i, a continuació, seleccioneu la gamma més adequada aquí.
 TP_COLORCORRECTION_HSL_GAMMA;Gamma
+TP_COLORCORRECTION_LUT_PRESET;Predefinit
 PREFERENCES_MONPROFILE_WARN_SRGB;Només sRGB és compatible com a perfil de monitor en aquest sistema operatiu/entorn d'escriptori.
 HISTORY_MSG_GRAIN_COLOR;Gran de pellícula - Mode
 TP_GRAIN_MODE;Mode
 TP_GRAIN_COLOR;Color
 TP_GRAIN_BW;B&N
+FILEBROWSER_BROWSEPATH_RECURSIVE_TOOLTIP;Cerca imatges recursivament als subdirectoris.
+FILEBROWSER_RENAME_DIALOG_COPY_LABEL;Copia fitxer(s)
+RENAME_DIALOG_ERROR_COPY;Error en copiar %1 a %2
+RENAME_DIALOG_FILENAMES_COPY;Fitxers a copiar
+PROGRESSBAR_FILE_RENAME;Canviant el nom dels fitxers...
+PROGRESSBAR_FILE_COPY;Copiant fitxers...
+PROGRESSBAR_FILE_DELETE;Suprimint fitxers...

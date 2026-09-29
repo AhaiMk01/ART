@@ -152,6 +152,9 @@ FILEBROWSER_DELETEDIALOG_ALL;Möchten Sie wirklich <b>%1</b> Dateien unwiderrufl
 FILEBROWSER_DELETEDIALOG_HEADER;Dateien löschen
 FILEBROWSER_DELETEDIALOG_SELECTED;Möchten Sie wirklich %1 Datei(en) unwiderruflich löschen?
 FILEBROWSER_DELETEDIALOG_SELECTEDINCLPROC;Möchten Sie wirklich %1 Datei(en) unwiderruflich löschen, mit allen aus der Stapelverarbeitung resultierenden zugehörigen Ausgabedateien?
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_TITLE;Profil löschen bestätigen
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_MSG;Die folgenden <b>%1</b> Datei(en) haben Schnappschüsse, die <b>dauerhaft gelöscht</b> werden, wenn Sie das Verarbeitungsprofil löschen. Trotzdem fortfahren?
+FILEBROWSER_CLEARPROFILE_SNAPSHOTS_MSG_SINGLE;Die Datei <b>%1</b> hat Schnappschüsse, die <b>dauerhaft gelöscht</b> werden, wenn Sie ihr Verarbeitungsprofil löschen. Trotzdem fortfahren?
 FILEBROWSER_EMPTYTRASHHINT;Alle Dateien im Papierkorb\n<b>unwiderruflich</b> löschen.
 FILEBROWSER_EXTPROGMENU;Öffnen mit
 FILEBROWSER_FLATFIELD;Weißbild
@@ -256,6 +259,10 @@ FILECHOOSER_FILTER_CURVE;Kurvendateien
 FILECHOOSER_FILTER_INI;Konfigurationsdateien (*.ini)
 FILECHOOSER_FILTER_LCP;Objektivkorrekturprofile
 FILECHOOSER_FILTER_LUT;Unterstützte LUT-Dateien
+FONTCHOOSER_FAMILY;Schriftfamilie
+FONTCHOOSER_PREVIEW_TEXT;Zwölf Boxkämpfer jagen Viktor quer über den großen Sylter Deich
+FONTCHOOSER_SIZE;Größe
+FONTCHOOSER_TITLE;Schriftart auswählen
 FILECHOOSER_FILTER_PP;Verarbeitungsprofile
 FILECHOOSER_FILTER_SAME;Gleiches Format wie aktuelles Bild
 FILECHOOSER_FILTER_TIFF;TIFF-Dateien
@@ -297,6 +304,7 @@ GENERAL_UNCHANGED;(Unverändert)
 GENERAL_UNKNOWN;Unbekannt
 GENERAL_WARNING;Warnung
 GIMP_PLUGIN_INFO;Willkommen beim ART GIMP-Plugin!\nNach den Änderungen bitte das ART-Fenster schließen.\nDas Bild wird dann automatisch in GIMP importiert.
+HIDPI_PREVIEW;Pixelgenauen Modus aktivieren (Bilder in der\nnativen Auflösung des Bildschirms anzeigen).
 HISTOGRAM_RAW_STATS_TOOLTIP;Min: %1 (%2), Max: %3 (%4), Spitze: %5 (%6)\n    Bereich: %7 EV, Werte: %8, Pixel: %9
 HISTOGRAM_TOOLTIP_B;Blau-Histogramm ein-/ausblenden.
 HISTOGRAM_TOOLTIP_BAR;RGB-Anzeigeleiste ein-/ausblenden.
@@ -679,6 +687,7 @@ HISTORY_MSG_RAW_BORDER;Demosaicing - Bildrand
 HISTORY_MSG_RESIZE_ALLOWUPSCALING;Skalieren - Hochskalieren zulassen
 HISTORY_MSG_RESIZE_PPI;Skalieren - PPI
 HISTORY_MSG_RESIZE_UNIT;Skalieren - Einheit
+HISTORY_MSG_RESIZE_COPY_PPI_TO_EXIF;Skalieren - PPI in EXIF kopieren
 HISTORY_MSG_SATURATION_VIBRANCE;Sättigung/Dynamik - Dynamik
 HISTORY_MSG_SHARPENING_AUTORADIUS;Eingangsschärfung - Auto RLD Radius
 HISTORY_MSG_SHARPENING_BLUR;Eingangsschärfung - Weichzeichnerradius
@@ -1110,6 +1119,12 @@ PREFERENCES_FORRAW;Für RAW-Dateien
 PREFERENCES_FSTRIP_SAME_THUMB_HEIGHT;Gleiche Höhe der Miniaturbilder in Dateiverwaltung und Filmstreifen verwenden
 PREFERENCES_FSTRIP_SAME_THUMB_HEIGHT_HINT;Unterschiedliche Miniaturbildgrößen benötigen mehr Verarbeitungszeit beim Wechsel zwischen der Dateiverwaltung und dem Editor.
 PREFERENCES_GIMPPATH;GIMP Installationsverzeichnis
+PREFERENCES_GPU;GPU-Beschleunigung
+PREFERENCES_GPU_DEVICE_AUTO;Automatisch
+PREFERENCES_GPU_DEVICE_LABEL;Gerät:
+PREFERENCES_GPU_ENABLED;GPU-Beschleunigung für einige aufwendige Operationen verwenden
+PREFERENCES_GPU_NO_DEVICES;Auf diesem System wurde kein Vulkan-Gerät gefunden, daher ist die GPU-Beschleunigung nicht verfügbar. Das bedeutet in der Regel, dass kein Vulkan-Loader oder -Treiber installiert ist.
+PREFERENCES_GPU_TOOLTIP;Wechselt automatisch zur CPU, wenn kein geeignetes Gerät gefunden wird.
 PREFERENCES_HIGHLIGHT_SELECTED_THUMBNAILS;Ausgewählte Miniaturbilder hervorheben
 PREFERENCES_HISTOGRAMPOSITIONLEFT;Histogramm linksseitig
 PREFERENCES_HISTOGRAM_TOOLTIP;Wenn aktiviert, wird das Arbeitsprofil für die Darstellung\ndes Haupthistogramms verwendet, andernfalls das des\ngammakorrigierten Ausgangsprofils.
@@ -1938,6 +1953,7 @@ TP_RESIZE_SPECIFY;Basierend auf:
 TP_RESIZE_UNIT;Einheit
 TP_RESIZE_W;Breite:
 TP_RESIZE_WIDTH;Breite
+TP_RESIZE_COPY_PPI_TO_EXIF;PPI in EXIF kopieren
 TP_RGBCURVES_BLUE;B
 TP_RGBCURVES_CHANNEL;Kanal
 TP_RGBCURVES_GREEN;G
