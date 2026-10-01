@@ -139,6 +139,10 @@ private:
         imgsrc->getFullSize(fw, fh, tr);
 
         // check the crop params
+        if (!params.crop.hasGeometry()) {
+            params.crop.setDefaultGeometry(fw, fh);
+        }
+
         if (params.crop.x > fw || params.crop.y > fh) {
             // the crop is completely out of the image, so we disable the crop
             params.crop.enabled = false;
@@ -156,12 +160,14 @@ private:
                 params.crop.y = 0;
             }
 
-            if ((params.crop.x + params.crop.w) > fw) {
+            if (params.crop.w <= 0 ||
+                (params.crop.x + params.crop.w) > fw) {
                 // crop overflow in the width dimension ; we trim it
                 params.crop.w = fw - params.crop.x;
             }
 
-            if ((params.crop.y + params.crop.h) > fh) {
+            if (params.crop.h <= 0 ||
+                (params.crop.y + params.crop.h) > fh) {
                 // crop overflow in the height dimension ; we trim it
                 params.crop.h = fh - params.crop.y;
             }

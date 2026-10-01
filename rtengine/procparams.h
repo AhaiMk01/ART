@@ -834,6 +834,14 @@ struct CropParams {
 
     void mapToResized(int resizedWidth, int resizedHeight, int scale, int &x1,
                       int &x2, int &y1, int &y2) const;
+
+    /// true if x, y, w and h are all explicitly set (e.g. not coming from a
+    /// partial profile lacking them)
+    bool hasGeometry() const;
+    /// set the geometry for an image of the given size: the largest crop
+    /// centered on the image, with the specified ratio if fixratio is set
+    /// (the whole image otherwise)
+    void setDefaultGeometry(int imgw, int imgh);
 };
 
 /**

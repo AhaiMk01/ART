@@ -510,6 +510,12 @@ void Crop::write(ProcParams *pp)
 
 void Crop::trim(ProcParams *pp, int ow, int oh)
 {
+    // partial profiles may lack the geometry: default to the largest crop
+    // with the requested ratio, centered on the image
+    if (!pp->crop.hasGeometry()) {
+        setDimensions(ow, oh);
+        pp->crop.setDefaultGeometry(ow, oh);
+    }
 
     int xmin = pp->crop.x;
     int ymin = pp->crop.y;

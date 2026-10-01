@@ -289,7 +289,7 @@ void BatchQueueEntry::_updateImage(guint8 *img, int w, int h)
 
 void BatchQueueEntry::customBackBufferUpdate(Cairo::RefPtr<Cairo::Context> c)
 {
-    if (params.crop.enabled) {
+    if (params.crop.enabled && params.crop.w > 0 && params.crop.h > 0) {
         int w, h;
         thumbnail->getOriginalSize(w, h, true);
         if (h > 0) {

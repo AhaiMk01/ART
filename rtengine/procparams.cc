@@ -1878,9 +1878,61 @@ bool ToneEqualizerParams::operator!=(const ToneEqualizerParams &other) const
 }
 
 CropParams::CropParams()
-    : enabled(false), x(-1), y(-1), w(15000), h(15000), fixratio(true),
+    : enabled(false), x(-1), y(-1), w(-1), h(-1), fixratio(true),
       ratio("As Image"), orientation("As Image"), guide("Frame")
 {
+}
+
+bool CropParams::hasGeometry() const
+{
+    return x >= 0 && y >= 0 && w > 0 && h > 0;
+}
+
+void CropParams::setDefaultGeometry(int imgw, int imgh)
+{
+    x = 0;
+    y = 0;
+    w = imgw;
+    h = imgh;
+
+    if (!fixratio || imgw <= 0 || imgh <= 0) {
+        return;
+    }
+
+    // the ratio is stored as its label: "3:2", "1.414 - ISO 216 (A4 paper)",
+    // "24:65 - XPAN", etc. ("As Image" and "Current" don't parse, and
+    // yield the whole image)
+    double a = 0, b = 0;
+    double v = 0;
+    const char *s = ratio.c_str();
+    if (std::sscanf(s, "%lf:%lf", &a, &b) == 2 && a > 0 && b > 0) {
+        v = a / b;
+    } else if (std::sscanf(s, "%lf", &a) == 1 && a > 0) {
+        v = a;
+    } else {
+        return;
+    }
+
+    // same convention as the GUI: the ratio is converted to long side first;
+    // for ratios stored short side first, the orientation is stored swapped
+    const bool flip = v < 1.0;
+    double r = flip ? 1.0 / v : v;
+    if (orientation == "Landscape") {
+        r = flip ? 1.0 / r : r;
+    } else if (orientation == "Portrait") {
+        r = flip ? r : 1.0 / r;
+    } else if (imgw < imgh) {
+        r = 1.0 / r;
+    }
+    // r is now the wanted w/h
+
+    if (double(imgw) / imgh >= r) {
+        w = std::min(int(std::round(imgh * r)), imgw);
+    } else {
+        h = std::min(int(std::round(imgw / r)), imgh);
+    }
+    x = (imgw - w) / 2;
+    y = (imgh - h) / 2;
 }
 
 bool CropParams::operator==(const CropParams &other) const
@@ -4838,11 +4890,11 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
             assignFromKeyfile(keyFile, "Crop", "Y", crop.y);
 
             if (keyFile.has_key("Crop", "W")) {
-                crop.w = std::max(keyFile.get_integer("Crop", "W"), 1);
+                crop.w = std::max(keyFile.get_integer("Crop", "W"), -1);
             }
 
             if (keyFile.has_key("Crop", "H")) {
-                crop.h = std::max(keyFile.get_integer("Crop", "H"), 1);
+                crop.h = std::max(keyFile.get_integer("Crop", "H"), -1);
             }
 
             assignFromKeyfile(keyFile, "Crop", "FixedRatio", crop.fixratio);
