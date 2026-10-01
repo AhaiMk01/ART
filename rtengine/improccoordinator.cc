@@ -149,6 +149,17 @@ void ImProcCoordinator::updatePreviewImage(int todo, bool panningRelatedChange)
 {
     ART_PIPELINE_TIME_REPORT("preview");
 
+    /* What the editor shows as the processing time: the shared early stages,
+     * the crop updates nested below and the final conversion to the monitor
+     * space, but not the image hand-off or the histogram updates after it
+     * (stopped below).  The nested detail-window crops are counted too. */
+    PipelineTimeReport previewReport;
+    struct AddPreviewTime {
+        ~AddPreviewTime() { sum += report.times(); }
+        PipelineTimeReport &report;
+        PipelineTimes &sum;
+    } addPreviewTime = {previewReport, previewTimes_};
+
     // mProcessing is locked by process(), our only caller, for the whole call
     // (see there) -- it used to be locked here instead, but that put it inside
     // mTweak's scope there, which could deadlock against Crop::fullUpdate()'s
@@ -604,6 +615,8 @@ void ImProcCoordinator::updatePreviewImage(int todo, bool panningRelatedChange)
                 return;
             }
         }
+
+        previewReport.stop();
 
         if (!resultValid) {
             resultValid = true;
@@ -1571,6 +1584,14 @@ void ImProcCoordinator::process()
     if (plistener) {
         if (!changed) {
             plistener->setProgressStr("PROGRESSBAR_READY");
+        }
+        PipelineTimes times;
+        {
+            MyMutex::MyLock lock(mProcessing);
+            std::swap(times, previewTimes_);
+        }
+        if (!times.empty()) {
+            plistener->pipelineTimes(times);
         }
         plistener->setProgressState(false);
     }

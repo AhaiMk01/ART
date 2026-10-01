@@ -646,9 +646,12 @@ private:
 IImagefloat *processImage(ProcessingJob *pjob, int &errorCode,
                           ProgressListener *pl, bool flush)
 {
-    ART_PIPELINE_TIME_REPORT("export");
+    PipelineTimeReport report("export");
     ImageProcessor proc(pjob, errorCode, pl, flush);
     IImagefloat *res = proc();
+    if (pl) {
+        pl->pipelineTimes(report.times());
+    }
     /* One table per processed image, so a batch run gives a profile per file
      * rather than a single blended one.  No-op unless ART_PROFILE is set. */
     PipelineProfile::report("OUTPUT pipeline");

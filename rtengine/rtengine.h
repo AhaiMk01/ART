@@ -156,6 +156,29 @@ public:
     virtual bool isRAW() const { return false; }
 };
 
+/** Time spent in a processing pipeline run. "GPU" is the time the calling
+ * thread was blocked waiting for the GPU (Pass::submitAndWait()), "CPU" is the
+ * rest of the wall time. */
+struct PipelineTimes {
+    PipelineTimes(): wall_ms(0), gpu_ms(0), submissions(0) {}
+
+    double wall_ms;
+    double gpu_ms;
+    unsigned long submissions; // GPU command buffers submitted; 0 = no GPU
+
+    double cpu_ms() const { return wall_ms - gpu_ms; }
+    bool gpu_used() const { return submissions > 0; }
+    bool empty() const { return wall_ms <= 0; }
+
+    PipelineTimes &operator+=(const PipelineTimes &o)
+    {
+        wall_ms += o.wall_ms;
+        gpu_ms += o.gpu_ms;
+        submissions += o.submissions;
+        return *this;
+    }
+};
+
 /** This listener interface is used to indicate the progress of time consuming
  * operations */
 class ProgressListener {
@@ -178,6 +201,9 @@ public:
      * operation.
      * @param descr is the error message */
     virtual void error(const Glib::ustring &descr) = 0;
+    /** Called, possibly from a processing thread, when a pipeline run has
+     * finished, with the time it took. Optional. */
+    virtual void pipelineTimes(const PipelineTimes &t) { (void)t; }
 };
 
 class ImageSource;

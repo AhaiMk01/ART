@@ -773,6 +773,18 @@ void BatchQueue::setProgressStr(const Glib::ustring &str) {}
 
 void BatchQueue::setProgressState(bool inProcessing) {}
 
+void BatchQueue::pipelineTimes(const rtengine::PipelineTimes &t)
+{
+    // called by the batch processing thread, just before imageReady()
+    if (listener) {
+        BatchQueueListener *const bql = listener;
+        idle_register.add([bql, t]() -> bool {
+            bql->lastExportTimes(t);
+            return false;
+        });
+    }
+}
+
 void BatchQueue::error(const Glib::ustring &descr)
 {
     if (processing && processing->processing) {

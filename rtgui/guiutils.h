@@ -59,6 +59,10 @@ void setExpandAlignProperties(Gtk::Widget *widget, bool hExpand, bool vExpand,
                               enum Gtk::Align hAlign, enum Gtk::Align vAlign);
 Gtk::Border getPadding(const Glib::RefPtr<Gtk::StyleContext> style);
 
+/** Human-readable pipeline time, e.g. "85 ms" or, if the GPU ran,
+ * "1.20 s (CPU 0.90 s, GPU 0.30 s)". */
+Glib::ustring formatPipelineTimes(const rtengine::PipelineTimes &t);
+
 class IdleRegister final: public rtengine::NonCopyable {
 public:
     ~IdleRegister();

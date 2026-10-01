@@ -21,6 +21,17 @@ progressbar.vertical {
     min-width: 0;
     min-height: 9em;
 }
+/* The editor's status text. GtkProgressBar centres its text node horizontally
+   after clamping the node's width to the bar's; a huge minimum width makes the
+   node as wide as the bar, so the text starts at its left edge.
+   Vertically, the node is put at the top of the bar, which is as tall as the
+   2.33em buttons next to it: pad it by about half the free space (the text is
+   about 1.2em high). */
+#IopsPanel progressbar.horizontal text {
+    min-width: 4000px;
+    padding: 0.55em 0.5em 0;
+}
+
 progressbar trough {
     border-width: 0.083333333333333333em;
     border-radius: 0.3em;

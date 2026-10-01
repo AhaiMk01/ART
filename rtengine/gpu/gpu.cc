@@ -152,8 +152,24 @@ void resetStats()
     stats_.live_allocations = live;
 }
 
+namespace {
+thread_local RunCounters *active_runs_ = nullptr;
+} // namespace
+
+RunCounters::RunCounters():
+    prev_(active_runs_), wall_ms_(0.0), submissions_(0)
+{
+    active_runs_ = this;
+}
+
+RunCounters::~RunCounters() { active_runs_ = prev_; }
+
 void addSubmission(double wall_ms, double device_ms)
 {
+    for (RunCounters *r = active_runs_; r; r = r->prev_) {
+        r->wall_ms_ += wall_ms;
+        ++r->submissions_;
+    }
     std::lock_guard<std::mutex> lock(stats_mutex_);
     stats_.submit_wall_ms += wall_ms;
     stats_.device_ms += device_ms;

@@ -131,6 +131,35 @@ Stats stats();
 
 void resetStats();
 
+/* Submission counters for one scoped run, attributed by thread.
+ *
+ * stats() above is process-wide, so two concurrent runs (an editor preview and
+ * a batch export) see each other's submissions, and a nested measurement would
+ * have to reset the outer one's. A RunCounters instead receives only the
+ * submissions made by the thread that constructed it while it is alive;
+ * nested instances on one thread all receive them. Pass::submitAndWait() blocks
+ * the calling thread, so that thread is the one that waited.
+ *
+ * Construct and destroy on the same thread, in LIFO order (i.e. as a local). */
+class RunCounters {
+public:
+    RunCounters();
+    ~RunCounters();
+
+    double submitWallMs() const { return wall_ms_; }
+    unsigned long submissions() const { return submissions_; }
+
+private:
+    RunCounters(const RunCounters &);
+    RunCounters &operator=(const RunCounters &);
+
+    friend void addSubmission(double wall_ms, double device_ms);
+
+    RunCounters *prev_;
+    double wall_ms_;
+    unsigned long submissions_;
+};
+
 /* Called by Pass::submitAndWait(); not meant for ordinary rtengine code.
  * device_ms is 0 when the device cannot do timestamps. */
 void addSubmission(double wall_ms, double device_ms);

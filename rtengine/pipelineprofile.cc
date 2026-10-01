@@ -119,9 +119,31 @@ void PipelineProfile::report(const char *title)
               << std::setw(11) << total << "\n\n";
 }
 
+PipelineTimes PipelineTimeReport::times() const
+{
+    if (stopped_) {
+        return frozen_;
+    }
+    MyTime t1;
+    t1.set();
+    PipelineTimes t;
+    t.wall_ms = t1.etime(t0_) / 1000.0;
+    t.gpu_ms = counters_.submitWallMs();
+    t.submissions = counters_.submissions();
+    return t;
+}
+
+void PipelineTimeReport::stop()
+{
+    if (!stopped_) {
+        frozen_ = times();
+        stopped_ = true;
+    }
+}
+
 PipelineTimeReport::~PipelineTimeReport()
 {
-    if (!settings || settings->verbose <= 0) {
+    if (quiet_ || !settings || settings->verbose <= 0) {
         return;
     }
     MyTime t1;

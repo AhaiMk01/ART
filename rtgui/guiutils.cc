@@ -25,6 +25,7 @@
 #include <cairomm/cairomm.h>
 
 #include <assert.h>
+#include <iomanip>
 #include <iostream>
 
 #ifdef WIN32
@@ -123,6 +124,24 @@ void setExpandAlignProperties(Gtk::Widget *widget, bool hExpand, bool vExpand,
     widget->set_vexpand(vExpand);
     widget->set_halign(hAlign);
     widget->set_valign(vAlign);
+}
+
+Glib::ustring formatPipelineTimes(const rtengine::PipelineTimes &t)
+{
+    auto fmt = [](double ms) -> Glib::ustring {
+        return ms < 1000.0 ? Glib::ustring::format(std::fixed,
+                                                   std::setprecision(0), ms) +
+                                 " ms"
+                           : Glib::ustring::format(std::fixed,
+                                                   std::setprecision(2),
+                                                   ms / 1000.0) +
+                                 " s";
+    };
+    if (t.gpu_used()) {
+        return Glib::ustring::compose(M("PIPELINE_TIME_GPU"), fmt(t.wall_ms),
+                                      fmt(t.cpu_ms()), fmt(t.gpu_ms));
+    }
+    return Glib::ustring::compose(M("PIPELINE_TIME"), fmt(t.wall_ms));
 }
 
 Gtk::Border getPadding(const Glib::RefPtr<Gtk::StyleContext> style)

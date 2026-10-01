@@ -52,6 +52,7 @@ class BatchQueuePanel: public Gtk::VBox,
     RTWindow *parent;
     BatchQueue *batchQueue;
     Gtk::HBox *bottomBox;
+    Gtk::Label *statusLabel;
     Gtk::HBox *topBox;
 
     Gtk::CheckButton *apply_batch_profile_;
@@ -79,6 +80,7 @@ public:
     void queueSizeChanged(int qsize, bool queueRunning, bool queueError,
                           const Glib::ustring &queueErrorMessage) override;
     bool canStartNext() override;
+    void lastExportTimes(const rtengine::PipelineTimes &t) override;
 
     void refreshProfiles();
 

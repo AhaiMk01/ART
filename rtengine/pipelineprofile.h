@@ -33,6 +33,7 @@
 
 #include "mytime.h"
 #include "gpu/gpu.h"
+#include "rtengine.h"
 
 namespace rtengine {
 
@@ -110,20 +111,37 @@ public:
 class PipelineTimeReport {
 public:
     /* title identifies the run in the printed line, e.g. "export", "preview". */
-    explicit PipelineTimeReport(const char *title): title_(title)
+    explicit PipelineTimeReport(const char *title): title_(title), quiet_(false)
     {
         gpu::resetStats();
         t0_.set();
     }
 
+    /* A quiet report only measures, for times(): it neither prints nor resets
+     * the process-wide gpu::stats(), so it can be nested inside a titled
+     * report (or run concurrently with one) without disturbing it. */
+    PipelineTimeReport(): title_(nullptr), quiet_(true) { t0_.set(); }
+
     ~PipelineTimeReport();
+
+    /* Freeze times() at the current instant; later calls are no-ops. */
+    void stop();
+
+    /* Wall and GPU-wait time of this thread since construction (or stop()),
+     * whatever settings->verbose says.  The GPU part counts only submissions
+     * made by the constructing thread, see gpu::RunCounters. */
+    PipelineTimes times() const;
 
 private:
     PipelineTimeReport(const PipelineTimeReport &);
     PipelineTimeReport &operator=(const PipelineTimeReport &);
 
     const char *title_;
+    bool quiet_;
     MyTime t0_;
+    gpu::RunCounters counters_;
+    bool stopped_ = false;
+    PipelineTimes frozen_;
 };
 
 } // namespace rtengine

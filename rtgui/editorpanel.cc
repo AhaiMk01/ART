@@ -1355,11 +1355,39 @@ void EditorPanel::setProgressStr(const Glib::ustring &str)
     MyProgressBar *const pl = progressLabel;
 
     idle_register.add(
-        [str, pl]() -> bool {
-            setprogressStrUI(-1.0, str, pl);
+        [this, str, pl]() -> bool {
+            // this is queued at low priority when processing starts, so on a
+            // busy main loop it can run after processing has already finished
+            // (and set "Ready"): it would then stay on screen
+            if (str == "PROGRESSBAR_PROCESSING" && !isProcessing) {
+                return false;
+            }
+            // the "Ready" text is also set by refreshProcessingState(), and
+            // the two can arrive in either order: both must show the time
+            setprogressStrUI(-1.0, str == "PROGRESSBAR_READY" ? readyText() : str,
+                             pl);
             return false;
         },
         G_PRIORITY_LOW);
+}
+
+Glib::ustring EditorPanel::readyText() const
+{
+    if (lastTimes_.empty()) {
+        return M("PROGRESSBAR_READY");
+    }
+    return Glib::ustring::compose(M("PROGRESSBAR_READY_TIME"),
+                                  formatPipelineTimes(lastTimes_));
+}
+
+void EditorPanel::pipelineTimes(const rtengine::PipelineTimes &t)
+{
+    // called from a processing thread, before setProgressState(false), and
+    // idle callbacks of equal priority run in order
+    idle_register.add([this, t]() -> bool {
+        lastTimes_ = t;
+        return false;
+    });
 }
 
 void EditorPanel::setProgressState(bool inProcessing)
@@ -1480,7 +1508,7 @@ void EditorPanel::refreshProcessingState(bool inProcessingP)
 
     isProcessing = inProcessingP;
 
-    setprogressStrUI(val, str, progressLabel);
+    setprogressStrUI(val, inProcessingP ? str : readyText(), progressLabel);
 }
 
 void EditorPanel::info_toggled()

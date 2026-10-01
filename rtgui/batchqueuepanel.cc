@@ -189,6 +189,12 @@ BatchQueuePanel::BatchQueuePanel(FileCatalog *aFileCatalog): parent(nullptr)
     bottomBox = Gtk::manage(new Gtk::HBox());
     pack_start(*bottomBox, Gtk::PACK_SHRINK);
 
+    // status message: pipeline time of the last exported image
+    statusLabel = Gtk::manage(new Gtk::Label());
+    statusLabel->set_halign(Gtk::ALIGN_START);
+    statusLabel->set_ellipsize(Pango::ELLIPSIZE_END);
+    bottomBox->pack_start(*statusLabel, Gtk::PACK_EXPAND_WIDGET, 6);
+
     // thumbnail zoom
     Gtk::HBox *zoomBox = Gtk::manage(new Gtk::HBox());
     zoomBox->pack_start(*Gtk::manage(new Gtk::VSeparator), Gtk::PACK_SHRINK, 4);
@@ -442,6 +448,12 @@ bool BatchQueuePanel::handleShortcutKey(GdkEventKey *event)
     }
 
     return batchQueue->keyPressed(event);
+}
+
+void BatchQueuePanel::lastExportTimes(const rtengine::PipelineTimes &t)
+{
+    statusLabel->set_text(Glib::ustring::compose(M("QUEUE_LASTEXPORT_TIME"),
+                                                 formatPipelineTimes(t)));
 }
 
 bool BatchQueuePanel::canStartNext()

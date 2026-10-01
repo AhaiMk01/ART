@@ -20,6 +20,7 @@
 #include "dcrop.h"
 #include "curves.h"
 #include "mytime.h"
+#include "pipelineprofile.h"
 #include "refreshmap.h"
 #include "rt_math.h"
 
@@ -820,6 +821,7 @@ void Crop::fullUpdate()
         parent->backupParams();
         tweakOperator->tweakParams(parent->params);
     }
+    PipelineTimeReport report;
     while (newUpdatePending) {
         newUpdatePending = false;
         update(ALL);
@@ -832,6 +834,15 @@ void Crop::fullUpdate()
     updating = false; // end of crop update
 
     if (parent->plistener) {
+        // the main preview only counts: the detail window is a side view
+        // (parent->mProcessing is held, so previewTimes_ is ours)
+        if (!isDetailWindow) {
+            parent->previewTimes_ += report.times();
+            if (!parent->previewTimes_.empty()) {
+                parent->plistener->pipelineTimes(parent->previewTimes_);
+            }
+            parent->previewTimes_ = PipelineTimes();
+        }
         parent->plistener->setProgressState(false);
     }
 

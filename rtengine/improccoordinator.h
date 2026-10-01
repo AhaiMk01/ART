@@ -164,6 +164,9 @@ protected:
     bool updateWaveforms();
 
     MyMutex mProcessing;
+    // time spent on the main preview since the last pipelineTimes() report;
+    // written with mProcessing held
+    PipelineTimes previewTimes_;
     ProcParams params;
     ProcParams paramsBackup;
     TweakOperator *tweakOperator;

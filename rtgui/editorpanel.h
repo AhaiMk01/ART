@@ -80,6 +80,7 @@ public:
     void setProgressStr(const Glib::ustring &str) override;
     void setProgressState(bool inProcessing) override;
     void error(const Glib::ustring &descr) override;
+    void pipelineTimes(const rtengine::PipelineTimes &t) override;
 
     void error(const Glib::ustring &title, const Glib::ustring &descr);
     void displayError(const Glib::ustring &title,
@@ -205,6 +206,10 @@ private:
     bool realized;
 
     MyProgressBar *progressLabel;
+    // time of the last main-preview processing run; GUI thread only
+    rtengine::PipelineTimes lastTimes_;
+    // the progress bar text for the idle state: "Ready", plus lastTimes_
+    Glib::ustring readyText() const;
     Gtk::ToggleButton *info;
     Gtk::ToggleButton *hidehp;
     Gtk::ToggleButton *tbShowHideSidePanels;

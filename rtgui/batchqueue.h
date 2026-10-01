@@ -38,6 +38,9 @@ public:
     virtual void queueSizeChanged(int qsize, bool queueRunning, bool queueError,
                                   const Glib::ustring &queueErrorMessage) = 0;
     virtual bool canStartNext() = 0;
+    /** Called from the GUI thread with the pipeline time of the image that
+     * was just processed. */
+    virtual void lastExportTimes(const rtengine::PipelineTimes &t) {}
 };
 
 class FileCatalog;
@@ -80,6 +83,7 @@ public:
     void setProgressStr(const Glib::ustring &str) override;
     void setProgressState(bool inProcessing) override;
     void error(const Glib::ustring &descr) override;
+    void pipelineTimes(const rtengine::PipelineTimes &t) override;
     rtengine::ProcessingJob *imageReady(rtengine::IImagefloat *img) override;
 
     void rightClicked(ThumbBrowserEntryBase *entry) override;
