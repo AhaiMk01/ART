@@ -21,6 +21,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class SensorBayer: public ToolParamBlock, public FoldableToolPanel {
 
 protected:
@@ -31,3 +34,6 @@ public:
 
     Gtk::Box *getPackBox() { return packBox; }
 };
+
+
+} } // namespace art::gui

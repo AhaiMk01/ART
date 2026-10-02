@@ -67,7 +67,7 @@ void Ciecam02::curveJfloat(float br, float contr, const LUTu &histogram,
     if (br > 0.00001f || br < -0.00001f) {
 
         std::vector<double> brightcurvePoints(9);
-        brightcurvePoints[0] = double(DCT_NURBS);
+        brightcurvePoints[0] = double(art::gui::DCT_NURBS);
 
         brightcurvePoints[1] = 0.f; // black point.  Value in [0 ; 1] range
         brightcurvePoints[2] = 0.f; // black point.  Value in [0 ; 1] range
@@ -126,7 +126,7 @@ void Ciecam02::curveJfloat(float br, float contr, const LUTu &histogram,
         avg /= sum;
         std::vector<double> contrastcurvePoints(9);
 
-        contrastcurvePoints[0] = double(DCT_NURBS);
+        contrastcurvePoints[0] = double(art::gui::DCT_NURBS);
 
         contrastcurvePoints[1] = 0.f; // black point.  Value in [0 ; 1] range
         contrastcurvePoints[2] = 0.f; // black point.  Value in [0 ; 1] range

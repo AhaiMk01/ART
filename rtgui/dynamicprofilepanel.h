@@ -22,6 +22,9 @@
 #include "profilestorecombobox.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class DynamicProfilePanel: public Gtk::VBox {
 public:
     DynamicProfilePanel();
@@ -165,3 +168,6 @@ private:
     Gtk::Button button_delete_;
     Gtk::Button button_reset_;
 };
+
+
+} } // namespace art::gui

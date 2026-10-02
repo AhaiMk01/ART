@@ -41,20 +41,20 @@ bool ImProcFunctions::colorCorrection(Imagefloat *rgb)
 
     PlanarWhateverData<float> *editWhatever = nullptr;
     Imagefloat *imgbuf = nullptr;
-    EditUniqueID eid = pipetteBuffer ? pipetteBuffer->getEditID() : EUID_None;
+    art::gui::EditUniqueID eid = pipetteBuffer ? pipetteBuffer->getEditID() : art::gui::EUID_None;
 
     const int H = rgb->getHeight();
     const int W = rgb->getWidth();
 
-    if ((eid == EUID_Masks_H1 || eid == EUID_Masks_C1 ||
-         eid == EUID_Masks_L1) &&
+    if ((eid == art::gui::EUID_Masks_H1 || eid == art::gui::EUID_Masks_C1 ||
+         eid == art::gui::EUID_Masks_L1) &&
         pipetteBuffer->getDataProvider()
                 ->getCurrSubscriber()
-                ->getPipetteBufferType() == BT_SINGLEPLANE_FLOAT) {
+                ->getPipetteBufferType() == art::gui::BT_SINGLEPLANE_FLOAT) {
         editWhatever = pipetteBuffer->getSinglePlaneBuffer();
     }
 
-    if (eid == EUID_Masks_DE1) {
+    if (eid == art::gui::EUID_Masks_DE1) {
         if (getDeltaEColor(rgb, deltaE.x, deltaE.y, offset_x, offset_y,
                            full_width, full_height, scale, deltaE.L, deltaE.C,
                            deltaE.H)) {
@@ -62,11 +62,11 @@ bool ImProcFunctions::colorCorrection(Imagefloat *rgb)
         }
     }
 
-    if ((eid == EUID_ColorCorrection_Wheel ||
-         eid == EUID_ColorCorrection_Wheel_Jzazbz) &&
+    if ((eid == art::gui::EUID_ColorCorrection_Wheel ||
+         eid == art::gui::EUID_ColorCorrection_Wheel_Jzazbz) &&
         pipetteBuffer->getDataProvider()
                 ->getCurrSubscriber()
-                ->getPipetteBufferType() == BT_IMAGEFLOAT) {
+                ->getPipetteBufferType() == art::gui::BT_IMAGEFLOAT) {
         imgbuf = pipetteBuffer->getImgFloatBuffer();
     }
 
@@ -90,7 +90,7 @@ bool ImProcFunctions::colorCorrection(Imagefloat *rgb)
     }
 
     if (editWhatever) {
-        MasksEditID id = static_cast<MasksEditID>(int(eid) - EUID_Masks_H1);
+        MasksEditID id = static_cast<MasksEditID>(int(eid) - art::gui::EUID_Masks_H1);
         fillPipetteMasks(rgb, editWhatever, id, multiThread);
     }
 
@@ -190,7 +190,7 @@ bool ImProcFunctions::colorCorrection(Imagefloat *rgb)
             Color::hsl2yuv(h, os, u, v);
         };
 
-        const bool jzazbz = eid == EUID_ColorCorrection_Wheel_Jzazbz;
+        const bool jzazbz = eid == art::gui::EUID_ColorCorrection_Wheel_Jzazbz;
         rgb->setMode(Imagefloat::Mode::YUV, multiThread);
 #ifdef _OPENMP
 #pragma omp parallel for if (multiThread)
@@ -406,18 +406,18 @@ bool ImProcFunctions::colorCorrection(Imagefloat *rgb)
                     lut[i].reset(nullptr);
                     if (plistener) {
                         plistener->error(Glib::ustring::compose(
-                            M("TP_COLORCORRECTION_LABEL") + " - " +
-                                M("ERROR_MSG_FILE_READ"),
+                            art::gui::M("TP_COLORCORRECTION_LABEL") + " - " +
+                                art::gui::M("ERROR_MSG_FILE_READ"),
                             r.lutFilename.empty()
-                                ? "(" + M("GENERAL_NONE") + ")"
+                                ? "(" + art::gui::M("GENERAL_NONE") + ")"
                                 : r.lutFilename));
                     }
                 } else if (!lut[i]->set_param_values(r.lut_params, q)) {
                     lut[i].reset(nullptr);
                     if (plistener) {
                         plistener->error(Glib::ustring::compose(
-                            M("TP_COLORCORRECTION_LABEL") + " - " +
-                                M("ERROR_MSG_INVALID_LUT_PARAMS"),
+                            art::gui::M("TP_COLORCORRECTION_LABEL") + " - " +
+                                art::gui::M("ERROR_MSG_INVALID_LUT_PARAMS"),
                             r.lutFilename));
                     }
                 }

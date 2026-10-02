@@ -63,7 +63,7 @@ void RawImageSource::ppg_demosaic()
         // (Glib::ustring::compose(M("TP_RAW_DMETHOD_PROGRESSBAR"),
         // RAWParams::BayerSensor::getMethodString(RAWParams::BayerSensor::ppg)));
         plistener->setProgressStr(
-            Glib::ustring::compose(M("TP_RAW_DMETHOD_PROGRESSBAR"), "xxx"));
+            Glib::ustring::compose(art::gui::M("TP_RAW_DMETHOD_PROGRESSBAR"), "xxx"));
         plistener->setProgress(0.0);
     }
 
@@ -387,7 +387,7 @@ void RawImageSource::jdl_interpolate_omp() // from "Lassus"
         // (Glib::ustring::compose(M("TP_RAW_DMETHOD_PROGRESSBAR"),
         // RAWParams::BayerSensor::getMethodString(RAWParams::BayerSensor::jdl)));
         plistener->setProgressStr(
-            Glib::ustring::compose(M("TP_RAW_DMETHOD_PROGRESSBAR"), "xxx"));
+            Glib::ustring::compose(art::gui::M("TP_RAW_DMETHOD_PROGRESSBAR"), "xxx"));
         plistener->setProgress(0.0);
     }
 
@@ -686,7 +686,7 @@ void RawImageSource::igv_interpolate(int winw, int winh)
 
     if (plistener) {
         plistener->setProgressStr(Glib::ustring::compose(
-            M("TP_RAW_DMETHOD_PROGRESSBAR"), M("TP_RAW_IGV")));
+            art::gui::M("TP_RAW_DMETHOD_PROGRESSBAR"), art::gui::M("TP_RAW_IGV")));
         plistener->setProgress(0.0);
     }
 
@@ -1414,7 +1414,7 @@ void RawImageSource::igv_interpolate(int winw, int winh)
 
     if (plistener) {
         plistener->setProgressStr(
-            Glib::ustring::compose(M("TP_RAW_DMETHOD_PROGRESSBAR"),
+            Glib::ustring::compose(art::gui::M("TP_RAW_DMETHOD_PROGRESSBAR"),
                                    RAWParams::BayerSensor::getMethodString(
                                        RAWParams::BayerSensor::Method::IGV)));
         plistener->setProgress(0.0);
@@ -2550,7 +2550,7 @@ void RawImageSource::dcb_demosaic(int iterations, bool dcb_enhance)
 
     if (plistener) {
         plistener->setProgressStr(
-            Glib::ustring::compose(M("TP_RAW_DMETHOD_PROGRESSBAR"),
+            Glib::ustring::compose(art::gui::M("TP_RAW_DMETHOD_PROGRESSBAR"),
                                    RAWParams::BayerSensor::getMethodString(
                                        RAWParams::BayerSensor::Method::DCB)));
         plistener->setProgress(currentProgress);

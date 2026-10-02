@@ -20,6 +20,9 @@
 #include "fastexport.h"
 #include "options.h"
 
+namespace art { namespace gui {
+
+
 namespace {
 
 void adjust_fast_params(art::engine::procparams::ProcParams &params)
@@ -67,3 +70,6 @@ create_processing_job(art::engine::InitialImage *initialImage,
     auto ret = art::engine::ProcessingJob::create(initialImage, params, fast);
     return ret;
 }
+
+
+} } // namespace art::gui

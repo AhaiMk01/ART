@@ -23,6 +23,9 @@
 #include <giomm.h>
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class PlacesBrowser: public Gtk::VBox {
 public:
     typedef sigc::slot<void, const Glib::ustring &> DirSelectionSlot;
@@ -99,3 +102,6 @@ PlacesBrowser::setDirSelector(const PlacesBrowser::DirSelectionSlot &selectDir)
 {
     this->selectDir = selectDir;
 }
+
+
+} } // namespace art::gui

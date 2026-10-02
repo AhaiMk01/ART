@@ -26,6 +26,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class Dehaze: public ToolParamBlock,
               public AdjusterListener,
               public FoldableToolPanel,
@@ -66,3 +69,6 @@ private:
 
     art::engine::procparams::DehazeParams initial_params;
 };
+
+
+} } // namespace art::gui

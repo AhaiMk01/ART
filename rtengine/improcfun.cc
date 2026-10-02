@@ -143,7 +143,7 @@ void ImProcFunctions::updateColorProfiles(const Glib::ustring &monitorProfile,
     }
 
     if (monitor) {
-        MyMutex::MyLock lcmsLock(*lcmsMutex);
+        art::gui::MyMutex::MyLock lcmsLock(*lcmsMutex);
 
         cmsUInt32Number flags;
         // cmsHPROFILE iprof  = cmsCreateLab4Profile (nullptr);
@@ -711,7 +711,7 @@ bool ImProcFunctions::process(Stage stage, Imagefloat *img)
     return stop;
 }
 
-int ImProcFunctions::setDeltaEData(EditUniqueID id, double x, double y)
+int ImProcFunctions::setDeltaEData(art::gui::EditUniqueID id, double x, double y)
 {
     deltaE.ok = false;
     deltaE.x = x;
@@ -721,13 +721,13 @@ int ImProcFunctions::setDeltaEData(EditUniqueID id, double x, double y)
     deltaE.H = 0;
 
     switch (id) {
-    case EUID_Masks_DE1:
+    case art::gui::EUID_Masks_DE1:
         return LUMINANCECURVE | M_LUMACURVE;
-    case EUID_Masks_DE2:
+    case art::gui::EUID_Masks_DE2:
         return DISPLAY;
-    case EUID_Masks_DE3:
+    case art::gui::EUID_Masks_DE3:
         return LUMINANCECURVE | M_LUMACURVE;
-    case EUID_Masks_DE4:
+    case art::gui::EUID_Masks_DE4:
         return DISPLAY;
     default:
         return 0;

@@ -125,7 +125,7 @@ private:
         }
     };
 
-    MyMutex parseMutex;
+    art::gui::MyMutex parseMutex;
     StoreState storeState;
     art::engine::procparams::PartialProfile *internalDefaultProfile;
     ProfileStoreEntry *internalDefaultEntry;

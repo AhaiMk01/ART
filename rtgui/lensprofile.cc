@@ -28,6 +28,9 @@
 #include <map>
 #include <set>
 #include <sstream>
+
+namespace art { namespace gui {
+
 #ifdef EXIF
 #undef EXIF
 #endif
@@ -842,3 +845,6 @@ void LensProfilePanel::toolReset(bool to_initial)
         listener->panelChanged(EvToolReset, M("GENERAL_RESET"));
     }
 }
+
+
+} } // namespace art::gui

@@ -25,6 +25,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class BayerProcess: public ToolParamBlock,
                     public AdjusterListener,
                     public CheckBoxListener,
@@ -95,3 +98,6 @@ public:
 
     void toolReset(bool to_initial) override;
 };
+
+
+} } // namespace art::gui

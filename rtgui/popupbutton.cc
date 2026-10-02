@@ -23,6 +23,9 @@
 
 #include <gtkmm/grid.h>
 
+namespace art { namespace gui {
+
+
 /*
  * PopUpButton::PopUpButton (const Glib::ustring& label, bool imgRight)
  *
@@ -66,3 +69,6 @@ bool PopUpButton::on_button_release_event(GdkEventButton *event)
 
     return Gtk::Button::on_button_release_event(event);
 }
+
+
+} } // namespace art::gui

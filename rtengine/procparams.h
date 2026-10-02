@@ -34,7 +34,7 @@
 #include "coord.h"
 #include "noncopyable.h"
 
-class ParamsEdited;
+namespace art { namespace gui { class ParamsEdited; } }
 
 namespace art { namespace engine {
 
@@ -1631,13 +1631,13 @@ public:
      * @return Error code (=0 if no error)
      */
     int load(ProgressListener *pl, const Glib::ustring &fname,
-             const ParamsEdited *pedited = nullptr);
+             const art::gui::ParamsEdited *pedited = nullptr);
 
     int load(ProgressListener *pl, const KeyFile &keyFile,
-             const ParamsEdited *pedited = nullptr, bool resetOnError = true,
+             const art::gui::ParamsEdited *pedited = nullptr, bool resetOnError = true,
              const Glib::ustring &fname = "");
     int save(ProgressListener *pl, KeyFile &keyFile,
-             const ParamsEdited *pedited = nullptr,
+             const art::gui::ParamsEdited *pedited = nullptr,
              const Glib::ustring &fname = "") const;
     /**
      * Saves the parameters to possibly two files. This is a performance
@@ -1655,7 +1655,7 @@ public:
      */
     int save(ProgressListener *pl, const Glib::ustring &fname,
              const Glib::ustring &fname2 = Glib::ustring(),
-             const ParamsEdited *pedited = nullptr);
+             const art::gui::ParamsEdited *pedited = nullptr);
 
     int saveEmbedded(ProgressListener *pl, const Glib::ustring &fname);
 
@@ -1688,10 +1688,10 @@ private:
               const Glib::ustring &content) const;
 
     int load(ProgressListener *pl, bool load_general, const KeyFile &keyFile,
-             const ParamsEdited *pedited, bool resetOnError,
+             const art::gui::ParamsEdited *pedited, bool resetOnError,
              const Glib::ustring &fname);
     int save(ProgressListener *pl, bool save_general, KeyFile &keyFile,
-             const ParamsEdited *pedited, const Glib::ustring &fname) const;
+             const art::gui::ParamsEdited *pedited, const Glib::ustring &fname) const;
 
     friend class ProcParamsWithSnapshots;
 };
@@ -1739,15 +1739,15 @@ private:
 class PEditedPartialProfile: public PartialProfile {
 public:
     PEditedPartialProfile(ProgressListener *pl, const Glib::ustring &fname,
-                          const ParamsEdited &pe);
-    PEditedPartialProfile(const ProcParams &pp, const ParamsEdited &pe);
+                          const art::gui::ParamsEdited &pe);
+    PEditedPartialProfile(const ProcParams &pp, const art::gui::ParamsEdited &pe);
     bool applyTo(ProcParams &pp) const override;
 
 private:
     ProgressListener *pl_;
     Glib::ustring fname_;
     ProcParams pp_;
-    ParamsEdited pe_;
+    art::gui::ParamsEdited pe_;
 };
 
 class MultiPartialProfile: public PartialProfile {

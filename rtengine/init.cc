@@ -52,9 +52,9 @@ std::unique_ptr<ThreadPool> ThreadPool::instance_;
 
 const Settings *settings;
 
-MyMutex *lcmsMutex = nullptr;
-MyMutex *fftwMutex = nullptr;
-MyMutex *librawMutex = nullptr;
+art::gui::MyMutex *lcmsMutex = nullptr;
+art::gui::MyMutex *fftwMutex = nullptr;
+art::gui::MyMutex *librawMutex = nullptr;
 
 
 #ifdef ART_FFTW3F_THREADS_CALLBACK
@@ -162,10 +162,10 @@ int init(const Settings *s, Glib::ustring baseDir,
     ExternalMaskManager::init();
 
     delete lcmsMutex;
-    lcmsMutex = new MyMutex;
-    fftwMutex = new MyMutex;
+    lcmsMutex = new art::gui::MyMutex;
+    fftwMutex = new art::gui::MyMutex;
 #ifdef ART_USE_LIBRAW
-    librawMutex = new MyMutex;
+    librawMutex = new art::gui::MyMutex;
 #endif
 
 #ifdef RT_FFTW3F_OMP

@@ -34,6 +34,9 @@
 #include "thumbnail.h"
 #include "thumbnaillistener.h"
 
+namespace art { namespace gui {
+
+
 class FileBrowserEntry;
 struct FileBrowserEntryIdleHelper {
     FileBrowserEntry *fbentry;
@@ -109,3 +112,6 @@ public:
 
     void enableThumbRefresh();
 };
+
+
+} } // namespace art::gui

@@ -36,6 +36,9 @@
 #include "multilangmgr.h"
 #include "options.h"
 
+namespace art { namespace gui {
+
+
 namespace {
 
 class S: public Glib::ustring {
@@ -531,3 +534,6 @@ bool openInCustomEditor(const Glib::ustring &fileName)
 }
 
 } // namespace ExtProg
+
+
+} } // namespace art::gui

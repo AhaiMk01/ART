@@ -33,6 +33,9 @@
 #include "session.h"
 #include "toolpanel.h"
 
+namespace art { namespace gui {
+
+
 PlacesBrowser::PlacesBrowser()
 {
 
@@ -116,7 +119,7 @@ PlacesBrowser::PlacesBrowser()
         sigc::mem_fun(*this, &PlacesBrowser::delPressed));
 
     session_monitor_ =
-        Gio::File::create_for_path(art::session::filename())->monitor_file();
+        Gio::File::create_for_path(art::gui::session::filename())->monitor_file();
     session_monitor_->signal_changed().connect(
         sigc::mem_fun(*this, &PlacesBrowser::on_session_changed));
 
@@ -134,7 +137,7 @@ void PlacesBrowser::on_session_changed(
     const Glib::RefPtr<Gio::File> &file,
     const Glib::RefPtr<Gio::File> &other_file, Gio::FileMonitorEvent event_type)
 {
-    bool is_session = art::session::check(lastSelectedDir);
+    bool is_session = art::gui::session::check(lastSelectedDir);
     refreshPlacesList();
     if (is_session) {
         dirSelected(lastSelectedDir, "");
@@ -197,8 +200,8 @@ void PlacesBrowser::refreshPlacesList()
     setRow(*(placesModel->append()),
            Gio::ThemedIcon::create("document-open-recent"),
            M("SESSION_LABEL") + " (" +
-               std::to_string(art::session::list().size()) + ")",
-           art::session::path(), PlaceType::DEFAULT_DIR_OR_SESSION, false);
+               std::to_string(art::gui::session::list().size()) + ")",
+           art::gui::session::path(), PlaceType::DEFAULT_DIR_OR_SESSION, false);
 
     // append favorites
     if (!placesModel->children().empty()) {
@@ -365,7 +368,7 @@ void PlacesBrowser::dirSelected(const Glib::ustring &dirname,
 void PlacesBrowser::addPressed()
 {
 
-    if (lastSelectedDir == "" || art::session::check(lastSelectedDir)) {
+    if (lastSelectedDir == "" || art::gui::session::check(lastSelectedDir)) {
         return;
     }
 
@@ -462,3 +465,6 @@ Glib::ustring PlacesBrowser::userPicturesDir()
 
 #endif
 }
+
+
+} } // namespace art::gui

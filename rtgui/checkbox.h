@@ -22,6 +22,9 @@
 #include "guiutils.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class CheckBox;
 
 enum class CheckValue { on, off, unchanged };
@@ -66,3 +69,6 @@ public:
     void set_tooltip_markup (const Glib::ustring& tooltip);
     */
 };
+
+
+} } // namespace art::gui

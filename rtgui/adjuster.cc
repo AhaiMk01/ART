@@ -25,6 +25,9 @@
 #include <cmath>
 #include <sigc++/slot.h>
 
+namespace art { namespace gui {
+
+
 #define MIN_RESET_BUTTON_HEIGHT 17
 
 static double one2one(double val) { return val; }
@@ -802,3 +805,6 @@ void Adjuster::forceNotifyListener()
         adjusterListener->adjusterChanged(this, spin->get_value());
     }
 }
+
+
+} } // namespace art::gui

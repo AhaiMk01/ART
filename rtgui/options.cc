@@ -40,6 +40,9 @@
 #include <Shlobj.h>
 #endif
 
+namespace art { namespace gui {
+
+
 // Global (system) settings directory, including images' profiles if used
 Glib::ustring Options::ART_base_dir;
 // User's settings directory, including images' profiles if used
@@ -3139,3 +3142,6 @@ Glib::ustring Options::getXmpSidecarFile(const Glib::ustring &fname)
 {
     return art::engine::Exiv2Metadata::xmpSidecarPath(fname);
 }
+
+
+} } // namespace art::gui

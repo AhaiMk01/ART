@@ -24,6 +24,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class Resize final: public ToolParamBlock,
                     public AdjusterListener,
                     public FoldableToolPanel,
@@ -106,3 +109,6 @@ private:
 
     art::engine::procparams::ResizeParams initial_params;
 };
+
+
+} } // namespace art::gui

@@ -64,7 +64,7 @@ public:
                      unsigned int numSamples) override;
 
     // functions inherited from IImagefloat:
-    MyMutex &getMutex() override { return mutex(); }
+    art::gui::MyMutex &getMutex() override { return mutex(); }
     cmsHPROFILE getProfile() const override { return getEmbeddedProfile(); }
     int getBitsPerPixel() const override { return 8 * sizeof(float); }
     int saveToFile(const Glib::ustring &fname) const override

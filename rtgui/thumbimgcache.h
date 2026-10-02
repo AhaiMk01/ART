@@ -27,7 +27,10 @@
 #include "cachemanager.h"
 #include <glibmm.h>
 
-namespace art {
+namespace art { namespace gui {
+
+
+
 namespace thumbimgcache {
 
 /******************************************************************************
@@ -49,4 +52,7 @@ bool store(const Glib::ustring &cache_fname,
            art::engine::IImage8 *img);
 
 } // namespace thumbimgcache
-} // namespace art
+ // namespace art
+
+
+} } // namespace art::gui

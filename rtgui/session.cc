@@ -26,7 +26,10 @@
 #include <sstream>
 #include <unordered_set>
 
-namespace art {
+namespace art { namespace gui {
+
+
+
 namespace session {
 
 namespace {
@@ -142,4 +145,7 @@ std::vector<Glib::ustring> list()
 Glib::ustring path() { return Options::SESSION_PATH; }
 
 } // namespace session
-} // namespace art
+ // namespace art
+
+
+} } // namespace art::gui

@@ -21,6 +21,9 @@
 #include "options.h"
 #include "session.h"
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 
 RecentBrowser::RecentBrowser()
@@ -57,7 +60,7 @@ void RecentBrowser::selectionChanged()
 void RecentBrowser::dirSelected(const Glib::ustring &dirname,
                                 const Glib::ustring &openfile)
 {
-    if (art::session::check(dirname)) {
+    if (art::gui::session::check(dirname)) {
         ConnectionBlocker b(conn);
         recentDirs->set_active_text("");
         return;
@@ -98,3 +101,6 @@ void RecentBrowser::dirSelected(const Glib::ustring &dirname,
 
     conn.block(false);
 }
+
+
+} } // namespace art::gui

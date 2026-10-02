@@ -18,6 +18,9 @@
  */
 #pragma once
 
+namespace art { namespace gui {
+
+
 class PointerMotionListener {
 protected:
     sigc::signal<void> sig_cycle_rgb;
@@ -54,3 +57,6 @@ public:
     sigc::signal<void> signal_cycle_rgb() { return sig_cycle_rgb; }
     sigc::signal<void> signal_cycle_lch() { return sig_cycle_lch; }
 };
+
+
+} } // namespace art::gui

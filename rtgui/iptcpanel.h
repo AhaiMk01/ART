@@ -23,6 +23,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class IPTCPanel: public Gtk::VBox, public ToolPanel {
 public:
     IPTCPanel();
@@ -89,3 +92,6 @@ private:
 
     sigc::connection conns[16];
 };
+
+
+} } // namespace art::gui

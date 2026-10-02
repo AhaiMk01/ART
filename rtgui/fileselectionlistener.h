@@ -19,6 +19,9 @@
  */
 #pragma once
 
+namespace art { namespace gui {
+
+
 class Thumbnail;
 class BatchQueueEntry;
 
@@ -30,3 +33,6 @@ public:
     virtual bool
     addBatchQueueJobs(const std::vector<BatchQueueEntry *> &entries) = 0;
 };
+
+
+} } // namespace art::gui

@@ -623,7 +623,7 @@ void RawImageSource::pixelshift(int winx, int winy, int winw, int winh,
 
     if (plistener) {
         plistener->setProgressStr(Glib::ustring::compose(
-            M("TP_RAW_DMETHOD_PROGRESSBAR"),
+            art::gui::M("TP_RAW_DMETHOD_PROGRESSBAR"),
             RAWParams::BayerSensor::getMethodString(
                 RAWParams::BayerSensor::Method::PIXELSHIFT)));
         plistener->setProgress(0.0);

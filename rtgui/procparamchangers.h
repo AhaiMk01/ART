@@ -17,9 +17,14 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
+namespace art { namespace gui {
+
 constexpr int UNKNOWN = -1;
 constexpr int FILEBROWSER = 1;
 constexpr int EDITOR = 2;
 constexpr int BATCHEDITOR = 3;
 constexpr int CACHEMGR = 4;
 constexpr int SAFETYUPDATE = 5;
+
+
+} } // namespace art::gui

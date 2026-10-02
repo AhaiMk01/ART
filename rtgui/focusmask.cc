@@ -27,6 +27,9 @@
 #include <omp.h>
 #endif
 
+namespace art { namespace gui {
+
+
 void addFocusMask(const unsigned char *src, unsigned char *dst, int W, int H,
                   int src_stride, int dst_stride, int src_offset,
                   int dst_offset)
@@ -305,3 +308,6 @@ void addFocusMask(const unsigned char *src, unsigned char *dst, int W, int H,
     // free(tmpLsumSq);
     // free(tmpstdDev2);
 }
+
+
+} } // namespace art::gui

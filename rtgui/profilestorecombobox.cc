@@ -24,6 +24,9 @@
 #include "options.h"
 #include "toolpanel.h"
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -399,3 +402,6 @@ void ProfileStoreComboBox::deleteRow(const art::engine::ProfileStoreEntry *profi
         refTreeModel->erase(entry);
     }
 }
+
+
+} } // namespace art::gui

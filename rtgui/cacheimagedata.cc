@@ -24,6 +24,9 @@
 #include <unordered_map>
 #include <vector>
 
+namespace art { namespace gui {
+
+
 CacheImageData::CacheImageData()
     : md5(""), supported(false), format(FT_Invalid), recentlySaved(false),
       timeValid(false), year(0), month(0), day(0), hour(0), min(0), sec(0),
@@ -372,3 +375,6 @@ std::string CacheImageData::getOrientationFilter() const
     }
     return "Unknown";
 }
+
+
+} } // namespace art::gui

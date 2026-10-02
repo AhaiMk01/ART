@@ -22,6 +22,9 @@
 #include "rtsurface.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class LWButton;
 
 class LWButtonListener {
@@ -75,3 +78,6 @@ public:
 
     void redraw(Cairo::RefPtr<Cairo::Context> context);
 };
+
+
+} } // namespace art::gui

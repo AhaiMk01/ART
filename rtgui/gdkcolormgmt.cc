@@ -10,7 +10,10 @@
 #include <gdk/gdkquartz.h>
 #endif
 
-namespace art {
+namespace art { namespace gui {
+
+
+
 
 void gdk_set_monitor_profile(GdkWindow *window,
                              art::engine::Settings::StdMonitorProfile prof)
@@ -41,4 +44,7 @@ void gdk_set_monitor_profile(GdkWindow *window,
 #endif
 }
 
-} // namespace art
+ // namespace art
+
+
+} } // namespace art::gui

@@ -331,7 +331,7 @@ void ImProcFunctions::blackAndWhite(Imagefloat *img)
         LUTf ulut(65536);
         LUTf vlut(65536);
         DiagonalCurve filmcurve(curves::filmcurve_def);
-        FlatCurve satcurve({FCT_MinMaxCPoints, 0, 0, 0.35, 0, 0.5, 1, 0.35,
+        FlatCurve satcurve({art::gui::FCT_MinMaxCPoints, 0, 0, 0.35, 0, 0.5, 1, 0.35,
                             0.35, 1, 0, 0, 0.35});
         for (int i = 0; i < 65536; ++i) {
             float x = Color::gamma_srgbclipped(i) / 65535.f;

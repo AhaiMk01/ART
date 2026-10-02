@@ -128,7 +128,7 @@ void RawImageSource::lmmse_interpolate_omp(int winw, int winh,
 
     if (plistener) {
         plistener->setProgressStr(Glib::ustring::compose(
-            M("TP_RAW_DMETHOD_PROGRESSBAR"), M("TP_RAW_LMMSE")));
+            art::gui::M("TP_RAW_DMETHOD_PROGRESSBAR"), art::gui::M("TP_RAW_LMMSE")));
         plistener->setProgress(0.0);
     }
 
@@ -703,7 +703,7 @@ void RawImageSource::refinement(int PassCount)
     int w2 = 2 * w1;
 
     if (plistener) {
-        plistener->setProgressStr(M("TP_RAW_DMETHOD_PROGRESSBAR_REFINE"));
+        plistener->setProgressStr(art::gui::M("TP_RAW_DMETHOD_PROGRESSBAR_REFINE"));
     }
 
     array2D<float> *rgb[3];

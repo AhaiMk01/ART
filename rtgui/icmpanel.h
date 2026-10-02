@@ -28,6 +28,9 @@
 #include "popupbutton.h"
 #include "toolpanel.h"
 
+namespace art { namespace gui {
+
+
 class ICMPanelListener {
 public:
     virtual ~ICMPanelListener() = default;
@@ -132,3 +135,6 @@ public:
 
     void toolReset(bool to_initial) override;
 };
+
+
+} } // namespace art::gui

@@ -21,6 +21,9 @@
 #include "guiutils.h"
 #include "options.h"
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -262,3 +265,6 @@ void XTransProcess::toolReset(bool to_initial)
     }
     read(&pp);
 }
+
+
+} } // namespace art::gui

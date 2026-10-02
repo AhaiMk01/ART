@@ -25,6 +25,9 @@
 #include "options.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class FormatChangeListener {
 public:
     virtual ~FormatChangeListener() = default;
@@ -60,3 +63,6 @@ public:
 
     Glib::ustring getExtension();
 };
+
+
+} } // namespace art::gui

@@ -33,6 +33,9 @@
 #include "rtimage.h"
 #include "threadutils.h"
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 
 bool CropWindow::initialized = false;
@@ -3353,3 +3356,6 @@ void CropWindow::setHiDPI(bool yes)
     }
     options.hidpi_preview = yes;
 }
+
+
+} } // namespace art::gui

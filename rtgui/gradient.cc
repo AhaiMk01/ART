@@ -6,6 +6,9 @@
 #include "eventmapper.h"
 #include "rtimage.h"
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -605,3 +608,6 @@ void Gradient::toolReset(bool to_initial)
     pp.gradient.enabled = getEnabled();
     read(&pp);
 }
+
+
+} } // namespace art::gui

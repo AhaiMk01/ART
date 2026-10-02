@@ -21,6 +21,9 @@
 #include "multilangmgr.h"
 #include "rtimage.h"
 
+namespace art { namespace gui {
+
+
 ZoomPanel::ZoomPanel(ImageArea *iarea): iarea(iarea)
 {
     set_name("EditorZoomPanel");
@@ -192,3 +195,6 @@ void ZoomPanel::on_realize()
     onScaleChange();
     Gtk::Grid::on_realize();
 }
+
+
+} } // namespace art::gui

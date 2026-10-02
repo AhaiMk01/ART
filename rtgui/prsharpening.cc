@@ -20,6 +20,9 @@
 #include "eventmapper.h"
 #include <cmath>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -409,3 +412,6 @@ void PrSharpening::toolReset(bool to_initial)
     pp.prsharpening.enabled = getEnabled();
     read(&pp);
 }
+
+
+} } // namespace art::gui

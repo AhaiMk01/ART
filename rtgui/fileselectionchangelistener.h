@@ -18,6 +18,9 @@
  */
 #pragma once
 
+namespace art { namespace gui {
+
+
 class Thumbnail;
 
 class FileSelectionChangeListener {
@@ -25,3 +28,6 @@ public:
     virtual ~FileSelectionChangeListener() = default;
     virtual void selectionChanged(const std::vector<Thumbnail *> &selected) = 0;
 };
+
+
+} } // namespace art::gui

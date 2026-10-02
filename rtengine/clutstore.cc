@@ -298,7 +298,7 @@ art::engine::CLUTStore::getClutDisplayName(const Glib::ustring &filename)
         const Glib::ustring full_filename =
             !Glib::path_is_absolute(filename)
                 ? Glib::ustring(
-                      Glib::build_filename(options.clutsDir, filename))
+                      Glib::build_filename(art::gui::options.clutsDir, filename))
                 : filename;
         if (Glib::file_test(filename, Glib::FILE_TEST_EXISTS)) {
             auto fn = Glib::filename_from_utf8(filename);
@@ -331,10 +331,10 @@ art::engine::CLUTStore::getClutDisplayName(const Glib::ustring &filename)
                                 if (pos != Glib::ustring::npos) {
                                     auto key = name.substr(1, pos - 1);
                                     auto dflt = name.substr(pos + 1);
-                                    auto res = M(key);
+                                    auto res = art::gui::M(key);
                                     name = (res == key) ? dflt : res;
                                 } else {
-                                    name = M(name.c_str() + 1);
+                                    name = art::gui::M(name.c_str() + 1);
                                 }
                             }
                             found = !name.empty();
@@ -436,12 +436,12 @@ art::engine::CLUTStore &art::engine::CLUTStore::getInstance()
 std::shared_ptr<art::engine::HaldCLUT>
 art::engine::CLUTStore::getHaldClut(const Glib::ustring &filename) const
 {
-    MyMutex::MyLock lock(mutex_);
+    art::gui::MyMutex::MyLock lock(mutex_);
     std::shared_ptr<art::engine::HaldCLUT> result;
 
     const Glib::ustring full_filename =
         !Glib::path_is_absolute(filename)
-            ? Glib::ustring(Glib::build_filename(options.clutsDir, filename))
+            ? Glib::ustring(Glib::build_filename(art::gui::options.clutsDir, filename))
             : filename;
 
     if (!cache.get(full_filename, result)) {
@@ -554,14 +554,14 @@ std::string copy_to_temp(const Glib::ustring &fname)
 OCIO::ConstProcessorRcPtr
 art::engine::CLUTStore::getOCIOLut(const Glib::ustring &filename) const
 {
-    MyMutex::MyLock lock(mutex_);
+    art::gui::MyMutex::MyLock lock(mutex_);
 
     OCIOCacheEntry result;
     OCIO::ConstProcessorRcPtr retval;
 
     const Glib::ustring full_filename =
         !Glib::path_is_absolute(filename)
-            ? Glib::ustring(Glib::build_filename(options.clutsDir, filename))
+            ? Glib::ustring(Glib::build_filename(art::gui::options.clutsDir, filename))
             : filename;
 
     auto ext = getFileExtension(full_filename);
@@ -609,13 +609,13 @@ art::engine::CLUTStore::getOCIOLut(const Glib::ustring &filename) const
 
 ExternalLUT3D CLUTStore::getExternalLut(const Glib::ustring &filename) const
 {
-    MyMutex::MyLock lock(mutex_);
+    art::gui::MyMutex::MyLock lock(mutex_);
 
     ExternalLUT3D retval;
 
     const Glib::ustring full_filename =
         !Glib::path_is_absolute(filename)
-            ? Glib::ustring(Glib::build_filename(options.clutsDir, filename))
+            ? Glib::ustring(Glib::build_filename(art::gui::options.clutsDir, filename))
             : filename;
 
     auto ext = getFileExtension(full_filename);
@@ -887,7 +887,7 @@ art::engine::CLUTStore::getCTLLut(const Glib::ustring &filename, int num_threads
                                int &chunk_size, CLUTParamDescriptorList &params,
                                Glib::ustring &colorspace, int &lut_dim) const
 {
-    MyMutex::MyLock lock(mutex_);
+    art::gui::MyMutex::MyLock lock(mutex_);
 
     lut_dim = 0;
 
@@ -897,7 +897,7 @@ art::engine::CLUTStore::getCTLLut(const Glib::ustring &filename, int num_threads
 
     const Glib::ustring full_filename =
         !Glib::path_is_absolute(filename)
-            ? Glib::ustring(Glib::build_filename(options.clutsDir, filename))
+            ? Glib::ustring(Glib::build_filename(art::gui::options.clutsDir, filename))
             : filename;
     if (!Glib::file_test(full_filename, Glib::FILE_TEST_IS_REGULAR) ||
         getFileExtension(full_filename) != "ctl") {
@@ -928,14 +928,14 @@ art::engine::CLUTStore::getCTLLut(const Glib::ustring &filename, int num_threads
             intp->setMaxInstCount(10 * 10000000);
             std::vector<std::string> module_paths{
                 Glib::path_get_dirname(full_filename),
-                Glib::build_filename(options.user_config_dir, "ctlscripts"),
-                Glib::build_filename(options.ART_base_dir, "ctlscripts")};
+                Glib::build_filename(art::gui::options.user_config_dir, "ctlscripts"),
+                Glib::build_filename(art::gui::options.ART_base_dir, "ctlscripts")};
             auto pth = intp->modulePaths();
             module_paths.insert(module_paths.end(), pth.begin(), pth.end());
             intp->setModulePaths(module_paths);
             intp->loadFile(
                 full_filename,
-                removeExtension(Glib::path_get_basename(full_filename)));
+                art::gui::removeExtension(Glib::path_get_basename(full_filename)));
 
             auto f = intp->newFunctionCall("ART_main");
             if (f->numInputArgs() < 3) {
@@ -994,7 +994,7 @@ art::engine::CLUTStore::getCTLLut(const Glib::ustring &filename, int num_threads
 
 void art::engine::CLUTStore::clearCache()
 {
-    MyMutex::MyLock lock(mutex_);
+    art::gui::MyMutex::MyLock lock(mutex_);
 
     cache.clear();
 #ifdef ART_USE_OCIO
@@ -1034,14 +1034,14 @@ inline float CTL_shaper_func(float a, bool inv)
 } // namespace
 
 art::engine::CLUTStore::CLUTStore()
-    : cache(options.clutCacheSize)
+    : cache(art::gui::options.clutCacheSize)
 #ifdef ART_USE_OCIO
       ,
-      ocio_cache_(options.clutCacheSize)
+      ocio_cache_(art::gui::options.clutCacheSize)
 #endif // ART_USE_OCIO
 #ifdef ART_USE_CTL
       ,
-      ctl_cache_(options.clutCacheSize * 4)
+      ctl_cache_(art::gui::options.clutCacheSize * 4)
 #endif // ART_USE_CTL
 {
 #ifdef ART_USE_CTL

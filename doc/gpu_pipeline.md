@@ -615,7 +615,7 @@ easy to hit while editing a shader or its call site:
   bug.
 - **The GPU may already be on regardless of `ART_GPU`.** A `GPUDevice=auto`
   setting in ART's own persisted options (wired to
-  `rtengine::Settings::gpu_device`) ties directly into
+  `art::engine::Settings::gpu_device`) ties directly into
   `Context::configure`/`pickPhysicalDevice`'s `"auto"` preference logic in
   `vk_context.cc` — on a machine where that's the saved preference, *every*
   run already uses the GPU, and a run with `ART_GPU` simply unset is not a

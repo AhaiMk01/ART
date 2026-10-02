@@ -18,6 +18,9 @@
  */
 #include "lwbuttonset.h"
 
+namespace art { namespace gui {
+
+
 LWButtonSet::LWButtonSet(): aw(0), ah(0), ax(-1), ay(-1) {}
 
 LWButtonSet::~LWButtonSet()
@@ -203,3 +206,6 @@ Glib::ustring LWButtonSet::getToolTip(int x, int y)
 
     return "";
 }
+
+
+} } // namespace art::gui

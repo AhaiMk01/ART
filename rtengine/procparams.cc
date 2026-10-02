@@ -463,12 +463,12 @@ Glib::ustring filenameToUri(const Glib::ustring &fname,
         auto fn = Glib::filename_from_utf8(fname);
         auto home = Glib::get_home_dir();
         if (Glib::path_is_absolute(fname)) {
-            if (stripif(fn, options.ART_base_dir)) {
+            if (stripif(fn, art::gui::options.ART_base_dir)) {
                 return Glib::filename_to_uri(fn, "S");
-            } else if (stripif(fn, options.user_config_dir)) {
+            } else if (stripif(fn, art::gui::options.user_config_dir)) {
                 return Glib::filename_to_uri(fn, "U");
             } else if (Glib::path_get_dirname(fname) == basedir) {
-                fn = fname_to_utf8(Glib::path_get_basename(fname));
+                fn = art::gui::fname_to_utf8(Glib::path_get_basename(fname));
                 return Glib::filename_to_uri(
                     Glib::ustring(G_DIR_SEPARATOR_S) + fn, "B");
             } else if (!home.empty() && stripif(fn, home)) {
@@ -510,10 +510,10 @@ Glib::ustring filenameFromUri(const Glib::ustring &uri,
             f = f.substr(1);
             if (hn == "U") {
                 f = Glib::build_filename(
-                    Glib::filename_from_utf8(options.user_config_dir), f);
+                    Glib::filename_from_utf8(art::gui::options.user_config_dir), f);
             } else if (hn == "S") {
                 f = Glib::build_filename(
-                    Glib::filename_from_utf8(options.ART_base_dir), f);
+                    Glib::filename_from_utf8(art::gui::options.ART_base_dir), f);
             } else if (hn == "B") {
                 f = Glib::build_filename(Glib::filename_from_utf8(basedir), f);
             } else if (hn == "H") {
@@ -522,7 +522,7 @@ Glib::ustring filenameFromUri(const Glib::ustring &uri,
                 return uri;
             }
         }
-        Glib::ustring ret = fname_to_utf8(f);
+        Glib::ustring ret = art::gui::fname_to_utf8(f);
         return ret;
     } catch (Glib::ConvertError &e) {
         return uri;
@@ -677,7 +677,7 @@ bool AreaMask::Gradient::operator!=(const Shape &other) const
 }
 
 AreaMask::AreaMask()
-    : enabled(false), feather(0), blur(0), contrast{DCT_Linear}, shapes{}
+    : enabled(false), feather(0), blur(0), contrast{art::gui::DCT_Linear}, shapes{}
 {
 }
 
@@ -768,7 +768,7 @@ bool DrawnMask::Stroke::operator!=(const Stroke &other) const
 
 DrawnMask::DrawnMask()
     : enabled(false), feather(0.0), opacity(1), smoothness(0),
-      contrast{DCT_Linear}, strokes(), mode(INTERSECT)
+      contrast{art::gui::DCT_Linear}, strokes(), mode(INTERSECT)
 {
 }
 
@@ -842,10 +842,10 @@ void DrawnMask::strokes_from_list(const std::vector<double> &v)
 
 ParametricMask::ParametricMask()
     : enabled(false), blur(0),
-      hue{FCT_MinMaxCPoints, 0.166666667, 1.,   0.35, 0.35,
+      hue{art::gui::FCT_MinMaxCPoints, 0.166666667, 1.,   0.35, 0.35,
           0.8287775246,      1.,          0.35, 0.35},
-      chromaticity{FCT_MinMaxCPoints, 0., 1., 0.35, 0.35, 1., 1., 0.35, 0.35},
-      lightness{FCT_MinMaxCPoints, 0., 1., 0.35, 0.35, 1., 1., 0.35, 0.35},
+      chromaticity{art::gui::FCT_MinMaxCPoints, 0., 1., 0.35, 0.35, 1., 1., 0.35, 0.35},
+      lightness{art::gui::FCT_MinMaxCPoints, 0., 1., 0.35, 0.35, 1., 1., 0.35, 0.35},
       lightnessDetail(0), contrastThreshold(0)
 {
 }
@@ -898,7 +898,7 @@ bool ExternalMask::operator!=(const ExternalMask &other) const
 Mask::Mask()
     : enabled(true), inverted(false), parametricMask(), areaMask(),
       deltaEMask(), drawnMask(), externalMask(), linkedMask(), name(""),
-      curve{DCT_Linear}, posterization(0), smoothing(0), opacity(100)
+      curve{art::gui::DCT_Linear}, posterization(0), smoothing(0), opacity(100)
 {
 }
 
@@ -1033,9 +1033,9 @@ bool Mask::load(int ppVersion, const KeyFile &keyfile,
     ret |= assignFromKeyfile(keyfile, group_name,
                              prefix + "AreaMaskContrast" + suffix,
                              areaMask.contrast);
-    if (areaMask.contrast.empty() || areaMask.contrast[0] < DCT_Linear ||
-        areaMask.contrast[0] >= DCT_Unchanged) {
-        areaMask.contrast = {DCT_Linear};
+    if (areaMask.contrast.empty() || areaMask.contrast[0] < art::gui::DCT_Linear ||
+        areaMask.contrast[0] >= art::gui::DCT_Unchanged) {
+        areaMask.contrast = {art::gui::DCT_Linear};
     }
     std::vector<std::unique_ptr<AreaMask::Shape>> s;
     for (int i = 0;; ++i) {
@@ -1506,10 +1506,10 @@ bool SaturationParams::operator!=(const SaturationParams &other) const
 }
 
 ToneCurveParams::ToneCurveParams()
-    : enabled(false), contrast(0), curve{DCT_Linear}, curve2{DCT_Linear},
+    : enabled(false), contrast(0), curve{art::gui::DCT_Linear}, curve2{art::gui::DCT_Linear},
       curveMode(ToneCurveParams::TcMode::NEUTRAL),
       curveMode2(ToneCurveParams::TcMode::NEUTRAL), histmatching(false),
-      fromHistMatching(false), saturation{FCT_Linear}, saturation2{DCT_Linear},
+      fromHistMatching(false), saturation{art::gui::FCT_Linear}, saturation2{art::gui::DCT_Linear},
       perceptualStrength(100), contrastLegacyMode(false), whitePoint(1.0),
       basecurve(ToneCurveParams::BcMode::LINEAR)
 {
@@ -1539,7 +1539,7 @@ bool ToneCurveParams::operator!=(const ToneCurveParams &other) const
 bool ToneCurveParams::hasWhitePoint() const
 {
     const auto good = [](const std::vector<double> &c, TcMode m) -> bool {
-        if (c.empty() || c[0] == DCT_Empty || c[0] == DCT_Linear) {
+        if (c.empty() || c[0] == art::gui::DCT_Empty || c[0] == art::gui::DCT_Linear) {
             return true;
         }
         return m != TcMode::SATANDVALBLENDING && m != TcMode::PERCEPTUAL;
@@ -1550,7 +1550,7 @@ bool ToneCurveParams::hasWhitePoint() const
 
 LabCurveParams::LabCurveParams()
     : enabled(false), brightness(0), contrast(0), chromaticity(0),
-      lcurve{DCT_Linear}, acurve{DCT_Linear}, bcurve{DCT_Linear}
+      lcurve{art::gui::DCT_Linear}, acurve{art::gui::DCT_Linear}, bcurve{art::gui::DCT_Linear}
 {
 }
 
@@ -1568,7 +1568,7 @@ bool LabCurveParams::operator!=(const LabCurveParams &other) const
 }
 
 RGBCurvesParams::RGBCurvesParams()
-    : enabled(false), rcurve{DCT_Linear}, gcurve{DCT_Linear}, bcurve{DCT_Linear}
+    : enabled(false), rcurve{art::gui::DCT_Linear}, gcurve{art::gui::DCT_Linear}, bcurve{art::gui::DCT_Linear}
 {
 }
 
@@ -1585,7 +1585,7 @@ bool RGBCurvesParams::operator!=(const RGBCurvesParams &other) const
 
 LocalContrastParams::Region::Region()
     : contrast(0),
-      curve{FCT_MinMaxCPoints, 0.0, 0.5, 0.0, 0.0, 1.0, 0.5, 0.0, 0.0}
+      curve{art::gui::FCT_MinMaxCPoints, 0.0, 0.5, 0.0, 0.0, 1.0, 0.5, 0.0, 0.0}
 {
 }
 
@@ -1670,7 +1670,7 @@ bool WBParams::operator!=(const WBParams &other) const
 }
 
 DefringeParams::DefringeParams()
-    : enabled(false), radius(2.0), threshold(13), huecurve{FCT_MinMaxCPoints,
+    : enabled(false), radius(2.0), threshold(13), huecurve{art::gui::FCT_MinMaxCPoints,
                                                            0.166666667,
                                                            0.,
                                                            0.35,
@@ -2215,8 +2215,8 @@ bool BlackWhiteParams::operator!=(const BlackWhiteParams &other) const
 }
 
 HSLEqualizerParams::HSLEqualizerParams()
-    : enabled(false), hCurve{FCT_Linear}, sCurve{FCT_Linear},
-      lCurve{FCT_Linear}, smoothing(0)
+    : enabled(false), hCurve{art::gui::FCT_Linear}, sCurve{art::gui::FCT_Linear},
+      lCurve{art::gui::FCT_Linear}, smoothing(0)
 {
 }
 
@@ -2360,7 +2360,7 @@ bool SoftLightParams::operator!=(const SoftLightParams &other) const
 
 DehazeParams::DehazeParams()
     : enabled(false),
-      strength{FCT_MinMaxCPoints, 0.0, 0.75, 0.0, 0.0, 1.0, 0.75, 0.0, 0.0},
+      strength{art::gui::FCT_MinMaxCPoints, 0.0, 0.75, 0.0, 0.0, 1.0, 0.75, 0.0, 0.0},
       showDepthMap(false), depth(25), luminance(false), blackpoint(0)
 {
 }
@@ -2867,7 +2867,7 @@ void ProcParams::setDefaults()
 }
 
 int ProcParams::save(ProgressListener *pl, const Glib::ustring &fname,
-                     const Glib::ustring &fname2, const ParamsEdited *pedited)
+                     const Glib::ustring &fname2, const art::gui::ParamsEdited *pedited)
 {
     if (fname.empty() && fname2.empty()) {
         return 0;
@@ -2885,7 +2885,7 @@ int ProcParams::save(ProgressListener *pl, const Glib::ustring &fname,
         sPParams = keyFile.to_data();
     } catch (Glib::KeyFileError &exc) {
         if (pl) {
-            pl->error(Glib::ustring::compose(M("PROCPARAMS_SAVE_ERROR"), fname,
+            pl->error(Glib::ustring::compose(art::gui::M("PROCPARAMS_SAVE_ERROR"), fname,
                                              exc.what()));
         }
     }
@@ -2925,7 +2925,7 @@ int ProcParams::saveEmbedded(ProgressListener *pl, const Glib::ustring &fname)
         sPParams = keyFile.to_data();
     } catch (Glib::KeyFileError &exc) {
         if (pl) {
-            pl->error(Glib::ustring::compose(M("PROCPARAMS_SAVE_ERROR"), fname,
+            pl->error(Glib::ustring::compose(art::gui::M("PROCPARAMS_SAVE_ERROR"), fname,
                                              exc.what()));
         }
     }
@@ -2943,7 +2943,7 @@ int ProcParams::saveEmbedded(ProgressListener *pl, const Glib::ustring &fname)
         return 0;
     } catch (std::exception &exc) {
         if (pl) {
-            pl->error(Glib::ustring::compose(M("PROCPARAMS_SAVE_ERROR"), fname,
+            pl->error(Glib::ustring::compose(art::gui::M("PROCPARAMS_SAVE_ERROR"), fname,
                                              exc.what()));
         }
         return 1;
@@ -2993,7 +2993,7 @@ bool load_lut_params(const KeyFile &keyFile, const Glib::ustring &group,
 } // namespace
 
 int ProcParams::save(ProgressListener *pl, bool save_general, KeyFile &keyFile,
-                     const ParamsEdited *pedited,
+                     const art::gui::ParamsEdited *pedited,
                      const Glib::ustring &fname) const
 {
 #define RELEVANT_(n) (!pedited || pedited->n)
@@ -3075,7 +3075,7 @@ int ProcParams::save(ProgressListener *pl, bool save_general, KeyFile &keyFile,
             saveToKeyfile("ToneCurve", "CurveMode", tc_mapping,
                           toneCurve.curveMode, keyFile);
             if (!toneCurve.curve2.empty() &&
-                toneCurve.curve2[0] != DCT_Linear &&
+                toneCurve.curve2[0] != art::gui::DCT_Linear &&
                 toneCurve.curveMode != toneCurve.curveMode2) {
                 saveToKeyfile("ToneCurve", "CurveMode2", tc_mapping,
                               toneCurve.curveMode2, keyFile);
@@ -4082,7 +4082,7 @@ int ProcParams::save(ProgressListener *pl, bool save_general, KeyFile &keyFile,
         }
     } catch (Glib::KeyFileError &exc) {
         if (pl) {
-            pl->error(Glib::ustring::compose(M("PROCPARAMS_SAVE_ERROR"), fname,
+            pl->error(Glib::ustring::compose(art::gui::M("PROCPARAMS_SAVE_ERROR"), fname,
                                              exc.what()));
         }
         return 1;
@@ -4093,14 +4093,14 @@ int ProcParams::save(ProgressListener *pl, bool save_general, KeyFile &keyFile,
 }
 
 int ProcParams::save(ProgressListener *pl, KeyFile &keyFile,
-                     const ParamsEdited *pedited,
+                     const art::gui::ParamsEdited *pedited,
                      const Glib::ustring &fname) const
 {
     return save(pl, true, keyFile, pedited, fname);
 }
 
 int ProcParams::load(ProgressListener *pl, const Glib::ustring &fname,
-                     const ParamsEdited *pedited)
+                     const art::gui::ParamsEdited *pedited)
 {
     setlocale(LC_NUMERIC, "C"); // to set decimal point to "."
 
@@ -4135,7 +4135,7 @@ int ProcParams::load(ProgressListener *pl, const Glib::ustring &fname,
             return load(pl, keyFile, pedited, true, fname);
         } catch (std::exception &exc) {
             if (pl) {
-                pl->error(Glib::ustring::compose(M("PROCPARAMS_LOAD_ERROR"),
+                pl->error(Glib::ustring::compose(art::gui::M("PROCPARAMS_LOAD_ERROR"),
                                                  fname, e.what()));
             }
             setDefaults();
@@ -4143,14 +4143,14 @@ int ProcParams::load(ProgressListener *pl, const Glib::ustring &fname,
         }
     } catch (std::exception &e) {
         if (pl) {
-            pl->error(Glib::ustring::compose(M("PROCPARAMS_LOAD_ERROR"), fname,
+            pl->error(Glib::ustring::compose(art::gui::M("PROCPARAMS_LOAD_ERROR"), fname,
                                              e.what()));
         }
         setDefaults();
         return 1;
     } catch (...) {
         if (pl) {
-            pl->error(Glib::ustring::compose(M("PROCPARAMS_LOAD_ERROR"), fname,
+            pl->error(Glib::ustring::compose(art::gui::M("PROCPARAMS_LOAD_ERROR"), fname,
                                              "unknown exception"));
         }
         // printf("-->unknown exception!\n");
@@ -4160,12 +4160,12 @@ int ProcParams::load(ProgressListener *pl, const Glib::ustring &fname,
 }
 
 int ProcParams::load(ProgressListener *pl, bool load_general,
-                     const KeyFile &keyFile, const ParamsEdited *pedited,
+                     const KeyFile &keyFile, const art::gui::ParamsEdited *pedited,
                      bool resetOnError, const Glib::ustring &fname)
 {
 #define RELEVANT_(n) (!pedited || pedited->n)
 #define APPEND_(n, p)                                                          \
-    (pedited && pedited->n == ParamsEdited::Undef &&                           \
+    (pedited && pedited->n == art::gui::ParamsEdited::Undef &&                           \
      (n.regions != p.regions || n.masks != p.masks))
 #define DO_APPEND_(l, o) l.insert(l.begin(), o.begin(), o.end())
 
@@ -5284,7 +5284,7 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                     float v =
                         0.5f + LIM((float(s) / 200.f) * 1.38f, -0.5f, 0.5f);
                     dehaze.strength = {
-                        FCT_MinMaxCPoints, 0.0, v, 0.0, 0.0, 1.0, v, 0.0, 0.0};
+                        art::gui::FCT_MinMaxCPoints, 0.0, v, 0.0, 0.0, 1.0, v, 0.0, 0.0};
                 }
             } else {
                 assignFromKeyfile(keyFile, "Dehaze", "Strength",
@@ -6261,7 +6261,7 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
     } catch (const Glib::Error &e) {
         // printf("-->%s\n", e.what().c_str());
         if (pl) {
-            pl->error(Glib::ustring::compose(M("PROCPARAMS_LOAD_ERROR"), fname,
+            pl->error(Glib::ustring::compose(art::gui::M("PROCPARAMS_LOAD_ERROR"), fname,
                                              e.what()));
         }
         if (resetOnError) {
@@ -6270,7 +6270,7 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
         return 1;
     } catch (std::exception &e) {
         if (pl) {
-            pl->error(Glib::ustring::compose(M("PROCPARAMS_LOAD_ERROR"), fname,
+            pl->error(Glib::ustring::compose(art::gui::M("PROCPARAMS_LOAD_ERROR"), fname,
                                              e.what()));
         }
         if (resetOnError) {
@@ -6280,7 +6280,7 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
     } catch (...) {
         // printf("-->unknown exception!\n");
         if (pl) {
-            pl->error(Glib::ustring::compose(M("PROCPARAMS_LOAD_ERROR"), fname,
+            pl->error(Glib::ustring::compose(art::gui::M("PROCPARAMS_LOAD_ERROR"), fname,
                                              "unknown exception"));
         }
         if (resetOnError) {
@@ -6297,7 +6297,7 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
 }
 
 int ProcParams::load(ProgressListener *pl, const KeyFile &keyFile,
-                     const ParamsEdited *pedited, bool resetOnError,
+                     const art::gui::ParamsEdited *pedited, bool resetOnError,
                      const Glib::ustring &fname)
 {
     return load(pl, true, keyFile, pedited, resetOnError, fname);
@@ -6352,7 +6352,7 @@ int ProcParams::write(ProgressListener *pl, const Glib::ustring &fname,
 
         if (f == nullptr) {
             if (pl) {
-                pl->error(Glib::ustring::compose(M("PROCPARAMS_SAVE_ERROR"),
+                pl->error(Glib::ustring::compose(art::gui::M("PROCPARAMS_SAVE_ERROR"),
                                                  fname, "write error"));
             }
             error = 1;
@@ -6420,20 +6420,20 @@ FilePartialProfile::FilePartialProfile(ProgressListener *pl,
 
 bool FilePartialProfile::applyTo(ProcParams &pp) const
 {
-    ParamsEdited pe(true);
+    art::gui::ParamsEdited pe(true);
     pe.set_append(append_);
     return !fname_.empty() && (pp.load(pl_, fname_, &pe) == 0);
 }
 
 PEditedPartialProfile::PEditedPartialProfile(ProgressListener *pl,
                                              const Glib::ustring &fname,
-                                             const ParamsEdited &pe)
+                                             const art::gui::ParamsEdited &pe)
     : pl_(pl), fname_(fname), pp_(), pe_(pe)
 {
 }
 
 PEditedPartialProfile::PEditedPartialProfile(const ProcParams &pp,
-                                             const ParamsEdited &pe)
+                                             const art::gui::ParamsEdited &pe)
     : pl_(nullptr), fname_(""), pp_(pp), pe_(pe)
 {
 }
@@ -6451,7 +6451,7 @@ bool PEditedPartialProfile::applyTo(ProcParams &pp) const
         } catch (const Glib::Error &e) {
             // printf("-->%s\n", e.what().c_str());
             if (pl_) {
-                pl_->error(Glib::ustring::compose(M("PROCPARAMS_LOAD_ERROR"),
+                pl_->error(Glib::ustring::compose(art::gui::M("PROCPARAMS_LOAD_ERROR"),
                                                   fname_, e.what()));
             }
             return false;
@@ -6538,7 +6538,7 @@ int ProcParamsWithSnapshots::load(ProgressListener *pl,
         return 0;
     } catch (const Glib::Error &e) {
         if (pl) {
-            pl->error(Glib::ustring::compose(M("PROCPARAMS_LOAD_ERROR"), fname,
+            pl->error(Glib::ustring::compose(art::gui::M("PROCPARAMS_LOAD_ERROR"), fname,
                                              e.what()));
         }
         // printf("-->%s\n", e.what().c_str());
@@ -6547,7 +6547,7 @@ int ProcParamsWithSnapshots::load(ProgressListener *pl,
         return 1;
     } catch (...) {
         if (pl) {
-            pl->error(Glib::ustring::compose(M("PROCPARAMS_LOAD_ERROR"), fname,
+            pl->error(Glib::ustring::compose(art::gui::M("PROCPARAMS_LOAD_ERROR"), fname,
                                              "unknown exception"));
         }
         // printf("-->unknown exception!\n");
@@ -6600,7 +6600,7 @@ int ProcParamsWithSnapshots::save(ProgressListener *pl,
         data = keyfile.to_data();
     } catch (Glib::KeyFileError &exc) {
         if (pl) {
-            pl->error(Glib::ustring::compose(M("PROCPARAMS_SAVE_ERROR"), fname,
+            pl->error(Glib::ustring::compose(art::gui::M("PROCPARAMS_SAVE_ERROR"), fname,
                                              exc.what()));
         }
     }

@@ -26,6 +26,9 @@
 #include <sstream>
 #include <time.h>
 
+namespace art { namespace gui {
+
+
 DateEntry::DateEntry(): Gtk::HBox()
 {
     entry_ = Gtk::manage(new Gtk::Entry());
@@ -136,3 +139,6 @@ void DateEntry::on_enter()
         set_date(date_);
     }
 }
+
+
+} } // namespace art::gui

@@ -34,6 +34,9 @@ class ImageMenuItem;
 
 typedef struct _GdkEventButton GdkEventButton;
 
+namespace art { namespace gui {
+
+
 class RTImage;
 
 class PopUpCommon {
@@ -96,3 +99,6 @@ PopUpCommon::signal_item_selected()
 inline int PopUpCommon::getEntryCount() const { return images.size(); }
 
 inline int PopUpCommon::getSelected() const { return posToIndex(selected); }
+
+
+} } // namespace art::gui

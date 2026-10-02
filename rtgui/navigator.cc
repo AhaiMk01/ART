@@ -26,6 +26,9 @@
 #include "toolpanel.h"
 #include <iomanip>
 
+namespace art { namespace gui {
+
+
 extern Options options;
 
 using namespace art::engine;
@@ -453,3 +456,6 @@ void Navigator::cycleUnitsLCH(GdkEventButton *event)
     }
     sig_cycle_lch.emit();
 }
+
+
+} } // namespace art::gui

@@ -32,6 +32,9 @@
 #include <omp.h>
 #endif
 
+namespace art { namespace gui {
+
+
 #define DEBUG(format, args...)
 // #define DEBUG(format,args...) printf("PreviewLoader::%s: " format "\n",
 // __FUNCTION__, ## args)
@@ -166,3 +169,6 @@ void PreviewLoader::removeAllJobs()
     MyMutex::MyLock lock(impl_->mutex_);
     impl_->jobs_.clear();
 }
+
+
+} } // namespace art::gui

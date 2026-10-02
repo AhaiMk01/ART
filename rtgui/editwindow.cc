@@ -26,6 +26,9 @@
 #include "version.h"
 #include <gtk/gtk.h>
 
+namespace art { namespace gui {
+
+
 // Check if the system has more than one display and option is set
 bool EditWindow::isMultiDisplayEnabled()
 {
@@ -135,7 +138,7 @@ void EditWindow::on_realize()
 {
     Gtk::Window::on_realize();
 
-    art::gdk_set_monitor_profile(get_window()->gobj(),
+    art::gui::gdk_set_monitor_profile(get_window()->gobj(),
                                  options.rtSettings.os_monitor_profile);
     editWindowCursorManager.init(get_window());
 }
@@ -415,3 +418,6 @@ bool EditWindow::scrollPressed(GdkEventScroll *event)
     }
     return false;
 }
+
+
+} } // namespace art::gui

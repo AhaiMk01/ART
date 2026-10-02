@@ -74,10 +74,10 @@ protected:
     bool cropAllocated;
     DetailedCropListener *cropImageListener;
 
-    MyMutex cropMutex;
+    art::gui::MyMutex cropMutex;
     ImProcCoordinator *const parent;
     const bool isDetailWindow;
-    EditUniqueID getCurrEditID();
+    art::gui::EditUniqueID getCurrEditID();
     bool setCropSizes(int cropX, int cropY, int cropW, int cropH, int skip,
                       bool internal);
     void freeAll();
@@ -86,11 +86,11 @@ protected:
     void update(int todo);
 
 public:
-    Crop(ImProcCoordinator *parent, EditDataProvider *editDataProvider,
+    Crop(ImProcCoordinator *parent, art::gui::EditDataProvider *editDataProvider,
          bool isDetailWindow);
     ~Crop() override;
 
-    void setEditSubscriber(EditSubscriber *newSubscriber);
+    void setEditSubscriber(art::gui::EditSubscriber *newSubscriber);
     bool hasListener();
     void setWindow(int cropX, int cropY, int cropW, int cropH,
                    int skip) override

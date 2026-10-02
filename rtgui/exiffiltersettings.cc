@@ -18,6 +18,9 @@
  */
 #include "exiffiltersettings.h"
 
+namespace art { namespace gui {
+
+
 ExifFilterSettings::ExifFilterSettings() { clear(); }
 
 void ExifFilterSettings::clear()
@@ -205,3 +208,6 @@ void ExifFilterSettings::save(Glib::KeyFile &kf,
     set_date("DateFrom", dateFrom);
     set_date("DateTo", dateTo);
 }
+
+
+} } // namespace art::gui

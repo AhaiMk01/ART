@@ -27,6 +27,9 @@
 #include <librsvg/rsvg.h>
 #include <unordered_map>
 
+namespace art { namespace gui {
+
+
 int RTScalable::global_display_scale_ = 1;
 
 extern Options options;
@@ -166,3 +169,6 @@ int RTScalable::getDisplayScale(const Cairo::RefPtr<Cairo::Surface> &surface)
     cairo_surface_get_device_scale(cobj, &scale, &scale);
     return scale;
 }
+
+
+} } // namespace art::gui

@@ -22,6 +22,9 @@
 #include <cmath>
 #include <iomanip>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -102,3 +105,6 @@ void SoftLight::registerShortcuts(ToolShortcutManager *mgr)
 {
     mgr->addShortcut(GDK_KEY_o, this, strength);
 }
+
+
+} } // namespace art::gui

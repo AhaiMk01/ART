@@ -26,6 +26,9 @@
 #include <gtkmm.h>
 #include <set>
 
+namespace art { namespace gui {
+
+
 class EditWindow;
 
 class MessageWindow: public Gtk::Window {
@@ -166,3 +169,6 @@ private:
     IdleRegister idle_register;
     bool is_application_;
 };
+
+
+} } // namespace art::gui

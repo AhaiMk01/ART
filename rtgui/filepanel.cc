@@ -23,6 +23,9 @@
 #include "rtwindow.h"
 #include "session.h"
 
+namespace art { namespace gui {
+
+
 FilePanel::FilePanel(): parent(nullptr), error(0), pane_pos_(-1)
 {
 
@@ -184,7 +187,7 @@ void FilePanel::init()
     dirBrowser->fillDirTree();
     placesBrowser->refreshPlacesList();
 
-    if (!argv1.empty() && art::session::check(argv1)) {
+    if (!argv1.empty() && art::gui::session::check(argv1)) {
         dirBrowser->open(argv1);
     } else if (!argv1.empty() &&
                Glib::file_test(argv1, Glib::FILE_TEST_EXISTS)) {
@@ -200,8 +203,8 @@ void FilePanel::init()
             dirBrowser->open(options.ART_base_dir);
         } else if (options.startupDir == Options::STARTUPDIR_CUSTOM ||
                    options.startupDir == Options::STARTUPDIR_LAST) {
-            if (art::session::check(options.startupPath)) {
-                art::session::load(art::session::filename() + ".last");
+            if (art::gui::session::check(options.startupPath)) {
+                art::gui::session::load(art::gui::session::filename() + ".last");
                 dirBrowser->open(options.startupPath);
             } else if (options.startupPath.length() &&
                        ((Glib::file_test(options.startupPath,
@@ -516,3 +519,6 @@ bool FilePanel::on_button_release_event(GdkEventButton *event)
     }
     return Gtk::HPaned::on_button_press_event(event);
 }
+
+
+} } // namespace art::gui

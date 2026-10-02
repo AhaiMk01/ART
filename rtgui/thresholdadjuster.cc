@@ -25,6 +25,9 @@
 #include <cmath>
 #include <sigc++/slot.h>
 
+namespace art { namespace gui {
+
+
 #define MIN_RESET_BUTTON_HEIGHT 17
 
 ThresholdAdjuster::ThresholdAdjuster(
@@ -436,3 +439,6 @@ Glib::ustring ThresholdAdjuster::getHistoryString()
             t);
     }
 }
+
+
+} } // namespace art::gui

@@ -22,6 +22,9 @@
 #include "multilangmgr.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class RecentBrowser: public Gtk::VBox {
 public:
     typedef sigc::slot<void, const Glib::ustring &> DirSelectionSlot;
@@ -46,3 +49,6 @@ RecentBrowser::setDirSelector(const RecentBrowser::DirSelectionSlot &selectDir)
 {
     this->selectDir = selectDir;
 }
+
+
+} } // namespace art::gui

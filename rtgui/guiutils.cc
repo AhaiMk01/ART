@@ -32,6 +32,9 @@
 #include <windows.h>
 #endif
 
+namespace art { namespace gui {
+
+
 std::shared_ptr<RTSurface> MyExpander::inconsistentImage;
 std::shared_ptr<RTSurface> MyExpander::enabledImage;
 std::shared_ptr<RTSurface> MyExpander::disabledImage;
@@ -2396,3 +2399,6 @@ void MyFontButton::on_btn_clicked()
         
     dialog.hide();
 }
+
+
+} } // namespace art::gui

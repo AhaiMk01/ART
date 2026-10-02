@@ -35,6 +35,9 @@
 #include <mach-o/dyld.h>
 #endif // __APPLE__
 
+namespace art { namespace gui {
+
+
 Glib::ustring removeExtension(const Glib::ustring &filename)
 {
 
@@ -128,3 +131,6 @@ bool isSubdir(const Glib::ustring &parent, const Glib::ustring &child)
     auto c = Gio::File::create_for_path(child);
     return c->has_prefix(p);
 }
+
+
+} } // namespace art::gui

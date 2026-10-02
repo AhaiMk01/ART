@@ -20,6 +20,9 @@
 #include "../rtengine/curves.h"
 #include "eventmapper.h"
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -202,3 +205,6 @@ void RGBCurves::renderCurveBackground(int caller_id,
         }
     }
 }
+
+
+} } // namespace art::gui

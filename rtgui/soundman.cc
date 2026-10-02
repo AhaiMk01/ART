@@ -30,6 +30,9 @@
 #include <canberra-gtk.h>
 #endif
 
+namespace art { namespace gui {
+
+
 void SoundManager::init()
 {
 #ifdef WIN32
@@ -74,3 +77,6 @@ void SoundManager::playSoundAsync(const Glib::ustring &sound)
                     CA_PROP_MEDIA_FILENAME, sound.c_str(), NULL);
 #endif
 }
+
+
+} } // namespace art::gui

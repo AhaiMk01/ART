@@ -18,6 +18,9 @@
  */
 #pragma once
 
+namespace art { namespace gui {
+
+
 class CropGUIListener {
 
 public:
@@ -45,3 +48,6 @@ public:
     virtual bool inImageArea(int x, int y) = 0;
     virtual double getRatio() const = 0;
 };
+
+
+} } // namespace art::gui

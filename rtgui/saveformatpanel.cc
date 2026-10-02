@@ -24,6 +24,9 @@
 #include "multilangmgr.h"
 #include "saveformatpanel.h"
 
+namespace art { namespace gui {
+
+
 namespace {
 
 const std::array<std::pair<const char *, SaveFormat>, 7> sf_templates = {
@@ -268,3 +271,6 @@ Glib::ustring SaveFormatPanel::getExtension()
 
     return "";
 }
+
+
+} } // namespace art::gui

@@ -21,6 +21,9 @@
 #include "multilangmgr.h"
 #include "paramsedited.h"
 
+namespace art { namespace gui {
+
+
 namespace {
 
 const std::vector<std::string> groups = {
@@ -259,3 +262,6 @@ ParamsEdited PartialPasteDlg::getParamsEdited()
     }
     return pedited_;
 }
+
+
+} } // namespace art::gui

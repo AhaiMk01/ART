@@ -38,6 +38,9 @@
 #include "thumbimgcache.h"
 #include "version.h"
 
+namespace art { namespace gui {
+
+
 using namespace art::engine::procparams;
 
 Thumbnail::Thumbnail(CacheManager *cm, const Glib::ustring &fname,
@@ -750,7 +753,7 @@ Thumbnail::processThumbImage(const art::engine::procparams::ProcParams &pparams,
     } else {
         auto fn = getCacheFileName("images", "");
         if (first_process_) {
-            image = art::thumbimgcache::load(fn, pparams, h);
+            image = art::gui::thumbimgcache::load(fn, pparams, h);
             if (!image) {
                 first_process_ = false;
             }
@@ -763,7 +766,7 @@ Thumbnail::processThumbImage(const art::engine::procparams::ProcParams &pparams,
             image = tpp->processImage(
                 pparams, static_cast<art::engine::eSensorType>(cfs.sensortype), h,
                 art::engine::TI_Bilinear, &cfs, scale);
-            art::thumbimgcache::store(fn, pparams, image);
+            art::gui::thumbimgcache::store(fn, pparams, image);
         } else if (options.rtSettings.verbose) {
             std::cout << "cached thumb image: " << fname << std::endl;
         }
@@ -800,7 +803,7 @@ Thumbnail::upgradeThumbImage(const art::engine::procparams::ProcParams &pparams,
         pparams, static_cast<art::engine::eSensorType>(cfs.sensortype), h,
         art::engine::TI_Bilinear, &cfs, scale);
     tpp->getDimensions(lastW, lastH, lastScale);
-    art::thumbimgcache::store(getCacheFileName("images", ""), pparams, image);
+    art::gui::thumbimgcache::store(getCacheFileName("images", ""), pparams, image);
 
     delete tpp;
     tpp = nullptr;
@@ -1315,3 +1318,6 @@ Thumbnail::getProcParamsSnapshots()
 {
     return pparams.snapshots;
 }
+
+
+} } // namespace art::gui

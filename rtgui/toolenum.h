@@ -18,6 +18,9 @@
  */
 #pragma once
 
+namespace art { namespace gui {
+
+
 enum ToolMode {
     TMNone = -1,
     TMHand = 0,
@@ -27,3 +30,6 @@ enum ToolMode {
     TMColorPicker = 4,
     TMPerspective = 5
 };
+
+
+} } // namespace art::gui

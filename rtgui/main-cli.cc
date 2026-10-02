@@ -63,6 +63,13 @@
 #include <mimalloc.h>
 #endif
 
+namespace art { namespace engine {
+extern const Settings *settings;
+}}
+
+namespace art { namespace gui {
+
+
 extern Options options;
 
 // stores path to data files
@@ -98,9 +105,6 @@ int processLineParams(int argc, char **argv);
 
 std::pair<bool, int> dontLoadCache(int argc, char **argv);
 
-namespace art { namespace engine {
-extern const Settings *settings;
-}}
 
 int check_lut(int argc, char **argv)
 {
@@ -125,6 +129,12 @@ int check_lut(int argc, char **argv)
         return 2;
     }
 }
+
+
+
+} } // namespace art::gui
+
+using namespace art::gui;
 
 int main(int argc, char **argv)
 {
@@ -277,6 +287,8 @@ int main(int argc, char **argv)
 
     return ret;
 }
+namespace art { namespace gui {
+
 
 std::pair<bool, int> dontLoadCache(int argc, char **argv)
 {
@@ -1037,3 +1049,5 @@ int processLineParams(int argc, char **argv)
 
     return errors > 0 ? -2 : 0;
 }
+
+} } // namespace art::gui

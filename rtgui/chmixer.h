@@ -23,6 +23,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class ChMixer: public ToolParamBlock,
                public AdjusterListener,
                public FoldableToolPanel {
@@ -60,3 +63,6 @@ private:
     art::engine::ProcEvent EvGreenPrimary;
     art::engine::ProcEvent EvBluePrimary;
 };
+
+
+} } // namespace art::gui

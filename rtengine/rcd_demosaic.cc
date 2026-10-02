@@ -539,7 +539,7 @@ void RawImageSource::rcd_demosaic()
 
     if (plistener) {
         plistener->setProgressStr(Glib::ustring::compose(
-            M("TP_RAW_DMETHOD_PROGRESSBAR"), M("TP_RAW_RCD")));
+            art::gui::M("TP_RAW_DMETHOD_PROGRESSBAR"), art::gui::M("TP_RAW_RCD")));
     }
 
     constexpr int tileBorder = 9; // avoid tile-overlap errors

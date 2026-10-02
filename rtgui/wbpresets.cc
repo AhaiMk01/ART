@@ -21,6 +21,9 @@
 #include "../rtengine/rawimagesource.h"
 #include "toolpanelcoord.h"
 
+namespace art { namespace gui {
+
+
 std::vector<WBPreset> ToolPanelCoordinator::getWBPresets() const
 {
     std::vector<WBPreset> ret;
@@ -64,3 +67,6 @@ void ToolPanelCoordinator::convertWBMul2Cam(double &rm, double &gm, double &bm)
         }
     }
 }
+
+
+} } // namespace art::gui

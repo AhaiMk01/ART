@@ -32,6 +32,9 @@
 #include <glibmm.h>
 #include <map>
 
+namespace art { namespace gui {
+
+
 extern Options options;
 
 namespace {
@@ -2555,5 +2558,8 @@ void FileBrowser::addToSessionRequested(std::vector<FileBrowserEntry *> tbe)
     for (auto e : tbe) {
         names.push_back(e->filename);
     }
-    art::session::add(names);
+    art::gui::session::add(names);
 }
+
+
+} } // namespace art::gui

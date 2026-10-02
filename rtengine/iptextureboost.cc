@@ -187,17 +187,17 @@ void texture_boost(array2D<float> &Y,
 bool ImProcFunctions::textureBoost(Imagefloat *rgb)
 {
     PlanarWhateverData<float> *editWhatever = nullptr;
-    EditUniqueID eid = pipetteBuffer ? pipetteBuffer->getEditID() : EUID_None;
+    art::gui::EditUniqueID eid = pipetteBuffer ? pipetteBuffer->getEditID() : art::gui::EUID_None;
 
-    if ((eid == EUID_Masks_H4 || eid == EUID_Masks_C4 ||
-         eid == EUID_Masks_L4) &&
+    if ((eid == art::gui::EUID_Masks_H4 || eid == art::gui::EUID_Masks_C4 ||
+         eid == art::gui::EUID_Masks_L4) &&
         pipetteBuffer->getDataProvider()
                 ->getCurrSubscriber()
-                ->getPipetteBufferType() == BT_SINGLEPLANE_FLOAT) {
+                ->getPipetteBufferType() == art::gui::BT_SINGLEPLANE_FLOAT) {
         editWhatever = pipetteBuffer->getSinglePlaneBuffer();
     }
 
-    if (eid == EUID_Masks_DE4) {
+    if (eid == art::gui::EUID_Masks_DE4) {
         if (getDeltaEColor(rgb, deltaE.x, deltaE.y, offset_x, offset_y,
                            full_width, full_height, scale, deltaE.L, deltaE.C,
                            deltaE.H)) {
@@ -207,7 +207,7 @@ bool ImProcFunctions::textureBoost(Imagefloat *rgb)
 
     if (params->textureBoost.enabled) {
         if (editWhatever) {
-            MasksEditID id = static_cast<MasksEditID>(int(eid) - EUID_Masks_H4);
+            MasksEditID id = static_cast<MasksEditID>(int(eid) - art::gui::EUID_Masks_H4);
             fillPipetteMasks(rgb, editWhatever, id, multiThread);
         }
 

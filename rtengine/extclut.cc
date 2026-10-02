@@ -133,9 +133,9 @@ get_cache_keys(const Glib::ustring &filename,
     return std::make_pair(csum, csum + ".clfz");
 }
 
-std::string find_in_cache(MyMutex &mtx, const std::string &key)
+std::string find_in_cache(art::gui::MyMutex &mtx, const std::string &key)
 {
-    auto name = Glib::build_filename(options.cacheBaseDir, "extlut", key);
+    auto name = Glib::build_filename(art::gui::options.cacheBaseDir, "extlut", key);
     if (Glib::file_test(name, Glib::FILE_TEST_EXISTS)) {
         std::string templ = Glib::build_filename(
             Glib::get_tmp_dir(),
@@ -146,7 +146,7 @@ std::string find_in_cache(MyMutex &mtx, const std::string &key)
         }
         close(fd);
         {
-            MyMutex::MyLock lck(mtx);
+            art::gui::MyMutex::MyLock lck(mtx);
             if (decompress_to(name, templ)) {
                 if (settings->verbose > 1) {
                     std::cout << "extlut cache hit: " << key << std::endl;
@@ -161,13 +161,13 @@ std::string find_in_cache(MyMutex &mtx, const std::string &key)
     return "";
 }
 
-void store_in_cache(MyMutex &mtx, const std::string &key, const std::string &fn)
+void store_in_cache(art::gui::MyMutex &mtx, const std::string &key, const std::string &fn)
 {
-    auto dir = Glib::build_filename(options.cacheBaseDir, "extlut");
+    auto dir = Glib::build_filename(art::gui::options.cacheBaseDir, "extlut");
     auto error = g_mkdir_with_parents(dir.c_str(), 0777);
     if (!error) {
         auto name = Glib::build_filename(dir, key);
-        MyMutex::MyLock lck(mtx);
+        art::gui::MyMutex::MyLock lck(mtx);
         if (compress_to(fn, name)) {
             if (settings->verbose > 1) {
                 std::cout << "extlut cache store: " << key << std::endl;
@@ -351,13 +351,13 @@ bool ExternalLUT3D::SubprocessManager::process(
 
 std::unique_ptr<Cache<std::string, OCIO::ConstProcessorRcPtr>>
     ExternalLUT3D::cache_;
-MyMutex ExternalLUT3D::disk_cache_mutex_;
+art::gui::MyMutex ExternalLUT3D::disk_cache_mutex_;
 ExternalLUT3D::SubprocessManager ExternalLUT3D::smgr_;
 
 void ExternalLUT3D::init()
 {
     cache_.reset(new Cache<std::string, OCIO::ConstProcessorRcPtr>(
-        options.clutCacheSize * 4));
+        art::gui::options.clutCacheSize * 4));
 }
 
 void ExternalLUT3D::cleanup() { cache_.reset(nullptr); }
@@ -455,10 +455,10 @@ bool ExternalLUT3D::init(const Glib::ustring &filename)
             if (pos != Glib::ustring::npos) {
                 auto key = gui_name_.substr(1, pos - 1);
                 auto dflt = gui_name_.substr(pos + 1);
-                auto res = M(key);
+                auto res = art::gui::M(key);
                 gui_name_ = (res == key) ? dflt : res;
             } else {
-                gui_name_ = M(gui_name_.c_str() + 1);
+                gui_name_ = art::gui::M(gui_name_.c_str() + 1);
             }
         }
     }
@@ -472,7 +472,7 @@ bool ExternalLUT3D::init(const Glib::ustring &filename)
     }
 
     if (gui_name_.empty()) {
-        gui_name_ = removeExtension(Glib::path_get_basename(filename_));
+        gui_name_ = art::gui::removeExtension(Glib::path_get_basename(filename_));
     }
 
     ok_ = true;
@@ -538,12 +538,12 @@ bool ExternalLUT3D::set_param_values(const CLUTParamValueMap &values)
 
 void ExternalLUT3D::trim_cache()
 {
-    MyMutex::MyLock lck(disk_cache_mutex_);
+    art::gui::MyMutex::MyLock lck(disk_cache_mutex_);
 
     size_t num_files = 0;
     const size_t max_num_files =
-        std::min(size_t(options.clutCacheSize) * 100, options.maxCacheEntries);
-    const auto dir_name = Glib::build_filename(options.cacheBaseDir, "extlut");
+        std::min(size_t(art::gui::options.clutCacheSize) * 100, art::gui::options.maxCacheEntries);
+    const auto dir_name = Glib::build_filename(art::gui::options.cacheBaseDir, "extlut");
     const auto dir = Gio::File::create_for_path(dir_name);
 
     try {
@@ -602,10 +602,10 @@ void ExternalLUT3D::trim_cache()
 
 void ExternalLUT3D::clear_cache()
 {
-    MyMutex::MyLock lck(disk_cache_mutex_);
+    art::gui::MyMutex::MyLock lck(disk_cache_mutex_);
 
     try {
-        auto dirname = Glib::build_filename(options.cacheBaseDir, "extlut");
+        auto dirname = Glib::build_filename(art::gui::options.cacheBaseDir, "extlut");
         Glib::Dir dir(dirname);
 
         bool error = false;
@@ -654,7 +654,7 @@ std::string ExternalLUT3D::recompute_lut(const std::string &params)
                 std::cout << "extlut - executing server for " << filename_
                           << ": " << params << " " << fn << std::endl;
             }
-            MyMutex::MyLock lck(disk_cache_mutex_);
+            art::gui::MyMutex::MyLock lck(disk_cache_mutex_);
             if (!smgr_.process(filename_, workdir_, argv_, params, fn)) {
                 if (settings->verbose) {
                     std::cout << "extlut - exec server error for " << filename_

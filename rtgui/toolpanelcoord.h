@@ -85,6 +85,9 @@
 #include "xtransprocess.h"
 #include "xtransrawexposure.h"
 
+namespace art { namespace gui {
+
+
 class ImageEditorCoordinator;
 
 class ToolPanelCoordinator: public ToolPanelListener,
@@ -376,3 +379,6 @@ public:
 private:
     IdleRegister idle_register;
 };
+
+
+} } // namespace art::gui

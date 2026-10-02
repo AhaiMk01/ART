@@ -30,6 +30,9 @@
 #include "recentbrowser.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class RTWindow;
 
 class FilePanel final: public Gtk::HPaned, public FileSelectionListener {
@@ -108,3 +111,6 @@ private:
     IdleRegister idle_register;
     int pane_pos_;
 };
+
+
+} } // namespace art::gui

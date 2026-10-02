@@ -18,6 +18,9 @@
  */
 #pragma once
 
+namespace art { namespace gui {
+
+
 enum ImgEditState {
     SNormal,
     SCropMove,
@@ -64,3 +67,6 @@ enum CursorArea {
     CropResize,
     CropObserved
 };
+
+
+} } // namespace art::gui

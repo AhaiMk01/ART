@@ -73,7 +73,7 @@ void get_L_curve(LUTf &out, int brightness, int contrast,
 {
     if (brightness) {
         std::vector<double> pts = {
-            DCT_NURBS,
+            art::gui::DCT_NURBS,
             0.0,
             0.0, // black point
             0.1,
@@ -114,7 +114,7 @@ void get_L_curve(LUTf &out, int brightness, int contrast,
 
         if (sum) {
             avg /= sum;
-            pts = {DCT_NURBS,
+            pts = {art::gui::DCT_NURBS,
                    0.0,
                    0.0,
 
@@ -131,7 +131,7 @@ void get_L_curve(LUTf &out, int brightness, int contrast,
         } else {
             // sum has an invalid value (next to 0, producing a division by
             // zero, so we create a fake contrast curve, producing a white image
-            pts = {DCT_NURBS, 0.0, 1.0, 1.0, 1.0};
+            pts = {art::gui::DCT_NURBS, 0.0, 1.0, 1.0, 1.0};
         }
 
         DiagonalCurve contrastcurve(pts, CURVES_MIN_POLY_POINTS / skip);
@@ -203,17 +203,17 @@ void lab_adjustments(const ImProcData &im, Imagefloat *img, LUTf &lcurve,
     const int H = img->getHeight();
 
     PlanarWhateverData<float> *editWhatever = nullptr;
-    EditUniqueID editID = EUID_None;
+    art::gui::EditUniqueID editID = art::gui::EUID_None;
     bool editPipette = false;
 
     if (pipetteBuffer) {
         editID = pipetteBuffer->getEditID();
 
-        if ((editID == EUID_Lab_LCurve || editID == EUID_Lab_aCurve ||
-             editID == EUID_Lab_bCurve) &&
+        if ((editID == art::gui::EUID_Lab_LCurve || editID == art::gui::EUID_Lab_aCurve ||
+             editID == art::gui::EUID_Lab_bCurve) &&
             pipetteBuffer->getDataProvider()
                     ->getCurrSubscriber()
-                    ->getPipetteBufferType() == BT_SINGLEPLANE_FLOAT) {
+                    ->getPipetteBufferType() == art::gui::BT_SINGLEPLANE_FLOAT) {
             editPipette = true;
             editWhatever = pipetteBuffer->getSinglePlaneBuffer();
         }
@@ -235,14 +235,14 @@ void lab_adjustments(const ImProcData &im, Imagefloat *img, LUTf &lcurve,
             for (int x = 0; x < W; ++x) {
                 float val = 0.f;
                 switch (editID) {
-                case EUID_Lab_LCurve:
+                case art::gui::EUID_Lab_LCurve:
                     val = img->g(y, x) / 32768.f;
                     break;
-                case EUID_Lab_aCurve:
+                case art::gui::EUID_Lab_aCurve:
                     val =
                         (img->r(y, x) + (32768.f * 1.28f)) / (65536.f * 1.28f);
                     break;
-                case EUID_Lab_bCurve:
+                case art::gui::EUID_Lab_bCurve:
                     val =
                         (img->b(y, x) + (32768.f * 1.28f)) / (65536.f * 1.28f);
                     break;

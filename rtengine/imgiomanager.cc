@@ -64,7 +64,7 @@ inline void exec_sync(const Glib::ustring &usrdir, const Glib::ustring &sysdir,
                      G_SEARCHPATH_SEPARATOR_S +
                      Glib::build_filename(sysdir, "bin");
 #ifdef BUILD_BUNDLE
-    extrapath += G_SEARCHPATH_SEPARATOR_S + options.ART_base_dir;
+    extrapath += G_SEARCHPATH_SEPARATOR_S + art::gui::options.ART_base_dir;
 #endif // BUILD_BUNDLE
     auto epth = Glib::getenv("ART_EXIFTOOL_BASE_DIR");
     if (!epth.empty()) {
@@ -86,7 +86,7 @@ void ImageIOManager::init(const Glib::ustring &base_dir,
     usrdir_ = Glib::build_filename(user_dir, "imageio");
     do_init(sysdir_);
     do_init(usrdir_);
-    auto d = Glib::build_filename(options.cacheBaseDir, "rawimgio");
+    auto d = Glib::build_filename(art::gui::options.cacheBaseDir, "rawimgio");
     g_mkdir_with_parents(d.c_str(), 0777);
     raw_cache_.reset(new RAWCache(std::max(settings->imgio_raw_cache_size, 1),
                                   &raw_cache_hook_));
@@ -295,7 +295,7 @@ bool ImageIOManager::load(const Glib::ustring &fileName,
         return false;
     }
     auto fmt = fmts_[ext];
-    Glib::ustring outname = fname_to_utf8(templ) + get_ext(fmt);
+    Glib::ustring outname = art::gui::fname_to_utf8(templ) + get_ext(fmt);
     // int exit_status = -1;
     auto &dir = it->second.first;
     auto &cmd = it->second.second;
@@ -430,7 +430,7 @@ bool ImageIOManager::save(IImagefloat *img, const std::string &ext,
         return false;
     }
     auto fmt = fmts_[ext];
-    Glib::ustring tmpname = fname_to_utf8(templ) + get_ext(fmt);
+    Glib::ustring tmpname = art::gui::fname_to_utf8(templ) + get_ext(fmt);
 
     bool ok = false;
 
@@ -566,7 +566,7 @@ namespace {
 
 Glib::ustring get_cache_name(const Glib::ustring &fname)
 {
-    const auto dirName = Glib::build_filename(options.cacheBaseDir, "rawimgio");
+    const auto dirName = Glib::build_filename(art::gui::options.cacheBaseDir, "rawimgio");
     const auto md5 = getMD5(fname, true);
     const auto baseName = Glib::path_get_basename(fname) + "." + md5;
     return Glib::build_filename(dirName, baseName + ".dng");

@@ -24,9 +24,12 @@
 
 #include "../rtengine/perspectivecorrection.h"
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 
-::ControlLine::~ControlLine() = default;
+ControlLine::~ControlLine() = default;
 
 ControlLineManager::ControlLineManager()
     : EditSubscriber(ET_OBJECTS), canvas_area(new EditRectangle()),
@@ -85,7 +88,7 @@ bool ControlLineManager::button1Pressed(int modifierKey)
     const int object = dataProvider->getObject();
 
     if (object > 0) {                                 // A control line.
-        if (object % ::ControlLine::OBJ_COUNT == 2) { // Icon.
+        if (object % ControlLine::OBJ_COUNT == 2) { // Icon.
             action = ES_ACTION_PICKING;
         } else {
             selected_object = object;
@@ -140,14 +143,14 @@ bool ControlLineManager::pick1(bool picked)
 
     EditDataProvider *provider = getEditProvider();
 
-    if (!provider || provider->getObject() % ::ControlLine::OBJ_COUNT != 2) {
+    if (!provider || provider->getObject() % ControlLine::OBJ_COUNT != 2) {
         return false;
     }
 
     // Change line type.
     int object_id = provider->getObject();
-    ::ControlLine &line =
-        *control_lines[(object_id - 1) / ::ControlLine::OBJ_COUNT];
+    ControlLine &line =
+        *control_lines[(object_id - 1) / ControlLine::OBJ_COUNT];
 
     if (line.type == art::engine::ControlLine::HORIZONTAL) {
         line.icon = line.icon_v;
@@ -179,7 +182,7 @@ bool ControlLineManager::pick3(bool picked)
         return false;
     }
 
-    removeLine((provider->getObject() - 1) / ::ControlLine::OBJ_COUNT);
+    removeLine((provider->getObject() - 1) / ControlLine::OBJ_COUNT);
     prev_obj = -1;
     selected_object = -1;
     return false;
@@ -193,10 +196,10 @@ bool ControlLineManager::drag1(int modifierKey)
         return false;
     }
 
-    ::ControlLine &control_line =
-        *control_lines[(selected_object - 1) / ::ControlLine::OBJ_COUNT];
+    ControlLine &control_line =
+        *control_lines[(selected_object - 1) / ControlLine::OBJ_COUNT];
     // 0 == end, 1 == line, 2 == icon, 3 == begin
-    int component = selected_object % ::ControlLine::OBJ_COUNT;
+    int component = selected_object % ControlLine::OBJ_COUNT;
     Coord mouse = provider->posImage + provider->deltaImage;
     Coord delta = provider->deltaImage - drag_delta;
     int ih, iw;
@@ -273,7 +276,7 @@ bool ControlLineManager::mouseOver(int modifierKey)
         }
     } else if (cur_obj < 0) { // Nothing
         cursor = CSArrow;
-    } else if (cur_obj % ::ControlLine::OBJ_COUNT == 2) { // Icon
+    } else if (cur_obj % ControlLine::OBJ_COUNT == 2) { // Icon
         visibleGeometry[cur_obj - 1]->state = Geometry::PRELIGHT;
         cursor = CSArrow;
     } else { // Object
@@ -356,7 +359,7 @@ void ControlLineManager::addLine(Coord begin, Coord end,
     end_c->radius = handle_radius;
     end_c->center = end;
 
-    std::unique_ptr<::ControlLine> control_line(new ::ControlLine());
+    std::unique_ptr<ControlLine> control_line(new ControlLine());
     control_line->begin = std::move(begin_c);
     control_line->end = std::move(end_c);
     control_line->icon_h = icon_h;
@@ -386,8 +389,8 @@ void ControlLineManager::addLine(Coord begin, Coord end,
 
 void ControlLineManager::autoSetLineType(int object_id)
 {
-    int line_id = (object_id - 1) / ::ControlLine::OBJ_COUNT;
-    ::ControlLine &line = *control_lines[line_id];
+    int line_id = (object_id - 1) / ControlLine::OBJ_COUNT;
+    ControlLine &line = *control_lines[line_id];
 
     int dx = line.begin->center.x - line.end->center.x;
     int dy = line.begin->center.y - line.end->center.y;
@@ -414,7 +417,7 @@ void ControlLineManager::autoSetLineType(int object_id)
     if (type != line.type) { // Need to update line type.
         line.type = type;
         line.icon = icon;
-        visibleGeometry[line_id * ::ControlLine::OBJ_COUNT + 1] =
+        visibleGeometry[line_id * ControlLine::OBJ_COUNT + 1] =
             line.icon.get();
     }
 }
@@ -438,13 +441,13 @@ void ControlLineManager::removeLine(size_t line_id)
     }
 
     visibleGeometry.erase(
-        visibleGeometry.begin() + ::ControlLine::OBJ_COUNT * line_id,
-        visibleGeometry.begin() + ::ControlLine::OBJ_COUNT * line_id +
-            ::ControlLine::OBJ_COUNT);
+        visibleGeometry.begin() + ControlLine::OBJ_COUNT * line_id,
+        visibleGeometry.begin() + ControlLine::OBJ_COUNT * line_id +
+            ControlLine::OBJ_COUNT);
     mouseOverGeometry.erase(
-        mouseOverGeometry.begin() + ::ControlLine::OBJ_COUNT * line_id + 1,
-        mouseOverGeometry.begin() + ::ControlLine::OBJ_COUNT * line_id +
-            ::ControlLine::OBJ_COUNT + 1);
+        mouseOverGeometry.begin() + ControlLine::OBJ_COUNT * line_id + 1,
+        mouseOverGeometry.begin() + ControlLine::OBJ_COUNT * line_id +
+            ControlLine::OBJ_COUNT + 1);
     control_lines.erase(control_lines.begin() + line_id);
 
     edited = true;
@@ -465,3 +468,6 @@ void ControlLineManager::toControlLines(
         converted[i].type = control_lines[i]->type;
     }
 }
+
+
+} } // namespace art::gui

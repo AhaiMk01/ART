@@ -21,6 +21,9 @@
 #include "guiutils.h"
 #include <iomanip>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -871,3 +874,6 @@ void Resize::toolReset(bool to_initial)
     pp.resize.enabled = getEnabled();
     read(&pp);
 }
+
+
+} } // namespace art::gui

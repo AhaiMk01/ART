@@ -21,6 +21,9 @@
 #include "multilangmgr.h"
 #include "rtimage.h"
 
+namespace art { namespace gui {
+
+
 bool BatchQueueButtonSet::iconsLoaded = false;
 
 Cairo::RefPtr<RTSurface> BatchQueueButtonSet::cancelIcon;
@@ -54,3 +57,6 @@ BatchQueueButtonSet::BatchQueueButtonSet(BatchQueueEntry *myEntry)
     add(new LWButton(cancelIcon, 10, myEntry, LWButton::Right, LWButton::Center,
                      &cancelJobToolTip));
 }
+
+
+} } // namespace art::gui

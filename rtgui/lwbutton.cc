@@ -19,6 +19,9 @@
 #include "lwbutton.h"
 #include "guiutils.h"
 
+namespace art { namespace gui {
+
+
 LWButton::LWButton(Cairo::RefPtr<RTSurface> i, int aCode, void *aData,
                    Alignment ha, Alignment va, Glib::ustring *tooltip)
     : xpos(0), ypos(0), halign(ha), valign(va), icon(i), bgr(0.0), bgg(0.0),
@@ -231,3 +234,6 @@ Glib::ustring LWButton::getToolTip(int x, int y) const
 }
 
 void LWButton::setToolTip(Glib::ustring *tooltip) { toolTip = tooltip; }
+
+
+} } // namespace art::gui

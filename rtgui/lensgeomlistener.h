@@ -24,7 +24,12 @@
 namespace art { namespace engine {
 class ControlLine;
 class ProcEvent;
-}} // namespace art::engine
+}}
+
+namespace art { namespace gui {
+
+
+ // namespace art::engine
 
 class LensGeomListener {
 public:
@@ -39,3 +44,6 @@ public:
     virtual void updateTransformPreviewRequested(art::engine::ProcEvent event,
                                                  bool render_perspective) = 0;
 };
+
+
+} } // namespace art::gui

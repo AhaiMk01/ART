@@ -44,7 +44,7 @@
  *
  */
 
-class EditDataProvider;
+namespace art { namespace gui { class EditDataProvider; } }
 
 namespace art { namespace engine {
 
@@ -558,7 +558,7 @@ public:
      * with the EditSubscriber
      * @return a pointer to the Crop object that handles the image data trough
      * its own pipeline */
-    virtual DetailedCrop *createCrop(::EditDataProvider *editDataProvider,
+    virtual DetailedCrop *createCrop(art::gui::EditDataProvider *editDataProvider,
                                      bool isDetailWindow) = 0;
 
     virtual bool getAutoWB(ColorTemp &out, double equal) = 0;
@@ -567,7 +567,7 @@ public:
 
     virtual void getAutoCrop(double ratio, int &x, int &y, int &w, int &h) = 0;
 
-    virtual bool getDeltaELCH(EditUniqueID id, int x, int y, float &L, float &C,
+    virtual bool getDeltaELCH(art::gui::EditUniqueID id, int x, int y, float &L, float &C,
                               float &H) = 0;
 
     virtual void saveInputICCReference(const Glib::ustring &fname,
@@ -705,5 +705,5 @@ public:
  **/
 void startBatchProcessing(ProcessingJob *job, BatchProcessingListener *bpl);
 
-extern MyMutex *lcmsMutex;
+extern art::gui::MyMutex *lcmsMutex;
 }} // namespace art::engine

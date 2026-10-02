@@ -24,6 +24,9 @@
 #include "rtwindow.h"
 #include "soundman.h"
 
+namespace art { namespace gui {
+
+
 static Glib::ustring makeFolderLabel(Glib::ustring path)
 {
     if (!Glib::file_test(path, Glib::FILE_TEST_IS_DIR)) {
@@ -519,3 +522,6 @@ void BatchQueuePanel::refreshProfiles()
         profiles_cb_->unset_active();
     }
 }
+
+
+} } // namespace art::gui

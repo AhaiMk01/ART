@@ -41,6 +41,9 @@
 #include "session.h"
 #include "thumbimageupdater.h"
 
+namespace art { namespace gui {
+
+
 namespace {
 
 class DirCompletion: public Gtk::EntryCompletion {
@@ -975,8 +978,8 @@ std::vector<Glib::ustring> FileCatalog::getFileList(bool recursive)
     const std::set<std::string> &extensions = options.parsedExtensionsSet;
 
     try {
-        if (art::session::check(selectedDirectory)) {
-            names = art::session::list();
+        if (art::gui::session::check(selectedDirectory)) {
+            names = art::gui::session::list();
         } else {
             const auto dir = Gio::File::create_for_path(selectedDirectory);
 
@@ -1059,7 +1062,7 @@ void FileCatalog::dirSelected(const Glib::ustring &dirname,
                               const Glib::ustring &openfile)
 {
     try {
-        bool is_session = art::session::check(dirname);
+        bool is_session = art::gui::session::check(dirname);
         button_session_load_->set_visible(is_session);
         button_session_save_->set_visible(is_session);
         button_session_add_->set_visible(is_session);
@@ -1067,7 +1070,7 @@ void FileCatalog::dirSelected(const Glib::ustring &dirname,
         button_recurse_->set_visible(!is_session);
 
         Glib::RefPtr<Gio::File> dir =
-            is_session ? Gio::File::create_for_path(art::session::filename())
+            is_session ? Gio::File::create_for_path(art::gui::session::filename())
                        : Gio::File::create_for_path(dirname);
 
         if (!dir) {
@@ -1952,7 +1955,7 @@ void FileCatalog::reparseDirectory()
         return;
     }
 
-    const bool is_session = art::session::check(selectedDirectory);
+    const bool is_session = art::gui::session::check(selectedDirectory);
 
     if (!is_session &&
         !Glib::file_test(selectedDirectory, Glib::FILE_TEST_IS_DIR)) {
@@ -2020,7 +2023,7 @@ void FileCatalog::on_dir_changed(const Glib::RefPtr<Gio::File> &file,
                                  const Glib::RefPtr<Gio::File> &other_file,
                                  Gio::FileMonitorEvent event_type)
 {
-    if (art::session::check(selectedDirectory)) {
+    if (art::gui::session::check(selectedDirectory)) {
         GThreadLock lock;
         reparseDirectory();
     } else if (options.has_retained_extention(file->get_parse_name()) &&
@@ -2271,7 +2274,7 @@ void FileCatalog::buttonBrowsePathPressed()
     BrowsePath->set_text(BrowsePathValue);
 
     // validate the path
-    if ((art::session::check(BrowsePathValue) ||
+    if ((art::gui::session::check(BrowsePathValue) ||
          Glib::file_test(BrowsePathValue, Glib::FILE_TEST_IS_DIR)) &&
         selectDir) {
         selectDir(BrowsePathValue);
@@ -2400,7 +2403,7 @@ void FileCatalog::toggleRightPanel()
 void FileCatalog::selectImage(const Glib::ustring &fname, bool clearFilters)
 {
     Glib::ustring dirname = Glib::path_get_dirname(fname);
-    if (/* art::session::check(selectedDirectory) &&*/ file_name_set_.find(
+    if (/* art::gui::session::check(selectedDirectory) &&*/ file_name_set_.find(
             fname) != file_name_set_.end()) {
         dirname = selectedDirectory;
     }
@@ -2442,7 +2445,7 @@ void FileCatalog::openNextPreviousEditorImage(Glib::ustring fname,
                                               bool clearFilters,
                                               eRTNav nextPrevious)
 {
-    const bool is_session = art::session::check(selectedDirectory);
+    const bool is_session = art::gui::session::check(selectedDirectory);
     const bool recursive = !is_session && button_recurse_->get_active();    
     Glib::ustring dirname = Glib::path_get_dirname(fname);
     if (is_session || (recursive && !dirname.empty() && isSubdir(selectedDirectory, dirname))) {
@@ -2768,7 +2771,7 @@ void FileCatalog::hideToolBar()
 Glib::ustring FileCatalog::getBrowsePath()
 {
     auto txt = BrowsePath->get_text();
-    if (art::session::check(txt)) {
+    if (art::gui::session::check(txt)) {
         return txt;
     }
 
@@ -2875,7 +2878,7 @@ void FileCatalog::sessionAddPressed()
         for (auto f : dialog.get_files()) {
             toadd.push_back(f->get_path());
         }
-        art::session::add(toadd);
+        art::gui::session::add(toadd);
     }
 }
 
@@ -2896,7 +2899,7 @@ void FileCatalog::sessionRemovePressed()
     if (tosel) {
         fileBrowser->selectImage(tosel->thumbnail->getFileName());
     }
-    art::session::remove(todel);
+    art::gui::session::remove(todel);
 }
 
 void FileCatalog::sessionLoadPressed()
@@ -2924,7 +2927,7 @@ void FileCatalog::sessionLoadPressed()
 
     if (result == Gtk::RESPONSE_OK) {
         auto fname = dialog.get_filename();
-        art::session::load(fname);
+        art::gui::session::load(fname);
     }
 }
 
@@ -2958,7 +2961,7 @@ void FileCatalog::sessionSavePressed()
                 fname += ".ars";
             }
             if (confirmOverwrite(dialog, fname)) {
-                art::session::save(fname);
+                art::gui::session::save(fname);
                 break;
             }
         } else {
@@ -2984,3 +2987,6 @@ void FileCatalog::onScaleChange()
 {
     hidpi_->set_visible(RTScalable::getDisplayScale(this) > 1);
 }
+
+
+} } // namespace art::gui

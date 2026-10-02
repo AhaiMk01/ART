@@ -24,6 +24,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class PrSharpening: public ToolParamBlock,
                     public ThresholdAdjusterListener,
                     public AdjusterListener,
@@ -89,3 +92,6 @@ public:
 
     void toolReset(bool to_initial) override;
 };
+
+
+} } // namespace art::gui

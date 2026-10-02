@@ -48,7 +48,7 @@ private:
 protected:
     static int defTransform(const RawImage *ri, int tran);
 
-    MyMutex getImageMutex; // locks getImage
+    art::gui::MyMutex getImageMutex; // locks getImage
 
     int W, H;
     ColorTemp camera_wb;

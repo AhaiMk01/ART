@@ -21,6 +21,9 @@
 #include "options.h"
 #include "rtimage.h"
 
+namespace art { namespace gui {
+
+
 PreviewModePanel::PreviewModePanel(ImageArea *ia): imageArea(ia)
 {
 
@@ -339,3 +342,6 @@ void PreviewModePanel::buttonToggled_backColor(Gtk::ToggleButton *tbbackColor)
         imageArea->iLinkedImageArea->queue_draw();
     }
 }
+
+
+} } // namespace art::gui

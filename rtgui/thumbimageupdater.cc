@@ -34,6 +34,9 @@
 #include <omp.h>
 #endif
 
+namespace art { namespace gui {
+
+
 #define DEBUG(format, args...)
 // #define DEBUG(format,args...) printf("ThumbImageUpdate::%s: " format "\n",
 // __FUNCTION__, ## args)
@@ -256,3 +259,6 @@ void ThumbImageUpdater::removeAllJobs()
         }
     }
 }
+
+
+} } // namespace art::gui

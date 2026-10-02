@@ -27,6 +27,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class Exposure: public ToolParamBlock,
                 public AdjusterListener,
                 public FoldableToolPanel {
@@ -63,3 +66,6 @@ public:
     void toolReset(bool to_initial) override;
     void registerShortcuts(ToolShortcutManager *mgr) override;
 };
+
+
+} } // namespace art::gui

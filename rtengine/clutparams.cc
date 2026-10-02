@@ -42,12 +42,12 @@ bool set_int(cJSON *n, double &out)
 }
 
 static const std::unordered_map<std::string, double> curvetypes = {
-    {"Linear", double(DCT_Linear)},
-    {"Spline", double(DCT_Spline)},
-    {"CatmullRom", double(DCT_CatmullRom)},
-    {"NURBS", double(DCT_NURBS)},
-    {"Parametric", double(DCT_Parametric)},
-    {"ControlPoints", double(FCT_MinMaxCPoints)}};
+    {"Linear", double(art::gui::DCT_Linear)},
+    {"Spline", double(art::gui::DCT_Spline)},
+    {"CatmullRom", double(art::gui::DCT_CatmullRom)},
+    {"NURBS", double(art::gui::DCT_NURBS)},
+    {"Parametric", double(art::gui::DCT_Parametric)},
+    {"ControlPoints", double(art::gui::FCT_MinMaxCPoints)}};
 
 } // namespace
 

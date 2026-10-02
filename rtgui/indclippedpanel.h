@@ -21,6 +21,9 @@
 #include <gtkmm.h>
 #include <iostream>
 
+namespace art { namespace gui {
+
+
 class ImageArea;
 class IndicateClippedPanel: public Gtk::HBox {
 
@@ -60,3 +63,6 @@ public:
 
     bool showGrid() { return grid->get_active(); }
 };
+
+
+} } // namespace art::gui

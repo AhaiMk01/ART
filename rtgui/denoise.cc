@@ -23,6 +23,9 @@
 #include <cmath>
 #include <iomanip>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 extern Options options;
@@ -407,3 +410,6 @@ void Denoise::toolReset(bool to_initial)
     pp.denoise.enabled = getEnabled();
     read(&pp);
 }
+
+
+} } // namespace art::gui

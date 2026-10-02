@@ -30,6 +30,9 @@
 #include <glibmm.h>
 #include <string>
 
+namespace art { namespace gui {
+
+
 class CacheManager;
 class Thumbnail: public PParamsSnapshotListener {
     MyMutex mutex;
@@ -239,3 +242,6 @@ public:
                      std::pair<Glib::ustring, art::engine::procparams::ProcParams>>
                          &snapshots) override;
 };
+
+
+} } // namespace art::gui

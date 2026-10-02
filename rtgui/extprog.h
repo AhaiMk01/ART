@@ -26,6 +26,9 @@
 #include <glibmm/ustring.h>
 #include <vector>
 
+namespace art { namespace gui {
+
+
 class UserCommand {
 public:
     Glib::ustring command;
@@ -83,3 +86,6 @@ bool openInPhotoshop(const Glib::ustring &fileName);
 bool openInCustomEditor(const Glib::ustring &fileName);
 
 } // namespace ExtProg
+
+
+} } // namespace art::gui

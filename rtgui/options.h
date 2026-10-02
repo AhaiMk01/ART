@@ -25,6 +25,9 @@
 #include <gtkmm.h>
 #include <set>
 
+namespace art { namespace gui {
+
+
 struct SaveFormat {
     SaveFormat(const Glib::ustring &_format, int _png_bits, int _jpeg_quality,
                int _jpeg_sub_samp, int _tiff_bits, bool _tiff_float,
@@ -530,3 +533,6 @@ extern bool gimpPlugin;
 extern bool remote;
 extern Glib::ustring versionString;
 extern Glib::ustring paramFileExtension;
+
+
+} } // namespace art::gui

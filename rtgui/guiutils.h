@@ -36,6 +36,9 @@
 // for convenience...
 #include "pathutils.h"
 
+namespace art { namespace gui {
+
+
 Glib::ustring escapeHtmlChars(const Glib::ustring &src);
 bool removeIfThere(Gtk::Container *cont, Gtk::Widget *w,
                    bool increference = true);
@@ -757,3 +760,6 @@ private:
     sigc::signal<void> m_signal_font_set;
     bool use_size_;
 };
+
+
+} } // namespace art::gui

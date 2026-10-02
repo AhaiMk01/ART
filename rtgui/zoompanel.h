@@ -21,6 +21,9 @@
 
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class ImageArea;
 class ZoomPanel: public Gtk::Grid {
 
@@ -51,3 +54,6 @@ public:
 
     void on_realize() override;
 };
+
+
+} } // namespace art::gui

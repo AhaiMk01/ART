@@ -22,6 +22,9 @@
 #include <cmath>
 #include <iomanip>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -131,3 +134,6 @@ void FilmGrain::toolReset(bool to_initial)
     pp.grain.enabled = getEnabled();
     read(&pp);
 }
+
+
+} } // namespace art::gui

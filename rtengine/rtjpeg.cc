@@ -29,7 +29,7 @@ output_message(j_common_ptr cinfo)
 
     if (rterr->pl) {
         rterr->pl->error(
-            Glib::ustring::compose(M("JPEG_ERROR_MSG"), filename, buffer));
+            Glib::ustring::compose(art::gui::M("JPEG_ERROR_MSG"), filename, buffer));
     } else {
         fprintf(stderr, "%s: %s\n", filename, buffer);
     }

@@ -22,9 +22,13 @@
 #include <memory>
 
 #include "edit.h"
+namespace art { namespace gui {
 typedef Rectangle EditRectangle; // workaround to compilation errors with exiv2
                                  // 0.27.3 on windows
+} }
 #include "../rtengine/perspectivecorrection.h"
+
+namespace art { namespace gui {
 
 struct ControlLine {
     static constexpr int OBJ_COUNT = 4;
@@ -109,3 +113,5 @@ public:
     bool mouseOver(int modifierKey) override;
     void switchOffEditMode(void) override;
 };
+
+} } // namespace art::gui

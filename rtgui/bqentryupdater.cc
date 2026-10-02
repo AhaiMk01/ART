@@ -21,6 +21,9 @@
 #include "guiutils.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 BatchQueueEntryUpdater batchQueueEntryUpdater;
 
 BatchQueueEntryUpdater::BatchQueueEntryUpdater(): tostop_(false), stopped_(true)
@@ -180,3 +183,6 @@ void BatchQueueEntryUpdater::terminate()
         }
     }
 }
+
+
+} } // namespace art::gui

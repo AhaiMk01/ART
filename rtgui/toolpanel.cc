@@ -20,6 +20,9 @@
 #include "guiutils.h"
 #include "toolpanelcoord.h"
 
+namespace art { namespace gui {
+
+
 using namespace art::engine::procparams;
 
 ToolVBox::ToolVBox()
@@ -227,3 +230,6 @@ bool FoldableToolPanel::on_enter_leave_reset(GdkEventCrossing *event)
 
     return true;
 }
+
+
+} } // namespace art::gui

@@ -24,5 +24,11 @@
 #include <string>
 #include <vector>
 
+namespace art { namespace gui {
+
+
 int ART_makeicc_main(std::ostream &out, const std::vector<std::string> &args);
 void ART_makeicc_help(std::ostream &out, int indent);
+
+
+} } // namespace art::gui

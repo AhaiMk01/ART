@@ -37,6 +37,9 @@
 #include "rtwindow.h"
 #include "soundman.h"
 
+namespace art { namespace gui {
+
+
 using namespace art::engine::procparams;
 using ScopeType = Options::ScopeType;
 
@@ -2971,3 +2974,6 @@ void EditorPanel::update_open_mark(Thumbnail *thm, bool yes)
         }
     }
 }
+
+
+} } // namespace art::gui

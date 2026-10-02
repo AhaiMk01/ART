@@ -32,6 +32,9 @@
 #include <gtkmm.h>
 #include <unordered_set>
 
+namespace art { namespace gui {
+
+
 class MasksContentProvider {
 public:
     struct Events {
@@ -401,3 +404,6 @@ private:
     MyFileChooserButton *external_mask_filename_;
     Adjuster *external_mask_feather_;
 };
+
+
+} } // namespace art::gui

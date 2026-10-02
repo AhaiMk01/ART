@@ -434,7 +434,7 @@ typedef struct dt_iop_ashift_gui_data_t {
     dt_iop_ashift_jobcode_t jobcode;
     int jobparams;
     /* dt_pthread_mutex_t lock; */
-    MyMutex lock;
+    art::gui::MyMutex lock;
     gboolean adjust_crop;
 } dt_iop_ashift_gui_data_t;
 
@@ -1507,7 +1507,7 @@ static int get_structure(dt_iop_module_t *module,
     float scale = 0.0f;
 
     { // dt_pthread_mutex_lock(&g->lock);
-        MyMutex::MyLock lock(g->lock);
+        art::gui::MyMutex::MyLock lock(g->lock);
 
         // read buffer data if they are available
         if (g->buf != NULL) {
@@ -2767,7 +2767,7 @@ static int do_get_structure(dt_iop_module_t *module, dt_iop_ashift_params_t *p,
 
     float *b = NULL;
     {
-        MyMutex::MyLock lock(g->lock);
+        art::gui::MyMutex::MyLock lock(g->lock);
         b = g->buf;
     }
     /* dt_pthread_mutex_lock(&g->lock); */

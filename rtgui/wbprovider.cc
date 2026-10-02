@@ -30,6 +30,10 @@ namespace art { namespace engine {
 extern const Settings *settings;
 }}
 
+namespace art { namespace gui {
+
+
+
 namespace wb_presets {
 
 namespace {
@@ -212,3 +216,6 @@ const std::map<std::string, std::vector<WBPreset>> &getPresets()
 }
 
 } // namespace wb_presets
+
+
+} } // namespace art::gui

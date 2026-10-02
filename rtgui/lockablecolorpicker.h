@@ -23,6 +23,9 @@
 #include "edit.h"
 #include "guiutils.h"
 
+namespace art { namespace gui {
+
+
 class CropWindow;
 
 class LockablePickerToolListener {
@@ -86,3 +89,6 @@ public:
     bool cycleRGB();
     bool cycleLCH();
 };
+
+
+} } // namespace art::gui

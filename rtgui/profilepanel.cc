@@ -25,6 +25,9 @@
 
 #include <iostream>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -869,3 +872,6 @@ Gtk::TreeIter ProfilePanel::addDefaultRow()
     Gtk::TreeIter newEntry = profiles->addRow(defaultPSE);
     return newEntry;
 }
+
+
+} } // namespace art::gui

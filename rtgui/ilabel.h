@@ -20,6 +20,9 @@
 
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class ILabel: public Gtk::DrawingArea {
 
     Glib::ustring label;
@@ -30,3 +33,6 @@ public:
     void on_realize() override;
     void on_style_updated() override;
 };
+
+
+} } // namespace art::gui

@@ -28,6 +28,7 @@
  *
  */
 
+#include "../rtgui/options.h"
 #include "guidedfilter.h"
 #include "improcfun.h"
 #include "rescale.h"
@@ -38,7 +39,7 @@
 #include <iostream>
 #include <queue>
 
-extern Options options;
+using art::gui::options; // defined by the GUI (rtgui/options.cc)
 
 namespace art { namespace engine {
 
@@ -174,7 +175,7 @@ float estimate_ambient_light(const array2D<float> &R, const array2D<float> &G,
         }
     }
 
-    if (options.rtSettings.verbose) {
+    if (art::gui::options.rtSettings.verbose) {
         std::cout << "dehaze: computing ambient light from " << patches.size()
                   << " patches" << std::endl;
     }
@@ -288,7 +289,7 @@ void subtract_black(Imagefloat *img, int percent, bool multithread)
         black[c] = std::max(0.f, black[c] * scaling);
     }
 
-    if (options.rtSettings.verbose) {
+    if (art::gui::options.rtSettings.verbose) {
         std::cout << "BLACK POINTS: " << black[0] << " " << black[1] << " "
                   << black[2] << std::endl;
     }
@@ -310,13 +311,13 @@ void subtract_black(Imagefloat *img, int percent, bool multithread)
 void ImProcFunctions::dehaze(Imagefloat *img)
 {
     PlanarWhateverData<float> *editWhatever = nullptr;
-    EditUniqueID editID =
-        pipetteBuffer ? pipetteBuffer->getEditID() : EUID_None;
+    art::gui::EditUniqueID editID =
+        pipetteBuffer ? pipetteBuffer->getEditID() : art::gui::EUID_None;
 
-    if (editID == EUID_DehazeStrength &&
+    if (editID == art::gui::EUID_DehazeStrength &&
         pipetteBuffer->getDataProvider()
                 ->getCurrSubscriber()
-                ->getPipetteBufferType() == BT_SINGLEPLANE_FLOAT) {
+                ->getPipetteBufferType() == art::gui::BT_SINGLEPLANE_FLOAT) {
         editWhatever = pipetteBuffer->getSinglePlaneBuffer();
     }
 
@@ -399,7 +400,7 @@ void ImProcFunctions::dehaze(Imagefloat *img)
             max_t = estimate_ambient_light(RR, GG, BB, D, patchsize, npatches,
                                            ambient);
             if (max_t < 0.f) {
-                if (options.rtSettings.verbose) {
+                if (art::gui::options.rtSettings.verbose) {
                     std::cout << "dehaze: no haze detected" << std::endl;
                 }
                 restore(img, maxchan, multiThread);
@@ -409,7 +410,7 @@ void ImProcFunctions::dehaze(Imagefloat *img)
 
         patchsize = max(max(W, H) / 600, 2);
 
-        if (options.rtSettings.verbose) {
+        if (art::gui::options.rtSettings.verbose) {
             std::cout << "dehaze: ambient light is " << ambient[0] << ", "
                       << ambient[1] << ", " << ambient[2] << std::endl;
         }
@@ -464,7 +465,7 @@ void ImProcFunctions::dehaze(Imagefloat *img)
 
     DEBUG_DUMP(t);
 
-    if (options.rtSettings.verbose) {
+    if (art::gui::options.rtSettings.verbose) {
         std::cout << "dehaze: max distance is " << max_t << std::endl;
     }
 

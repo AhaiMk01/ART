@@ -23,6 +23,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class ToneEqualizer: public ToolParamBlock,
                      public AdjusterListener,
                      public FoldableToolPanel {
@@ -58,3 +61,6 @@ private:
 
     art::engine::procparams::ToneEqualizerParams inital_params;
 };
+
+
+} } // namespace art::gui

@@ -1113,7 +1113,7 @@ DCPProfile::DCPProfile(const Glib::ustring &filename)
     // Read tone curve points, if any, but disable to RTs own profiles
     if (md.find(PROFILE_TONE_CURVE)) {
         std::vector<double> curve_points = {
-            static_cast<double>(DCT_Spline) // The first value is the curve type
+            static_cast<double>(art::gui::DCT_Spline) // The first value is the curve type
         };
 
         // Push back each X/Y coordinates in a loop
@@ -1146,7 +1146,7 @@ DCPProfile::DCPProfile(const Glib::ustring &filename)
             // An Adobe profile without tone curve is expected to have the Adobe
             // Default Curve, we add that
             std::vector<double> curve_points = {
-                static_cast<double>(DCT_Spline)};
+                static_cast<double>(art::gui::DCT_Spline)};
 
             constexpr size_t tc_len = sizeof(adobe_camera_raw_default_curve) /
                                       sizeof(adobe_camera_raw_default_curve[0]);
@@ -2051,20 +2051,20 @@ DCPStore::~DCPStore()
 
 void DCPStore::init(const Glib::ustring &rt_profile_dir, bool loadAll)
 {
-    MyMutex::MyLock lock(mutex);
+    art::gui::MyMutex::MyLock lock(mutex);
 
     file_std_profiles.clear();
 
     if (!loadAll) {
         profileDir = {
             rt_profile_dir,
-            Glib::build_filename(options.user_config_dir, "dcpprofiles")};
+            Glib::build_filename(art::gui::options.user_config_dir, "dcpprofiles")};
         return;
     }
 
     std::deque<Glib::ustring> dirs = {
         rt_profile_dir,
-        Glib::build_filename(options.user_config_dir, "dcpprofiles")};
+        Glib::build_filename(art::gui::options.user_config_dir, "dcpprofiles")};
 
     while (!dirs.empty()) {
         // Process directory
@@ -2131,7 +2131,7 @@ bool DCPStore::isValidDCPFileName(const Glib::ustring &filename) const
 
 DCPProfile *DCPStore::getProfile(const Glib::ustring &filename) const
 {
-    MyMutex::MyLock lock(mutex);
+    art::gui::MyMutex::MyLock lock(mutex);
 
     const std::map<Glib::ustring, DCPProfile *>::iterator r =
         profile_cache.find(filename);
@@ -2145,7 +2145,7 @@ DCPProfile *DCPStore::getProfile(const Glib::ustring &filename) const
     if (res->isValid()) {
         // Add profile
         profile_cache[filename] = res;
-        if (options.rtSettings.verbose > 1) {
+        if (art::gui::options.rtSettings.verbose > 1) {
             printf("DCP profile '%s' loaded from disk\n", filename.c_str());
         }
         return res;

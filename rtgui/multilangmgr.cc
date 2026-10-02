@@ -28,6 +28,9 @@
 #include <CoreFoundation/CoreFoundation.h>
 #endif // __APPLE__
 
+namespace art { namespace gui {
+
+
 namespace {
 
 // Maps standard locales to languages, e.g. "de-DE" to "Deutsch".
@@ -325,3 +328,6 @@ Glib::ustring MultiLangMgr::getOSUserLanguage()
 
     return langName;
 }
+
+
+} } // namespace art::gui

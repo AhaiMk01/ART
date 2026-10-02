@@ -25,6 +25,9 @@
 #include "profilechangelistener.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class HistoryBeforeAfterListener {
 public:
     virtual ~HistoryBeforeAfterListener() = default;
@@ -148,3 +151,6 @@ public:
     void activateNextSnapshot();
     void activatePrevSnapshot();
 };
+
+
+} } // namespace art::gui

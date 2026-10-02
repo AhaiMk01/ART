@@ -26,6 +26,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class Denoise: public ToolParamBlock,
                public AdjusterListener,
                public FoldableToolPanel,
@@ -89,3 +92,6 @@ private:
 
     art::engine::procparams::DenoiseParams initial_params;
 };
+
+
+} } // namespace art::gui

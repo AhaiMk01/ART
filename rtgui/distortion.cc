@@ -21,6 +21,9 @@
 #include "rtimage.h"
 #include <iomanip>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -160,3 +163,6 @@ void Distortion::enabledChanged()
         idPressed();
     }
 }
+
+
+} } // namespace art::gui

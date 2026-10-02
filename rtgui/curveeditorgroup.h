@@ -28,6 +28,9 @@
 #include <gtkmm.h>
 #include <string>
 
+namespace art { namespace gui {
+
+
 class CurveEditor;
 class DiagonalCurveEditorSubGroup;
 class FlatCurveEditorSubGroup;
@@ -168,3 +171,6 @@ protected:
     virtual void removeEditor() = 0;
     virtual const std::vector<double> getCurveFromGUI(int type) = 0;
 };
+
+
+} } // namespace art::gui

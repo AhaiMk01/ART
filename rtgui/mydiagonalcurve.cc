@@ -21,6 +21,9 @@
 #include <cstring>
 #include <gdkmm/types.h>
 
+namespace art { namespace gui {
+
+
 MyDiagonalCurve::MyDiagonalCurve()
     : MyCurve(), closest_point(0), clampedX(0.0), clampedY(0.0), deltaX(0.0),
       deltaY(0.0), distanceX(0.0), distanceY(0.0), ugpX(0.0), ugpY(0.0),
@@ -1710,3 +1713,6 @@ void MyDiagonalCurve::reset(const std::vector<double> &resetCurve,
     setDirty(true);
     draw(-1);
 }
+
+
+} } // namespace art::gui

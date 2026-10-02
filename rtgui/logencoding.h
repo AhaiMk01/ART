@@ -23,6 +23,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class LogEncoding: public ToolParamBlock,
                    public AdjusterListener,
                    public art::engine::AutoLogListener,
@@ -76,3 +79,6 @@ private:
 
     art::engine::procparams::LogEncodingParams initial_params;
 };
+
+
+} } // namespace art::gui

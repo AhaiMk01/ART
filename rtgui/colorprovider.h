@@ -20,6 +20,9 @@
 
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class ColorProvider;
 
 /*
@@ -70,3 +73,6 @@ public:
                                enum ColorCaller::ElemType elemType,
                                int callerId, ColorCaller *caller) {};
 };
+
+
+} } // namespace art::gui

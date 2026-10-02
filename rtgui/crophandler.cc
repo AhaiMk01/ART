@@ -35,6 +35,9 @@
 #include <omp.h>
 #endif
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 
 namespace {
@@ -846,3 +849,6 @@ void CropHandler::setDisplayScale(int scale)
     compDim();
     update();
 }
+
+
+} } // namespace art::gui

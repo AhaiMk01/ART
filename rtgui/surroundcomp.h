@@ -25,6 +25,9 @@
 #include <array>
 #include <cmath>
 
+namespace art { namespace gui {
+
+
 
 class SurroundCompensation {
     typedef std::array<guint8, 256> LUT;
@@ -111,3 +114,6 @@ private:
     LUT dark_;
     LUT identity_;
 };
+
+
+} } // namespace art::gui

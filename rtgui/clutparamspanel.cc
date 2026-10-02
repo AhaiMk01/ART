@@ -25,6 +25,9 @@
 #include "multilangmgr.h"
 #include <map>
 
+namespace art { namespace gui {
+
+
 namespace {
 
 class CLUTParamsCurveEditorGroup: public CurveEditorGroup {
@@ -421,3 +424,6 @@ void CLUTParamsPanel::apply_preset()
         }
     }
 }
+
+
+} } // namespace art::gui

@@ -22,6 +22,9 @@
 #include <cmath>
 #include <iomanip>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -366,3 +369,6 @@ void LocalContrast::toolReset(bool to_initial)
     pp.localContrast.enabled = getEnabled();
     read(&pp);
 }
+
+
+} } // namespace art::gui

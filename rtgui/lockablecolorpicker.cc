@@ -25,6 +25,9 @@
 #include "navigator.h"
 #include "options.h"
 
+namespace art { namespace gui {
+
+
 extern Options options;
 
 LockableColorPicker::LockableColorPicker(CropWindow *cropWindow,
@@ -416,3 +419,6 @@ bool LockableColorPicker::cycleLCH()
     }
     return false;
 }
+
+
+} } // namespace art::gui

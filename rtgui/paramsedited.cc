@@ -18,6 +18,9 @@
  */
 #include "paramsedited.h"
 
+namespace art { namespace gui {
+
+
 ParamsEdited::ParamsEdited(bool value) { set(value); }
 
 void ParamsEdited::set(bool v)
@@ -106,3 +109,6 @@ void ParamsEdited::set_append(bool v)
         }
     }
 }
+
+
+} } // namespace art::gui

@@ -24,6 +24,9 @@
 #include "mycurve.h"
 #include "thresholdselector.h"
 
+namespace art { namespace gui {
+
+
 ThresholdSelector::ThresholdSelector(
     double minValueBottom, double maxValueBottom, double defBottom,
     Glib::ustring labelBottom, unsigned int precisionBottom, double minValueTop,
@@ -1050,3 +1053,6 @@ void ThresholdSelector::set_tooltip_text(const Glib::ustring &text)
     additionalTTip = text;
     updateTooltip();
 }
+
+
+} } // namespace art::gui

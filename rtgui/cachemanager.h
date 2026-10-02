@@ -29,6 +29,9 @@
 #include "cacheimagedata.h"
 #include "threadutils.h"
 
+namespace art { namespace gui {
+
+
 class Thumbnail;
 
 class CacheManager: public art::engine::NonCopyable {
@@ -77,3 +80,6 @@ public:
 };
 
 #define cacheMgr CacheManager::getInstance()
+
+
+} } // namespace art::gui

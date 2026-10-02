@@ -24,6 +24,9 @@
 #include <iomanip>
 #include <sigc++/slot.h>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -176,3 +179,6 @@ void Exposure::registerShortcuts(ToolShortcutManager *mgr)
     mgr->addShortcut(GDK_KEY_e, this, expcomp);
     mgr->addShortcut(GDK_KEY_q, this, black);
 }
+
+
+} } // namespace art::gui

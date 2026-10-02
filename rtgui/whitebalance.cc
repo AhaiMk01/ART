@@ -27,6 +27,9 @@
 #include "options.h"
 #include "rtimage.h"
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -742,3 +745,6 @@ void WhiteBalance::registerShortcuts(ToolShortcutManager *mgr)
     mgr->addShortcut(GDK_KEY_t, this, temp);
     mgr->addShortcut(GDK_KEY_i, this, green);
 }
+
+
+} } // namespace art::gui

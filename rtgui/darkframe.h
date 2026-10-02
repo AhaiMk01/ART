@@ -25,6 +25,9 @@
 #include <gtkmm.h>
 #include <memory>
 
+namespace art { namespace gui {
+
+
 class DFProvider {
 public:
     virtual art::engine::RawImage *getDF() = 0;
@@ -64,3 +67,6 @@ public:
     void setDefaults(const art::engine::procparams::ProcParams *def) override;
     void toolReset(bool to_initial) override;
 };
+
+
+} } // namespace art::gui

@@ -158,7 +158,7 @@ void ImProcFunctions::channelMixer(Imagefloat *img)
             ChannelMixerParams::Mode::PRIMARIES_CHROMA) {
             get_mixer_matrix(params->chmixer, params->icm.workingProfile, RR,
                              RG, RB, GR, GG, GB, BR, BG, BB);
-            if (options.rtSettings.verbose) {
+            if (art::gui::options.rtSettings.verbose) {
                 printf("Channel mixer matrix:\n"
                        "   %.1f %.1f %.1f\n"
                        "   %.1f %.1f %.1f\n"

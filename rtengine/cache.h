@@ -203,7 +203,7 @@ private:
 
     unsigned long store_size;
     Hook *const hook;
-    mutable MyMutex mutex;
+    mutable art::gui::MyMutex mutex;
     Store store;
     mutable LruList lru_list;
 };

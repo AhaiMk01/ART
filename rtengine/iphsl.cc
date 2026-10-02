@@ -29,11 +29,11 @@ namespace art { namespace engine {
 void ImProcFunctions::hslEqualizer(Imagefloat *img)
 {
     PlanarWhateverData<float> *editWhatever = nullptr;
-    EditUniqueID eid = pipetteBuffer ? pipetteBuffer->getEditID() : EUID_None;
-    if ((eid == EUID_HSL_H || eid == EUID_HSL_S || eid == EUID_HSL_V) &&
+    art::gui::EditUniqueID eid = pipetteBuffer ? pipetteBuffer->getEditID() : art::gui::EUID_None;
+    if ((eid == art::gui::EUID_HSL_H || eid == art::gui::EUID_HSL_S || eid == art::gui::EUID_HSL_V) &&
         pipetteBuffer->getDataProvider()
                 ->getCurrSubscriber()
-                ->getPipetteBufferType() == BT_SINGLEPLANE_FLOAT) {
+                ->getPipetteBufferType() == art::gui::BT_SINGLEPLANE_FLOAT) {
         editWhatever = pipetteBuffer->getSinglePlaneBuffer();
     }
 
@@ -124,7 +124,7 @@ void ImProcFunctions::hslEqualizer(Imagefloat *img)
         }
 
         FlatCurve coeff(
-            {FCT_MinMaxCPoints, 0.25, 0.0, 0.5, 0.18, 1, 1, 0, 0.35});
+            {art::gui::FCT_MinMaxCPoints, 0.25, 0.0, 0.5, 0.18, 1, 1, 0, 0.35});
 
 #ifdef _OPENMP
 #pragma omp parallel for if (multiThread)

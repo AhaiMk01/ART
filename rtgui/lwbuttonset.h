@@ -22,6 +22,9 @@
 #include <gtkmm.h>
 #include <vector>
 
+namespace art { namespace gui {
+
+
 class LWButtonSet {
 
 protected:
@@ -49,3 +52,6 @@ public:
     void setButtonListener(LWButtonListener *bl);
     void redraw(Cairo::RefPtr<Cairo::Context> context);
 };
+
+
+} } // namespace art::gui

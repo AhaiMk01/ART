@@ -26,6 +26,9 @@
 #include <map>
 #include <unordered_map>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -1491,3 +1494,6 @@ void ColorCorrection::lutParamsChanged()
         listener->panelChanged(EvLUTParams, M("GENERAL_CHANGED"));
     }
 }
+
+
+} } // namespace art::gui

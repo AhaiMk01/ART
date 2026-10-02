@@ -44,7 +44,7 @@
 #include "clutstore.h"
 
 // defined by the GUI (rtgui/options.cc)
-extern Options options;
+using art::gui::options; // defined by the GUI (rtgui/options.cc)
 
 namespace art { namespace engine {
 
@@ -304,7 +304,7 @@ Thumbnail *Thumbnail::loadQuickFromRaw(const Glib::ustring &fname,
 
     // did we succeed?
     if (!img) {
-        if (options.rtSettings.verbose) {
+        if (art::gui::options.rtSettings.verbose) {
             std::cout << "Could not extract thumb from " << fname.c_str()
                       << std::endl;
         }
@@ -1752,7 +1752,7 @@ bool Thumbnail::readData(const Glib::ustring &fname)
     Glib::KeyFile keyFile;
 
     try {
-        MyMutex::MyLock thmbLock(thumbMutex);
+        art::gui::MyMutex::MyLock thmbLock(thumbMutex);
 
         try {
             keyFile.load_from_file(fname);
@@ -1837,13 +1837,13 @@ bool Thumbnail::readData(const Glib::ustring &fname)
 
         return true;
     } catch (Glib::Error &err) {
-        if (options.rtSettings.verbose) {
+        if (art::gui::options.rtSettings.verbose) {
             printf("Thumbnail::readData / Error code %d while reading values "
                    "from \"%s\":\n%s\n",
                    err.code(), fname.c_str(), err.what().c_str());
         }
     } catch (...) {
-        if (options.rtSettings.verbose) {
+        if (art::gui::options.rtSettings.verbose) {
             printf("Thumbnail::readData / Unknown exception while trying to "
                    "load \"%s\"!\n",
                    fname.c_str());
@@ -1855,7 +1855,7 @@ bool Thumbnail::readData(const Glib::ustring &fname)
 
 bool Thumbnail::writeData(const Glib::ustring &fname)
 {
-    MyMutex::MyLock thmbLock(thumbMutex);
+    art::gui::MyMutex::MyLock thmbLock(thumbMutex);
 
     Glib::ustring keyData;
 
@@ -1889,13 +1889,13 @@ bool Thumbnail::writeData(const Glib::ustring &fname)
         keyData = keyFile.to_data();
 
     } catch (Glib::Error &err) {
-        if (options.rtSettings.verbose) {
+        if (art::gui::options.rtSettings.verbose) {
             printf("Thumbnail::writeData / Error code %d while reading values "
                    "from \"%s\":\n%s\n",
                    err.code(), fname.c_str(), err.what().c_str());
         }
     } catch (...) {
-        if (options.rtSettings.verbose) {
+        if (art::gui::options.rtSettings.verbose) {
             printf("Thumbnail::writeData / Unknown exception while trying to "
                    "save \"%s\"!\n",
                    fname.c_str());
@@ -1909,7 +1909,7 @@ bool Thumbnail::writeData(const Glib::ustring &fname)
     FILE *f = g_fopen(fname.c_str(), "wt");
 
     if (!f) {
-        if (options.rtSettings.verbose) {
+        if (art::gui::options.rtSettings.verbose) {
             printf("Thumbnail::writeData / Error: unable to open file \"%s\" "
                    "with write access!\n",
                    fname.c_str());

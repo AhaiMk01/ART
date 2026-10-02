@@ -26,6 +26,9 @@
 #include "guiutils.h"
 #include "toolpanel.h"
 
+namespace art { namespace gui {
+
+
 class PreProcess: public ToolParamBlock,
                   public AdjusterListener,
                   public FoldableToolPanel {
@@ -54,3 +57,6 @@ public:
     void setDefaults(const art::engine::procparams::ProcParams *def) override;
     void toolReset(bool to_initial) override;
 };
+
+
+} } // namespace art::gui

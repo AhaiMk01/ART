@@ -581,8 +581,8 @@ void rl_deconvolution_psf(float **luminance, float **blend, int W, int H,
         if (err) {
             if (plistener) {
                 plistener->error(Glib::ustring::compose(
-                    M("TP_SHARPENING_LABEL") + " - " + M("ERROR_MSG_FILE_READ"),
-                    psf_file.empty() ? "(" + M("GENERAL_NONE") + ")"
+                    art::gui::M("TP_SHARPENING_LABEL") + " - " + art::gui::M("ERROR_MSG_FILE_READ"),
+                    psf_file.empty() ? "(" + art::gui::M("GENERAL_NONE") + ")"
                                      : psf_file));
             }
             return;
@@ -609,8 +609,8 @@ void rl_deconvolution_psf(float **luminance, float **blend, int W, int H,
         if (!ok) {
             if (plistener) {
                 plistener->error(
-                    Glib::ustring::compose(M("TP_SHARPENING_LABEL") + " - " +
-                                               M("ERROR_MSG_INVALID_PSF"),
+                    Glib::ustring::compose(art::gui::M("TP_SHARPENING_LABEL") + " - " +
+                                               art::gui::M("ERROR_MSG_INVALID_PSF"),
                                            psf_file));
             }
             return;

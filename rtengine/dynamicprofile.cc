@@ -256,7 +256,7 @@ bool DynamicProfileRules::loadRules(bool force_builtins)
     Glib::KeyFile kf;
 
     Glib::ustring rules_file =
-        Glib::build_filename(options.user_config_dir, "dynamicprofile.cfg");
+        Glib::build_filename(art::gui::options.user_config_dir, "dynamicprofile.cfg");
     if (force_builtins ||
         !Glib::file_test(rules_file, Glib::FILE_TEST_EXISTS)) {
         rules_file = builtin_rules_file_;
@@ -270,7 +270,7 @@ bool DynamicProfileRules::loadRules(bool force_builtins)
         return false;
     }
 
-    if (options.rtSettings.verbose > 1) {
+    if (art::gui::options.rtSettings.verbose > 1) {
         printf("loading dynamic profiles...\n");
     }
 
@@ -289,7 +289,7 @@ bool DynamicProfileRules::loadRules(bool force_builtins)
             return false;
         }
 
-        if (options.rtSettings.verbose > 1) {
+        if (art::gui::options.rtSettings.verbose > 1) {
             printf(" loading rule %d\n", serial);
         }
 
@@ -322,7 +322,7 @@ bool DynamicProfileRules::loadRules(bool force_builtins)
 
 bool DynamicProfileRules::storeRules()
 {
-    if (options.rtSettings.verbose > 1) {
+    if (art::gui::options.rtSettings.verbose > 1) {
         printf("saving dynamic profiles...\n");
     }
 
@@ -347,7 +347,7 @@ bool DynamicProfileRules::storeRules()
     }
 
     Glib::ustring fname =
-        Glib::build_filename(options.user_config_dir, "dynamicprofile.cfg");
+        Glib::build_filename(art::gui::options.user_config_dir, "dynamicprofile.cfg");
     if (Glib::file_test(fname, Glib::FILE_TEST_EXISTS)) {
         try {
             Glib::KeyFile old;

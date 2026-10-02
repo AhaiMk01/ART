@@ -22,6 +22,9 @@
 #include "eventmapper.h"
 #include <iomanip>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -245,3 +248,6 @@ void LabCurve::registerShortcuts(ToolShortcutManager *mgr)
     mgr->addShortcut(GDK_KEY_j, this, contrast);
     mgr->addShortcut(GDK_KEY_n, this, chromaticity);
 }
+
+
+} } // namespace art::gui

@@ -25,6 +25,9 @@
 #include "rtimage.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 PopUpCommon::PopUpCommon(Gtk::Button *thisButton, const Glib::ustring &label)
     : buttonImage(nullptr), menu(nullptr), arrowButton(nullptr),
       selected(-1) // -1 means that the button is invalid
@@ -201,3 +204,6 @@ void PopUpCommon::setRelief(Gtk::ReliefStyle s)
         arrowButton->set_relief(s);
     }
 }
+
+
+} } // namespace art::gui

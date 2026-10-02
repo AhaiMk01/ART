@@ -30,6 +30,9 @@
 #include "lockablecolorpicker.h"
 #include "threadutils.h"
 
+namespace art { namespace gui {
+
+
 class CropDisplayHandler {
 
 public:
@@ -147,3 +150,6 @@ private:
 
     int display_scale_;
 };
+
+
+} } // namespace art::gui

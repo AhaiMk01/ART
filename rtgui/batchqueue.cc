@@ -38,6 +38,9 @@
 #include "thumbnail.h"
 #include <sys/time.h>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 
 BatchQueue::BatchQueue(FileCatalog *aFileCatalog)
@@ -681,7 +684,7 @@ void BatchQueue::openLastSelectedItemInEditor()
 void BatchQueue::openItemInEditor(ThumbBrowserEntryBase *item)
 {
     if (item) {
-        std::vector<::Thumbnail *> requestedItem;
+        std::vector<Thumbnail *> requestedItem;
         requestedItem.push_back(item->thumbnail);
         fileCatalog->openRequested(requestedItem);
     }
@@ -1281,3 +1284,6 @@ void BatchQueue::setBatchProfile(const art::engine::procparams::PartialProfile *
 {
     batch_profile_ = bp;
 }
+
+
+} } // namespace art::gui

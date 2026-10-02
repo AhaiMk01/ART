@@ -21,6 +21,9 @@
 
 #include "popuptogglebutton.h"
 
+namespace art { namespace gui {
+
+
 /*
  * PopUpToggleButton::PopUpToggleButton (const Glib::ustring& label, bool
  * imgRight)
@@ -41,3 +44,6 @@ void PopUpToggleButton::set_tooltip_text(const Glib::ustring &text)
 {
     PopUpCommon::set_tooltip_text(text);
 }
+
+
+} } // namespace art::gui

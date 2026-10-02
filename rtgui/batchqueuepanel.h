@@ -27,6 +27,9 @@
 #include "saveformatpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class RTWindow;
 class FileCatalog;
 class Thumbnail;
@@ -100,3 +103,6 @@ private:
 
     art::engine::procparams::MultiPartialProfile bqprof_;
 };
+
+
+} } // namespace art::gui

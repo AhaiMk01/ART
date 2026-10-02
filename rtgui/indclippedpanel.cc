@@ -21,6 +21,9 @@
 #include "options.h"
 #include "rtimage.h"
 
+namespace art { namespace gui {
+
+
 IndicateClippedPanel::IndicateClippedPanel(ImageArea *ia): imageArea(ia)
 {
     iFon = new RTImage("focusscreen-on.svg");
@@ -256,3 +259,6 @@ IndicateClippedPanel::~IndicateClippedPanel()
     delete falseColorsOn;
     delete falseColorsOff;
 }
+
+
+} } // namespace art::gui

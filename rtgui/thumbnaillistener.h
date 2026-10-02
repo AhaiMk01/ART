@@ -18,6 +18,9 @@
  */
 #pragma once
 
+namespace art { namespace gui {
+
+
 class Thumbnail;
 
 class ThumbnailListener {
@@ -25,3 +28,6 @@ public:
     virtual ~ThumbnailListener() = default;
     virtual void procParamsChanged(Thumbnail *thm, int whoChangedIt) = 0;
 };
+
+
+} } // namespace art::gui

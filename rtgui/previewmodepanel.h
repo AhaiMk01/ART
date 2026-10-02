@@ -21,6 +21,9 @@
 #include "adjuster.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class ImageArea;
 class PreviewModePanel: public Gtk::HBox {
 
@@ -70,3 +73,6 @@ public:
     bool showL() { return previewL->get_active(); }
     int GetbackColor();
 };
+
+
+} } // namespace art::gui

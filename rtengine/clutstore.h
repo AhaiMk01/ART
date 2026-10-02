@@ -131,7 +131,7 @@ private:
     LUTf ctl_shaper_lut_inv_;
 #endif // ART_USE_CTL
 
-    mutable MyMutex mutex_;
+    mutable art::gui::MyMutex mutex_;
 };
 
 class CLUTApplication {

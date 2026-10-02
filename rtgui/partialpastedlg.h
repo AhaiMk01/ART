@@ -24,6 +24,9 @@
 #include <string>
 #include <unordered_map>
 
+namespace art { namespace gui {
+
+
 class PartialPasteDlg: public Gtk::Dialog {
 public:
     PartialPasteDlg(const Glib::ustring &title, Gtk::Window *parent);
@@ -48,3 +51,6 @@ private:
 
     void toggled(Gtk::CheckButton *which);
 };
+
+
+} } // namespace art::gui

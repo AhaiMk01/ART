@@ -26,3 +26,9 @@
 void *malloc(size_t size) { return memalign(16, size); }
 
 #endif
+
+namespace art { namespace gui {
+
+
+
+} } // namespace art::gui

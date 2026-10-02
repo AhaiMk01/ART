@@ -21,6 +21,9 @@
 #include "guiutils.h"
 #include <sstream>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -88,3 +91,6 @@ void RAWExposure::toolReset(bool to_initial)
     PexPos->resetValue(to_initial);
     enableListener();
 }
+
+
+} } // namespace art::gui

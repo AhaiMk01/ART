@@ -24,6 +24,9 @@
 #include <iomanip>
 #include <sigc++/slot.h>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -665,3 +668,6 @@ void ToneCurve::baseCurveChanged()
         listener->panelChanged(EvBaseCurve, basecurve_->get_active_text());
     }
 }
+
+
+} } // namespace art::gui

@@ -49,7 +49,7 @@ public:
                      unsigned int numSamples) override;
 
     // functions inherited from IImage*:
-    MyMutex &getMutex() override { return mutex(); }
+    art::gui::MyMutex &getMutex() override { return mutex(); }
 
     cmsHPROFILE getProfile() const override { return getEmbeddedProfile(); }
 

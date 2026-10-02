@@ -24,6 +24,9 @@
 
 #include "../rtengine/noncopyable.h"
 
+namespace art { namespace gui {
+
+
 class MyMutex: public std::mutex {
 public:
     class MyLock;
@@ -110,3 +113,6 @@ inline MyWriterLock::~MyWriterLock()
 #define MYWRITERLOCK_ACQUIRE(ln) ln.acquire();
 #define MYREADERLOCK_RELEASE(ln) ln.release();
 #define MYWRITERLOCK_RELEASE(ln) ln.release();
+
+
+} } // namespace art::gui

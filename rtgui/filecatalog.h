@@ -32,6 +32,9 @@
 #include <giomm.h>
 #include <set>
 
+namespace art { namespace gui {
+
+
 class FilePanel;
 class BatchQueue;
 /*
@@ -303,3 +306,6 @@ FileCatalog::setDirSelector(const FileCatalog::DirSelectionSlot &selectDir)
 {
     this->selectDir = selectDir;
 }
+
+
+} } // namespace art::gui

@@ -24,6 +24,9 @@
 #include "toolenum.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class ToolBarListener {
 public:
     virtual ~ToolBarListener() = default;
@@ -94,3 +97,6 @@ public:
 
     bool handleShortcutKey(GdkEventKey *event);
 };
+
+
+} } // namespace art::gui

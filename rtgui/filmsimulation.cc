@@ -9,6 +9,9 @@
 #include "eventmapper.h"
 #include "options.h"
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -492,3 +495,6 @@ void FilmSimulation::afterToneCurveToggled()
                                                      : M("GENERAL_DISABLED"));
     }
 }
+
+
+} } // namespace art::gui

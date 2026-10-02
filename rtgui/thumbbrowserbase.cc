@@ -26,6 +26,9 @@
 #include "../rtengine/mytime.h"
 #include "../rtengine/rt_math.h"
 
+namespace art { namespace gui {
+
+
 ThumbBrowserBase::ThumbBrowserBase()
     : location(THLOC_FILEBROWSER), inspector(nullptr), isInspectorActive(false),
       eventTime(0), lastClicked(nullptr), anchor(nullptr),
@@ -1352,3 +1355,6 @@ int ThumbBrowserBase::getThumbDisplayScale() const
         return 1;
     }
 }
+
+
+} } // namespace art::gui

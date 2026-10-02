@@ -28,6 +28,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class ToneCurve: public ToolParamBlock,
                  public FoldableToolPanel,
                  public CurveListener,
@@ -129,3 +132,6 @@ public:
                        enum ColorCaller::ElemType elemType, int callerId,
                        ColorCaller *caller) override;
 };
+
+
+} } // namespace art::gui

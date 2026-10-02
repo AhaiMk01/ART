@@ -63,7 +63,7 @@ private:
     };
     static std::unique_ptr<Cache<std::string, OCIO::ConstProcessorRcPtr>>
         cache_;
-    static MyMutex disk_cache_mutex_;
+    static art::gui::MyMutex disk_cache_mutex_;
     static SubprocessManager smgr_;
 
     std::string recompute_lut(const std::string &params);

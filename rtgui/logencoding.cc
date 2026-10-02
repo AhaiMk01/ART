@@ -22,6 +22,9 @@
 #include <cmath>
 #include <iomanip>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -269,3 +272,6 @@ void LogEncoding::registerShortcuts(ToolShortcutManager *mgr)
     mgr->addShortcut(GDK_KEY_d, this, blackEv);
     mgr->addShortcut(GDK_KEY_k, this, highlightCompression);
 }
+
+
+} } // namespace art::gui

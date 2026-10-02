@@ -38,6 +38,9 @@
 #include <gdk/gdkquartz.h>
 #endif
 
+namespace art { namespace gui {
+
+
 extern Options options;
 Glib::RefPtr<Gtk::CssProvider> themecss;
 Glib::RefPtr<Gtk::CssProvider> fontcss;
@@ -3313,3 +3316,6 @@ bool Preferences::splashClosed(GdkEventAny *event)
     splash = nullptr;
     return true;
 }
+
+
+} } // namespace art::gui

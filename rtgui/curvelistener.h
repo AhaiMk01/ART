@@ -21,6 +21,9 @@
 
 #include <vector>
 
+namespace art { namespace gui {
+
+
 class CurveEditor;
 
 class CurveListener {
@@ -82,3 +85,6 @@ public:
         return retVal;
     }
 };
+
+
+} } // namespace art::gui

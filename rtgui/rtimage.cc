@@ -24,6 +24,9 @@
 
 #include "options.h"
 
+namespace art { namespace gui {
+
+
 namespace {
 
 std::map<std::string, Glib::RefPtr<Gdk::Pixbuf>> pixbufCache;
@@ -201,3 +204,6 @@ void RTImage::updateScale()
         queue_draw();
     }
 }
+
+
+} } // namespace art::gui

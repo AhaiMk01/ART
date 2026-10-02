@@ -51,7 +51,7 @@ protected:
     char *loadedProfileData;
     bool loadedProfileDataJpg;
     int loadedProfileLength;
-    MyMutex imutex;
+    art::gui::MyMutex imutex;
     IIOSampleFormat sampleFormat;
     IIOSampleArrangement sampleArrangement;
     Exiv2Metadata metadataInfo;
@@ -121,7 +121,7 @@ public:
 
     bool saveMetadata(const Glib::ustring &fname) const;
 
-    MyMutex &mutex();
+    art::gui::MyMutex &mutex();
 };
 
 }} // namespace art::engine

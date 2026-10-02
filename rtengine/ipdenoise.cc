@@ -1880,8 +1880,8 @@ void NoiseCurve::Set(const Curve &pCurve)
 void NoiseCurve::Set(const std::vector<double> &curvePoints)
 {
 
-    if (!curvePoints.empty() && curvePoints[0] > FCT_Linear &&
-        curvePoints[0] < FCT_Unchanged) {
+    if (!curvePoints.empty() && curvePoints[0] > art::gui::FCT_Linear &&
+        curvePoints[0] < art::gui::FCT_Unchanged) {
         FlatCurve tcurve(curvePoints, false, CURVES_MIN_POLY_POINTS / 2);
         tcurve.setIdentityValue(0.);
         Set(tcurve);
@@ -2565,7 +2565,7 @@ using namespace denoise;
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 extern const Settings *settings;
-extern MyMutex *fftwMutex;
+extern art::gui::MyMutex *fftwMutex;
 
 namespace {
 
@@ -3657,7 +3657,7 @@ bool denoisePrepare(ImProcData &im, Imagefloat *src,
     const ProcParams *params = im.params;
 
     p.noiseCCurve.Set(
-        {FCT_MinMaxCPoints, 0.05, 0.50, 0.35, 0.35, 0.35, 0.05, 0.35, 0.35});
+        {art::gui::FCT_MinMaxCPoints, 0.05, 0.50, 0.35, 0.35, 0.35, 0.05, 0.35, 0.35});
 
     p.scale = im.scale;
     p.nrQuality = (!dnparams.aggressive) ? QUALITY_STANDARD : QUALITY_HIGH;
@@ -3766,9 +3766,9 @@ bool denoisePrepare(ImProcData &im, Imagefloat *src,
         p.denoiseNestedLevels = 1;
     }
 
-    if (options.rgbDenoiseThreadLimit > 0)
+    if (art::gui::options.rgbDenoiseThreadLimit > 0)
         while (p.denoiseNestedLevels * p.numthreads >
-               options.rgbDenoiseThreadLimit) {
+               art::gui::options.rgbDenoiseThreadLimit) {
             p.denoiseNestedLevels--;
         }
 
@@ -4072,7 +4072,7 @@ void RGB_denoise(ImProcData &im, Imagefloat *src,
     MyTime t1e, t2e;
     t1e.set();
 
-    MyMutex::MyLock lock(*fftwMutex);
+    art::gui::MyMutex::MyLock lock(*fftwMutex);
 
     /* denoisePrepare returning false means there is nothing to denoise.  The
      * timing line below still prints in that case, as it always has. */

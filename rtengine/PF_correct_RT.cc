@@ -49,7 +49,7 @@ void PF_correct_RT(const art::engine::ProcParams *params, Imagefloat *lab,
     BENCHFUN
     std::unique_ptr<FlatCurve> chCurve;
     if (params->defringe.huecurve.size() &&
-        FlatCurveType(params->defringe.huecurve.at(0)) > FCT_Linear) {
+        art::gui::FlatCurveType(params->defringe.huecurve.at(0)) > art::gui::FCT_Linear) {
         chCurve.reset(new FlatCurve(params->defringe.huecurve));
     }
 

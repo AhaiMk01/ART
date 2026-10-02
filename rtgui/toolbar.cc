@@ -21,6 +21,9 @@
 #include "guiutils.h"
 #include "multilangmgr.h"
 
+namespace art { namespace gui {
+
+
 ToolBar::ToolBar()
     : showColPickers(true), listener(nullptr), pickerListener(nullptr)
 {
@@ -527,3 +530,6 @@ bool ToolBar::handleShortcutKey(GdkEventKey *event)
 
     return false;
 }
+
+
+} } // namespace art::gui

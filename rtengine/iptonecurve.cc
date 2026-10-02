@@ -297,7 +297,7 @@ void legacy_contrast_curve(double contr, LUTu &histogram, LUTf &outCurve,
 
         //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         std::vector<double> contrastcurvePoints(9);
-        contrastcurvePoints[0] = DCT_NURBS;
+        contrastcurvePoints[0] = art::gui::DCT_NURBS;
 
         contrastcurvePoints[1] = 0; // black point.  Value in [0 ; 1] range
         contrastcurvePoints[2] = 0; // black point.  Value in [0 ; 1] range
@@ -339,7 +339,7 @@ void legacy_contrast(Imagefloat *rgb, const ImProcData &im, int contrast,
         auto &curve = tc.lutToneCurve;
         curve(65536);
 
-        tc.Set(DiagonalCurve({DCT_Empty}));
+        tc.Set(DiagonalCurve({art::gui::DCT_Empty}));
 
         LUTu hist16(65536);
         ImProcFunctions ipf(im.params, im.multiThread);
@@ -399,7 +399,7 @@ class SatCurveRemap {
 public:
     SatCurveRemap(float whitept)
         : whitept_(whitept),
-          remapcurve_({DCT_CatmullRom, 0.0, 0.0, 0.4, 0.4, whitept, 1.0})
+          remapcurve_({art::gui::DCT_CatmullRom, 0.0, 0.0, 0.4, 0.4, whitept, 1.0})
     {
     }
 
@@ -462,14 +462,14 @@ void apply_satcurve(Imagefloat *rgb, const FlatCurve &curve,
     }
 }
 
-void fill_satcurve_pipette(Imagefloat *rgb, EditUniqueID editID,
+void fill_satcurve_pipette(Imagefloat *rgb, art::gui::EditUniqueID editID,
                            PlanarWhateverData<float> *editWhatever,
                            const Glib::ustring &working_profile, float whitept,
                            bool multithread)
 {
     TMatrix ws = ICCStore::getInstance()->workingSpaceMatrix(working_profile);
 
-    if (editID == EUID_ToneCurveSaturation) {
+    if (editID == art::gui::EUID_ToneCurveSaturation) {
         SatCurveRemap remap(whitept);
 
 #ifdef _OPENMP
@@ -483,7 +483,7 @@ void fill_satcurve_pipette(Imagefloat *rgb, EditUniqueID editID,
                 editWhatever->v(y, x) = LIM01(s);
             }
         }
-    } else if (editID == EUID_ToneCurveSaturation2) {
+    } else if (editID == art::gui::EUID_ToneCurveSaturation2) {
 #ifdef _OPENMP
 #pragma omp parallel for if (multithread)
 #endif
@@ -584,19 +584,19 @@ void ImProcFunctions::toneCurve(Imagefloat *img)
 
     Imagefloat *editImgFloat = nullptr;
     PlanarWhateverData<float> *editWhatever = nullptr;
-    EditUniqueID editID =
-        pipetteBuffer ? pipetteBuffer->getEditID() : EUID_None;
+    art::gui::EditUniqueID editID =
+        pipetteBuffer ? pipetteBuffer->getEditID() : art::gui::EUID_None;
 
-    if ((editID == EUID_ToneCurve1 || editID == EUID_ToneCurve2) &&
+    if ((editID == art::gui::EUID_ToneCurve1 || editID == art::gui::EUID_ToneCurve2) &&
         pipetteBuffer->getDataProvider()
                 ->getCurrSubscriber()
-                ->getPipetteBufferType() == BT_IMAGEFLOAT) {
+                ->getPipetteBufferType() == art::gui::BT_IMAGEFLOAT) {
         editImgFloat = pipetteBuffer->getImgFloatBuffer();
-    } else if ((editID == EUID_ToneCurveSaturation ||
-                editID == EUID_ToneCurveSaturation2) &&
+    } else if ((editID == art::gui::EUID_ToneCurveSaturation ||
+                editID == art::gui::EUID_ToneCurveSaturation2) &&
                pipetteBuffer->getDataProvider()
                        ->getCurrSubscriber()
-                       ->getPipetteBufferType() == BT_SINGLEPLANE_FLOAT) {
+                       ->getPipetteBufferType() == art::gui::BT_SINGLEPLANE_FLOAT) {
         editWhatever = pipetteBuffer->getSinglePlaneBuffer();
     }
 
@@ -652,8 +652,8 @@ void ImProcFunctions::toneCurve(Imagefloat *img)
         const auto adjust =
             [&expand](std::vector<double> c) -> std::vector<double> {
             std::map<double, double> m;
-            DiagonalCurveType tp = DiagonalCurveType(c[0]);
-            bool add_c = (tp == DCT_CatmullRom || tp == DCT_Spline);
+            art::gui::DiagonalCurveType tp = art::gui::DiagonalCurveType(c[0]);
+            bool add_c = (tp == art::gui::DCT_CatmullRom || tp == art::gui::DCT_Spline);
             DiagonalCurve curve(c);
             for (int i = 0; i < 25; ++i) {
                 double x = double(i) / 100.0;
@@ -682,7 +682,7 @@ void ImProcFunctions::toneCurve(Imagefloat *img)
             } else {
                 m[expand(1.0)] = expand(curve.getVal(1.0));
             }
-            c = {DCT_CatmullRom};
+            c = {art::gui::DCT_CatmullRom};
             for (auto &p : m) {
                 c.push_back(p.first);
                 c.push_back(p.second);
@@ -703,7 +703,7 @@ void ImProcFunctions::toneCurve(Imagefloat *img)
         }
 
         if (single_curve && editImgFloat &&
-            (editID == EUID_ToneCurve1 || editID == EUID_ToneCurve2)) {
+            (editID == art::gui::EUID_ToneCurve1 || editID == art::gui::EUID_ToneCurve2)) {
             fill_pipette(img, editImgFloat, multiThread);
         }
 
@@ -721,7 +721,7 @@ void ImProcFunctions::toneCurve(Imagefloat *img)
                          100, whitept, nullptr, multiThread);
             }
 
-            if (editImgFloat && editID == EUID_ToneCurve1) {
+            if (editImgFloat && editID == art::gui::EUID_ToneCurve1) {
                 fill_pipette(img, editImgFloat, multiThread);
             }
 
@@ -733,7 +733,7 @@ void ImProcFunctions::toneCurve(Imagefloat *img)
                          multiThread);
             }
 
-            if (editImgFloat && editID == EUID_ToneCurve2) {
+            if (editImgFloat && editID == art::gui::EUID_ToneCurve2) {
                 fill_pipette(img, editImgFloat, multiThread);
             }
 

@@ -179,7 +179,7 @@ public:
 class DiagonalCurve: public Curve {
 
 protected:
-    DiagonalCurveType kind;
+    art::gui::DiagonalCurveType kind;
 
     void spline_cubic_set();
     void catmull_rom_set();
@@ -193,13 +193,13 @@ public:
     double getVal(double t) const override;
     void getVal(const std::vector<double> &t,
                 std::vector<double> &res) const override;
-    bool isIdentity() const override { return kind == DCT_Empty; };
+    bool isIdentity() const override { return kind == art::gui::DCT_Empty; };
 };
 
 class FlatCurve: public Curve {
 
 private:
-    FlatCurveType kind;
+    art::gui::FlatCurveType kind;
     double *leftTangent;
     double *rightTangent;
     double identityValue;
@@ -216,7 +216,7 @@ public:
     void getVal(const std::vector<double> &t,
                 std::vector<double> &res) const override;
     bool setIdentityValue(double iVal);
-    bool isIdentity() const override { return kind == FCT_Empty; };
+    bool isIdentity() const override { return kind == art::gui::FCT_Empty; };
 };
 
 namespace curves {

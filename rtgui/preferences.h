@@ -26,6 +26,9 @@
 #include <gtkmm.h>
 #include <vector>
 
+namespace art { namespace gui {
+
+
 class Preferences: public Gtk::Dialog, public art::engine::ProfileStoreListener {
     class ExtensionColumns: public Gtk::TreeModel::ColumnRecord {
     public:
@@ -303,3 +306,6 @@ public:
     static void switchFontTo(const Glib::ustring &newFontFamily,
                              const int newFontSize);
 };
+
+
+} } // namespace art::gui

@@ -39,7 +39,7 @@ void RawImageSource::bayer_bilinear_demosaic(const float *const *blend,
 {
     if (plistener) {
         plistener->setProgressStr(Glib::ustring::compose(
-            M("TP_RAW_DMETHOD_PROGRESSBAR"), M("TP_RAW_BILINEAR")));
+            art::gui::M("TP_RAW_DMETHOD_PROGRESSBAR"), art::gui::M("TP_RAW_BILINEAR")));
         plistener->setProgress(0);
     }
 

@@ -33,6 +33,9 @@
 
 #include "../rtengine/curves.h"
 
+namespace art { namespace gui {
+
+
 DiagonalCurveEditorSubGroup::DiagonalCurveEditorSubGroup(
     CurveEditorGroup *prt, Glib::ustring &curveDir, float curvesRatio)
     : CurveEditorSubGroup(curveDir)
@@ -1447,3 +1450,6 @@ void DiagonalCurveEditorSubGroup::setSubGroupRangeLabels(Glib::ustring r1,
     lights->setLabel(r3);
     highlights->setLabel(r4);
 }
+
+
+} } // namespace art::gui

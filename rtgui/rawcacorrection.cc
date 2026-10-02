@@ -21,6 +21,9 @@
 #include "guiutils.h"
 #include "rtimage.h"
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -189,3 +192,6 @@ void RAWCACorr::toolReset(bool to_initial)
     pp.raw.enable_ca = getEnabled();
     read(&pp);
 }
+
+
+} } // namespace art::gui

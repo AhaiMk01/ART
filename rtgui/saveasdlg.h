@@ -27,6 +27,9 @@
 #include <gtkmm.h>
 #include <unordered_map>
 
+namespace art { namespace gui {
+
+
 class SaveAsDialog: public Gtk::Dialog, public FormatChangeListener {
 public:
     SaveAsDialog(const Glib::ustring &initialDir, Gtk::Window *parent);
@@ -73,3 +76,6 @@ private:
     void fixExtension(const Glib::ustring &name);
     void exportProfileChanged();
 };
+
+
+} } // namespace art::gui

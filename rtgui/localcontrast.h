@@ -26,6 +26,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class LocalContrast: public ToolParamBlock,
                      public AdjusterListener,
                      public FoldableToolPanel,
@@ -100,3 +103,6 @@ public:
         masks_->setExternalMaskPath(dir);
     }
 };
+
+
+} } // namespace art::gui

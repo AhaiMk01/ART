@@ -29,6 +29,9 @@
 #include "threadutils.h"
 #include "thumbnail.h"
 
+namespace art { namespace gui {
+
+
 class ThumbBrowserBase;
 class ThumbBrowserEntryBase {
 
@@ -172,3 +175,6 @@ public:
         this->original = original;
     }
 };
+
+
+} } // namespace art::gui

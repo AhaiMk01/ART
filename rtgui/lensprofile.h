@@ -25,6 +25,9 @@
 #include "lensgeom.h"
 #include "toolpanel.h"
 
+namespace art { namespace gui {
+
+
 class LensProfilePanel: public ToolParamBlock, public FoldableToolPanel {
 public:
     LensProfilePanel();
@@ -128,3 +131,6 @@ private:
 
     static LFDbHelper *lf;
 };
+
+
+} } // namespace art::gui

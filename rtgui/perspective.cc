@@ -21,6 +21,9 @@
 #include "eventmapper.h"
 #include "rtimage.h"
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -515,3 +518,6 @@ void PerspCorrection::setControlLineEditMode(bool active)
 {
     lines_button_edit->set_active(active);
 }
+
+
+} } // namespace art::gui

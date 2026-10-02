@@ -263,11 +263,11 @@ void mappingToCurve(const std::vector<int> &mapping, std::vector<double> &curve)
     }
 
     if (curve.size() < 4) {
-        curve = {DCT_Linear}; // not enough points, fall back to linear
+        curve = {art::gui::DCT_Linear}; // not enough points, fall back to linear
     } else {
-        curve.insert(curve.begin(), DCT_Spline);
+        curve.insert(curve.begin(), art::gui::DCT_Spline);
         DiagonalCurve c(curve);
-        curve = {DCT_Spline /*DCT_CatmullRom*/};
+        curve = {art::gui::DCT_Spline /*DCT_CatmullRom*/};
         double pivot = -1.0;
         for (int i = 25; i < 256; ++i) {
             double xx = double(i) / 255.0;
@@ -470,8 +470,8 @@ void RawImageSource::getAutoMatchedToneCurve(const ColorManagementParams &cp,
         return;
     }
 
-    outCurve = {DCT_Linear};
-    outCurve2 = {DCT_Linear};
+    outCurve = {art::gui::DCT_Linear};
+    outCurve2 = {art::gui::DCT_Linear};
 
     int fw, fh;
     getFullSize(fw, fh, TR_NONE);
@@ -692,10 +692,10 @@ void RawImageSource::getAutoMatchedToneCurve(const ColorManagementParams &cp,
     if (expcomp > 0.f) {
         double x = 0.3;
         double y = x * std::pow(2.0, expcomp);
-        outCurve2 = {DCT_CatmullRom, 0.0, 0.0, x, y, 1.0, 1.0};
+        outCurve2 = {art::gui::DCT_CatmullRom, 0.0, 0.0, x, y, 1.0, 1.0};
         if (outCurve.size() > 5 && outCurve[4] > outCurve[3]) {
             outCurve = outCurve2;
-            outCurve2 = {DCT_Linear};
+            outCurve2 = {art::gui::DCT_Linear};
         }
     }
 

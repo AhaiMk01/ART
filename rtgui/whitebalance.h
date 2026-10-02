@@ -26,6 +26,9 @@
 #include "wbprovider.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class SpotWBListener {
 public:
     virtual ~SpotWBListener() = default;
@@ -110,3 +113,6 @@ private:
 
     Gtk::Box *temp_warning_;
 };
+
+
+} } // namespace art::gui

@@ -25,6 +25,9 @@
 
 #include <glibmm/ustring.h>
 
+namespace art { namespace gui {
+
+
 class MultiLangMgr {
 public:
     MultiLangMgr();
@@ -42,3 +45,6 @@ private:
 extern MultiLangMgr langMgr;
 
 inline Glib::ustring M(const std::string &key) { return langMgr.getStr(key); }
+
+
+} } // namespace art::gui

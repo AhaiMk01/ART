@@ -24,6 +24,9 @@
 #include <gtkmm.h>
 #include <vector>
 
+namespace art { namespace gui {
+
+
 // For compatibility and simplicity reason, order shouldn't change, and must be
 // identical to the order specified in the curveType widget
 enum FlatCurveType {
@@ -148,3 +151,6 @@ public:
     void setPos(double pos, int chanIdx) override;
     void stopNumericalAdjustment() override;
 };
+
+
+} } // namespace art::gui

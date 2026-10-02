@@ -142,7 +142,7 @@ protected:
 
     bool resultValid;
 
-    MyMutex minit; // to gain mutually exclusive access to ... to what exactly?
+    art::gui::MyMutex minit; // to gain mutually exclusive access to ... to what exactly?
     void backupParams();
     void restoreParams();
 
@@ -163,7 +163,7 @@ protected:
     /// Updates all waveforms. Returns true unless not updated.
     bool updateWaveforms();
 
-    MyMutex mProcessing;
+    art::gui::MyMutex mProcessing;
     // time spent on the main preview since the last pipelineTimes() report;
     // written with mProcessing held
     PipelineTimes previewTimes_;
@@ -176,7 +176,7 @@ protected:
     // active, on different threads; without this they can race (one
     // freeing/reallocating paramsBackup's contents while the other reads
     // or writes it), corrupting the heap.
-    MyMutex mTweak;
+    art::gui::MyMutex mTweak;
 
     // for optimization purpose, the output profile, output rendering intent and
     // output BPC will trigger a regeneration of the profile on parameter change
@@ -190,7 +190,7 @@ protected:
     std::condition_variable updater_cond_;
 
     // MyMutex updaterThreadStart;
-    MyMutex paramsUpdateMutex;
+    art::gui::MyMutex paramsUpdateMutex;
     int changeSinceLast;
     bool updaterRunning;
     ProcParams nextParams;
@@ -228,7 +228,7 @@ public:
     int getPreviewWidth() override { return pW; }
     int getPreviewHeight() override { return pH; }
 
-    DetailedCrop *createCrop(::EditDataProvider *editDataProvider,
+    DetailedCrop *createCrop(art::gui::EditDataProvider *editDataProvider,
                              bool isDetailWindow) override;
     void setTweakOperator(TweakOperator *tOperator) override;
     void unsetTweakOperator(TweakOperator *tOperator) override;
@@ -338,7 +338,7 @@ public:
 
     InitialImage *getInitialImage() override { return imgsrc; }
 
-    bool getDeltaELCH(EditUniqueID id, int x, int y, float &L, float &C,
+    bool getDeltaELCH(art::gui::EditUniqueID id, int x, int y, float &L, float &C,
                       float &H) override;
 
     ImProcFunctions::DenoiseInfoStore denoiseInfoStore;

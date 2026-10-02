@@ -4,6 +4,9 @@
 #include "pcvignette.h"
 #include "eventmapper.h"
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -382,3 +385,6 @@ void PCVignette::getDimensions(int &x, int &y, int &w, int &h)
         p->getImageSize(w, h);
     }
 }
+
+
+} } // namespace art::gui

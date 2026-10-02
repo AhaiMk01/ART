@@ -23,6 +23,9 @@
 #include "guiutils.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class Adjuster;
 
 class AdjusterListener {
@@ -184,3 +187,6 @@ public:
 
     void showIcons(bool yes);
 };
+
+
+} } // namespace art::gui

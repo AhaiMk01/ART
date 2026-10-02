@@ -230,7 +230,7 @@ public:
         DeltaEData(): ok(false), L(0), C(0), H(0), x(-1), y(-1) {}
     };
     DeltaEData deltaE;
-    int setDeltaEData(EditUniqueID id, double x, double y);
+    int setDeltaEData(art::gui::EditUniqueID id, double x, double y);
 
     // Spot Removal Tool
     void removeSpots(art::engine::Imagefloat *img, art::engine::ImageSource *imgsrc,

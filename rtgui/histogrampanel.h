@@ -33,6 +33,9 @@
 #include "options.h"
 #include "pointermotionlistener.h"
 
+namespace art { namespace gui {
+
+
 using art::engine::array2D;
 class HistogramArea;
 
@@ -382,3 +385,6 @@ public:
 
     void setPanelListener(HistogramPanelListener *listener);
 };
+
+
+} } // namespace art::gui

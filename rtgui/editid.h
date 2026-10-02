@@ -18,6 +18,9 @@
  */
 #pragma once
 
+namespace art { namespace gui {
+
+
 /// @brief List of pipette editing operation
 enum EditUniqueID {
     EUID_None, /// special value (default)
@@ -77,3 +80,6 @@ enum ObjectMode {
     OM_255,  /// less or equal than 255 objects
     OM_65535 /// less or equal than 65535 objects
 };
+
+
+} } // namespace art::gui

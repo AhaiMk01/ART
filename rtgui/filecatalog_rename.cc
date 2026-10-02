@@ -34,6 +34,9 @@
 #include <sstream>
 #include <time.h>
 
+namespace art { namespace gui {
+
+
 namespace {
 
 using art::engine::Exiv2Metadata;
@@ -793,7 +796,7 @@ bool get_params(FileCatalog *fcatalog,
         Glib::ustring fn = r.basedir;
         if (fn.empty() || fn == ".") {
             fn = fcatalog->lastSelectedDir();
-            if (art::session::check(fn)) {
+            if (art::gui::session::check(fn)) {
                 fn = Glib::get_home_dir();
             }
         }
@@ -1099,7 +1102,7 @@ void FileCatalog::copyMoveRequested(const std::vector<FileBrowserEntry *> &args,
 
     Params params;
     if (get_params(this, args, params, move)) {
-        const bool is_session = art::session::check(selectedDirectory);
+        const bool is_session = art::gui::session::check(selectedDirectory);
 
         if (!move) {
             removeFromBatchQueue(args);
@@ -1140,8 +1143,8 @@ void FileCatalog::copyMoveRequested(const std::vector<FileBrowserEntry *> &args,
         }
 
         if (is_session && session_add.size() + session_rem.size() > 0) {
-            art::session::remove(session_rem);
-            art::session::add(session_add);
+            art::gui::session::remove(session_rem);
+            art::gui::session::add(session_add);
         } else {
             reparseDirectory();
         }
@@ -1195,7 +1198,7 @@ void FileCatalog::deleteRequested(const std::vector<FileBrowserEntry *> &tbe,
         }
 
         if (!err) {
-            const bool is_session = art::session::check(selectedDirectory);
+            const bool is_session = art::gui::session::check(selectedDirectory);
             std::vector<Glib::ustring> session_rem;
 
             options.renaming.sidecars = sidecars.get_text();
@@ -1243,7 +1246,7 @@ void FileCatalog::deleteRequested(const std::vector<FileBrowserEntry *> &tbe,
 
             _refreshProgressBar();
             if (is_session) {
-                art::session::remove(session_rem);
+                art::gui::session::remove(session_rem);
             } else {
                 redrawAll();
             }
@@ -1254,3 +1257,6 @@ void FileCatalog::deleteRequested(const std::vector<FileBrowserEntry *> &tbe,
         }
     }
 }
+
+
+} } // namespace art::gui

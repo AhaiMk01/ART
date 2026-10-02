@@ -31,6 +31,9 @@
 #include "rtsurface.h"
 #endif
 
+namespace art { namespace gui {
+
+
 class EditDataProvider;
 class EditSubscriber;
 
@@ -1102,3 +1105,6 @@ inline Line::Line(int beginX, int beginY, int endX, int endY)
 }
 
 #endif
+
+
+} } // namespace art::gui

@@ -23,6 +23,9 @@
 #include <gtkmm.h>
 #include <unordered_set>
 
+namespace art { namespace gui {
+
+
 class ExifPanel:
     public Gtk::VBox, public ToolPanel, public PParamsChangeListener {
 
@@ -151,3 +154,6 @@ public:
                            const ParamsEdited *paramsEdited=nullptr) override;
     void clearParamChanges() override {}
 };
+
+
+} } // namespace art::gui

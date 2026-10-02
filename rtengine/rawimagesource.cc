@@ -632,7 +632,7 @@ void apply_cat(RawImageSource *src, Imagefloat *img, const ColorTemp &ctemp)
 
     constexpr float noise = 1.f;
 
-    FlatCurve hcurve({FCT_MinMaxCPoints, 0.1, 0.1, 0.35, 0.35, 0.25, 1, 0.35,
+    FlatCurve hcurve({art::gui::FCT_MinMaxCPoints, 0.1, 0.1, 0.35, 0.35, 0.25, 1, 0.35,
                       0.35, 0.94, 1, 0.35, 0.35});
 
 #ifdef _OPENMP
@@ -866,7 +866,7 @@ void RawImageSource::getImage(const ColorTemp &ctemp, int tran,
                               Imagefloat *image, const PreviewProps &pp,
                               const ExposureParams &hrp, const RAWParams &raw)
 {
-    MyMutex::MyLock lock(getImageMutex);
+    art::gui::MyMutex::MyLock lock(getImageMutex);
 
     // HLRecovery_Global(hrp);
 
@@ -1000,7 +1000,7 @@ void RawImageSource::getImage(const ColorTemp &ctemp, int tran,
             }
             rgbSourceModified = true;
             if (plistener) {
-                plistener->setProgressStr(M("PROGRESSBAR_PROCESSING"));
+                plistener->setProgressStr(art::gui::M("PROGRESSBAR_PROCESSING"));
             }
         }
     }
@@ -1016,7 +1016,7 @@ void RawImageSource::getImage(const ColorTemp &ctemp, int tran,
             gm *= g;
             bm *= b;
         } else if (plistener) {
-            plistener->error(M("ERROR_MSG_INVALID_WB"));
+            plistener->error(art::gui::M("ERROR_MSG_INVALID_WB"));
         }
     }
     hlmax[0] = clmax[0] * rm;
@@ -4259,7 +4259,7 @@ bool RawImageSource::findInputProfile(
 
         if (!in && !*dcpProf && !lut_prof && plistener) {
             plistener->error(
-                Glib::ustring::compose(M("ERROR_MSG_FILE_READ"), normalName));
+                Glib::ustring::compose(art::gui::M("ERROR_MSG_FILE_READ"), normalName));
         }
     }
 
@@ -5378,10 +5378,10 @@ void RawImageSource::init()
             1.0000000000, 1.0000000000};
         std::vector<double> cForwardPoints;
         cForwardPoints.push_back(
-            double(DCT_Spline)); // The first value is the curve type
+            double(art::gui::DCT_Spline)); // The first value is the curve type
         std::vector<double> cInversePoints;
         cInversePoints.push_back(
-            double(DCT_Spline)); // The first value is the curve type
+            double(art::gui::DCT_Spline)); // The first value is the curve type
 
         for (unsigned int i = 0;
              i < sizeof(phase_one_forward) / sizeof(phase_one_forward[0]);

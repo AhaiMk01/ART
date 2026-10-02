@@ -27,6 +27,9 @@
 #include <cmath>
 #include <cstring>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 
 constexpr float HistogramArea::MAX_BRIGHT;
@@ -2560,3 +2563,6 @@ HistogramArea::type_signal_factor_changed HistogramArea::signal_factor_changed()
 {
     return sigFactorChanged;
 }
+
+
+} } // namespace art::gui

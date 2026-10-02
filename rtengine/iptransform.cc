@@ -615,7 +615,7 @@ void ImProcFunctions::transform(Imagefloat *original, Imagefloat *transformed,
                                         focusDist, fNumber, false, false, oW,
                                         oH, params->coarse, rawRotationDeg));
         } else if (!params->lensProf.lcpFile.empty() && plistener) {
-            plistener->error(Glib::ustring::compose(M("ERROR_MSG_FILE_READ"),
+            plistener->error(Glib::ustring::compose(art::gui::M("ERROR_MSG_FILE_READ"),
                                                     params->lensProf.lcpFile));
         }
     }

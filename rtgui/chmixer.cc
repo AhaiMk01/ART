@@ -20,6 +20,9 @@
 #include "eventmapper.h"
 #include "rtimage.h"
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -307,3 +310,6 @@ void ChMixer::modeChanged()
         listener->panelChanged(EvMode, M("GENERAL_CHANGED"));
     }
 }
+
+
+} } // namespace art::gui

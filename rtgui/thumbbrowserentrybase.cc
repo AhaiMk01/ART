@@ -23,6 +23,9 @@
 
 #include "../rtengine/mytime.h"
 
+namespace art { namespace gui {
+
+
 namespace {
 
 Glib::ustring getPaddedName(const Glib::ustring &name)
@@ -834,3 +837,6 @@ Glib::ustring ThumbBrowserEntryBase::getToolTip(int x, int y) const
 
     return tooltip;
 }
+
+
+} } // namespace art::gui

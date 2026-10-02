@@ -27,6 +27,9 @@
 #include "guiutils.h"
 #include "rtimage.h"
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -907,3 +910,6 @@ void ICMPanel::toolReset(bool to_initial)
     }
     read(&pp);
 }
+
+
+} } // namespace art::gui

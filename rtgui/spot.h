@@ -27,6 +27,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 /**
  * @brief Let the user create/edit/delete points for Spot Removal tool
  *
@@ -165,3 +168,6 @@ public:
     art::engine::ProcEvent EvSpotEntry;
     art::engine::ProcEvent EvSpotEntryOPA;
 };
+
+
+} } // namespace art::gui

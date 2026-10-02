@@ -26,6 +26,9 @@
 #include <gtkmm.h>
 #include <memory>
 
+namespace art { namespace gui {
+
+
 class FFProvider {
 public:
     virtual ~FFProvider() {}
@@ -91,3 +94,6 @@ public:
 
     void toolReset(bool to_initial) override;
 };
+
+
+} } // namespace art::gui

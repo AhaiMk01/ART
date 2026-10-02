@@ -29,6 +29,9 @@
 
 #include "../rtengine/colortemp.h"
 
+namespace art { namespace gui {
+
+
 namespace {
 using RGB = art::engine::procparams::FilmNegativeParams::RGB;
 using ColorSpace = art::engine::procparams::FilmNegativeParams::ColorSpace;
@@ -136,3 +139,6 @@ private:
 
     art::engine::procparams::FilmNegativeParams initial_params;
 };
+
+
+} } // namespace art::gui

@@ -31,6 +31,9 @@
 #include <glibmm.h>
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class ToolPanel;
 class FoldableToolPanel;
 
@@ -223,3 +226,6 @@ public:
 
     Glib::ustring getUILabel() const { return EvToolReset.get_message(); }
 };
+
+
+} } // namespace art::gui

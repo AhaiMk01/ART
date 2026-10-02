@@ -21,6 +21,9 @@
 
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class SplashImage: public Gtk::DrawingArea {
 
 private:
@@ -56,3 +59,6 @@ public:
     bool on_timer();
     void closePressed();
 };
+
+
+} } // namespace art::gui

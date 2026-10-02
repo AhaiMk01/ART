@@ -26,6 +26,9 @@
 #include "myflatcurve.h"
 #include "popuptogglebutton.h"
 
+namespace art { namespace gui {
+
+
 class CurveEditorGroup;
 class CurveEditorSubGroup;
 
@@ -218,3 +221,6 @@ public:
     void setResetCurve(FlatCurveType cType,
                        const std::vector<double> &resetCurve);
 };
+
+
+} } // namespace art::gui

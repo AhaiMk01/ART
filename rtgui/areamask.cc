@@ -21,6 +21,9 @@
 #include "areamask.h"
 #include "edit.h"
 
+namespace art { namespace gui {
+
+
 using art::engine::Coord;
 using art::engine::PolarCoord;
 
@@ -1320,3 +1323,6 @@ void AreaMask::updateGeometry(const int fullWidth, const int fullHeight)
         break;
     }
 }
+
+
+} } // namespace art::gui

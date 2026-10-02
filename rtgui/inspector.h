@@ -26,6 +26,9 @@
 #include "thumbbrowserentrybase.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class InspectorBuffer;
 class FileCatalog;
 
@@ -227,3 +230,6 @@ private:
 
     IdleRegister idle_register_;
 };
+
+
+} } // namespace art::gui

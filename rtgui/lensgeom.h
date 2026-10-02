@@ -23,6 +23,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class GeometryPanel: public ToolParamBlock, public FoldableToolPanel {
 protected:
     Gtk::Button *autoCrop;
@@ -58,3 +61,6 @@ public:
 
     Gtk::Box *getPackBox() { return packBox; }
 };
+
+
+} } // namespace art::gui

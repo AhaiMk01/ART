@@ -21,6 +21,9 @@
 #include "rtscalable.h"
 #include <gtkmm/image.h>
 
+namespace art { namespace gui {
+
+
 /**
  * @brief A derived class of Gtk::Image in order to handle theme-related icon
  * sets.
@@ -47,3 +50,6 @@ public:
 
     // void from(Glib::RefPtr<RTSurface> other);
 };
+
+
+} } // namespace art::gui

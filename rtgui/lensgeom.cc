@@ -20,6 +20,9 @@
 #include "guiutils.h"
 #include "rtimage.h"
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -98,3 +101,6 @@ LensPanel::LensPanel(): FoldableToolPanel(this, "lensaberr", M("TP_LENS_LABEL"))
 
     show_all();
 }
+
+
+} } // namespace art::gui

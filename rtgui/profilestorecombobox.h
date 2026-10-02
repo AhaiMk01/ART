@@ -30,6 +30,9 @@
 #include "paramsedited.h"
 #include "threadutils.h"
 
+namespace art { namespace gui {
+
+
 /**
  * @brief subclass of Gtk::Label with extra fields for Combobox and Menu, to
  * link with a art::engine::ProfileStoreEntry
@@ -93,3 +96,6 @@ public:
     Gtk::TreeIter addRow(const art::engine::ProfileStoreEntry *profileStoreEntry);
     void deleteRow(const art::engine::ProfileStoreEntry *profileStoreEntry);
 };
+
+
+} } // namespace art::gui

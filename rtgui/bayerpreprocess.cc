@@ -21,6 +21,9 @@
 #include "guiutils.h"
 #include <sstream>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -209,3 +212,6 @@ void BayerPreProcess::toolReset(bool to_initial)
     pp.raw.bayersensor.enable_preproc = getEnabled();
     read(&pp);
 }
+
+
+} } // namespace art::gui

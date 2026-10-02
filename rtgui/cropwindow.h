@@ -34,6 +34,9 @@
 #include <gtkmm.h>
 #include <list>
 
+namespace art { namespace gui {
+
+
 class CropWindow;
 
 class CropWindowListener {
@@ -290,3 +293,6 @@ public:
 
     void setHiDPI(bool yes);
 };
+
+
+} } // namespace art::gui

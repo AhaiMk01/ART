@@ -24,6 +24,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class XTransRAWExposure: public ToolParamBlock,
                          public AdjusterListener,
                          public FoldableToolPanel {
@@ -46,3 +49,6 @@ public:
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
     void trimValues(art::engine::procparams::ProcParams *pp) override;
 };
+
+
+} } // namespace art::gui

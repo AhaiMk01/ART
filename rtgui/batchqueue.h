@@ -30,6 +30,9 @@
 #include "threadutils.h"
 #include "thumbbrowserbase.h"
 
+namespace art { namespace gui {
+
+
 class BatchQueueListener {
 
 public:
@@ -144,3 +147,6 @@ private:
 
     std::unordered_map<std::string, std::string> format2ext_;
 };
+
+
+} } // namespace art::gui

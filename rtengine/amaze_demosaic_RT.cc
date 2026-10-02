@@ -49,7 +49,7 @@ void RawImageSource::amaze_demosaic_RT(int winx, int winy, int winw, int winh,
 
     if (plistener) {
         plistener->setProgressStr(Glib::ustring::compose(
-            M("TP_RAW_DMETHOD_PROGRESSBAR"), M("TP_RAW_AMAZE")));
+            art::gui::M("TP_RAW_DMETHOD_PROGRESSBAR"), art::gui::M("TP_RAW_AMAZE")));
         plistener->setProgress(0.0);
     }
 

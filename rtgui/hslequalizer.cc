@@ -22,6 +22,9 @@
 #include "../rtengine/iccmatrices.h"
 #include "eventmapper.h"
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -237,3 +240,6 @@ void HSLEqualizer::toolReset(bool to_initial)
     pp.hsl.enabled = getEnabled();
     read(&pp);
 }
+
+
+} } // namespace art::gui

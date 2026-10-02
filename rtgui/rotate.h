@@ -24,6 +24,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class Rotate: public ToolParamBlock,
               public AdjusterListener,
               public FoldableToolPanel {
@@ -52,3 +55,6 @@ public:
 
     void toolReset(bool to_initial) override;
 };
+
+
+} } // namespace art::gui

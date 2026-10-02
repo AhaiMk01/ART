@@ -23,6 +23,9 @@
 #include "popupcommon.h"
 #include <gtkmm/button.h>
 
+namespace art { namespace gui {
+
+
 class PopUpButton: public Gtk::Button, public PopUpCommon {
 
 public:
@@ -38,3 +41,6 @@ protected:
 private:
     bool nextOnClicked;
 };
+
+
+} } // namespace art::gui

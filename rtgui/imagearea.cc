@@ -25,6 +25,9 @@
 #include <cmath>
 #include <ctime>
 
+namespace art { namespace gui {
+
+
 ImageArea::ImageArea(ImageAreaPanel *p)
     : parent(p), fullImageWidth(0), fullImageHeight(0), alp_(nullptr)
 {
@@ -864,3 +867,6 @@ void ImageArea::setHiDPI(bool yes)
         }
     }
 }
+
+
+} } // namespace art::gui

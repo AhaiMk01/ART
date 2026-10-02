@@ -21,6 +21,9 @@
 #include <cmath>
 #include <iomanip>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -347,3 +350,6 @@ void TextureBoost::toolReset(bool to_initial)
     pp.textureBoost.enabled = getEnabled();
     read(&pp);
 }
+
+
+} } // namespace art::gui

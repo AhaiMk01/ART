@@ -18,6 +18,9 @@
  */
 #include "imageareapanel.h"
 
+namespace art { namespace gui {
+
+
 ImageAreaPanel::ImageAreaPanel(): before(nullptr), after(nullptr)
 {
 
@@ -92,3 +95,6 @@ void ImageAreaPanel::synchronize()
         }
     }
 }
+
+
+} } // namespace art::gui

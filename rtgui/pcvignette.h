@@ -9,6 +9,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class PCVignette: public ToolParamBlock,
                   public AdjusterListener,
                   public FoldableToolPanel,
@@ -66,3 +69,6 @@ public:
                            const ParamsEdited *paramsEdited = nullptr) override;
     void clearParamChanges() override {}
 };
+
+
+} } // namespace art::gui

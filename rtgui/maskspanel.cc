@@ -26,6 +26,9 @@
 #include <memory>
 #include <unordered_map>
 
+namespace art { namespace gui {
+
+
 namespace {
 
 using Shape = art::engine::procparams::AreaMask::Shape;
@@ -3499,3 +3502,6 @@ void MasksPanel::setExternalMaskPath(const Glib::ustring &dir)
 {
     external_mask_filename_->set_current_folder(Glib::filename_from_utf8(dir));
 }
+
+
+} } // namespace art::gui

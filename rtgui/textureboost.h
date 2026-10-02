@@ -24,6 +24,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class TextureBoost: public ToolParamBlock,
                     public AdjusterListener,
                     public FoldableToolPanel,
@@ -92,3 +95,6 @@ private:
 
     art::engine::procparams::TextureBoostParams initial_params;
 };
+
+
+} } // namespace art::gui

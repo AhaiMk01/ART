@@ -31,6 +31,9 @@
 #include "whitebalance.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 Glib::RefPtr<Gtk::CssProvider> cssForced;
 
 //-----------------------------------------------------------------------------
@@ -603,7 +606,7 @@ void RTWindow::on_realize()
 {
     Gtk::Window::on_realize();
 
-    art::gdk_set_monitor_profile(get_window()->gobj(),
+    art::gui::gdk_set_monitor_profile(get_window()->gobj(),
                                  options.rtSettings.os_monitor_profile);
     mainWindowCursorManager.init(get_window());
 
@@ -1404,3 +1407,6 @@ void RTWindow::createSetmEditor()
     epanel->tbTopPanel_1_visible(true); // show the toggle Top Panel button
     mainNB->append_page(*epanel, *editorLabelGrid);
 }
+
+
+} } // namespace art::gui

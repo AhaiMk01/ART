@@ -26,6 +26,9 @@
 #include "paramsedited.h"
 #include <vector>
 
+namespace art { namespace gui {
+
+
 class Clipboard {
 private:
     bool _hasIPTC;
@@ -136,3 +139,6 @@ public:
 };
 
 extern Clipboard clipboard;
+
+
+} } // namespace art::gui

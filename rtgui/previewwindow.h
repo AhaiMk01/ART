@@ -24,6 +24,9 @@
 #include "previewhandler.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class PreviewWindow: public Gtk::DrawingArea,
                      public PreviewListener,
                      public CropWindowListener {
@@ -77,3 +80,6 @@ public:
     void cropZoomChanged(CropWindow *w) override;
     void initialImageArrived() override;
 };
+
+
+} } // namespace art::gui

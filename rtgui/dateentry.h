@@ -21,6 +21,9 @@
 
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class DateEntry: public Gtk::HBox {
 public:
     DateEntry();
@@ -44,3 +47,6 @@ private:
 
     sigc::signal<void> sig_date_changed_;
 };
+
+
+} } // namespace art::gui

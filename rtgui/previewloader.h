@@ -26,6 +26,9 @@
 
 #include "filebrowserentry.h"
 
+namespace art { namespace gui {
+
+
 class PreviewLoaderListener {
 public:
     virtual ~PreviewLoaderListener() = default;
@@ -91,3 +94,6 @@ private:
  * To use: \c previewLoader->start() ,
  */
 #define previewLoader PreviewLoader::getInstance()
+
+
+} } // namespace art::gui

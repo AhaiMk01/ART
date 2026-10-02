@@ -27,6 +27,9 @@
 #include "../rtengine/imgiomanager.h"
 #include "../rtengine/utils.h"
 
+namespace art { namespace gui {
+
+
 extern Options options;
 
 namespace {
@@ -441,3 +444,6 @@ void SaveAsDialog::exportProfileChanged()
     info.enabled = apply_export_profile_->get_active();
     info.profile = profiles_cb_->getFullPathFromActiveRow();
 }
+
+
+} } // namespace art::gui

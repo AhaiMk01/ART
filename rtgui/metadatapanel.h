@@ -24,6 +24,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class MetaDataPanel: public Gtk::VBox, public ToolPanel {
 public:
     MetaDataPanel();
@@ -52,3 +55,6 @@ private:
 
     void metaDataModeChanged();
 };
+
+
+} } // namespace art::gui

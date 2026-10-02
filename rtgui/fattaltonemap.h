@@ -23,6 +23,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class FattalToneMapping: public ToolParamBlock,
                          public AdjusterListener,
                          public FoldableToolPanel {
@@ -50,3 +53,6 @@ protected:
 
     void satcontrolChanged();
 };
+
+
+} } // namespace art::gui

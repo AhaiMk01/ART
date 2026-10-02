@@ -21,6 +21,9 @@
 #include "coloredbar.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class SHCListener {
 public:
     virtual ~SHCListener() = default;
@@ -86,3 +89,6 @@ public:
     bool reset();
     void refresh();
 };
+
+
+} } // namespace art::gui

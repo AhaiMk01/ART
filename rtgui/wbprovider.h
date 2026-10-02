@@ -25,6 +25,9 @@
 #include <map>
 #include <vector>
 
+namespace art { namespace gui {
+
+
 struct WBPreset {
     Glib::ustring label;
     std::array<double, 3> mult;
@@ -57,3 +60,6 @@ void init(const Glib::ustring &baseDir, const Glib::ustring &userSettingsDir);
 const std::map<std::string, std::vector<WBPreset>> &getPresets();
 
 } // namespace wb_presets
+
+
+} } // namespace art::gui

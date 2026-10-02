@@ -208,7 +208,7 @@ void RawImageSource::xtrans_interpolate(const int passes, const bool useCieLab)
 
     if (plistenerActive) {
         plistener->setProgressStr(Glib::ustring::compose(
-            M("TP_RAW_DMETHOD_PROGRESSBAR"), M("TP_RAW_XTRANS")));
+            art::gui::M("TP_RAW_DMETHOD_PROGRESSBAR"), art::gui::M("TP_RAW_XTRANS")));
         plistener->setProgress(progress);
     }
 
@@ -1203,7 +1203,7 @@ void RawImageSource::fast_xtrans_interpolate(const array2D<float> &rawData,
 
     if (plistener) {
         plistener->setProgressStr(Glib::ustring::compose(
-            M("TP_RAW_DMETHOD_PROGRESSBAR"), M("TP_RAW_XTRANSFAST")));
+            art::gui::M("TP_RAW_DMETHOD_PROGRESSBAR"), art::gui::M("TP_RAW_XTRANSFAST")));
         plistener->setProgress(0.0);
     }
 
@@ -1272,7 +1272,7 @@ void RawImageSource::fast_xtrans_interpolate_blend(
 
     if (plistener) {
         plistener->setProgressStr(Glib::ustring::compose(
-            M("TP_RAW_DMETHOD_PROGRESSBAR"), M("TP_RAW_XTRANSFAST")));
+            art::gui::M("TP_RAW_DMETHOD_PROGRESSBAR"), art::gui::M("TP_RAW_XTRANSFAST")));
         plistener->setProgress(0.0);
     }
 

@@ -21,6 +21,9 @@
 
 #include "../rtengine/rtengine.h"
 
+namespace art { namespace gui {
+
+
 art::engine::ProcessingJob *
 create_processing_job(const Glib::ustring &fname, bool is_raw,
                       art::engine::procparams::ProcParams pparams, bool fast);
@@ -28,3 +31,6 @@ create_processing_job(const Glib::ustring &fname, bool is_raw,
 art::engine::ProcessingJob *
 create_processing_job(art::engine::InitialImage *initialImage,
                       art::engine::procparams::ProcParams params, bool fast);
+
+
+} } // namespace art::gui

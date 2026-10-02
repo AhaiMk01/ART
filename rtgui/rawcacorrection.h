@@ -24,6 +24,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class RAWCACorr: public ToolParamBlock,
                  public AdjusterListener,
                  public CheckBoxListener,
@@ -57,3 +60,6 @@ public:
 
     void toolReset(bool to_initial) override;
 };
+
+
+} } // namespace art::gui

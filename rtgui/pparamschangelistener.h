@@ -23,6 +23,9 @@
 #include "paramsedited.h"
 #include <glibmm.h>
 
+namespace art { namespace gui {
+
+
 class PParamsChangeListener {
 public:
     virtual ~PParamsChangeListener() = default;
@@ -41,3 +44,6 @@ public:
                      std::pair<Glib::ustring, art::engine::procparams::ProcParams>>
                          &snapshots) = 0;
 };
+
+
+} } // namespace art::gui

@@ -43,6 +43,9 @@
 #include "guiutils.h"
 #include <iostream>
 
+namespace art { namespace gui {
+
+
 using art::engine::Color;
 
 //-----------------------------------------------------------------------------
@@ -809,3 +812,6 @@ void HueSatColorWheel::onRightClickPressed()
         gtk_main_iteration();
     }
 }
+
+
+} } // namespace art::gui

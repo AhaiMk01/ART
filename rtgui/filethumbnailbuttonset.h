@@ -25,6 +25,9 @@
 #include "rtsurface.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class FileBrowserEntry;
 class FileThumbnailButtonSet: public LWButtonSet {
 
@@ -52,3 +55,6 @@ public:
     void setColorLabel(int colorlabel);
     void setInTrash(bool inTrash);
 };
+
+
+} } // namespace art::gui

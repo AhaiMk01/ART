@@ -25,6 +25,9 @@
 #include <gtkmm.h>
 #include <vector>
 
+namespace art { namespace gui {
+
+
 class CropPanelListener {
 public:
     virtual ~CropPanelListener() = default;
@@ -140,3 +143,6 @@ private:
 
     art::engine::procparams::CropParams initial_params;
 };
+
+
+} } // namespace art::gui

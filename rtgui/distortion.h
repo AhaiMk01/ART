@@ -24,6 +24,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class Distortion: public ToolParamBlock,
                   public AdjusterListener,
                   public FoldableToolPanel {
@@ -58,3 +61,6 @@ public:
     void toolReset(bool to_initial) override;
     void enabledChanged() override;
 };
+
+
+} } // namespace art::gui

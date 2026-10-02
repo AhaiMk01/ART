@@ -23,6 +23,9 @@
 #include "multilangmgr.h"
 #include <iostream>
 
+namespace art { namespace gui {
+
+
 DirTreeView::DirTreeView()
 {
     auto commands = UserCommandStore::getInstance()->getAllCommands();
@@ -93,3 +96,6 @@ void DirTreeView::on_menu_item_activate(Gtk::MenuItem *m)
         }
     }
 }
+
+
+} } // namespace art::gui

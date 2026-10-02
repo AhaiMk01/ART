@@ -70,7 +70,7 @@ ProfileStore::~ProfileStore()
     storeState = STORESTATE_DELETED;
 
     {
-        MyMutex::MyLock lock(parseMutex);
+        art::gui::MyMutex::MyLock lock(parseMutex);
 
         clearProfileList();
         partProfiles.clear();
@@ -124,10 +124,10 @@ void ProfileStore::_parseProfiles()
                                        // be used to attach a ProfileStoreEntry
                                        // to the root container, not sub-menu
 
-    Glib::ustring p1 = options.getUserProfilePath();
-    Glib::ustring p2 = options.getGlobalProfilePath();
+    Glib::ustring p1 = art::gui::options.getUserProfilePath();
+    Glib::ustring p2 = art::gui::options.getGlobalProfilePath();
     bool displayLevel0 =
-        options.useBundledProfiles && !p1.empty() && !p2.empty() && p1 != p2;
+        art::gui::options.useBundledProfiles && !p1.empty() && !p2.empty() && p1 != p2;
 
     Glib::ustring virtualPath;
     Glib::ustring currDir;
@@ -152,7 +152,7 @@ void ProfileStore::_parseProfiles()
         internalDefaultProfile = new art::engine::procparams::FullPartialProfile(
             art::engine::procparams::ProcParams());
         internalDefaultEntry = new ProfileStoreEntry(
-            Glib::ustring("(") + M("PROFILEPANEL_PINTERNAL") +
+            Glib::ustring("(") + art::gui::M("PROFILEPANEL_PINTERNAL") +
                 Glib::ustring(")"),
             PSET_FILE, 0, 0);
     }
@@ -162,7 +162,7 @@ void ProfileStore::_parseProfiles()
 
     if (!internalDynamicEntry) {
         internalDynamicEntry = new ProfileStoreEntry(
-            Glib::ustring("(") + M("PROFILEPANEL_PDYNAMIC") +
+            Glib::ustring("(") + art::gui::M("PROFILEPANEL_PDYNAMIC") +
                 Glib::ustring(")"),
             PSET_FILE, 0, 0);
         // do not add it to the entries. This is here only for the preferences
@@ -170,23 +170,23 @@ void ProfileStore::_parseProfiles()
     }
 
     // Check if the default profiles has been found.
-    if (!findEntryFromFullPathU(options.defProfRaw)) {
-        options.setDefProfRawMissing(true);
+    if (!findEntryFromFullPathU(art::gui::options.defProfRaw)) {
+        art::gui::options.setDefProfRawMissing(true);
 
-        if (options.rtSettings.verbose) {
+        if (art::gui::options.rtSettings.verbose) {
             printf(
                 "WARNING: Default profile \"%s\" for raw images not found!\n",
-                options.defProfRaw.c_str());
+                art::gui::options.defProfRaw.c_str());
         }
     }
 
-    if (!findEntryFromFullPathU(options.defProfImg)) {
-        options.setDefProfImgMissing(true);
+    if (!findEntryFromFullPathU(art::gui::options.defProfImg)) {
+        art::gui::options.setDefProfImgMissing(true);
 
-        if (options.rtSettings.verbose) {
+        if (art::gui::options.rtSettings.verbose) {
             printf("WARNING: Default profile \"%s\" for standard images not "
                    "found!\n",
-                   options.defProfImg.c_str());
+                   art::gui::options.defProfImg.c_str());
         }
     }
 }
@@ -211,9 +211,9 @@ bool ProfileStore::parseDir(Glib::ustring &realPath, Glib::ustring &virtualPath,
         if (level > 0 || displayLevel0) {
             // replace the virtual folder name by a localized text
             if (currDir == "${U}") {
-                currDir = M("PROFILEPANEL_MYPROFILES");
+                currDir = art::gui::M("PROFILEPANEL_MYPROFILES");
             } else if (currDir == "${G}") {
-                currDir = M("PROFILEPANEL_GLOBALPROFILES");
+                currDir = art::gui::M("PROFILEPANEL_GLOBALPROFILES");
             }
 
             // add this localized text to the file list
@@ -242,9 +242,9 @@ bool ProfileStore::parseDir(Glib::ustring &realPath, Glib::ustring &virtualPath,
 
                 if (lastdot != Glib::ustring::npos &&
                     lastdot == currDir.length() - 4 &&
-                    currDir.substr(lastdot).casefold() == paramFileExtension) {
+                    currDir.substr(lastdot).casefold() == art::gui::paramFileExtension) {
                     // file found
-                    if (options.rtSettings.verbose > 1) {
+                    if (art::gui::options.rtSettings.verbose > 1) {
                         printf("Processing file %s...", fname.c_str());
                     }
 
@@ -257,7 +257,7 @@ bool ProfileStore::parseDir(Glib::ustring &realPath, Glib::ustring &virtualPath,
                     if (!res && pp.ppVersion >= 220) {
                         fileFound = true;
 
-                        if (options.rtSettings.verbose > 1) {
+                        if (art::gui::options.rtSettings.verbose > 1) {
                             printf("OK\n");
                         }
 
@@ -269,7 +269,7 @@ bool ProfileStore::parseDir(Glib::ustring &realPath, Glib::ustring &virtualPath,
                         // map the partial profile
                         partProfiles[filePSE] =
                             FilePartialProfile(pl_, fname, false);
-                    } else if (options.rtSettings.verbose > 1) {
+                    } else if (art::gui::options.rtSettings.verbose > 1) {
                         printf("failed!\n");
                     }
                 }
@@ -321,8 +321,8 @@ ProfileStore::findEntryFromFullPathU(Glib::ustring path)
         parseProfilesOnce();
     }
 
-    if (path == Options::DEFPROFILE_INTERNAL ||
-        path == Options::DEFPROFILE_DYNAMIC) {
+    if (path == art::gui::Options::DEFPROFILE_INTERNAL ||
+        path == art::gui::Options::DEFPROFILE_DYNAMIC) {
         return internalDefaultEntry;
     }
 
@@ -333,7 +333,7 @@ ProfileStore::findEntryFromFullPathU(Glib::ustring path)
 
     if (lastdot_pos != Glib::ustring::npos &&
         lastdot_pos <= casefolded_path.size() - 4 &&
-        !casefolded_path.compare(lastdot_pos, 4, paramFileExtension)) {
+        !casefolded_path.compare(lastdot_pos, 4, art::gui::paramFileExtension)) {
         // removing the extension
         // now use dot position without casefold()
         path = path.substr(0, path.find_last_of('.'));
@@ -380,7 +380,7 @@ ProfileStore::findEntryFromFullPathU(Glib::ustring path)
 /** Protected version of findEntryFromFullPathU */
 const ProfileStoreEntry *ProfileStore::findEntryFromFullPath(Glib::ustring path)
 {
-    MyMutex::MyLock lock(parseMutex);
+    art::gui::MyMutex::MyLock lock(parseMutex);
     return findEntryFromFullPathU(path);
 }
 
@@ -406,7 +406,7 @@ const PartialProfile *ProfileStore::getProfile(const ProfileStoreEntry *entry)
         parseProfilesOnce();
     }
 
-    MyMutex::MyLock lock(parseMutex);
+    art::gui::MyMutex::MyLock lock(parseMutex);
 
     if (entry == internalDefaultEntry) {
         return internalDefaultProfile;
@@ -468,7 +468,7 @@ const PartialProfile *ProfileStore::getDefaultPartialProfile(bool isRaw)
     //       eventual initialization is done there too
 
     const PartialProfile *pProf =
-        getProfile(isRaw ? options.defProfRaw : options.defProfImg);
+        getProfile(isRaw ? art::gui::options.defProfRaw : art::gui::options.defProfImg);
 
     if (!pProf) {
         pProf = internalDefaultProfile;
@@ -531,10 +531,10 @@ ProfileStore::loadDynamicProfile(const FramesMetaData *im)
     }
 
     const auto get_path = [&](Glib::ustring pth) -> Glib::ustring {
-        auto d = options.findProfilePath(pth);
+        auto d = art::gui::options.findProfilePath(pth);
         if (Glib::file_test(d, Glib::FILE_TEST_EXISTS)) {
             return Glib::build_filename(d, Glib::path_get_basename(pth) +
-                                               paramFileExtension);
+                                               art::gui::paramFileExtension);
         }
         return pth;
     };
@@ -542,7 +542,7 @@ ProfileStore::loadDynamicProfile(const FramesMetaData *im)
     for (auto rule : dynamicRules) {
         if (rule.matches(im)) {
             auto pth = get_path(rule.profilepath);
-            if (options.rtSettings.verbose) {
+            if (art::gui::options.rtSettings.verbose) {
                 printf("found matching profile %s\n", rule.profilepath.c_str());
             }
 
@@ -555,7 +555,7 @@ ProfileStore::loadDynamicProfile(const FramesMetaData *im)
     }
 
     std::unique_ptr<PartialProfile> ret(
-        new PEditedPartialProfile(pp, ParamsEdited(true)));
+        new PEditedPartialProfile(pp, art::gui::ParamsEdited(true)));
     return ret;
 }
 

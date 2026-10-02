@@ -28,6 +28,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class HSLEqualizer: public ToolParamBlock,
                     public FoldableToolPanel,
                     public CurveListener,
@@ -65,3 +68,6 @@ private:
     art::engine::procparams::HSLEqualizerParams initial_params;
     std::vector<double> default_flat_curve_;
 };
+
+
+} } // namespace art::gui

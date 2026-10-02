@@ -84,7 +84,7 @@ namespace art { namespace engine {
  ******************************************************************************/
 
 extern const Settings *settings;
-extern MyMutex *fftwMutex;
+extern art::gui::MyMutex *fftwMutex;
 
 namespace {
 
@@ -625,7 +625,7 @@ void tmo_fattal02(size_t width, size_t height, const Array2Df &Y, Array2Df &L,
 
     // solve pde and exponentiate (ie recover compressed image)
     {
-        MyMutex::MyLock lock(*fftwMutex);
+        art::gui::MyMutex::MyLock lock(*fftwMutex);
         solve_pde_fft(FI, &L, Gx, multithread);
     }
     delete Gx;

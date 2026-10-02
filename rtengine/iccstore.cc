@@ -412,7 +412,7 @@ public:
     {
         // Reads all profiles from the given profiles dir
 
-        MyMutex::MyLock lock(mutex);
+        art::gui::MyMutex::MyLock lock(mutex);
 
         this->loadAll = loadAll;
 
@@ -441,7 +441,7 @@ public:
             loadProfiles(stdProfilesDir, nullptr, nullptr,
                          &fileCamProfilesFileNames, true);
             Glib::ustring user_input_icc_dir = Glib::build_filename(
-                options.user_config_dir, "iccprofiles", "input");
+                art::gui::options.user_config_dir, "iccprofiles", "input");
             loadProfiles(user_input_icc_dir, nullptr, nullptr,
                          &fileCamProfilesFileNames, true);
         }
@@ -489,13 +489,13 @@ public:
 
     bool outputProfileExist(const Glib::ustring &name) const
     {
-        MyMutex::MyLock lock(mutex);
+        art::gui::MyMutex::MyLock lock(mutex);
         return fileProfiles.find(name) != fileProfiles.end();
     }
 
     cmsHPROFILE getProfile(const Glib::ustring &name)
     {
-        MyMutex::MyLock lock(mutex);
+        art::gui::MyMutex::MyLock lock(mutex);
         return getProfile_unlocked(name);
     }
 
@@ -520,7 +520,7 @@ public:
     {
         const Glib::ustring nameUpper = name.uppercase();
 
-        MyMutex::MyLock lock(mutex);
+        art::gui::MyMutex::MyLock lock(mutex);
 
         const ProfileMap::const_iterator r = fileCamProfiles.find(nameUpper);
 
@@ -567,7 +567,7 @@ public:
 
     ProfileContent getContent(const Glib::ustring &name) const
     {
-        MyMutex::MyLock lock(mutex);
+        art::gui::MyMutex::MyLock lock(mutex);
 
         const ContentMap::const_iterator r = fileProfileContents.find(name);
 
@@ -603,7 +603,7 @@ public:
 
     std::vector<Glib::ustring> getProfiles(ProfileType type) const
     {
-        MyMutex::MyLock lock(mutex);
+        art::gui::MyMutex::MyLock lock(mutex);
 
         return doGetProfiles(fileProfiles, type);
     }
@@ -613,7 +613,7 @@ public:
     {
         ProfileMap profiles;
 
-        MyMutex::MyLock lock(mutex);
+        art::gui::MyMutex::MyLock lock(mutex);
 
         loadProfiles(dirName, &profiles, nullptr, nullptr, false);
 
@@ -628,21 +628,21 @@ public:
 
     std::uint8_t getInputIntents(cmsHPROFILE profile)
     {
-        MyMutex::MyLock lock(mutex);
+        art::gui::MyMutex::MyLock lock(mutex);
 
         return getSupportedIntents(profile, LCMS_USED_AS_INPUT);
     }
 
     std::uint8_t getOutputIntents(cmsHPROFILE profile)
     {
-        MyMutex::MyLock lock(mutex);
+        art::gui::MyMutex::MyLock lock(mutex);
 
         return getSupportedIntents(profile, LCMS_USED_AS_OUTPUT);
     }
 
     std::uint8_t getProofIntents(cmsHPROFILE profile)
     {
-        MyMutex::MyLock lock(mutex);
+        art::gui::MyMutex::MyLock lock(mutex);
 
         return getSupportedIntents(profile, LCMS_USED_AS_PROOF);
     }
@@ -669,7 +669,7 @@ public:
 
     void setDefaultMonitorProfileName(const Glib::ustring &name)
     {
-        MyMutex::MyLock lock(mutex);
+        art::gui::MyMutex::MyLock lock(mutex);
         defaultMonitorProfile = name;
         update_thumbnail_monitor_transform();
     }
@@ -721,7 +721,7 @@ public:
 
     cmsHPROFILE getActiveMonitorProfile() const
     {
-        MyMutex::MyLock lock(mutex);
+        art::gui::MyMutex::MyLock lock(mutex);
         return getActiveMonitorProfile_unlocked();
     }
 
@@ -1117,7 +1117,7 @@ private:
     const cmsHPROFILE xyz;
     const cmsHPROFILE srgb;
 
-    mutable MyMutex mutex;
+    mutable art::gui::MyMutex mutex;
 
     cmsHTRANSFORM thumb_monitor_xform_;
     std::string monitor_profile_hash_;

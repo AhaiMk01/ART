@@ -25,6 +25,9 @@
 
 #include <cstring>
 
+namespace art { namespace gui {
+
+
 namespace {
 
 class CurveTypePopUpButton: public PopUpToggleButton {
@@ -503,3 +506,6 @@ CursorShape CurveEditor::getCursor(int objectID)
 
     return CSHandOpen;
 }
+
+
+} } // namespace art::gui

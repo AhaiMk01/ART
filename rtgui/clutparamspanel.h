@@ -25,6 +25,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class CLUTParamsPanel: public Gtk::VBox,
                        public AdjusterListener,
                        public CurveListener {
@@ -55,3 +58,6 @@ private:
     sigc::connection presets_conn_;
     MyComboBoxText *presets_combo_;
 };
+
+
+} } // namespace art::gui

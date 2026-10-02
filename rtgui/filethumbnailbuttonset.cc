@@ -21,6 +21,9 @@
 #include "multilangmgr.h"
 #include "rtimage.h"
 
+namespace art { namespace gui {
+
+
 bool FileThumbnailButtonSet::iconsLoaded = false;
 
 Cairo::RefPtr<RTSurface> FileThumbnailButtonSet::rankIcon;
@@ -117,3 +120,6 @@ void FileThumbnailButtonSet::setInTrash(bool inTrash)
     buttons[7]->setIcon(inTrash ? unTrashIcon : trashIcon);
     buttons[7]->setToolTip(inTrash ? &untrashToolTip : &trashToolTip);
 }
+
+
+} } // namespace art::gui

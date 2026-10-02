@@ -21,6 +21,9 @@
 #include "colorprovider.h"
 #include "guiutils.h"
 
+namespace art { namespace gui {
+
+
 /*
  * Parent class for all colored bar type; a ColorProvider has to be set
  * thanks to "setColorProvider" to be able to display colors inside the bar
@@ -65,3 +68,6 @@ public:
 
     void setDirty(bool isDirty) { BackBuffer::setDirty(isDirty); }
 };
+
+
+} } // namespace art::gui

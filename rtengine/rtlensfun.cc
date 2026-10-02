@@ -368,7 +368,7 @@ LFDatabase::LFDatabase(): data_(nullptr) {}
 LFDatabase::~LFDatabase()
 {
     if (data_) {
-        MyMutex::MyLock lock(lfDBMutex);
+        art::gui::MyMutex::MyLock lock(lfDBMutex);
 #ifdef ART_LENSFUN_LEGACY
         data_->Destroy();
 #else
@@ -383,7 +383,7 @@ std::vector<LFCamera> LFDatabase::getCameras() const
 {
     std::vector<LFCamera> ret;
     if (data_) {
-        MyMutex::MyLock lock(lfDBMutex);
+        art::gui::MyMutex::MyLock lock(lfDBMutex);
         auto cams = data_->GetCameras();
         while (*cams) {
             ret.emplace_back();
@@ -398,7 +398,7 @@ std::vector<LFLens> LFDatabase::getLenses() const
 {
     std::vector<LFLens> ret;
     if (data_) {
-        MyMutex::MyLock lock(lfDBMutex);
+        art::gui::MyMutex::MyLock lock(lfDBMutex);
         auto lenses = data_->GetLenses();
         while (*lenses) {
             ret.emplace_back();
@@ -414,7 +414,7 @@ LFCamera LFDatabase::findCamera(const Glib::ustring &make,
 {
     LFCamera ret;
     if (data_) {
-        MyMutex::MyLock lock(lfDBMutex);
+        art::gui::MyMutex::MyLock lock(lfDBMutex);
         auto found = data_->FindCamerasExt(make.c_str(), model.c_str());
         if (found) {
             ret.data_ = found[0];
@@ -429,7 +429,7 @@ LFLens LFDatabase::findLens(const LFCamera &camera,
 {
     LFLens ret;
     if (data_) {
-        MyMutex::MyLock lock(lfDBMutex);
+        art::gui::MyMutex::MyLock lock(lfDBMutex);
         auto found = data_->FindLenses(camera.data_, nullptr, name.c_str());
         for (size_t pos = 0; !found && pos < name.size();) {
             // try to split the maker from the model of the lens -- we have to
@@ -468,7 +468,7 @@ LFDatabase::getModifier(const LFCamera &camera, const LFLens &lens,
 {
     std::unique_ptr<LFModifier> ret;
     if (data_) {
-        MyMutex::MyLock lock(lfDBMutex);
+        art::gui::MyMutex::MyLock lock(lfDBMutex);
         if (camera && lens) {
             int flags = LF_MODIFY_DISTORTION | LF_MODIFY_SCALE | LF_MODIFY_TCA;
             if (aperture > 0) {

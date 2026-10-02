@@ -386,7 +386,7 @@ bool generate_area_mask(int ox, int oy, int width, int height,
     }
 
     if (is_empty && plistener) {
-        plistener->error(M("LABMASKS_AREA_MASK_EMPTY_WARNING"));
+        plistener->error(art::gui::M("LABMASKS_AREA_MASK_EMPTY_WARNING"));
     }
 
     return true;
@@ -898,7 +898,7 @@ bool LinkedMaskManager::apply_mask(const Glib::ustring &toolname,
     if (it == masks_.end()) {
         if (plistener && !toolname.empty() && !name.empty()) {
             plistener->error(Glib::ustring::compose(
-                M("LINKED_MASK_NOT_FOUND_WARNING"), toolname, name));
+                art::gui::M("LINKED_MASK_NOT_FOUND_WARNING"), toolname, name));
         }
         return false;
     }
@@ -975,7 +975,7 @@ bool ExternalMaskManager::apply_mask(
         if (src.load(filename) != 0) {
             if (plistener && !filename.empty()) {
                 plistener->error(Glib::ustring::compose(
-                    M("EXTERNAL_MASK_LOAD_FAILED_WARNING"), filename));
+                    art::gui::M("EXTERNAL_MASK_LOAD_FAILED_WARNING"), filename));
             }
             return false;
         }
@@ -1015,7 +1015,7 @@ bool ExternalMaskManager::apply_mask(
         int image_ratio =
             int(float(full_width) / float(full_height) * 10);
         if (mask_ratio != image_ratio) {
-            plistener->error(M("EXTERNAL_MASK_ASPECT_RATIO_WARNING"));
+            plistener->error(art::gui::M("EXTERNAL_MASK_ASPECT_RATIO_WARNING"));
         }
     }
 
@@ -1094,20 +1094,20 @@ bool generateMasks(Imagefloat *rgb, const Glib::ustring &toolname,
             has_mask = true;
         }
         if (r.parametricMask.enabled && !r.parametricMask.hue.empty() &&
-            r.parametricMask.hue[0] != FCT_Linear &&
+            r.parametricMask.hue[0] != art::gui::FCT_Linear &&
             r.parametricMask.hue != dflt.parametricMask.hue) {
             hmask[i].reset(new FlatCurve(r.parametricMask.hue, true));
             has_mask = true;
         }
         if (r.parametricMask.enabled &&
             !r.parametricMask.chromaticity.empty() &&
-            r.parametricMask.chromaticity[0] != FCT_Linear &&
+            r.parametricMask.chromaticity[0] != art::gui::FCT_Linear &&
             r.parametricMask.chromaticity != dflt.parametricMask.chromaticity) {
             cmask[i].reset(new FlatCurve(r.parametricMask.chromaticity, false));
             has_mask = true;
         }
         if (r.parametricMask.enabled && !r.parametricMask.lightness.empty() &&
-            r.parametricMask.lightness[0] != FCT_Linear &&
+            r.parametricMask.lightness[0] != art::gui::FCT_Linear &&
             r.parametricMask.lightness != dflt.parametricMask.lightness) {
             lmask[i].reset(new FlatCurve(r.parametricMask.lightness, false));
             has_mask = true;

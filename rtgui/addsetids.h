@@ -1,5 +1,8 @@
 #pragma once
 
+namespace art { namespace gui {
+
+
 //          UPDATE THE DEFAULT VALUE IN OPTIONS.CC  int babehav[] TOO !!!
 
 enum {
@@ -143,3 +146,6 @@ enum {
 
     ADDSET_PARAM_NUM // THIS IS USED AS A DELIMITER!!
 };
+
+
+} } // namespace art::gui

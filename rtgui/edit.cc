@@ -19,6 +19,9 @@
 
 #include "edit.h"
 
+namespace art { namespace gui {
+
+
 ObjectMOBuffer::ObjectMOBuffer(EditDataProvider *dataProvider)
     : objectMap(nullptr), objectMode(OM_255), dataProvider(dataProvider)
 {
@@ -1279,3 +1282,6 @@ EditSubscriber *EditDataProvider::getCurrSubscriber() { return currSubscriber; }
 int EditDataProvider::getObject() const { return object; }
 
 void EditDataProvider::setObject(int newObject) { object = newObject; }
+
+
+} } // namespace art::gui

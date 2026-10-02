@@ -22,6 +22,9 @@
 #include "options.h"
 #include "rtsurface.h"
 
+namespace art { namespace gui {
+
+
 namespace {
 
 std::map<std::string, Cairo::RefPtr<Cairo::ImageSurface>> surfaceCache;
@@ -97,3 +100,6 @@ int RTSurface::getHeight() const
 }
 
 bool RTSurface::hasSurface() const { return surface ? true : false; }
+
+
+} } // namespace art::gui

@@ -18,6 +18,9 @@
  */
 #include "ilabel.h"
 
+namespace art { namespace gui {
+
+
 ILabel::ILabel(const Glib::ustring &lab): label(lab) {}
 
 void ILabel::on_realize()
@@ -64,3 +67,6 @@ void ILabel::on_style_updated()
     fn->get_pixel_size(labw, labh);
     set_size_request(2 + labw, 2 + labh);
 }
+
+
+} } // namespace art::gui

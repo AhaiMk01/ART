@@ -21,6 +21,9 @@
 #include "guiutils.h"
 #include <sstream>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -120,3 +123,6 @@ void XTransRAWExposure::trimValues(art::engine::procparams::ProcParams *pp)
     PexBlackGreen->trimValue(pp->raw.xtranssensor.blackgreen);
     PexBlackBlue->trimValue(pp->raw.xtranssensor.blackblue);
 }
+
+
+} } // namespace art::gui

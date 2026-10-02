@@ -24,6 +24,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class ControlLineManager;
 
 class PerspCorrectionPanelListener {
@@ -96,3 +99,6 @@ private:
 
     art::engine::procparams::PerspectiveParams initial_params;
 };
+
+
+} } // namespace art::gui

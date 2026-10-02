@@ -419,7 +419,7 @@ bool art::engine::ImProcCoordinator::getFilmNegativeSpot(int x, int y,
                                                       RGB &refInput,
                                                       RGB &refOutput)
 {
-    MyMutex::MyLock lock(mProcessing);
+    art::gui::MyMutex::MyLock lock(mProcessing);
 
     const int tr = getCoarseBitMask(params.coarse);
 

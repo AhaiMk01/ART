@@ -23,6 +23,9 @@
 #include "guiutils.h"
 #include <iomanip>
 
+namespace art { namespace gui {
+
+
 class ThresholdSelector;
 
 /*
@@ -269,3 +272,6 @@ inline void ThresholdSelector::getPositions<Glib::ustring>(
         Glib::ustring::format(std::fixed, std::setprecision(precisionTop),
                               shapePositionValue(TS_TOPRIGHT));
 }
+
+
+} } // namespace art::gui

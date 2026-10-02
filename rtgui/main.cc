@@ -62,6 +62,9 @@
 #include <gtkosxapplication.h>
 #endif
 
+namespace art { namespace gui {
+
+
 extern Options options;
 
 // stores path to data files
@@ -165,15 +168,15 @@ int processLineParams(int argc, char **argv)
                     if (currParam == "-S") {
                         if (iArg + 1 < argc && argv[iArg + 1][0] != '-') {
                             ++iArg;
-                            art::session::load(
+                            art::gui::session::load(
                                 Glib::ustring(fname_to_utf8(argv[iArg])));
                         } else {
-                            art::session::load(art::session::filename() +
+                            art::gui::session::load(art::gui::session::filename() +
                                                ".last");
                         }
                         break;
                     } else if (currParam == "-Sc") {
-                        art::session::clear();
+                        art::gui::session::clear();
                         break;
                     } else if (currParam == "-Sa" || currParam == "-Sr" || currParam == "-So") {
                         std::vector<Glib::ustring> fnames;
@@ -183,12 +186,12 @@ int processLineParams(int argc, char **argv)
                             ++iArg;
                         }
                         if (currParam != "-Sr") {
-                            art::session::add(fnames);
+                            art::gui::session::add(fnames);
                             if (currParam == "-So" && !fnames.empty()) {
                                 argv1 = Glib::ustring(fname_to_utf8(fnames[0]));
                             }
                         } else {
-                            art::session::remove(fnames);
+                            art::gui::session::remove(fnames);
                         }
                         break;
                     }
@@ -286,8 +289,8 @@ public:
     ~RTApplication() override
     {
         if (rtWindow) {
-            art::session::save(art::session::filename() + ".last");
-            art::session::clear();
+            art::gui::session::save(art::gui::session::filename() + ".last");
+            art::gui::session::clear();
             cleanup_rt();
         }
 #ifdef __APPLE__
@@ -362,15 +365,15 @@ public:
                     FileCatalog *filecatalog = d->filecatalog;
                     Glib::ustring fname = "";
                     if (!d->fname.empty()) {
-                        for (auto n : art::session::list()) {
+                        for (auto n : art::gui::session::list()) {
                             if (d->fname == n) {
                                 fname = n;
                                 break;
                             }
                         }
                     }
-                    if (!art::session::check(filecatalog->lastSelectedDir())) {
-                        filecatalog->dirSelected(art::session::path(), "");
+                    if (!art::gui::session::check(filecatalog->lastSelectedDir())) {
+                        filecatalog->dirSelected(art::gui::session::path(), "");
                     }
                     if (!fname.empty()) {
                         filecatalog->openFile(fname);
@@ -484,6 +487,12 @@ void show_gimp_plugin_info_dialog(Gtk::Window *parent)
 }
 
 } // namespace
+
+
+
+} } // namespace art::gui
+
+using namespace art::gui;
 
 int main(int argc, char **argv)
 {

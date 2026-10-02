@@ -34,7 +34,7 @@ protected:
     // To avoid duplicated information, we points to a EditDataProvider that
     // contains the current EditSubscriber instead of pointing to the
     // EditSubscriber directly
-    ::EditDataProvider *dataProvider;
+    art::gui::EditDataProvider *dataProvider;
 
     // TODO: Unfortunately, buffer can be of several type, each one representing
     // a floating point image. Maybe we could unify everything one day!? Only
@@ -47,12 +47,12 @@ protected:
     bool ready; // flag that indicates if the _pipette_ buffer is ready
 
     void createBuffer(int width, int height);
-    void resize(int newWidth, int newHeight, EditSubscriber *newSubscriber);
+    void resize(int newWidth, int newHeight, art::gui::EditSubscriber *newSubscriber);
     void resize(int newWidth, int newHeight);
     void flush();
 
 public:
-    explicit PipetteBuffer(::EditDataProvider *dataProvider);
+    explicit PipetteBuffer(art::gui::EditDataProvider *dataProvider);
     ~PipetteBuffer();
 
     /** @brief Getter to know if the pipette buffer is correctly filled */
@@ -63,8 +63,8 @@ public:
      * read. */
     void setReady() { ready = true; }
 
-    ::EditDataProvider *getDataProvider() { return dataProvider; }
-    EditUniqueID getEditID();
+    art::gui::EditDataProvider *getDataProvider() { return dataProvider; }
+    art::gui::EditUniqueID getEditID();
     Imagefloat *getImgFloatBuffer() { return imgFloatBuffer; }
     LabImage *getLabBuffer() { return LabBuffer; }
     PlanarWhateverData<float> *getSinglePlaneBuffer()

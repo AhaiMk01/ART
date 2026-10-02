@@ -534,7 +534,7 @@ int ImageIO::loadJPEG(const Glib::ustring &fname, int maxw_hint, int maxh_hint)
             cinfo.jpeg_color_space == JCS_YCCK) {
             jpeg_destroy_decompress(&cinfo);
             if (pl) {
-                pl->error(M("JPEG_UNSUPPORTED_COLORSPACE_ERROR"));
+                pl->error(art::gui::M("JPEG_UNSUPPORTED_COLORSPACE_ERROR"));
             }
             return IMIO_READERROR;
         }
@@ -769,10 +769,10 @@ void tiff_Unmap(thandle_t, tdata_t, toff_t) { return; }
 int ImageIO::loadTIFF(const Glib::ustring &fname)
 {
 
-    static MyMutex thumbMutex;
-    MyMutex::MyLock lock(thumbMutex);
+    static art::gui::MyMutex thumbMutex;
+    art::gui::MyMutex::MyLock lock(thumbMutex);
 
-    if (!options.serializeTiffRead) {
+    if (!art::gui::options.serializeTiffRead) {
         lock.release();
     }
 
@@ -828,7 +828,7 @@ int ImageIO::loadTIFF(const Glib::ustring &fname)
      * TIFFTAG_SMAXSAMPLEVALUE, but for now, we normalize the image to the
      * effective minimum and maximum values
      */
-    if (options.rtSettings.verbose) {
+    if (art::gui::options.rtSettings.verbose) {
         printf("Information of \"%s\":\n", fname.c_str());
         uint16 tiffDefaultScale, tiffBaselineExposure, tiffLinearResponseLimit;
         if (TIFFGetField(in, TIFFTAG_DEFAULTSCALE, &tiffDefaultScale)) {
@@ -1512,7 +1512,7 @@ void ImageIO::getEmbeddedProfileData(int &length, unsigned char *&pdata) const
     pdata = (unsigned char *)loadedProfileData;
 }
 
-MyMutex &ImageIO::mutex() { return imutex; }
+art::gui::MyMutex &ImageIO::mutex() { return imutex; }
 
 void ImageIO::deleteLoadedProfileData()
 {
@@ -1542,7 +1542,7 @@ bool ImageIO::saveMetadata(const Glib::ustring &fname) const
         // }
         if (pl) {
             pl->error(Glib::ustring::compose(
-                M("METADATA_LOAD_ERROR"), metadataInfo.filename(), exc.what()));
+                art::gui::M("METADATA_LOAD_ERROR"), metadataInfo.filename(), exc.what()));
         }
         has_meta = false;
     }
@@ -1560,7 +1560,7 @@ bool ImageIO::saveMetadata(const Glib::ustring &fname) const
             // std::cout << "EXIF ERROR: " << exc.what() << std::endl;
             // return false;
             if (pl) {
-                pl->error(Glib::ustring::compose(M("METADATA_SAVE_ERROR"),
+                pl->error(Glib::ustring::compose(art::gui::M("METADATA_SAVE_ERROR"),
                                                  fname, exc.what()));
             }
         }

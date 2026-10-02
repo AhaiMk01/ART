@@ -24,6 +24,9 @@
 #include <set>
 #include <string>
 
+namespace art { namespace gui {
+
+
 class ExifFilterSettings {
 public:
     std::set<std::string> filetypes;
@@ -60,3 +63,6 @@ public:
     void load(const Glib::KeyFile &kf, const Glib::ustring &group);
     void save(Glib::KeyFile &kf, const Glib::ustring &group) const;
 };
+
+
+} } // namespace art::gui

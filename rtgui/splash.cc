@@ -23,6 +23,9 @@
 #include "multilangmgr.h"
 #include "rtimage.h"
 
+namespace art { namespace gui {
+
+
 extern Glib::ustring creditsPath;
 extern Glib::ustring licensePath;
 extern Glib::ustring versionString;
@@ -259,3 +262,6 @@ void Splash::closePressed()
     hide();
     close();
 }
+
+
+} } // namespace art::gui

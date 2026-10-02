@@ -20,6 +20,9 @@
 #include "../rtengine/rtengine.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -213,3 +216,6 @@ void PreviewHandler::previewImageChanged()
         (*i)->previewImageChanged();
     }
 }
+
+
+} } // namespace art::gui

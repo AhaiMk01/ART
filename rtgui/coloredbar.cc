@@ -20,6 +20,9 @@
 #include "coloredbar.h"
 #include "../rtengine/utils.h"
 
+namespace art { namespace gui {
+
+
 ColoredBar::ColoredBar(eRTOrientation orient)
 {
     orientation = orient;
@@ -262,3 +265,6 @@ bool ColoredBar::canGetColors()
 {
     return colorProvider != nullptr || bgGradient.size() > 0;
 }
+
+
+} } // namespace art::gui

@@ -31,6 +31,9 @@
 #include "options.h"
 #include "rtwindow.h"
 
+namespace art { namespace gui {
+
+
 extern Options options;
 
 //-----------------------------------------------------------------------------
@@ -1337,3 +1340,6 @@ void Inspector::popover(const ThumbBrowserEntryBase *entry)
         gtk_main_iteration();
     }
 }
+
+
+} } // namespace art::gui

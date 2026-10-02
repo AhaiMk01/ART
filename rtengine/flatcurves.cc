@@ -23,7 +23,7 @@
 namespace art { namespace engine {
 
 FlatCurve::FlatCurve(const std::vector<double> &p, bool isPeriodic, int poly_pn)
-    : kind(FCT_Empty), leftTangent(nullptr), rightTangent(nullptr),
+    : kind(art::gui::FCT_Empty), leftTangent(nullptr), rightTangent(nullptr),
       identityValue(0.5), periodic(isPeriodic)
 {
 
@@ -33,9 +33,9 @@ FlatCurve::FlatCurve(const std::vector<double> &p, bool isPeriodic, int poly_pn)
 
     if (p.size() > 4) {
         bool identity = true;
-        kind = (FlatCurveType)p[0];
+        kind = (art::gui::FlatCurveType)p[0];
 
-        if (kind == FCT_MinMaxCPoints) {
+        if (kind == art::gui::FCT_MinMaxCPoints) {
             int oneMorePoint = periodic ? 1 : 0;
             N = (p.size() - 1) / 4;
             x = new double[N + oneMorePoint];
@@ -74,7 +74,7 @@ FlatCurve::FlatCurve(const std::vector<double> &p, bool isPeriodic, int poly_pn)
         /*else if (kind==FCT_Parametric) {
         }*/
         if (identity) {
-            kind = FCT_Empty;
+            kind = art::gui::FCT_Empty;
         }
     }
 }
@@ -100,7 +100,7 @@ bool FlatCurve::setIdentityValue(double iVal)
 {
 
     if (identityValue == iVal) {
-        return kind == FCT_Empty;
+        return kind == art::gui::FCT_Empty;
     }
 
     identityValue = iVal;
@@ -116,15 +116,15 @@ bool FlatCurve::setIdentityValue(double iVal)
     if (!identity && N > (periodic ? 1 : 0)) {
         CtrlPoints_set();
         fillHash();
-        kind = FCT_MinMaxCPoints;
+        kind = art::gui::FCT_MinMaxCPoints;
     } else {
         poly_x.clear();
         poly_y.clear();
         hash.clear();
-        kind = FCT_Empty;
+        kind = art::gui::FCT_Empty;
     }
 
-    return kind == FCT_Empty;
+    return kind == art::gui::FCT_Empty;
 }
 
 void FlatCurve::CtrlPoints_set()
@@ -357,7 +357,7 @@ double FlatCurve::getVal(double t) const
 
     switch (kind) {
 
-    case FCT_MinMaxCPoints: {
+    case art::gui::FCT_MinMaxCPoints: {
 
         // magic to handle curve periodicity : we look above the 1.0 bound for
         // the value
@@ -384,8 +384,8 @@ double FlatCurve::getVal(double t) const
     /*case Parametric : {
         break;
     }*/
-    case FCT_Empty:
-    case FCT_Linear: // Linear doesn't exist yet and is then considered as
+    case art::gui::FCT_Empty:
+    case art::gui::FCT_Linear: // Linear doesn't exist yet and is then considered as
                      // identity
     default:
         return identityValue;

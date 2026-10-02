@@ -27,6 +27,9 @@
 #include <map>
 #include <vector>
 
+namespace art { namespace gui {
+
+
 extern Options options;
 
 ToolShortcutManager::ToolShortcutManager(RTWindow *parent)
@@ -225,3 +228,6 @@ void ToolShortcutManager::showHelp()
 
     parent_->showInfo(msg, options.error_message_duration);
 }
+
+
+} } // namespace art::gui

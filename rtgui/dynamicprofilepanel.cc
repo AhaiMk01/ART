@@ -26,6 +26,9 @@
 #include <sstream>
 #include <string>
 
+namespace art { namespace gui {
+
+
 //-----------------------------------------------------------------------------
 // DynamicProfilePanel::EditDialog
 //-----------------------------------------------------------------------------
@@ -647,3 +650,6 @@ void DynamicProfilePanel::save()
         printf("Saved %d dynamic profile rules\n", int(rules.size()));
     }
 }
+
+
+} } // namespace art::gui

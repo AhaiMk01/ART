@@ -30,7 +30,7 @@
 namespace art { namespace engine {
 
 class Thumbnail {
-    MyMutex thumbMutex;
+    art::gui::MyMutex thumbMutex;
 
     cmsHPROFILE camProfile;
     double iColorMatrix[3][3];

@@ -22,6 +22,9 @@
 #include <cstring>
 #include <gdkmm/types.h>
 
+namespace art { namespace gui {
+
+
 namespace {
 
 template <class Context>
@@ -2088,3 +2091,6 @@ void MyFlatCurve::defaultCurve(double iVal)
         curve.rightTangent.at(i) = 0.35;
     }
 }
+
+
+} } // namespace art::gui

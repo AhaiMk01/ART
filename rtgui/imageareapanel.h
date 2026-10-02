@@ -20,6 +20,9 @@
 
 #include "imagearea.h"
 
+namespace art { namespace gui {
+
+
 class ImageArea;
 class ImageAreaPanel: public Gtk::VBox {
 
@@ -39,3 +42,6 @@ public:
     void setBeforeAfterViews(ImageAreaPanel *bef, ImageAreaPanel *aft);
     void syncBeforeAfterViews();
 };
+
+
+} } // namespace art::gui

@@ -22,6 +22,9 @@
 #include "thumbnail.h"
 #include "toolbar.h"
 
+namespace art { namespace gui {
+
+
 class ImageAreaToolListener {
 
 public:
@@ -35,3 +38,6 @@ public:
     virtual ToolBar *getToolBar() const = 0;
     virtual CropGUIListener *startCropEditing(Thumbnail *thm = nullptr) = 0;
 };
+
+
+} } // namespace art::gui

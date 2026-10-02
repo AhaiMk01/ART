@@ -27,6 +27,9 @@
 #include "threadutils.h"
 #include "thumbbrowserbase.h"
 
+namespace art { namespace gui {
+
+
 bool BatchQueueEntry::iconsLoaded(false);
 std::shared_ptr<RTSurface> BatchQueueEntry::savedAsIcon;
 std::shared_ptr<RTSurface> BatchQueueEntry::fastExportIcon;
@@ -301,3 +304,6 @@ void BatchQueueEntry::customBackBufferUpdate(Cairo::RefPtr<Cairo::Context> c)
         }
     }
 }
+
+
+} } // namespace art::gui

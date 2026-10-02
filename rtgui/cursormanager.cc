@@ -21,6 +21,9 @@
 #include "options.h"
 #include "rtimage.h"
 
+namespace art { namespace gui {
+
+
 CursorManager mainWindowCursorManager;
 CursorManager editWindowCursorManager;
 
@@ -287,3 +290,6 @@ void CursorManager::setCursorOfMainWindow(Glib::RefPtr<Gdk::Window> window,
 
 /* Set the cursor of the main window */
 void CursorManager::setCursor(CursorShape shape) { setCursor(window, shape); }
+
+
+} } // namespace art::gui

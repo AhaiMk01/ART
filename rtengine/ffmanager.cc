@@ -325,7 +325,7 @@ ffInfo *FFManager::addFileInfo(const Glib::ustring &filename, bool pool)
 {
     auto ext = getFileExtension(filename);
 
-    if (ext.empty() || !options.is_extention_enabled(ext)) {
+    if (ext.empty() || !art::gui::options.is_extention_enabled(ext)) {
         return nullptr;
     }
 
@@ -348,7 +348,7 @@ ffInfo *FFManager::addFileInfo(const Glib::ustring &filename, bool pool)
             return nullptr;
         }
 
-        if (!options.fbShowHidden && info->is_hidden()) {
+        if (!art::gui::options.fbShowHidden && info->is_hidden()) {
             return nullptr;
         }
 

@@ -21,7 +21,7 @@
 
 namespace art { namespace engine {
 
-PipetteBuffer::PipetteBuffer(::EditDataProvider *dataProvider)
+PipetteBuffer::PipetteBuffer(art::gui::EditDataProvider *dataProvider)
     : dataProvider(dataProvider), imgFloatBuffer(nullptr), LabBuffer(nullptr),
       singlePlaneBuffer(), ready(false)
 {
@@ -51,12 +51,12 @@ void PipetteBuffer::flush()
     ready = false;
 }
 
-EditUniqueID PipetteBuffer::getEditID()
+art::gui::EditUniqueID PipetteBuffer::getEditID()
 {
     if (dataProvider && dataProvider->getCurrSubscriber()) {
         return dataProvider->getCurrSubscriber()->getEditID();
     } else {
-        return EUID_None;
+        return art::gui::EUID_None;
     }
 }
 
@@ -68,11 +68,11 @@ void PipetteBuffer::resize(int newWidth, int newHeight)
 
 // Resize buffers if they already exist
 void PipetteBuffer::resize(int newWidth, int newHeight,
-                           EditSubscriber *newSubscriber)
+                           art::gui::EditSubscriber *newSubscriber)
 {
     if (newSubscriber) {
-        if (newSubscriber->getEditingType() == ET_PIPETTE) {
-            if (newSubscriber->getPipetteBufferType() == BT_IMAGEFLOAT) {
+        if (newSubscriber->getEditingType() == art::gui::ET_PIPETTE) {
+            if (newSubscriber->getPipetteBufferType() == art::gui::BT_IMAGEFLOAT) {
                 if (!imgFloatBuffer) {
                     imgFloatBuffer = new Imagefloat(newWidth, newHeight);
                 } else {
@@ -83,7 +83,7 @@ void PipetteBuffer::resize(int newWidth, int newHeight,
                 imgFloatBuffer = nullptr;
             }
 
-            if (newSubscriber->getPipetteBufferType() == BT_LABIMAGE) {
+            if (newSubscriber->getPipetteBufferType() == art::gui::BT_LABIMAGE) {
                 if (LabBuffer &&
                     (LabBuffer->W != newWidth || LabBuffer->H != newHeight)) {
                     delete LabBuffer;
@@ -98,7 +98,7 @@ void PipetteBuffer::resize(int newWidth, int newHeight,
                 LabBuffer = nullptr;
             }
 
-            if (newSubscriber->getPipetteBufferType() == BT_SINGLEPLANE_FLOAT) {
+            if (newSubscriber->getPipetteBufferType() == art::gui::BT_SINGLEPLANE_FLOAT) {
                 singlePlaneBuffer.allocate(newWidth, newHeight);
             } else if (singlePlaneBuffer.data) {
                 singlePlaneBuffer.allocate(0, 0);
@@ -114,16 +114,16 @@ void PipetteBuffer::resize(int newWidth, int newHeight,
 
 bool PipetteBuffer::bufferCreated()
 {
-    EditSubscriber *subscriber;
+    art::gui::EditSubscriber *subscriber;
 
     if (dataProvider && (subscriber = dataProvider->getCurrSubscriber())) {
-        if (subscriber->getEditingType() == ET_PIPETTE) {
+        if (subscriber->getEditingType() == art::gui::ET_PIPETTE) {
             switch (dataProvider->getCurrSubscriber()->getPipetteBufferType()) {
-            case (BT_IMAGEFLOAT):
+            case (art::gui::BT_IMAGEFLOAT):
                 return imgFloatBuffer != nullptr;
-            case (BT_LABIMAGE):
+            case (art::gui::BT_LABIMAGE):
                 return LabBuffer != nullptr;
-            case (BT_SINGLEPLANE_FLOAT):
+            case (art::gui::BT_SINGLEPLANE_FLOAT):
                 return singlePlaneBuffer.data != nullptr;
             }
         } else {
@@ -138,7 +138,7 @@ void PipetteBuffer::getPipetteData(float *v, int x, int y, int squareSize)
 {
     if (ready && dataProvider && dataProvider->getCurrSubscriber()) {
         switch (dataProvider->getCurrSubscriber()->getPipetteBufferType()) {
-        case (BT_IMAGEFLOAT):
+        case (art::gui::BT_IMAGEFLOAT):
             if (imgFloatBuffer) {
                 imgFloatBuffer->getPipetteData(v[0], v[1], v[2], x, y,
                                                squareSize, 0);
@@ -147,7 +147,7 @@ void PipetteBuffer::getPipetteData(float *v, int x, int y, int squareSize)
 
             break;
 
-        case (BT_LABIMAGE):
+        case (art::gui::BT_LABIMAGE):
             if (LabBuffer) {
                 LabBuffer->getPipetteData(v[0], v[1], v[2], x, y, squareSize);
                 return;
@@ -155,7 +155,7 @@ void PipetteBuffer::getPipetteData(float *v, int x, int y, int squareSize)
 
             break;
 
-        case (BT_SINGLEPLANE_FLOAT):
+        case (art::gui::BT_SINGLEPLANE_FLOAT):
             if (singlePlaneBuffer.data != nullptr) {
                 singlePlaneBuffer.getPipetteData(v[0], x, y, squareSize, 0);
                 v[1] = v[2] = -1.f;

@@ -23,6 +23,9 @@
 #include "edit.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 using rteMaskShape = art::engine::procparams::AreaMask::Shape;
 using rteMaskRect = art::engine::procparams::AreaMask::Rectangle;
 using rteMaskPoly = art::engine::procparams::AreaMask::Polygon;
@@ -112,3 +115,6 @@ private:
     std::vector<rteMaskPoly::Knot> poly_knots_;
     rteMaskShape::Type geomType;
 };
+
+
+} } // namespace art::gui

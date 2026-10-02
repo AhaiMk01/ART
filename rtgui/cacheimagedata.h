@@ -24,6 +24,9 @@
 #include "options.h"
 #include <glibmm.h>
 
+namespace art { namespace gui {
+
+
 class CacheImageData: public art::engine::FramesMetaData {
 public:
     // basic information
@@ -133,3 +136,6 @@ public:
         h = height;
     }
 };
+
+
+} } // namespace art::gui

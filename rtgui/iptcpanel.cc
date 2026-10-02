@@ -23,6 +23,9 @@
 #include "rtimage.h"
 #include <set>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -894,3 +897,6 @@ void IPTCPanel::pasteClicked()
     enableListener();
     notifyListener();
 }
+
+
+} } // namespace art::gui

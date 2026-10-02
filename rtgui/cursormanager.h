@@ -20,6 +20,9 @@
 
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 enum CursorShape {
     CSAddColPicker,
     CSArrow,
@@ -89,3 +92,6 @@ public:
 
 extern CursorManager mainWindowCursorManager;
 extern CursorManager editWindowCursorManager;
+
+
+} } // namespace art::gui

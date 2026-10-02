@@ -22,6 +22,9 @@
 #include <glibmm.h>
 #include <vector>
 
+namespace art { namespace gui {
+
+
 class ParamsEdited {
 public:
     enum { False = 0, True, Undef };
@@ -85,3 +88,6 @@ public:
     void set(bool v);
     void set_append(bool v);
 };
+
+
+} } // namespace art::gui

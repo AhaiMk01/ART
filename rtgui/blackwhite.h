@@ -29,6 +29,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class BlackWhite final: public ToolParamBlock,
                         public AdjusterListener,
                         public FoldableToolPanel,
@@ -120,3 +123,6 @@ private:
 
     art::engine::procparams::BlackWhiteParams initial_params;
 };
+
+
+} } // namespace art::gui

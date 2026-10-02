@@ -19,6 +19,9 @@
 #include "toneequalizer.h"
 #include "eventmapper.h"
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -183,3 +186,6 @@ void ToneEqualizer::registerShortcuts(ToolShortcutManager *mgr)
     mgr->addShortcut(GDK_KEY_4, this, bands[3]);
     mgr->addShortcut(GDK_KEY_5, this, bands[4]);
 }
+
+
+} } // namespace art::gui

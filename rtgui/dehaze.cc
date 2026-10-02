@@ -22,6 +22,9 @@
 #include <cmath>
 #include <iomanip>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -206,3 +209,6 @@ void Dehaze::toolReset(bool to_initial)
     depth->set_visible(depth->is_visible() || depth_visible);
     showDepthMap->set_visible(showDepthMap->is_visible() || dmap_visible);
 }
+
+
+} } // namespace art::gui

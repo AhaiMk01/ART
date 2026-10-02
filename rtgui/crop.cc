@@ -21,6 +21,9 @@
 #include "options.h"
 #include "rtimage.h"
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -1518,3 +1521,6 @@ void Crop::toolReset(bool to_initial)
     maxh = saved_maxh;
     refreshSpins(false);
 }
+
+
+} } // namespace art::gui

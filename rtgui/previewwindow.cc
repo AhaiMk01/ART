@@ -21,6 +21,9 @@
 #include "guiutils.h"
 #include "imagearea.h"
 
+namespace art { namespace gui {
+
+
 PreviewWindow::PreviewWindow()
     : previewHandler(nullptr), mainCropWin(nullptr), imageArea(nullptr),
       imgX(0), imgY(0), imgW(0), imgH(0), zoom(0.0), press_x(0), press_y(0),
@@ -336,3 +339,6 @@ void PreviewWindow::get_preferred_width_for_height_vfunc(
 {
     get_preferred_width_vfunc(minimum_width, natural_width);
 }
+
+
+} } // namespace art::gui

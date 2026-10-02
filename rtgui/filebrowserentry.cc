@@ -30,6 +30,9 @@
 #include "threadutils.h"
 #include "thumbbrowserbase.h"
 
+namespace art { namespace gui {
+
+
 #define CROPRESIZEBORDER 4
 
 std::shared_ptr<RTSurface> FileBrowserEntry::editedIcon;
@@ -702,3 +705,6 @@ void FileBrowserEntry::drawStraightenGuide(Cairo::RefPtr<Cairo::Context> cr)
 }
 
 void FileBrowserEntry::enableThumbRefresh() { refresh_disabled_ = false; }
+
+
+} } // namespace art::gui

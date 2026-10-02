@@ -30,6 +30,9 @@
 #include "windows.h"
 #endif
 
+namespace art { namespace gui {
+
+
 class DirBrowser: public Gtk::VBox {
 public:
     typedef sigc::signal<void, const Glib::ustring &, const Glib::ustring &>
@@ -132,3 +135,6 @@ inline DirBrowser::DirSelectionSignal DirBrowser::dirSelected() const
 {
     return dirSelectionSignal;
 }
+
+
+} } // namespace art::gui

@@ -30,6 +30,9 @@
 #include <string>
 #include <vector>
 
+namespace art { namespace gui {
+
+
 namespace {
 
 struct Options {
@@ -413,3 +416,6 @@ void ART_makeicc_help(std::ostream &out, int indent)
         << pad << " -v2 : generate a V2 profile\n"
         << pad << " -o NAME : output file name (mandatory)" << std::endl;
 }
+
+
+} } // namespace art::gui

@@ -26,6 +26,9 @@
 #include <mutex>
 #include <sigc++/sigc++.h>
 
+namespace art { namespace gui {
+
+
 #undef THREAD_PRIORITY_NORMAL
 
 class PLDBridge: public art::engine::ProgressListener {
@@ -110,3 +113,6 @@ public:
         delete this;
     }
 };
+
+
+} } // namespace art::gui

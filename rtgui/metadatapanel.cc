@@ -22,6 +22,9 @@
 #include "../rtengine/procparams.h"
 #include "eventmapper.h"
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -136,3 +139,6 @@ void MetaDataPanel::setProgressListener(art::engine::ProgressListener *pl)
 {
     exifpanel->setProgressListener(pl);
 }
+
+
+} } // namespace art::gui

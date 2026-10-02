@@ -22,6 +22,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class CoarsePanel: public Gtk::HBox, public ToolPanel {
 
 protected:
@@ -44,3 +47,6 @@ public:
     void flipHorizontal();
     void flipVertical();
 };
+
+
+} } // namespace art::gui

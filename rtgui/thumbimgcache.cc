@@ -24,9 +24,12 @@
 #include <glib/gstdio.h>
 #include <iostream>
 
+namespace art { namespace gui {
+
+
 extern Options options;
 
-namespace art {
+
 namespace thumbimgcache {
 
 /******************************************************************************
@@ -186,4 +189,7 @@ bool store(const Glib::ustring &cache_fname,
 }
 
 } // namespace thumbimgcache
-} // namespace art
+ // namespace art
+
+
+} } // namespace art::gui

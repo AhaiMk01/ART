@@ -25,6 +25,9 @@
 #include "previewwindow.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class Navigator: public Gtk::Frame, public PointerMotionListener {
 private:
     Options::NavigatorUnit currentRGBUnit;
@@ -64,3 +67,6 @@ public:
     void getLABText(float l, float a, float b, Glib::ustring &sL,
                     Glib::ustring &sA, Glib::ustring &sB) override;
 };
+
+
+} } // namespace art::gui

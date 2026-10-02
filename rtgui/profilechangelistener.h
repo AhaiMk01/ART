@@ -23,6 +23,9 @@
 
 #include "../rtengine/rtengine.h"
 
+namespace art { namespace gui {
+
+
 class ProfileChangeListener {
 public:
     virtual ~ProfileChangeListener() = default;
@@ -34,3 +37,6 @@ public:
     virtual void
     setDefaults(const art::engine::procparams::ProcParams *defparams) = 0;
 };
+
+
+} } // namespace art::gui

@@ -21,6 +21,9 @@
 #include "curveeditorgroup.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class FlatCurveEditor;
 
 class FlatCurveEditorSubGroup: public CurveEditorSubGroup {
@@ -79,3 +82,6 @@ protected:
     void editPointToggled(Gtk::ToggleButton *button);
     void editToggled(Gtk::ToggleButton *button);
 };
+
+
+} } // namespace art::gui

@@ -18,6 +18,9 @@
  */
 #include "clipboard.h"
 
+namespace art { namespace gui {
+
+
 Clipboard clipboard;
 
 Clipboard::Clipboard()
@@ -27,3 +30,6 @@ Clipboard::Clipboard()
 }
 
 Clipboard::~Clipboard() {}
+
+
+} } // namespace art::gui

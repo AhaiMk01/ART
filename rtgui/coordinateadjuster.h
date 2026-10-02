@@ -20,6 +20,9 @@
 
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class CurveEditorSubGroup;
 
 class Axis {
@@ -164,3 +167,6 @@ public:
     /// to edit the values)
     void stopNumericalAdjustment();
 };
+
+
+} } // namespace art::gui

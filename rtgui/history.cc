@@ -25,6 +25,9 @@
 
 #include <iostream>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -691,3 +694,6 @@ void History::activatePrevSnapshot()
         selection->select(iter);
     }
 }
+
+
+} } // namespace art::gui

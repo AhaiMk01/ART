@@ -4,6 +4,9 @@
 #include "options.h"
 #include <iostream>
 
+namespace art { namespace gui {
+
+
 inline void ART_print_help(std::ostream &out, const char *progname, bool gui)
 {
     auto pn = Glib::path_get_basename(progname);
@@ -204,3 +207,6 @@ inline void ART_print_help(const char *progname, bool gui)
 {
     ART_print_help(std::cout, progname, gui);
 }
+
+
+} } // namespace art::gui

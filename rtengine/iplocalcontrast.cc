@@ -79,8 +79,8 @@ void WavOpacityCurveWL::Set(const Curve &pCurve)
 
 void WavOpacityCurveWL::Set(const std::vector<double> &curvePoints)
 {
-    if (!curvePoints.empty() && curvePoints[0] > FCT_Linear &&
-        curvePoints[0] < FCT_Unchanged) {
+    if (!curvePoints.empty() && curvePoints[0] > art::gui::FCT_Linear &&
+        curvePoints[0] < art::gui::FCT_Unchanged) {
         FlatCurve tcurve(curvePoints, false, CURVES_MIN_POLY_POINTS / 2);
         tcurve.setIdentityValue(0.);
         Set(tcurve);
@@ -364,7 +364,7 @@ void local_contrast_wavelets(array2D<float> &Y,
     evaluate_params(wd, mean, meanN, sigma, sigmaN, MaxP, MaxN, multiThread);
 
     WavOpacityCurveWL curve;
-    if (params.curve.empty() || params.curve[0] == FCT_Linear) {
+    if (params.curve.empty() || params.curve[0] == art::gui::FCT_Linear) {
         LocalContrastParams::Region dflt;
         curve.Set(dflt.curve);
     } else {
@@ -435,17 +435,17 @@ void local_contrast_wavelets(array2D<float> &Y,
 bool ImProcFunctions::localContrast(Imagefloat *rgb)
 {
     PlanarWhateverData<float> *editWhatever = nullptr;
-    EditUniqueID eid = pipetteBuffer ? pipetteBuffer->getEditID() : EUID_None;
+    art::gui::EditUniqueID eid = pipetteBuffer ? pipetteBuffer->getEditID() : art::gui::EUID_None;
 
-    if ((eid == EUID_Masks_H2 || eid == EUID_Masks_C2 ||
-         eid == EUID_Masks_L2) &&
+    if ((eid == art::gui::EUID_Masks_H2 || eid == art::gui::EUID_Masks_C2 ||
+         eid == art::gui::EUID_Masks_L2) &&
         pipetteBuffer->getDataProvider()
                 ->getCurrSubscriber()
-                ->getPipetteBufferType() == BT_SINGLEPLANE_FLOAT) {
+                ->getPipetteBufferType() == art::gui::BT_SINGLEPLANE_FLOAT) {
         editWhatever = pipetteBuffer->getSinglePlaneBuffer();
     }
 
-    if (eid == EUID_Masks_DE2) {
+    if (eid == art::gui::EUID_Masks_DE2) {
         if (getDeltaEColor(rgb, deltaE.x, deltaE.y, offset_x, offset_y,
                            full_width, full_height, scale, deltaE.L, deltaE.C,
                            deltaE.H)) {
@@ -457,7 +457,7 @@ bool ImProcFunctions::localContrast(Imagefloat *rgb)
         rgb->setMode(Imagefloat::Mode::LAB, multiThread);
 
         if (editWhatever) {
-            MasksEditID id = static_cast<MasksEditID>(int(eid) - EUID_Masks_H2);
+            MasksEditID id = static_cast<MasksEditID>(int(eid) - art::gui::EUID_Masks_H2);
             fillPipetteMasks(rgb, editWhatever, id, multiThread);
         }
 

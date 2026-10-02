@@ -26,6 +26,9 @@
 
 #include "thumbbrowserentrybase.h"
 
+namespace art { namespace gui {
+
+
 class ThumbImageUpdateListener {
 public:
     virtual ~ThumbImageUpdateListener() = default;
@@ -99,3 +102,6 @@ private:
  * To use: \c thumbImageUpdater->start() ,
  */
 #define thumbImageUpdater ThumbImageUpdater::getInstance()
+
+
+} } // namespace art::gui

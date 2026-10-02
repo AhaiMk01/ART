@@ -36,6 +36,9 @@
 #include <gtkmm.h>
 #include <memory>
 
+namespace art { namespace gui {
+
+
 class EditorPanel;
 class MyProgressBar;
 
@@ -296,3 +299,6 @@ private:
 
     std::unique_ptr<ToolShortcutManager> shortcut_mgr_;
 };
+
+
+} } // namespace art::gui

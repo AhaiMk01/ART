@@ -23,6 +23,9 @@
 #include "guiutils.h"
 #include "multilangmgr.h"
 
+namespace art { namespace gui {
+
+
 CheckBox::CheckBox(Glib::ustring label)
     : Gtk::CheckButton(label), listener(nullptr), lastActive(false)
 {
@@ -131,3 +134,6 @@ void CheckBox::setCheckBoxListener(CheckBoxListener *cblistener)
 {
     listener = cblistener;
 }
+
+
+} } // namespace art::gui

@@ -18,6 +18,7 @@
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "../rtgui/options.h"
 #include <complex.h>
 #include <fftw3.h>
 
@@ -47,7 +48,7 @@
 #include <omp.h>
 #endif
 
-extern Options options;
+using art::gui::options; // defined by the GUI (rtgui/options.cc)
 
 namespace art { namespace engine {
 
@@ -996,17 +997,17 @@ void denoiseGuidedSmoothing(ImProcData &im, Imagefloat *rgb)
 bool ImProcFunctions::guidedSmoothing(Imagefloat *rgb)
 {
     PlanarWhateverData<float> *editWhatever = nullptr;
-    EditUniqueID eid = pipetteBuffer ? pipetteBuffer->getEditID() : EUID_None;
+    art::gui::EditUniqueID eid = pipetteBuffer ? pipetteBuffer->getEditID() : art::gui::EUID_None;
 
-    if ((eid == EUID_Masks_H3 || eid == EUID_Masks_C3 ||
-         eid == EUID_Masks_L3) &&
+    if ((eid == art::gui::EUID_Masks_H3 || eid == art::gui::EUID_Masks_C3 ||
+         eid == art::gui::EUID_Masks_L3) &&
         pipetteBuffer->getDataProvider()
                 ->getCurrSubscriber()
-                ->getPipetteBufferType() == BT_SINGLEPLANE_FLOAT) {
+                ->getPipetteBufferType() == art::gui::BT_SINGLEPLANE_FLOAT) {
         editWhatever = pipetteBuffer->getSinglePlaneBuffer();
     }
 
-    if (eid == EUID_Masks_DE3) {
+    if (eid == art::gui::EUID_Masks_DE3) {
         if (getDeltaEColor(rgb, deltaE.x, deltaE.y, offset_x, offset_y,
                            full_width, full_height, scale, deltaE.L, deltaE.C,
                            deltaE.H)) {
@@ -1016,7 +1017,7 @@ bool ImProcFunctions::guidedSmoothing(Imagefloat *rgb)
 
     if (params->smoothing.enabled) {
         if (editWhatever) {
-            MasksEditID id = static_cast<MasksEditID>(int(eid) - EUID_Masks_H3);
+            MasksEditID id = static_cast<MasksEditID>(int(eid) - art::gui::EUID_Masks_H3);
             fillPipetteMasks(rgb, editWhatever, id, multiThread);
         }
 

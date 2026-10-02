@@ -20,6 +20,9 @@
 
 #include "eventmapper.h"
 
+namespace art { namespace gui {
+
+
 ProcEventMapper::ProcEventMapper()
 {
     for (int event = 0; event < art::engine::NUMOFEVENTS; ++event) {
@@ -77,3 +80,6 @@ ProcEventMapper::getHistoryMsg(const art::engine::ProcEvent &event) const
         }
     }
 }
+
+
+} } // namespace art::gui

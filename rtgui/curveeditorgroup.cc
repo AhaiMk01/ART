@@ -26,6 +26,9 @@
 #include "multilangmgr.h"
 #include "rtimage.h"
 
+namespace art { namespace gui {
+
+
 CurveEditorGroup::CurveEditorGroup(Glib::ustring &curveDir,
                                    Glib::ustring groupLabel, float curvesRatio)
     : curveDir(curveDir), curve_reset(nullptr), displayedCurve(nullptr),
@@ -603,3 +606,6 @@ Glib::ustring CurveEditorSubGroup::inputFile()
     fname = "";
     return fname;
 }
+
+
+} } // namespace art::gui

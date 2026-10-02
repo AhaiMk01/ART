@@ -1773,7 +1773,7 @@ public:
     /** @brief Returns a mutex that can is useful in many situations. No image
      * operations shuold be performed without locking this mutex.
      * @return The mutex */
-    virtual MyMutex &getMutex() = 0;
+    virtual art::gui::MyMutex &getMutex() = 0;
     virtual cmsHPROFILE getProfile() const = 0;
     /** @brief Returns the bits per pixel of the image.
      * @return The bits per pixel of the image */

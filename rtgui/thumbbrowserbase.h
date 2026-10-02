@@ -26,6 +26,9 @@
 #include <gtkmm.h>
 #include <set>
 
+namespace art { namespace gui {
+
+
 /*
  * Class handling the list of ThumbBrowserEntry objects and their position in
  * it's allocated space
@@ -212,3 +215,6 @@ public:
 
     int getThumbDisplayScale() const;
 };
+
+
+} } // namespace art::gui

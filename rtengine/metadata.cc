@@ -176,7 +176,7 @@ public:
         if (fd < 0) {
             throw exc;
         }
-        Glib::ustring outname = fname_to_utf8(templ) + ".xmp";
+        Glib::ustring outname = art::gui::fname_to_utf8(templ) + ".xmp";
         std::vector<Glib::ustring> argv = {"-TagsFromFile", fname,
                                            "-xmp:all<all", outname};
         if (settings->verbose) {
@@ -557,7 +557,7 @@ void Exiv2Metadata::saveToImage(ProgressListener *pl, const Glib::ustring &path,
             if (int(exc.code()) == 37) {
                 std::string msg = exc.what();
                 if (pl) {
-                    pl->error(Glib::ustring::compose(M("METADATA_SAVE_ERROR"),
+                    pl->error(Glib::ustring::compose(art::gui::M("METADATA_SAVE_ERROR"),
                                                      path, "WARNING: " + msg));
                 }
                 if (msg.find("XMP") != std::string::npos &&
@@ -793,7 +793,7 @@ Glib::ustring Exiv2Metadata::xmpSidecarPath(const Glib::ustring &path)
 {
     Glib::ustring fn = path;
     if (settings->xmp_sidecar_style == Settings::XmpSidecarStyle::STD) {
-        fn = removeExtension(fn);
+        fn = art::gui::removeExtension(fn);
     }
     return fn + ".xmp";
 }
@@ -891,7 +891,7 @@ Exiv2Metadata::getExiftoolMakernotes(const Glib::ustring &fname)
         }
         return ret;
     }
-    Glib::ustring outname = fname_to_utf8(templ);
+    Glib::ustring outname = art::gui::fname_to_utf8(templ);
 
     std::vector<Glib::ustring> argv = {
         "-json", "-MakerNotes:all", "-RAF:all", "-PanasonicRaw:all",

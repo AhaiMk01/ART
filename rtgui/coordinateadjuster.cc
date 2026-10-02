@@ -22,6 +22,9 @@
 #include "multilangmgr.h"
 #include <cassert>
 
+namespace art { namespace gui {
+
+
 Axis::Axis()
     : label(""), decimal(5), increment(0.001), pageIncrement(0.01),
       rangeLowerBound(0.), rangeUpperBound(1.)
@@ -258,3 +261,6 @@ void CoordinateAdjuster::stopNumericalAdjustment()
 
     status = CA_STATUS_IDLE;
 }
+
+
+} } // namespace art::gui

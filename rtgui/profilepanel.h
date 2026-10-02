@@ -29,6 +29,9 @@
 #include <gtkmm.h>
 #include <vector>
 
+namespace art { namespace gui {
+
+
 class ProfilePanel: public Gtk::Grid,
                     public PParamsChangeListener,
                     public art::engine::ProfileStoreListener {
@@ -106,3 +109,6 @@ public:
     void selection_changed();
     void writeOptions();
 };
+
+
+} } // namespace art::gui

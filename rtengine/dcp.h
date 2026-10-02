@@ -170,7 +170,7 @@ public:
 private:
     DCPStore() = default;
 
-    mutable MyMutex mutex;
+    mutable art::gui::MyMutex mutex;
     std::vector<Glib::ustring> profileDir;
 
     // these contain standard profiles from RT. keys are all in uppercase, file

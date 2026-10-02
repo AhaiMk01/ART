@@ -22,6 +22,9 @@
 #include "exiffiltersettings.h"
 #include <glibmm.h>
 
+namespace art { namespace gui {
+
+
 class BrowserFilter {
 public:
     bool showRanked[6];
@@ -41,3 +44,6 @@ public:
 
     BrowserFilter();
 };
+
+
+} } // namespace art::gui

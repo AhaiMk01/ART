@@ -20,6 +20,9 @@
 #include "eventmapper.h"
 #include <cmath>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -520,3 +523,6 @@ void Sharpening::toolReset(bool to_initial)
     pp.sharpening.enabled = getEnabled();
     read(&pp);
 }
+
+
+} } // namespace art::gui

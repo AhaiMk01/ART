@@ -23,6 +23,9 @@
 #include "rtscalable.h"
 #include <gtkmm/image.h>
 
+namespace art { namespace gui {
+
+
 /**
  * @brief A derived class of Gtk::Image in order to handle theme-related icon
  * sets.
@@ -61,3 +64,6 @@ public:
     static Cairo::RefPtr<Cairo::ImageSurface>
         createImgSurfFromFile(const Glib::ustring &fileName, int scale=0);
 };
+
+
+} } // namespace art::gui

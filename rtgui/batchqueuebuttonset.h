@@ -22,6 +22,9 @@
 #include "rtsurface.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class BatchQueueEntry;
 class BatchQueueButtonSet: public LWButtonSet {
 
@@ -38,3 +41,6 @@ public:
 
     explicit BatchQueueButtonSet(BatchQueueEntry *myEntry);
 };
+
+
+} } // namespace art::gui

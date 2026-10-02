@@ -28,6 +28,9 @@
 #include <future>
 #include <mutex>
 
+namespace art { namespace gui {
+
+
 class BQEntryUpdateListener {
 public:
     virtual ~BQEntryUpdateListener() = default;
@@ -67,3 +70,6 @@ private:
 };
 
 extern BatchQueueEntryUpdater batchQueueEntryUpdater;
+
+
+} } // namespace art::gui

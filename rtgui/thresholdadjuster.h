@@ -24,6 +24,9 @@
 #include "thresholdselector.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class ThresholdAdjuster;
 
 /*
@@ -177,3 +180,6 @@ public:
     // contain markups
     void set_tooltip_text(const Glib::ustring &text);
 };
+
+
+} } // namespace art::gui

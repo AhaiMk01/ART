@@ -28,6 +28,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class ColorCorrection: public ToolParamBlock,
                        public AdjusterListener,
                        public FoldableToolPanel,
@@ -186,3 +189,6 @@ private:
 
     art::engine::procparams::ColorCorrectionParams initial_params;
 };
+
+
+} } // namespace art::gui

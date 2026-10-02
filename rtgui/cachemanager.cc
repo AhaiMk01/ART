@@ -37,6 +37,9 @@
 #include "../rtengine/extclut.h"
 #endif
 
+namespace art { namespace gui {
+
+
 namespace {
 
 constexpr int cacheDirMode = 0777;
@@ -429,3 +432,6 @@ bool CacheManager::getImageData(const Glib::ustring &fname, CacheImageData &out)
 
     return true;
 }
+
+
+} } // namespace art::gui

@@ -26,6 +26,9 @@
 #include "rtimage.h"
 #include <iomanip>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -1018,3 +1021,6 @@ void Spot::on_hide()
         switchOffEditMode();
     }
 }
+
+
+} } // namespace art::gui

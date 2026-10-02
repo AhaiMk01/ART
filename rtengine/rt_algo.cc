@@ -195,7 +195,7 @@ float calcContrastThreshold(float **luminance, int tileY, int tileX,
 
 
 
-extern MyMutex *fftwMutex;
+extern art::gui::MyMutex *fftwMutex;
 
 void findMinMaxPercentile(const float *data, size_t size, float minPrct,
                           float &minOut, float maxPrct, float &maxOut,
@@ -871,7 +871,7 @@ struct ConvolutionData {
     {
         K = kernel.width();
         if (K == kernel.height()) {
-            MyMutex::MyLock lock(*fftwMutex);
+            art::gui::MyMutex::MyLock lock(*fftwMutex);
 
 #ifdef RT_FFTW3F_OMP
             if (multithread) {
@@ -996,7 +996,7 @@ Convolution::~Convolution() { delete static_cast<ConvolutionData *>(data_); }
 void Convolution::operator()(float **src, float **dst)
 {
     ConvolutionData *d = static_cast<ConvolutionData *>(data_);
-    MyMutex::MyLock lock(*fftwMutex);
+    art::gui::MyMutex::MyLock lock(*fftwMutex);
 
     do_convolution(d->fwd_plan, d->inv_plan, d->kernel_fft, d->K / 2, d->pH,
                    d->pW, d->buf, d->buf_fft, d->W, d->H, src, dst,

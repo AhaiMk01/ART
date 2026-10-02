@@ -21,6 +21,9 @@
 #include "multilangmgr.h"
 #include "rtimage.h"
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 
 namespace {
@@ -572,3 +575,6 @@ void FilterPanel::valueChanged()
         listener->exifFilterChanged();
     }
 }
+
+
+} } // namespace art::gui

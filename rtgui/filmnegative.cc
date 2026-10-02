@@ -27,6 +27,9 @@
 #include "../rtengine/color.h"
 #include "../rtengine/procparams.h"
 
+namespace art { namespace gui {
+
+
 namespace {
 
 double toAdjuster(double v) { return CLAMP(std::log2(v), 6, 16) - 6; }
@@ -732,3 +735,6 @@ void FilmNegative::toolReset(bool to_initial)
     pp.filmNegative.enabled = getEnabled();
     read(&pp);
 }
+
+
+} } // namespace art::gui

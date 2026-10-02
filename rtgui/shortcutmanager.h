@@ -23,6 +23,9 @@
 #include "guiutils.h"
 #include <unordered_map>
 
+namespace art { namespace gui {
+
+
 class RTWindow;
 class Adjuster;
 class FoldableToolPanel;
@@ -49,3 +52,6 @@ private:
     Adjuster *cur_adjuster_;
     sigc::connection conn_;
 };
+
+
+} } // namespace art::gui

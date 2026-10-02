@@ -24,8 +24,14 @@ namespace Glib {
 class ustring;
 }
 
+namespace art { namespace gui {
+
+
 class SoundManager {
 public:
     static void init();
     static void playSoundAsync(const Glib::ustring &sound);
 };
+
+
+} } // namespace art::gui

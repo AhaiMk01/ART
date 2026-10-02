@@ -20,6 +20,9 @@
 #include "../rtengine/refreshmap.h"
 #include "guiutils.h"
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -199,3 +202,6 @@ void BayerRAWExposure::toolReset(bool to_initial)
     pp.raw.bayersensor.enable_black = getEnabled();
     read(&pp);
 }
+
+
+} } // namespace art::gui

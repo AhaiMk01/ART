@@ -30,6 +30,9 @@
 #include <gtkmm.h>
 #include <map>
 
+namespace art { namespace gui {
+
+
 class ProfileStoreLabel;
 class FileBrowser;
 class FileBrowserEntry;
@@ -207,3 +210,6 @@ public:
 
     void enableThumbRefresh();
 };
+
+
+} } // namespace art::gui

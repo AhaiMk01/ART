@@ -1,5 +1,8 @@
 #pragma once
 
+namespace art { namespace gui {
+
+
 // This number has to be incremented whenever the ARP file format is modified or
 // the behaviour of a tool changes
 #define PPVERSION 1045
@@ -147,3 +150,6 @@
         added  [Directional Pyramid Denoising] Method, Redchro, Bluechro
         added [RGB Curves] LumaMode
  */
+
+
+} } // namespace art::gui

@@ -124,7 +124,7 @@ private:
     LFDatabase();
     bool LoadDirectory(const char *dirname);
 
-    mutable MyMutex lfDBMutex;
+    mutable art::gui::MyMutex lfDBMutex;
     static LFDatabase instance_;
     lfDatabase *data_;
     mutable std::set<std::string> notFound;

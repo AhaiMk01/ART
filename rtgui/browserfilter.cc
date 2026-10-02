@@ -18,6 +18,9 @@
  */
 #include "browserfilter.h"
 
+namespace art { namespace gui {
+
+
 BrowserFilter::BrowserFilter()
     : showTrash(true), showNotTrash(true), showOriginal(false),
       multiselect(false), exifFilterEnabled(false)
@@ -32,3 +35,6 @@ BrowserFilter::BrowserFilter()
         showRecentlySaved[i] = true;
     }
 }
+
+
+} } // namespace art::gui

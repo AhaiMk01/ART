@@ -25,6 +25,20 @@
 #include <cmath>
 #include <iomanip>
 
+namespace art { namespace engine {
+
+extern void computeBWMixerConstants(const Glib::ustring &setting,
+                                    const Glib::ustring &filter,
+                                    const Glib::ustring &algo, float &filcor,
+                                    float &mixerRed, float &mixerGreen,
+                                    float &mixerBlue, float &kcorec,
+                                    double &rrm, double &ggm, double &bbm);
+
+}}
+
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -60,16 +74,7 @@ const std::vector<std::array<const char *, 2>> filters = {
 
 } // namespace
 
-namespace art { namespace engine {
-
-extern void computeBWMixerConstants(const Glib::ustring &setting,
-                                    const Glib::ustring &filter,
-                                    const Glib::ustring &algo, float &filcor,
-                                    float &mixerRed, float &mixerGreen,
-                                    float &mixerBlue, float &kcorec,
-                                    double &rrm, double &ggm, double &bbm);
-
-}} // namespace art::engine
+ // namespace art::engine
 
 BlackWhite::BlackWhite()
     : FoldableToolPanel(this, "blackwhite", M("TP_BWMIX_LABEL"), false, true,
@@ -508,3 +513,6 @@ void BlackWhite::toolReset(bool to_initial)
     pp.blackwhite.enabled = getEnabled();
     read(&pp);
 }
+
+
+} } // namespace art::gui

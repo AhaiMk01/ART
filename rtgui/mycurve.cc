@@ -21,6 +21,9 @@
 #include <cstring>
 #include <gdkmm/types.h>
 
+namespace art { namespace gui {
+
+
 MyCurve::MyCurve()
     : pipetteR(-1.f), pipetteG(-1.f), pipetteB(-1.f), pipetteVal(-1.f),
       listener(nullptr), cursor_type(CSArrow), graphX(0), graphY(0), graphW(0),
@@ -228,3 +231,6 @@ void MyCurve::refresh()
         win->invalidate(true);
     }
 }
+
+
+} } // namespace art::gui

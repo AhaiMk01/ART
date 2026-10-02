@@ -21,6 +21,9 @@
 #include "extprog.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class DirTreeView: public Gtk::TreeView {
 public:
     DirTreeView();
@@ -39,3 +42,6 @@ protected:
     std::vector<std::pair<std::unique_ptr<Gtk::MenuItem>, UserCommand>>
         menu_commands;
 };
+
+
+} } // namespace art::gui

@@ -44,6 +44,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class ColorWheelArea: public Gtk::DrawingArea, public BackBuffer {
 public:
     ColorWheelArea(
@@ -158,3 +161,6 @@ private:
 
     double satscale_;
 };
+
+
+} } // namespace art::gui

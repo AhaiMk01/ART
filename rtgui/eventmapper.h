@@ -24,6 +24,9 @@
 #include <unordered_map>
 #include <unordered_set>
 
+namespace art { namespace gui {
+
+
 class ProcEventMapper {
 public:
     static ProcEventMapper *getInstance();
@@ -38,3 +41,6 @@ private:
     std::unordered_set<std::string> history_msgs_;
     std::unordered_map<int, const char *> msgmap_;
 };
+
+
+} } // namespace art::gui

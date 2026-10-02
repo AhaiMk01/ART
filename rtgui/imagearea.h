@@ -32,6 +32,9 @@
 #include "zoompanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class ToolShortcutManager;
 
 class ImageAreaPanel;
@@ -173,3 +176,6 @@ public:
 
     void setHiDPI(bool yes);    
 };
+
+
+} } // namespace art::gui

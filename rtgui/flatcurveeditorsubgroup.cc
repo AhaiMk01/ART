@@ -33,6 +33,9 @@
 
 #include "../rtengine/curves.h"
 
+namespace art { namespace gui {
+
+
 FlatCurveEditorSubGroup::FlatCurveEditorSubGroup(CurveEditorGroup *prt,
                                                  Glib::ustring &curveDir,
                                                  float curvesRatio)
@@ -701,3 +704,6 @@ fce->histogram : NULL); NURBSCurve->updateBackgroundHistogram (fce->bgHistValid
 ? fce->histogram : NULL);
     }
 }*/
+
+
+} } // namespace art::gui

@@ -47,7 +47,7 @@ namespace art { namespace engine {
 namespace curves {
 
 const std::vector<double> filmcurve_def = {
-    DCT_Spline, 0, 0, 0.11, 0.09, 0.32, 0.47, 0.66, 0.87, 1, 1};
+    art::gui::DCT_Spline, 0, 0, 0.11, 0.09, 0.32, 0.47, 0.66, 0.87, 1, 1};
 
 } // namespace curves
 
@@ -59,20 +59,20 @@ bool sanitizeCurve(std::vector<double> &curve)
     // 3) curve[0] == DCT_Parametric and curve size is >= 8 and curve[1] ..
     // curve[3] are ordered ascending and are distinct
     if (curve.empty()) {
-        curve.push_back(DCT_Linear);
+        curve.push_back(art::gui::DCT_Linear);
         return true;
-    } else if (curve.size() == 1 && curve[0] != DCT_Linear) {
-        curve[0] = DCT_Linear;
+    } else if (curve.size() == 1 && curve[0] != art::gui::DCT_Linear) {
+        curve[0] = art::gui::DCT_Linear;
         return true;
     } else if ((curve.size() % 2 == 0 || curve.size() < 5) &&
-               curve[0] != DCT_Parametric) {
+               curve[0] != art::gui::DCT_Parametric) {
         curve.clear();
-        curve.push_back(DCT_Linear);
+        curve.push_back(art::gui::DCT_Linear);
         return true;
-    } else if (curve[0] == DCT_Parametric) {
+    } else if (curve[0] == art::gui::DCT_Parametric) {
         if (curve.size() < 8) {
             curve.clear();
-            curve.push_back(DCT_Linear);
+            curve.push_back(art::gui::DCT_Linear);
             return true;
         } else {
             // curve[1] to curve[3] must be ordered ascending and distinct

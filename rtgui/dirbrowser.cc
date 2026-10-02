@@ -33,6 +33,9 @@
 #include "rtimage.h"
 #include "session.h"
 
+namespace art { namespace gui {
+
+
 namespace {
 
 std::vector<Glib::ustring> listSubDirs(const Glib::RefPtr<Gio::File> &dir,
@@ -549,7 +552,7 @@ Gtk::TreePath DirBrowser::expandToDir(const Glib::ustring &absDirPath)
 void DirBrowser::open(const Glib::ustring &dirname,
                       const Glib::ustring &fileName)
 {
-    if (art::session::check(dirname)) {
+    if (art::gui::session::check(dirname)) {
         selected_dir_ = dirname;
         dirtree->get_selection()->unselect_all();
         dirSelectionSignal(selected_dir_, fileName);
@@ -597,3 +600,6 @@ void DirBrowser::file_changed(const Glib::RefPtr<Gio::File> &file,
 }
 
 void DirBrowser::selectDir(Glib::ustring dir) { open(dir, ""); }
+
+
+} } // namespace art::gui

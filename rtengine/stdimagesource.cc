@@ -429,7 +429,7 @@ void StdImageSource::colorSpaceConversion(
 #endif // ART_USE_OCIO
             if (!in && plistener) {
                 plistener->error(Glib::ustring::compose(
-                    M("ERROR_MSG_FILE_READ"), cmp.inputProfile));
+                    art::gui::M("ERROR_MSG_FILE_READ"), cmp.inputProfile));
             }
 
             if (in == nullptr && embedded) {

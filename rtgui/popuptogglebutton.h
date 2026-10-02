@@ -23,6 +23,9 @@
 #include "popupcommon.h"
 #include <gtkmm/togglebutton.h>
 
+namespace art { namespace gui {
+
+
 class PopUpToggleButton: public Gtk::ToggleButton, public PopUpCommon {
 
 public:
@@ -30,3 +33,6 @@ public:
     void show();
     void set_tooltip_text(const Glib::ustring &text);
 };
+
+
+} } // namespace art::gui

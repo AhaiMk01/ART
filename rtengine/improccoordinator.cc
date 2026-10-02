@@ -107,7 +107,7 @@ ImProcCoordinator::~ImProcCoordinator()
     wait_not_running();
 
     {
-        MyMutex::MyLock lock(mProcessing);
+        art::gui::MyMutex::MyLock lock(mProcessing);
         freeAll();
 
         if (drcomp_11_dcrop_cache) {
@@ -128,7 +128,7 @@ ImProcCoordinator::~ImProcCoordinator()
 }
 
 DetailedCrop *
-ImProcCoordinator::createCrop(::EditDataProvider *editDataProvider,
+ImProcCoordinator::createCrop(art::gui::EditDataProvider *editDataProvider,
                               bool isDetailWindow)
 {
 
@@ -189,7 +189,7 @@ void ImProcCoordinator::updatePreviewImage(int todo, bool panningRelatedChange)
             }
     }
     bool highDetailNeeded_WB = highDetailNeeded;
-    if ((todo & M_HIGHQUAL) || options.prevdemo == PD_Sidecar) {
+    if ((todo & M_HIGHQUAL) || art::gui::options.prevdemo == art::gui::PD_Sidecar) {
         highDetailNeeded = true;
         todo |= M_AUTOEXP;
     }
@@ -198,7 +198,7 @@ void ImProcCoordinator::updatePreviewImage(int todo, bool panningRelatedChange)
     bool stop = false;
 
     if (((todo & ALL) == ALL) || (todo & M_MONITOR) || panningRelatedChange ||
-        (highDetailNeeded && options.prevdemo != PD_Sidecar)) {
+        (highDetailNeeded && art::gui::options.prevdemo != art::gui::PD_Sidecar)) {
         if (todo == CROP && ipf.needsPCVignetting()) {
             todo |= TRANSFORM; // Change about Crop does affect TRANSFORM
         }
@@ -241,19 +241,19 @@ void ImProcCoordinator::updatePreviewImage(int todo, bool panningRelatedChange)
 
         if (wb_todo) {
             updateWB();
-            if (options.wb_preview_mode != Options::WB_AFTER) {
+            if (art::gui::options.wb_preview_mode != art::gui::Options::WB_AFTER) {
                 highQualityComputed = false;
             }
         }
 
-        switch (options.wb_preview_mode) {
-        case Options::WB_BEFORE:
+        switch (art::gui::options.wb_preview_mode) {
+        case art::gui::Options::WB_BEFORE:
             if (wb_todo) {
                 preproc_wb = currWB;
                 todo |= M_PREPROC | M_RAW;
             }
             break;
-        case Options::WB_BEFORE_HIGH_DETAIL:
+        case art::gui::Options::WB_BEFORE_HIGH_DETAIL:
             if ((wb_todo && highDetailNeeded_WB) || (todo & M_HIGHQUAL)) {
                 preproc_wb = currWB;
                 todo |= M_PREPROC | M_RAW;
@@ -262,7 +262,7 @@ void ImProcCoordinator::updatePreviewImage(int todo, bool panningRelatedChange)
                 }
             }
             break;
-        case Options::WB_AFTER:
+        case art::gui::Options::WB_AFTER:
         default:
             break;
         }
@@ -354,7 +354,7 @@ void ImProcCoordinator::updatePreviewImage(int todo, bool panningRelatedChange)
         ipf.setScale(scale);
 
         if (todo & (M_INIT | M_LINDENOISE | M_HDR)) {
-            MyMutex::MyLock initLock(minit); // Also used in crop window
+            art::gui::MyMutex::MyLock initLock(minit); // Also used in crop window
 
             if (params.wb.method == WBParams::AUTO) {
                 if (lastAwbEqual != params.wb.equal) {
@@ -575,7 +575,7 @@ void ImProcCoordinator::updatePreviewImage(int todo, bool panningRelatedChange)
     for (size_t i = 0; i < crops.size(); i++)
         if (crops[i]->hasListener() &&
             (panningRelatedChange ||
-             (highDetailNeeded && options.prevdemo != PD_Sidecar) ||
+             (highDetailNeeded && art::gui::options.prevdemo != art::gui::PD_Sidecar) ||
              (todo & (M_MONITOR | M_RGBCURVE | M_LUMACURVE)) ||
              crops[i]->get_skip() == 1)) {
             crops[i]->update(todo); // may call ourselves
@@ -585,7 +585,7 @@ void ImProcCoordinator::updatePreviewImage(int todo, bool panningRelatedChange)
         progress("Conversion to RGB...", 100 * readyphase / numofphases);
 
         if ((todo != CROP && todo != MINUPDATE) || (todo & M_MONITOR)) {
-            MyMutex::MyLock prevImgLock(previmg->getMutex());
+            art::gui::MyMutex::MyLock prevImgLock(previmg->getMutex());
 
             try {
                 // Computing the preview image, i.e. converting from
@@ -661,7 +661,7 @@ void ImProcCoordinator::updatePreviewImage(int todo, bool panningRelatedChange)
 
 void ImProcCoordinator::updateWB()
 {
-    MyMutex::MyLock initLock(minit);
+    art::gui::MyMutex::MyLock initLock(minit);
 
     currWB = ColorTemp(params.wb.temperature, params.wb.green, params.wb.equal,
                        "Custom");
@@ -1242,7 +1242,7 @@ void ImProcCoordinator::getSpotWB(int x, int y, int rect, ColorTemp &out)
     ColorTemp ret;
 
     {
-        MyMutex::MyLock lock(mProcessing);
+        art::gui::MyMutex::MyLock lock(mProcessing);
         std::vector<Coord2D> points, red, green, blue;
 
         for (int i = y - rect; i <= y + rect; i++)
@@ -1276,7 +1276,7 @@ void ImProcCoordinator::getAutoCrop(double ratio, int &x, int &y, int &w,
                                     int &h)
 {
 
-    MyMutex::MyLock lock(mProcessing);
+    art::gui::MyMutex::MyLock lock(mProcessing);
 
     LensCorrection *pLCPMap = nullptr;
 
@@ -1351,7 +1351,7 @@ void ImProcCoordinator::saveInputICCReference(const Glib::ustring &fname,
                                               bool apply_wb)
 {
 
-    MyMutex::MyLock lock(mProcessing);
+    art::gui::MyMutex::MyLock lock(mProcessing);
 
     int fW, fH;
 
@@ -1587,7 +1587,7 @@ void ImProcCoordinator::process()
         }
         PipelineTimes times;
         {
-            MyMutex::MyLock lock(mProcessing);
+            art::gui::MyMutex::MyLock lock(mProcessing);
             std::swap(times, previewTimes_);
         }
         if (!times.empty()) {
@@ -1639,8 +1639,8 @@ bool ImProcCoordinator::getHighQualComputed()
 {
     // this function may only be called from detail windows
     if (!highQualityComputed) {
-        if (options.prevdemo == PD_Sidecar &&
-            options.wb_preview_mode != Options::WB_BEFORE_HIGH_DETAIL) {
+        if (art::gui::options.prevdemo == art::gui::PD_Sidecar &&
+            art::gui::options.wb_preview_mode != art::gui::Options::WB_BEFORE_HIGH_DETAIL) {
             // we already have high quality preview
             setHighQualComputed();
         } else {
@@ -1662,7 +1662,7 @@ bool ImProcCoordinator::getHighQualComputed()
 
 void ImProcCoordinator::setHighQualComputed() { highQualityComputed = true; }
 
-bool ImProcCoordinator::getDeltaELCH(EditUniqueID id, int x, int y, float &L,
+bool ImProcCoordinator::getDeltaELCH(art::gui::EditUniqueID id, int x, int y, float &L,
                                      float &C, float &H)
 {
     int change = ipf.setDeltaEData(id, x, y);
@@ -1683,7 +1683,7 @@ bool ImProcCoordinator::getDeltaELCH(EditUniqueID id, int x, int y, float &L,
             H = ipf.deltaE.H;
         }
     }
-    ipf.setDeltaEData(EUID_None, -1, -1);
+    ipf.setDeltaEData(art::gui::EUID_None, -1, -1);
     // updaterThreadStart.unlock();
 
     return ret;

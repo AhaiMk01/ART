@@ -24,6 +24,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class Sharpening: public ToolParamBlock,
                   public ThresholdAdjusterListener,
                   public AdjusterListener,
@@ -108,3 +111,6 @@ public:
 
     void toolReset(bool to_initial) override;
 };
+
+
+} } // namespace art::gui

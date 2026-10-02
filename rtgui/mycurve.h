@@ -28,6 +28,9 @@
 #include <gtkmm.h>
 #include <vector>
 
+namespace art { namespace gui {
+
+
 #define RADIUS                                                                 \
     3.5 /** radius of the control points ; must be x.5 to target the center of \
            a pixel */
@@ -161,3 +164,6 @@ public:
 
     void clearPixmap() { myCurve->setDirty(true); }
 };
+
+
+} } // namespace art::gui

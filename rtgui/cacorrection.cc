@@ -21,6 +21,9 @@
 #include "rtimage.h"
 #include <iomanip>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -113,3 +116,6 @@ void CACorrection::toolReset(bool to_initial)
     pp.cacorrection.enabled = getEnabled();
     read(&pp);
 }
+
+
+} } // namespace art::gui

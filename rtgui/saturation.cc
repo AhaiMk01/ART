@@ -24,6 +24,9 @@
 #include <iomanip>
 #include <sigc++/slot.h>
 
+namespace art { namespace gui {
+
+
 using namespace art::engine;
 using namespace art::engine::procparams;
 
@@ -118,3 +121,6 @@ void Saturation::registerShortcuts(ToolShortcutManager *mgr)
     mgr->addShortcut(GDK_KEY_s, this, saturation);
     mgr->addShortcut(GDK_KEY_v, this, vibrance);
 }
+
+
+} } // namespace art::gui

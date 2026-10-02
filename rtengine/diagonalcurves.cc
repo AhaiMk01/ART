@@ -50,13 +50,13 @@ DiagonalCurve::DiagonalCurve(const std::vector<double> &p, int poly_pn)
     }
 
     if (p.size() < 3) {
-        kind = DCT_Empty;
+        kind = art::gui::DCT_Empty;
     } else {
         bool identity = true;
-        kind = (DiagonalCurveType)p[0];
+        kind = (art::gui::DiagonalCurveType)p[0];
 
-        if (kind == DCT_Linear || kind == DCT_Spline || kind == DCT_NURBS ||
-            kind == DCT_CatmullRom) {
+        if (kind == art::gui::DCT_Linear || kind == art::gui::DCT_Spline || kind == art::gui::DCT_NURBS ||
+            kind == art::gui::DCT_CatmullRom) {
             N = (p.size() - 1) / 2;
             x = new double[N];
             y = new double[N];
@@ -95,18 +95,18 @@ DiagonalCurve::DiagonalCurve(const std::vector<double> &p, int poly_pn)
             }
 
             if (!identity) {
-                if (kind == DCT_Spline && N > 2) {
+                if (kind == art::gui::DCT_Spline && N > 2) {
                     spline_cubic_set();
-                } else if (kind == DCT_NURBS && N > 2) {
+                } else if (kind == art::gui::DCT_NURBS && N > 2) {
                     NURBS_set();
                     fillHash();
-                } else if (kind == DCT_CatmullRom && N > 2) {
+                } else if (kind == art::gui::DCT_CatmullRom && N > 2) {
                     catmull_rom_set();
                 } else {
-                    kind = DCT_Linear;
+                    kind = art::gui::DCT_Linear;
                 }
             }
-        } else if (kind == DCT_Parametric) {
+        } else if (kind == art::gui::DCT_Parametric) {
             if ((p.size() == 8 || p.size() == 9) &&
                 (p.at(4) != 0.0f || p.at(5) != 0.0f || p.at(6) != 0.0f ||
                  p.at(7) != 0.0f)) {
@@ -141,7 +141,7 @@ DiagonalCurve::DiagonalCurve(const std::vector<double> &p, int poly_pn)
         }
 
         if (identity) {
-            kind = DCT_Empty;
+            kind = art::gui::DCT_Empty;
         }
     }
 }
@@ -455,7 +455,7 @@ double DiagonalCurve::getVal(double t) const
 
     switch (kind) {
 
-    case DCT_Parametric: {
+    case art::gui::DCT_Parametric: {
         if (t <= 1e-14) {
             return 0.0;
         }
@@ -480,8 +480,8 @@ double DiagonalCurve::getVal(double t) const
         break;
     }
 
-    case DCT_Linear:
-    case DCT_Spline: {
+    case art::gui::DCT_Linear:
+    case art::gui::DCT_Spline: {
         // values under and over the first and last point
         if (t > x[N - 1]) {
             return y[N - 1];
@@ -505,7 +505,7 @@ double DiagonalCurve::getVal(double t) const
         double h = x[k_hi] - x[k_lo];
 
         // linear
-        if (kind == DCT_Linear) {
+        if (kind == art::gui::DCT_Linear) {
             return y[k_lo] + (t - x[k_lo]) * (y[k_hi] - y[k_lo]) / h;
         }
         // spline curve
@@ -522,7 +522,7 @@ double DiagonalCurve::getVal(double t) const
         break;
     }
 
-    case DCT_CatmullRom: {
+    case art::gui::DCT_CatmullRom: {
         auto it = std::lower_bound(poly_x.begin(), poly_x.end(), t);
         if (it == poly_x.end()) {
             return poly_y.back();
@@ -535,7 +535,7 @@ double DiagonalCurve::getVal(double t) const
         break;
     }
 
-    case DCT_NURBS: {
+    case art::gui::DCT_NURBS: {
         // get the hash table entry by rounding the value (previously multiplied
         // by "hashSize")
         unsigned short int i = (unsigned short int)(t * hashSize);
@@ -573,7 +573,7 @@ double DiagonalCurve::getVal(double t) const
         return CLIPD(poly_y[k_lo] + (t - poly_x[k_lo]) * dyByDx[k_lo]);
     }
 
-    case DCT_Empty:
+    case art::gui::DCT_Empty:
     default:
         // all other (unknown) kind
         return t;

@@ -26,6 +26,9 @@
 #include <gtkmm.h>
 #include <vector>
 
+namespace art { namespace gui {
+
+
 // For compatibility and simplicity reason, order shouldn't change, and must be
 // identical to the order specified in the curveType widget
 enum DiagonalCurveType {
@@ -125,3 +128,6 @@ public:
 
     void setBackgroundProvider(CurveBackgroundProvider *bp, int caller_id);
 };
+
+
+} } // namespace art::gui

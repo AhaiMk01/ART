@@ -27,6 +27,9 @@
 
 #include "../rtengine/rtengine.h"
 
+namespace art { namespace gui {
+
+
 class PreviewListener {
 public:
     virtual ~PreviewListener() = default;
@@ -81,3 +84,6 @@ public:
                                             double &zoom);
     art::engine::procparams::CropParams getCropParams() { return cropParams; }
 };
+
+
+} } // namespace art::gui

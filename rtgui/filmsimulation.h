@@ -28,6 +28,9 @@
 #include <gtkmm.h>
 #include <memory>
 
+namespace art { namespace gui {
+
+
 class ClutComboBox: public MyComboBox {
 public:
     explicit ClutComboBox(const std::vector<Glib::ustring> &paths);
@@ -114,3 +117,6 @@ private:
     art::engine::ProcEvent EvAfterToneCurve;
     art::engine::ProcEvent EvClutParams;
 };
+
+
+} } // namespace art::gui

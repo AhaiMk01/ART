@@ -28,6 +28,9 @@
 #include "multilangmgr.h"
 #include "options.h"
 
+namespace art { namespace gui {
+
+
 using namespace art::engine::procparams;
 
 namespace {
@@ -1331,3 +1334,6 @@ bool ToolPanelCoordinator::getFilmNegativeSpot(art::engine::Coord spot,
            static_cast<art::engine::ImProcCoordinator *>(ipc)->getFilmNegativeSpot(
                spot.x, spot.y, spotSize, refInput, refOutput);
 }
+
+
+} } // namespace art::gui

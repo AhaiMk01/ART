@@ -23,6 +23,9 @@
 #include <gtkmm.h>
 #include <set>
 
+namespace art { namespace gui {
+
+
 class EditWindow: public MessageWindow {
 
 private:
@@ -69,3 +72,6 @@ public:
     void set_title_decorated(Glib::ustring fname);
     void on_realize() override;
 };
+
+
+} } // namespace art::gui

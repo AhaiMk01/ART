@@ -64,11 +64,11 @@ void RGBCurve(const std::vector<double> &curvePoints, LUTf &outCurve, int skip)
 void ImProcFunctions::rgbCurves(Imagefloat *img)
 {
     PlanarWhateverData<float> *editWhatever = nullptr;
-    EditUniqueID eid = pipetteBuffer ? pipetteBuffer->getEditID() : EUID_None;
-    if ((eid == EUID_RGB_R || eid == EUID_RGB_G || eid == EUID_RGB_B) &&
+    art::gui::EditUniqueID eid = pipetteBuffer ? pipetteBuffer->getEditID() : art::gui::EUID_None;
+    if ((eid == art::gui::EUID_RGB_R || eid == art::gui::EUID_RGB_G || eid == art::gui::EUID_RGB_B) &&
         pipetteBuffer->getDataProvider()
                 ->getCurrSubscriber()
-                ->getPipetteBufferType() == BT_SINGLEPLANE_FLOAT) {
+                ->getPipetteBufferType() == art::gui::BT_SINGLEPLANE_FLOAT) {
         editWhatever = pipetteBuffer->getSinglePlaneBuffer();
     }
 
@@ -92,13 +92,13 @@ void ImProcFunctions::rgbCurves(Imagefloat *img)
     if (editWhatever) {
         float **chan = nullptr;
         switch (eid) {
-        case EUID_RGB_R:
+        case art::gui::EUID_RGB_R:
             chan = img->r.ptrs;
             break;
-        case EUID_RGB_G:
+        case art::gui::EUID_RGB_G:
             chan = img->g.ptrs;
             break;
-        case EUID_RGB_B:
+        case art::gui::EUID_RGB_B:
             chan = img->b.ptrs;
             break;
         default:

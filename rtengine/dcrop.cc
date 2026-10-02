@@ -41,7 +41,7 @@ template <typename T> constexpr T skips(T a, T b)
 
 extern const Settings *settings;
 
-Crop::Crop(ImProcCoordinator *parent, EditDataProvider *editDataProvider,
+Crop::Crop(ImProcCoordinator *parent, art::gui::EditDataProvider *editDataProvider,
            bool isDetailWindow)
     : PipetteBuffer(editDataProvider), origCrop(nullptr), spotCrop(nullptr),
       denoiseCrop(nullptr), cropImg(nullptr), transCrop(nullptr),
@@ -63,7 +63,7 @@ Crop::Crop(ImProcCoordinator *parent, EditDataProvider *editDataProvider,
 Crop::~Crop()
 {
 
-    MyMutex::MyLock cropLock(cropMutex);
+    art::gui::MyMutex::MyLock cropLock(cropMutex);
 
     std::vector<Crop *>::iterator i =
         std::find(parent->crops.begin(), parent->crops.end(), this);
@@ -72,7 +72,7 @@ Crop::~Crop()
         parent->crops.erase(i);
     }
 
-    MyMutex::MyLock processingLock(parent->mProcessing);
+    art::gui::MyMutex::MyLock processingLock(parent->mProcessing);
     freeAll();
 }
 
@@ -88,31 +88,31 @@ void Crop::setListener(DetailedCropListener *il)
     // We can make reads in the IF, because the mProcessing lock is only needed
     // for change
     if (cropImageListener != il) {
-        MyMutex::MyLock lock(cropMutex);
+        art::gui::MyMutex::MyLock lock(cropMutex);
         cropImageListener = il;
     }
 }
 
-EditUniqueID Crop::getCurrEditID()
+art::gui::EditUniqueID Crop::getCurrEditID()
 {
-    EditSubscriber *subscriber =
+    art::gui::EditSubscriber *subscriber =
         PipetteBuffer::dataProvider
             ? PipetteBuffer::dataProvider->getCurrSubscriber()
             : nullptr;
-    return subscriber ? subscriber->getEditID() : EUID_None;
+    return subscriber ? subscriber->getEditID() : art::gui::EUID_None;
 }
 
 /*
  * Delete the edit image buffer if there's no subscriber anymore.
  * If allocation has to be done, it is deferred to Crop::update
  */
-void Crop::setEditSubscriber(EditSubscriber *newSubscriber)
+void Crop::setEditSubscriber(art::gui::EditSubscriber *newSubscriber)
 {
-    MyMutex::MyLock lock(cropMutex);
+    art::gui::MyMutex::MyLock lock(cropMutex);
 
     // At this point, editCrop.dataProvider->currSubscriber is the old
     // subscriber
-    EditSubscriber *oldSubscriber =
+    art::gui::EditSubscriber *oldSubscriber =
         PipetteBuffer::dataProvider
             ? PipetteBuffer::dataProvider->getCurrSubscriber()
             : nullptr;
@@ -143,13 +143,13 @@ void Crop::setEditSubscriber(EditSubscriber *newSubscriber)
 
 bool Crop::hasListener()
 {
-    MyMutex::MyLock cropLock(cropMutex);
+    art::gui::MyMutex::MyLock cropLock(cropMutex);
     return cropImageListener;
 }
 
 void Crop::update(int todo)
 {
-    MyMutex::MyLock cropLock(cropMutex);
+    art::gui::MyMutex::MyLock cropLock(cropMutex);
 
     ProcParams &params = parent->params;
     //       CropGUIListener* cropgl;
@@ -198,7 +198,7 @@ void Crop::update(int todo)
 
     bool needstransform = parent->ipf.needsTransform();
     bool show_denoise =
-        params.denoise.enabled && (skip == 1 || options.denoiseZoomedOut);
+        params.denoise.enabled && (skip == 1 || art::gui::options.denoiseZoomedOut);
 
     const auto invert_negative = [&](Imagefloat *img) -> bool {
         bool converted = false;
@@ -217,7 +217,7 @@ void Crop::update(int todo)
     };
 
     if (todo & M_INIT) {
-        MyMutex::MyLock lock(parent->minit); // Also used in improccoord
+        art::gui::MyMutex::MyLock lock(parent->minit); // Also used in improccoord
 
         int tr = getCoarseBitMask(params.coarse);
 
@@ -681,7 +681,7 @@ bool Crop::setCropSizes(int rcx, int rcy, int rcw, int rch, int skip,
     int cw = skips(bw, skip);
     int ch = skips(bh, skip);
 
-    EditType editType = ET_PIPETTE;
+    art::gui::EditType editType = art::gui::ET_PIPETTE;
 
     if (const auto editProvider = PipetteBuffer::getDataProvider()) {
         if (const auto editSubscriber = editProvider->getCurrSubscriber()) {
@@ -722,7 +722,7 @@ bool Crop::setCropSizes(int rcx, int rcy, int rcw, int rch, int skip,
         }
         cropImg->allocate(cropw, croph); // Resizing the buffer (optimization)
 
-        if (editType == ET_PIPETTE) {
+        if (editType == art::gui::ET_PIPETTE) {
             PipetteBuffer::resize(cropw, croph);
         } else if (PipetteBuffer::bufferCreated()) {
             PipetteBuffer::flush();
@@ -787,7 +787,7 @@ bool Crop::tryUpdate()
  */
 void Crop::fullUpdate()
 {
-    MyMutex::MyLock processingLock(parent->mProcessing);
+    art::gui::MyMutex::MyLock processingLock(parent->mProcessing);
     // parent->updaterThreadStart.lock();
 
     // parent->wait_not_running();
@@ -855,19 +855,19 @@ void Crop::fullUpdate()
 
 int Crop::get_skip()
 {
-    MyMutex::MyLock lock(cropMutex);
+    art::gui::MyMutex::MyLock lock(cropMutex);
     return skip;
 }
 
 int Crop::getLeftBorder()
 {
-    MyMutex::MyLock lock(cropMutex);
+    art::gui::MyMutex::MyLock lock(cropMutex);
     return leftBorder;
 }
 
 int Crop::getUpperBorder()
 {
-    MyMutex::MyLock lock(cropMutex);
+    art::gui::MyMutex::MyLock lock(cropMutex);
     return upperBorder;
 }
 

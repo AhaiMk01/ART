@@ -22,6 +22,9 @@
 
 #include <gtkmm/image.h>
 
+namespace art { namespace gui {
+
+
 /**
  * @brief A master class for derived class of Gtk::Image in order to handle
  * theme-related icon sets.
@@ -44,3 +47,6 @@ public:
                                 int scale);
     static int getDisplayScale(const Cairo::RefPtr<Cairo::Surface> &surface);
 };
+
+
+} } // namespace art::gui

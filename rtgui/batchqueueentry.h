@@ -25,6 +25,9 @@
 #include "thumbnail.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class BatchQueueEntry;
 struct BatchQueueEntryIdleHelper {
     BatchQueueEntry *bqentry;
@@ -80,3 +83,6 @@ public:
                      guint8 *newOPreview) override;
     void _updateImage(guint8 *img, int w, int h); // inside gtk thread
 };
+
+
+} } // namespace art::gui

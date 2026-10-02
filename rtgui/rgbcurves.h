@@ -26,6 +26,9 @@
 #include "toolpanel.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class RGBCurves: public ToolParamBlock,
                  public FoldableToolPanel,
                  public CurveListener,
@@ -64,3 +67,6 @@ public:
                                Cairo::RefPtr<Cairo::Context> cr, double x,
                                double y, double w, double h) override;
 };
+
+
+} } // namespace art::gui

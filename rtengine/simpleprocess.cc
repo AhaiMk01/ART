@@ -490,8 +490,8 @@ private:
                 info.setExifKeys(&(params.metadata.exifKeys));
             }
             info.setOutputRating(params,
-                                 options.thumbnail_rating_mode !=
-                                     Options::ThumbnailRatingMode::PROCPARAMS);
+                                 art::gui::options.thumbnail_rating_mode !=
+                                     art::gui::Options::ThumbnailRatingMode::PROCPARAMS);
             readyImg->setMetadata(info);
         }   break;
         default: // case MetaDataParams::STRIP
@@ -674,7 +674,7 @@ void batchProcessingThread(ProcessingJob *job, BatchProcessingListener *bpl)
         IImagefloat *img = processImage(currentJob, errorCode, bpl, true);
 
         if (errorCode) {
-            bpl->error(M("MAIN_MSG_CANNOTLOAD"));
+            bpl->error(art::gui::M("MAIN_MSG_CANNOTLOAD"));
             currentJob = nullptr;
         } else {
             try {

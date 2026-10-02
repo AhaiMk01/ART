@@ -21,6 +21,9 @@
 #include "curveeditorgroup.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class DiagonalCurveEditor;
 
 class DiagonalCurveEditorSubGroup: public CurveEditorSubGroup,
@@ -117,3 +120,6 @@ protected:
                                 Glib::ustring r3, Glib::ustring r4);
     void setSubGroupBottomBarBgGradient();
 };
+
+
+} } // namespace art::gui

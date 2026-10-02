@@ -18,6 +18,9 @@
  */
 #include "threadutils.h"
 
+namespace art { namespace gui {
+
+
 void MyReaderLock::acquire()
 {
     if (locked) {
@@ -107,3 +110,6 @@ void MyWriterLock::release()
 
     locked = false;
 }
+
+
+} } // namespace art::gui

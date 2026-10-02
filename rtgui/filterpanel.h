@@ -23,6 +23,9 @@
 #include "exiffiltersettings.h"
 #include <gtkmm.h>
 
+namespace art { namespace gui {
+
+
 class FilterPanelListener {
 public:
     virtual ~FilterPanelListener() = default;
@@ -77,3 +80,6 @@ public:
     void valueChanged();
     void setEnabled(bool enabledState) { enabled->set_active(enabledState); }
 };
+
+
+} } // namespace art::gui

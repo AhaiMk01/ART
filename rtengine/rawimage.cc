@@ -30,7 +30,7 @@ namespace art { namespace engine {
 
 
 extern const Settings *settings;
-extern MyMutex *librawMutex;
+extern art::gui::MyMutex *librawMutex;
 
 RawImage::RawImage(const Glib::ustring &name)
     : DCraw(), data(nullptr), prefilters(0), filename(name), rotate_deg(0),
@@ -822,7 +822,7 @@ int RawImage::do_loadRaw(const Glib::ustring &fname, bool loadData,
             }
             {
 #ifdef LIBRAW_USE_OPENMP
-                MyMutex::MyLock lock(*librawMutex);
+                art::gui::MyMutex::MyLock lock(*librawMutex);
 #endif
                 err = libraw_->unpack();
             }
@@ -842,7 +842,7 @@ int RawImage::do_loadRaw(const Glib::ustring &fname, bool loadData,
                 }
             } else {
 #ifdef LIBRAW_USE_OPENMP
-                MyMutex::MyLock lock(*librawMutex);
+                art::gui::MyMutex::MyLock lock(*librawMutex);
 #endif
                 float_raw_image = nullptr;
                 err = libraw_->raw2image();
