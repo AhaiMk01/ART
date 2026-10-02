@@ -51,6 +51,8 @@ endif()
 
 set(CAMCONSTSFILE "camconst.json")
 
+# munsell.cc (the unused Munsell correction) is deliberately not built; add it
+# to this list to use it.
 set(RTENGINESOURCEFILES
     # The GPU facade and the per-operator translation units are compiled
     # unconditionally: each one is Vulkan-free at the top level and provides

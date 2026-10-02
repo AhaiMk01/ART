@@ -185,7 +185,6 @@ void cleanup()
 
     Exiv2Metadata::cleanup();
     ProcParams::cleanup();
-    Color::cleanup();
     RawImageSource::cleanup();
 
 #ifdef RT_FFTW3F_OMP
