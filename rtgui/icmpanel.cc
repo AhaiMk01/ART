@@ -27,8 +27,8 @@
 #include "guiutils.h"
 #include "rtimage.h"
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 extern Options options;
 
@@ -38,9 +38,9 @@ ICMPanel::ICMPanel()
       camName(""), filename("")
 {
     auto m = ProcEventMapper::getInstance();
-    EvUseCAT = m->newEvent(rtengine::ALLNORAW, "HISTORY_MSG_ICM_INPUT_CAT");
-    EvToolReset.set_action(rtengine::DEMOSAIC);
-    EvDCPApplyLookEarly = m->newEvent(rtengine::RGBCURVE,
+    EvUseCAT = m->newEvent(art::engine::ALLNORAW, "HISTORY_MSG_ICM_INPUT_CAT");
+    EvToolReset.set_action(art::engine::DEMOSAIC);
+    EvDCPApplyLookEarly = m->newEvent(art::engine::RGBCURVE,
                                       "HISTORY_MSG_ICM_DCP_LOOK_PIPELINE_POS");
 
     ipDialog = Gtk::manage(new MyFileChooserButton(
@@ -199,7 +199,7 @@ ICMPanel::ICMPanel()
     wProfVBox->pack_start(*wProfNames, Gtk::PACK_SHRINK);
 
     std::vector<Glib::ustring> wpnames =
-        rtengine::ICCStore::getInstance()->getWorkingProfiles();
+        art::engine::ICCStore::getInstance()->getWorkingProfiles();
 
     for (size_t i = 0; i < wpnames.size(); i++) {
         wProfNames->append(wpnames[i]);
@@ -226,7 +226,7 @@ ICMPanel::ICMPanel()
                      ColorManagementParams::NoProfileString};
 
     std::vector<Glib::ustring> opnames = ICCStore::getInstance()->getProfiles(
-        rtengine::ICCStore::ProfileType::OUTPUT);
+        art::engine::ICCStore::ProfileType::OUTPUT);
 
     const auto is_ART_profile = [](cmsHPROFILE p) -> bool {
         return ICCStore::getProfileTag(p, cmsSigDeviceMfgDescTag) == "ART";
@@ -373,7 +373,7 @@ ICMPanel::ICMPanel()
 void ICMPanel::updateRenderingIntent(const Glib::ustring &profile)
 {
     const uint8_t supportedIntents =
-        rtengine::ICCStore::getInstance()->getOutputIntents(profile);
+        art::engine::ICCStore::getInstance()->getOutputIntents(profile);
     const bool supportsPerceptual = supportedIntents & 1 << INTENT_PERCEPTUAL;
     const bool supportsRelative =
         supportedIntents & 1 << INTENT_RELATIVE_COLORIMETRIC;
@@ -613,7 +613,7 @@ void ICMPanel::write(ProcParams *pp)
 
     pp->icm.workingProfile = wProfNames->get_active_text();
     pp->icm.dcpIlluminant =
-        rtengine::max<int>(dcpIll->get_active_row_number(), 0);
+        art::engine::max<int>(dcpIll->get_active_row_number(), 0);
     // if (oProfNames->get_active_row_number() == 0) {//M("TP_ICM_NOICM")) {
     //     pp->icm.outputProfile  = ColorManagementParams::NoICMString;
     // } else if (oProfNames->get_active_row_number() == 1) {
@@ -628,7 +628,7 @@ void ICMPanel::write(ProcParams *pp)
     if (ointentVal >= 0 && ointentVal < RI__COUNT) {
         pp->icm.outputIntent = static_cast<RenderingIntent>(ointentVal);
     } else {
-        pp->icm.outputIntent = rtengine::RI_RELATIVE;
+        pp->icm.outputIntent = art::engine::RI_RELATIVE;
     }
 
     pp->icm.toneCurve = ckbToneCurve->get_active();
@@ -805,7 +805,7 @@ void ICMPanel::oBPCChanged()
     }
 }
 
-void ICMPanel::setRawMeta(bool raw, const rtengine::FramesData *pMeta)
+void ICMPanel::setRawMeta(bool raw, const art::engine::FramesData *pMeta)
 {
 
     disableListener();

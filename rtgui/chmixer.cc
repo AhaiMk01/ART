@@ -20,22 +20,22 @@
 #include "eventmapper.h"
 #include "rtimage.h"
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 ChMixer::ChMixer()
     : FoldableToolPanel(this, "chmixer", M("TP_CHMIXER_LABEL"), false, true,
                         true)
 {
     auto m = ProcEventMapper::getInstance();
-    EvMode = m->newEvent(rtengine::RGBCURVE, "HISTORY_MSG_CHMIXER_MODE");
+    EvMode = m->newEvent(art::engine::RGBCURVE, "HISTORY_MSG_CHMIXER_MODE");
     EvRedPrimary =
-        m->newEvent(rtengine::RGBCURVE, "HISTORY_MSG_CHMIXER_RED_PRIMARY");
+        m->newEvent(art::engine::RGBCURVE, "HISTORY_MSG_CHMIXER_RED_PRIMARY");
     EvGreenPrimary =
-        m->newEvent(rtengine::RGBCURVE, "HISTORY_MSG_CHMIXER_GREEN_PRIMARY");
+        m->newEvent(art::engine::RGBCURVE, "HISTORY_MSG_CHMIXER_GREEN_PRIMARY");
     EvBluePrimary =
-        m->newEvent(rtengine::RGBCURVE, "HISTORY_MSG_CHMIXER_BLUE_PRIMARY");
-    EvToolReset.set_action(rtengine::RGBCURVE);
+        m->newEvent(art::engine::RGBCURVE, "HISTORY_MSG_CHMIXER_BLUE_PRIMARY");
+    EvToolReset.set_action(art::engine::RGBCURVE);
 
     imgIcon[0] = Gtk::manage(new RTImage("circle-red-small.svg"));
     imgIcon[1] = Gtk::manage(new RTImage("circle-green-red-small.svg"));
@@ -264,7 +264,7 @@ void ChMixer::enabledChanged()
     }
 }
 
-void ChMixer::trimValues(rtengine::procparams::ProcParams *pp)
+void ChMixer::trimValues(art::engine::procparams::ProcParams *pp)
 {
 
     for (int i = 0; i < 3; i++) {

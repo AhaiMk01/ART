@@ -28,7 +28,7 @@ namespace OCIO = OCIO_NAMESPACE;
 #include "subprocess.h"
 #include "utils.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class ExternalLUT3D {
 public:
@@ -78,4 +78,4 @@ private:
     Glib::ustring gui_name_;
 };
 
-} // namespace rtengine
+}} // namespace art::engine

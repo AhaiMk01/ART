@@ -28,7 +28,7 @@
 
 extern Options options;
 
-using namespace rtengine;
+using namespace art::engine;
 
 Navigator::Navigator()
     : currentRGBUnit(options.navRGBUnit), currentLCHUnit(options.navLCHUnit)
@@ -256,7 +256,7 @@ void Navigator::setInvalid(int fullWidth, int fullHeight)
     LAB_L->set_text(M("NAVIGATOR_NA"));
 }
 
-void Navigator::setMetaInfo(const rtengine::FramesMetaData *idata)
+void Navigator::setMetaInfo(const art::engine::FramesMetaData *idata)
 {
     Glib::ustring infoString = Glib::ustring::compose(
         "%1 %2   %3 sec   f/%4   %5 mm", M("QINFO_ISO"), idata->getISOSpeed(),

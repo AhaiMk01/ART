@@ -38,13 +38,13 @@ class PerspCorrection: public ToolParamBlock,
 public:
     PerspCorrection();
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
     void adjusterChanged(Adjuster *a, double newval) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
-    void trimValues(rtengine::procparams::ProcParams *pp) override;
+    void trimValues(art::engine::procparams::ProcParams *pp) override;
 
     void setLensGeomListener(LensGeomListener *l) { lgl = l; }
     void setPerspCorrectionPanelListener(PerspCorrectionPanelListener *l)
@@ -53,7 +53,7 @@ public:
     }
     void autoPressed(Gtk::Button *which);
 
-    void setRawMeta(bool raw, const rtengine::FramesMetaData *meta);
+    void setRawMeta(bool raw, const art::engine::FramesMetaData *meta);
 
     void toolReset(bool to_initial) override;
 
@@ -65,7 +65,7 @@ public:
     void requestApplyControlLines();
 
 private:
-    void do_set_metadata(const rtengine::FramesMetaData *meta);
+    void do_set_metadata(const art::engine::FramesMetaData *meta);
     void applyControlLines();
     void linesApplyButtonPressed();
     void linesEditButtonPressed();
@@ -89,10 +89,10 @@ private:
     Gtk::ToggleButton *lines_button_edit;
     Gtk::Button *lines_button_erase;
 
-    rtengine::ProcEvent EvPerspCorrLens;
-    rtengine::ProcEvent EvPerspRender;
-    rtengine::ProcEvent EvPerspControlLines;
-    const rtengine::FramesMetaData *metadata;
+    art::engine::ProcEvent EvPerspCorrLens;
+    art::engine::ProcEvent EvPerspRender;
+    art::engine::ProcEvent EvPerspControlLines;
+    const art::engine::FramesMetaData *metadata;
 
-    rtengine::procparams::PerspectiveParams initial_params;
+    art::engine::procparams::PerspectiveParams initial_params;
 };

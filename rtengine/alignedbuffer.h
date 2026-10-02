@@ -25,7 +25,7 @@
 #include <memory>
 #include <utility>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 // Aligned buffer that should be faster
 template <class T> class AlignedBuffer {
@@ -125,4 +125,4 @@ public:
     }
 };
 
-} // namespace rtengine
+}} // namespace art::engine

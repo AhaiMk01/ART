@@ -24,6 +24,9 @@
 #include "refreshmap.h"
 #include "rt_math.h"
 
+namespace art { namespace engine {
+
+
 namespace {
 
 // "ceil" rounding
@@ -34,7 +37,7 @@ template <typename T> constexpr T skips(T a, T b)
 
 } // namespace
 
-namespace rtengine {
+
 
 extern const Settings *settings;
 
@@ -868,4 +871,5 @@ int Crop::getUpperBorder()
     return upperBorder;
 }
 
-} // namespace rtengine
+
+} } // namespace art::engine

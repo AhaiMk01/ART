@@ -20,7 +20,7 @@
 
 #include "imagesource.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class StdImageSource: public ImageSource {
 
@@ -109,4 +109,4 @@ public:
     }
 };
 
-} // namespace rtengine
+}} // namespace art::engine

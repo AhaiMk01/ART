@@ -15,7 +15,7 @@
 #include <errno.h>
 #include <inttypes.h>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -1005,4 +1005,4 @@ CameraConst *CameraConstantsStore::get(const char make[], const char model[])
     return it->second;
 }
 
-} // namespace rtengine
+}} // namespace art::engine

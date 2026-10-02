@@ -32,7 +32,7 @@
 // #define BENCHMARK
 #include "StopWatch.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 inline void RawImageSource::interpolate_row_g(float *agh, float *agv, int i)
 {
@@ -485,4 +485,4 @@ void RawImageSource::eahd_demosaic()
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

@@ -43,7 +43,7 @@
 #include "guiutils.h"
 #include <iostream>
 
-using rtengine::Color;
+using art::engine::Color;
 
 //-----------------------------------------------------------------------------
 // ColorWheelArea
@@ -78,8 +78,8 @@ void ColorWheelArea::setParams(double x, double y, bool notify)
 {
     const double lo = -1.0;
     const double hi = 1.0;
-    x_ = rtengine::LIM(x, lo, hi);
-    y_ = rtengine::LIM(y, lo, hi);
+    x_ = art::engine::LIM(x, lo, hi);
+    y_ = art::engine::LIM(y, lo, hi);
     queue_draw();
     if (notify) {
         notifyListener();
@@ -182,10 +182,10 @@ bool ColorWheelArea::on_draw(const ::Cairo::RefPtr<Cairo::Context> &crf)
             for (int i = 0; i < width; ++i) {
                 float ii = i - w2;
                 float R, G, B;
-                float d = std::sqrt(rtengine::SQR(ii) + rtengine::SQR(jj));
+                float d = std::sqrt(art::engine::SQR(ii) + art::engine::SQR(jj));
                 if (d <= radius) {
                     float s = d / radius;
-                    float h = atan2(jj, ii) / (2.f * rtengine::RT_PI_F);
+                    float h = atan2(jj, ii) / (2.f * art::engine::RT_PI_F);
                     if (h < 0.f) {
                         h += 1.f;
                     } else if (h > 1.f) {
@@ -223,9 +223,9 @@ bool ColorWheelArea::on_draw(const ::Cairo::RefPtr<Cairo::Context> &crf)
 
                     getGUIColor(R, G, B);
 
-                    // R = rtengine::intp(alpha, R, bg_r);
-                    // G = rtengine::intp(alpha, G, bg_g);
-                    // B = rtengine::intp(alpha, B, bg_b);
+                    // R = art::engine::intp(alpha, R, bg_r);
+                    // G = art::engine::intp(alpha, G, bg_g);
+                    // B = art::engine::intp(alpha, B, bg_b);
 
                     cr->set_source_rgba(R, G, B, alpha);
                     // cr->set_source_rgb(R, G, B);
@@ -244,12 +244,12 @@ bool ColorWheelArea::on_draw(const ::Cairo::RefPtr<Cairo::Context> &crf)
             cr->set_source_rgb(r, g, b);
             for (int a = 0; a < 360; a += 30) {
                 cr->move_to(w2, h2);
-                rtengine::CoordD c(rtengine::PolarCoord(radius, a));
+                art::engine::CoordD c(art::engine::PolarCoord(radius, a));
                 cr->line_to(w2 + c.x, h2 + c.y);
                 cr->stroke();
             }
             for (int i = 1; i < 4; ++i) {
-                cr->arc(w2, h2, radius / 4.0 * i, 0, 2.0 * rtengine::RT_PI);
+                cr->arc(w2, h2, radius / 4.0 * i, 0, 2.0 * art::engine::RT_PI);
                 cr->stroke();
             }
         }
@@ -274,9 +274,9 @@ bool ColorWheelArea::on_draw(const ::Cairo::RefPtr<Cairo::Context> &crf)
         getGUIColor(r, g, b);
         cr->set_source_rgb(r, g, b);
         if (point_active_) {
-            cr->arc(hia, hib, 5 * s, 0, 2. * rtengine::RT_PI);
+            cr->arc(hia, hib, 5 * s, 0, 2. * art::engine::RT_PI);
         } else {
-            cr->arc(hia, hib, 3 * s, 0, 2. * rtengine::RT_PI);
+            cr->arc(hia, hib, 3 * s, 0, 2. * art::engine::RT_PI);
         }
         cr->fill();
     }
@@ -343,9 +343,9 @@ bool ColorWheelArea::on_motion_notify_event(GdkEventMotion *event)
     float ma = (2.0 * mouse_x - width) / float(width);
     float mb = (2.0 * mouse_y - height) / float(height);
 
-    rtengine::PolarCoord prev(rtengine::CoordD(x_, y_));
+    art::engine::PolarCoord prev(art::engine::CoordD(x_, y_));
 
-    rtengine::PolarCoord p(rtengine::CoordD(ma, mb));
+    art::engine::PolarCoord p(art::engine::CoordD(ma, mb));
     p.radius = std::min(p.radius, 1.0);
 
     if (is_dragged_) {
@@ -357,7 +357,7 @@ bool ColorWheelArea::on_motion_notify_event(GdkEventMotion *event)
         }
     }
 
-    rtengine::CoordD c(p);
+    art::engine::CoordD c(p);
     ma = c.x;
     mb = c.y;
 
@@ -528,11 +528,11 @@ void ColorWheel::setParams(double x, double y, double s, bool notify)
     ConnectionBlocker sb(scaleconn);
     double ha1 = x / s;
     double hb1 = y / s;
-    rtengine::PolarCoord ph(rtengine::CoordD(ha1, hb1));
+    art::engine::PolarCoord ph(art::engine::CoordD(ha1, hb1));
     if (ph.radius > 1) {
         s *= ph.radius;
     }
-    while (rtengine::max(std::abs(x / s), std::abs(y / s)) > 1.0) {
+    while (art::engine::max(std::abs(x / s), std::abs(y / s)) > 1.0) {
         s *= 2;
     }
     if (scale) {
@@ -594,7 +594,7 @@ void ColorWheel::onRightClickPressed()
     getParams(vx, vy, vs);
     // x.set_value(vx);
     // y.set_value(vy);
-    double vhue = std::atan2(vy, vx) * 180 / rtengine::RT_PI;
+    double vhue = std::atan2(vy, vx) * 180 / art::engine::RT_PI;
     if (vhue < 0) {
         vhue += 360;
     } else if (vhue > 360) {
@@ -610,7 +610,7 @@ void ColorWheel::onRightClickPressed()
 
     p.signal_closed().connect(sigc::slot<void>([&]() {
         result = 1;
-        double h = hue.get_value() * rtengine::RT_PI / 180.0;
+        double h = hue.get_value() * art::engine::RT_PI / 180.0;
         double s = sat.get_value() / 100.0;
         double x = s * std::cos(h);
         double y = s * std::sin(h);
@@ -658,9 +658,9 @@ bool ColorWheel::mouseOver(int modifierKey)
         double s = find_scale(x, y);
         if (!(modifierKey & GDK_SHIFT_MASK)) {
             // invert
-            rtengine::PolarCoord p(rtengine::CoordD(x, y));
+            art::engine::PolarCoord p(art::engine::CoordD(x, y));
             p.angle += 180;
-            rtengine::CoordD c(p);
+            art::engine::CoordD c(p);
             x = c.x;
             y = c.y;
         }
@@ -678,9 +678,9 @@ bool ColorWheel::button1Pressed(int modifierKey)
         double s = find_scale(x, y);
         if (!(modifierKey & GDK_SHIFT_MASK)) {
             // invert
-            rtengine::PolarCoord p(rtengine::CoordD(x, y));
+            art::engine::PolarCoord p(art::engine::CoordD(x, y));
             p.angle += 180;
-            rtengine::CoordD c(p);
+            art::engine::CoordD c(p);
             x = c.x;
             y = c.y;
         }
@@ -721,7 +721,7 @@ void HueSatColorWheel::getParams(double &hue, double &sat) const
 {
     double x, y;
     grid.getParams(x, y);
-    hue = std::atan2(y, x) * 180 / rtengine::RT_PI;
+    hue = std::atan2(y, x) * 180 / art::engine::RT_PI;
     if (hue < 0) {
         hue += 360;
     } else if (hue > 360) {
@@ -736,7 +736,7 @@ void HueSatColorWheel::getParams(double &hue, double &sat) const
 
 void HueSatColorWheel::setParams(double hue, double sat, bool notify)
 {
-    double h = hue * rtengine::RT_PI / 180.0;
+    double h = hue * art::engine::RT_PI / 180.0;
     double s = sat / 100.0;
     if (satscale_ > 0) {
         s = std::min(s * satscale_, 1.0);
@@ -749,7 +749,7 @@ void HueSatColorWheel::setParams(double hue, double sat, bool notify)
 
 void HueSatColorWheel::setDefault(double hue, double sat)
 {
-    double h = hue * rtengine::RT_PI / 180.0;
+    double h = hue * art::engine::RT_PI / 180.0;
     double s = sat / 100.0;
     if (satscale_ > 0) {
         s = std::min(s * satscale_, 1.0);

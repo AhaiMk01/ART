@@ -32,26 +32,26 @@ class Exposure: public ToolParamBlock,
                 public FoldableToolPanel {
 protected:
     MyComboBoxText *hrmode;
-    rtengine::ProcEvent EvBlack;
-    rtengine::ProcEvent EvHRBlur;
+    art::engine::ProcEvent EvBlack;
+    art::engine::ProcEvent EvHRBlur;
 
     Gtk::HBox *abox;
     Adjuster *expcomp;
     Adjuster *black;
     Adjuster *hrblur;
 
-    rtengine::procparams::ExposureParams initial_params;
+    art::engine::procparams::ExposureParams initial_params;
 
     void showHRBlur();
 
 public:
     Exposure();
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
-    void trimValues(rtengine::procparams::ProcParams *pp) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
+    void trimValues(art::engine::procparams::ProcParams *pp) override;
 
     void adjusterChanged(Adjuster *a, double newval) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;

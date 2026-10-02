@@ -35,17 +35,17 @@ public:
 class WhiteBalance: public ToolParamBlock,
                     public AdjusterListener,
                     public FoldableToolPanel,
-                    public rtengine::AutoWBListener {
+                    public art::engine::AutoWBListener {
 public:
     WhiteBalance();
     ~WhiteBalance() override;
 
     static void init();
     static void cleanup();
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
     void methodChanged();
     void spotPressed();
     void spotSizeChanged();
@@ -54,10 +54,10 @@ public:
     int getSize();
     void setWBProvider(WBProvider *p) { wbp = p; }
     void setSpotWBListener(SpotWBListener *l) { wblistener = l; }
-    void setWB(rtengine::ColorTemp ctemp);
-    void WBChanged(rtengine::ColorTemp ctemp) override;
+    void setWB(art::engine::ColorTemp ctemp);
+    void WBChanged(art::engine::ColorTemp ctemp) override;
 
-    void trimValues(rtengine::procparams::ProcParams *pp) override;
+    void trimValues(art::engine::procparams::ProcParams *pp) override;
     void enabledChanged() override;
 
     void toolReset(bool to_initial) override;
@@ -103,9 +103,9 @@ private:
 
     IdleRegister idle_register;
 
-    rtengine::procparams::WBParams initial_params;
+    art::engine::procparams::WBParams initial_params;
 
-    rtengine::ProcEvent EvWBMult;
+    art::engine::ProcEvent EvWBMult;
     std::vector<WBPreset> presets;
 
     Gtk::Box *temp_warning_;

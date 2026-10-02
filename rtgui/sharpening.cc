@@ -20,8 +20,8 @@
 #include "eventmapper.h"
 #include <cmath>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 Sharpening::Sharpening()
     : FoldableToolPanel(this, "sharpening", M("TP_SHARPENING_LABEL"), true,
@@ -29,20 +29,20 @@ Sharpening::Sharpening()
 {
     auto m = ProcEventMapper::getInstance();
     EvSharpenContrast =
-        m->newEvent(rtengine::SHARPENING, "HISTORY_MSG_SHARPENING_CONTRAST");
-    EvAutoRadiusOn = m->newEvent(rtengine::SHARPENING | rtengine::M_AUTOEXP,
+        m->newEvent(art::engine::SHARPENING, "HISTORY_MSG_SHARPENING_CONTRAST");
+    EvAutoRadiusOn = m->newEvent(art::engine::SHARPENING | art::engine::M_AUTOEXP,
                                  "HISTORY_MSG_SHARPENING_AUTORADIUS");
     EvAutoRadiusOff =
-        m->newEvent(rtengine::M_VOID, "HISTORY_MSG_SHARPENING_AUTORADIUS");
+        m->newEvent(art::engine::M_VOID, "HISTORY_MSG_SHARPENING_AUTORADIUS");
     EvDeconvCornerBoost = m->newEvent(
-        rtengine::SHARPENING, "HISTORY_MSG_SHARPENING_RLD_CORNERRADIUS");
+        art::engine::SHARPENING, "HISTORY_MSG_SHARPENING_RLD_CORNERRADIUS");
     EvDeconvCornerLatitude = m->newEvent(
-        rtengine::SHARPENING, "HISTORY_MSG_SHARPENING_RLD_CORNERLATITUDE");
+        art::engine::SHARPENING, "HISTORY_MSG_SHARPENING_RLD_CORNERLATITUDE");
     EvPSFKernel =
-        m->newEvent(rtengine::SHARPENING, "HISTORY_MSG_SHARPENING_PSF_KERNEL");
-    EvPSFIterations = m->newEvent(rtengine::SHARPENING,
+        m->newEvent(art::engine::SHARPENING, "HISTORY_MSG_SHARPENING_PSF_KERNEL");
+    EvPSFIterations = m->newEvent(art::engine::SHARPENING,
                                   "HISTORY_MSG_SHARPENING_PSF_ITERATIONS");
-    EvToolReset.set_action(rtengine::SHARPENING);
+    EvToolReset.set_action(art::engine::SHARPENING);
 
     Gtk::HBox *hb = Gtk::manage(new Gtk::HBox());
     hb->show();
@@ -480,7 +480,7 @@ void Sharpening::method_changed()
     }
 }
 
-void Sharpening::trimValues(rtengine::procparams::ProcParams *pp)
+void Sharpening::trimValues(art::engine::procparams::ProcParams *pp)
 {
     contrast->trimValue(pp->sharpening.contrast);
     // blur->trimValue(pp->sharpening.blurradius);

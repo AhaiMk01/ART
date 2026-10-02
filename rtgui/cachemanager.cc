@@ -243,7 +243,7 @@ void CacheManager::closeCache() const
 
     applyCacheSizeLimitation();
 #ifdef ART_USE_OCIO
-    rtengine::ExternalLUT3D::trim_cache();
+    art::engine::ExternalLUT3D::trim_cache();
 #endif
 }
 
@@ -256,7 +256,7 @@ void CacheManager::clearAll() const
     }
 
 #ifdef ART_USE_OCIO
-    rtengine::ExternalLUT3D::clear_cache();
+    art::engine::ExternalLUT3D::clear_cache();
 #endif
 }
 
@@ -329,7 +329,7 @@ void CacheManager::deleteFiles(const Glib::ustring &fname,
 
 std::string CacheManager::getMD5(const Glib::ustring &fname)
 {
-    return rtengine::getMD5(fname);
+    return art::engine::getMD5(fname);
 }
 
 Glib::ustring CacheManager::getCacheFileName(const Glib::ustring &subDir,

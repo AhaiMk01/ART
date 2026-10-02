@@ -38,7 +38,7 @@
 // #define DEBUG(format,args...) printf("ThumbImageUpdate::%s: " format "\n",
 // __FUNCTION__, ## args)
 
-class ThumbImageUpdater::Impl: public rtengine::NonCopyable {
+class ThumbImageUpdater::Impl: public art::engine::NonCopyable {
 public:
     struct Job {
         Job(ThumbBrowserEntryBase *tbe, bool *priority, bool upgrade,
@@ -57,7 +57,7 @@ public:
         }
 
         ThumbBrowserEntryBase *tbe_;
-        /*rtengine::procparams::ProcParams pparams_;
+        /*art::engine::procparams::ProcParams pparams_;
         int height_;*/
         bool *priority_;
         bool upgrade_;
@@ -132,7 +132,7 @@ public:
         // unlock and do processing; will relock on block exit, then call
         // listener
         double scale = 1.0;
-        rtengine::IImage8 *img = nullptr;
+        art::engine::IImage8 *img = nullptr;
         Thumbnail *thm = j.tbe_->thumbnail;
 
         DEBUG("working on %s", thm->getFileName().c_str());
@@ -204,8 +204,8 @@ void ThumbImageUpdater::add(ThumbBrowserEntryBase *tbe, bool *priority,
     impl_->jobs_.push_back(Impl::Job(tbe, priority, upgrade, l));
 
     DEBUG("adding run request %s", tbe->filename.c_str());
-    rtengine::ThreadPool::add_task(
-        rtengine::ThreadPool::Priority::LOW,
+    art::engine::ThreadPool::add_task(
+        art::engine::ThreadPool::Priority::LOW,
         sigc::mem_fun(*impl_, &ThumbImageUpdater::Impl::processNextJob));
 }
 

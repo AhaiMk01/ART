@@ -28,7 +28,7 @@
 #include <omp.h>
 #endif
 
-namespace rtengine {
+namespace art { namespace engine {
 
 void ImProcFunctions::filmSimulation(Imagefloat *img)
 {
@@ -81,4 +81,4 @@ void ImProcFunctions::filmSimulation(Imagefloat *img)
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

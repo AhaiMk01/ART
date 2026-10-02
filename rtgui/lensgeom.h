@@ -38,8 +38,8 @@ public:
 
     Gtk::Box *getPackBox() { return packBox; }
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
 
     void fillPressed();
     void autoCropPressed();

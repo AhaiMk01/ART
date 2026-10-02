@@ -40,7 +40,7 @@
 
 extern Options options;
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace {
 
@@ -238,13 +238,13 @@ void extract_channels(Imagefloat *img, array2D<float> &r, array2D<float> &g,
     const int H = img->getHeight();
 
     array2D<float> imgR(W, H, img->r.ptrs, ARRAY2D_BYREFERENCE);
-    rtengine::guidedFilter(imgR, imgR, r, radius, epsilon, multithread);
+    art::engine::guidedFilter(imgR, imgR, r, radius, epsilon, multithread);
 
     array2D<float> imgG(W, H, img->g.ptrs, ARRAY2D_BYREFERENCE);
-    rtengine::guidedFilter(imgG, imgG, g, radius, epsilon, multithread);
+    art::engine::guidedFilter(imgG, imgG, g, radius, epsilon, multithread);
 
     array2D<float> imgB(W, H, img->b.ptrs, ARRAY2D_BYREFERENCE);
-    rtengine::guidedFilter(imgB, imgB, b, radius, epsilon, multithread);
+    art::engine::guidedFilter(imgB, imgB, b, radius, epsilon, multithread);
 }
 
 void subtract_black(Imagefloat *img, int percent, bool multithread)
@@ -458,7 +458,7 @@ void ImProcFunctions::dehaze(Imagefloat *img)
 
     {
         array2D<float> guideB(W, H, img->b.ptrs, ARRAY2D_BYREFERENCE);
-        rtengine::guidedFilter(guideB, t_tilde, t, radius, epsilon,
+        art::engine::guidedFilter(guideB, t_tilde, t, radius, epsilon,
                                multiThread);
     }
 
@@ -531,4 +531,4 @@ void ImProcFunctions::dehaze(Imagefloat *img)
     restore(img, maxchan, multiThread);
 }
 
-} // namespace rtengine
+}} // namespace art::engine

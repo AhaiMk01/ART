@@ -25,8 +25,8 @@
 
 #include <iostream>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 History::History(bool bookmarkSupport)
     : historyVPaned(nullptr), blistener(nullptr), tpc(nullptr), bmnum(1),
@@ -479,7 +479,7 @@ void History::resized (Gtk::Allocation& req)
 }
 */
 
-bool History::getBeforeAfterParams(rtengine::procparams::ProcParams &params)
+bool History::getBeforeAfterParams(art::engine::procparams::ProcParams &params)
 {
 
     int size = historyModel->children().size();
@@ -545,7 +545,7 @@ void History::setPParamsSnapshotListener(PParamsSnapshotListener *l)
 
 void History::setSnapshots(
     const std::vector<
-        std::pair<Glib::ustring, rtengine::procparams::ProcParams>> &snapshots)
+        std::pair<Glib::ustring, art::engine::procparams::ProcParams>> &snapshots)
 {
     bookmarkModel->clear();
     for (auto &p : snapshots) {
@@ -556,10 +556,10 @@ void History::setSnapshots(
     }
 }
 
-std::vector<std::pair<Glib::ustring, rtengine::procparams::ProcParams>>
+std::vector<std::pair<Glib::ustring, art::engine::procparams::ProcParams>>
 History::getSnapshots()
 {
-    std::vector<std::pair<Glib::ustring, rtengine::procparams::ProcParams>> ret;
+    std::vector<std::pair<Glib::ustring, art::engine::procparams::ProcParams>> ret;
     for (const auto &row : bookmarkModel->children()) {
         ret.push_back(std::make_pair(row[bookmarkColumns.text],
                                      row[bookmarkColumns.params]));

@@ -29,18 +29,18 @@ class SoftLight: public ToolParamBlock,
 private:
     Adjuster *strength;
 
-    rtengine::ProcEvent EvSoftLightEnabled;
-    rtengine::ProcEvent EvSoftLightStrength;
+    art::engine::ProcEvent EvSoftLightEnabled;
+    art::engine::ProcEvent EvSoftLightStrength;
 
-    rtengine::procparams::SoftLightParams initial_params;
+    art::engine::procparams::SoftLightParams initial_params;
 
 public:
     SoftLight();
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
     void adjusterChanged(Adjuster *a, double newval) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
     void enabledChanged() override;

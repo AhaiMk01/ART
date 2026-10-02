@@ -24,18 +24,18 @@
 #include <iomanip>
 #include <sigc++/slot.h>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 Saturation::Saturation()
     : FoldableToolPanel(this, "saturation", M("TP_SATURATION_LABEL"), false,
                         true, true)
 {
     auto m = ProcEventMapper::getInstance();
-    EvVibrance = m->newEvent(rtengine::LUMINANCECURVE,
+    EvVibrance = m->newEvent(art::engine::LUMINANCECURVE,
                              "HISTORY_MSG_SATURATION_VIBRANCE");
-    EvToolEnabled.set_action(rtengine::LUMINANCECURVE);
-    EvToolReset.set_action(rtengine::LUMINANCECURVE);
+    EvToolEnabled.set_action(art::engine::LUMINANCECURVE);
+    EvToolReset.set_action(art::engine::LUMINANCECURVE);
     // autolevels = nullptr;
 
     saturation = Gtk::manage(
@@ -95,7 +95,7 @@ void Saturation::adjusterChanged(Adjuster *a, double newval)
 
 void Saturation::adjusterAutoToggled(Adjuster *a, bool newval) {}
 
-void Saturation::trimValues(rtengine::procparams::ProcParams *pp)
+void Saturation::trimValues(art::engine::procparams::ProcParams *pp)
 {
     saturation->trimValue(pp->saturation.saturation);
     vibrance->trimValue(pp->saturation.vibrance);

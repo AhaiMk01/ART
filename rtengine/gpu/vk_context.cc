@@ -34,7 +34,7 @@
 #include <iostream>
 #include <sstream>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -1329,4 +1329,4 @@ bool copyBufferToBuffer(Context &ctx, const Buffer &src, size_t src_offset,
 }
 
 } // namespace gpu
-} // namespace rtengine
+}} // namespace art::engine

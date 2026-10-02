@@ -324,7 +324,7 @@ void CurveEditor::setUnChanged(bool uc) { group->setUnChanged(uc, this); }
 /*
  * Update the backgrounds histograms
  */
-void CurveEditor::updateBackgroundHistogram(const LUTu &hist)
+void CurveEditor::updateBackgroundHistogram(const art::engine::LUTu &hist)
 {
     // Copy the histogram in the curve editor cache
     if (hist) {

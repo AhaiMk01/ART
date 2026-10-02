@@ -90,7 +90,7 @@ protected:
     CursorShape motionNotify(CursorShape type, double minDistanceX,
                              double minDistanceY, int num);
     std::vector<double> get_vector(int veclen) override;
-    void get_LUT(LUTf &lut);
+    void get_LUT(art::engine::LUTf &lut);
     // Get the cursor position and unclamped position from the curve given an X
     // value ; BEWARE: can be time consuming, use with care
     void getCursorPositionFromCurve(float x);
@@ -111,7 +111,7 @@ public:
     void setActiveParam(int ac);
     void reset(const std::vector<double> &resetCurve,
                double identityValue = 0.5) override;
-    void updateBackgroundHistogram(LUTu &hist);
+    void updateBackgroundHistogram(art::engine::LUTu &hist);
 
     void pipetteMouseOver(CurveEditor *ce, EditDataProvider *provider,
                           int modifierKey) override;

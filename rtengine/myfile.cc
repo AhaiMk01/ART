@@ -71,6 +71,9 @@ int munmap(void *start, size_t length)
 #endif // WIN32
 #endif // MYFILE_MMAP
 
+namespace art { namespace engine {
+
+
 #ifdef MYFILE_MMAP
 
 IMFILE *fopen(const char *fname)
@@ -276,7 +279,7 @@ char *fgets(char *s, ssize_t n, IMFILE *f)
     return s;
 }
 
-void imfile_set_plistener(IMFILE *f, rtengine::ProgressListener *plistener,
+void imfile_set_plistener(IMFILE *f, art::engine::ProgressListener *plistener,
                           double progress_range)
 {
     f->plistener = plistener;
@@ -306,3 +309,6 @@ void imfile_update_progress(IMFILE *f)
 
     f->plistener->setProgress(p * f->progress_range);
 }
+
+
+} } // namespace art::engine

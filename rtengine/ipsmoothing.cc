@@ -49,7 +49,7 @@
 
 extern Options options;
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace { enum class Channel { L, C, LC }; }
 
@@ -383,9 +383,9 @@ void guided_smoothing(array2D<float> &R, array2D<float> &G, array2D<float> &B,
         const bool luminance = (chan == Channel::L);
 
         if (rgb) {
-            rtengine::guidedFilterLog(10.f, R, r, epsilon, multithread);
-            rtengine::guidedFilterLog(10.f, G, r, epsilon, multithread);
-            rtengine::guidedFilterLog(10.f, B, r, epsilon, multithread);
+            art::engine::guidedFilterLog(10.f, R, r, epsilon, multithread);
+            art::engine::guidedFilterLog(10.f, G, r, epsilon, multithread);
+            art::engine::guidedFilterLog(10.f, B, r, epsilon, multithread);
         } else {
             array2D<float> guide(W, H, ARRAY2D_ALIGNED);
 #ifdef _OPENMP
@@ -398,9 +398,9 @@ void guided_smoothing(array2D<float> &R, array2D<float> &G, array2D<float> &B,
                     guide[y][x] = xlin2log(max(l, 0.f), 10.f);
                 }
             }
-            rtengine::guidedFilterLog(guide, 10.f, R, r, epsilon, multithread);
-            rtengine::guidedFilterLog(guide, 10.f, G, r, epsilon, multithread);
-            rtengine::guidedFilterLog(guide, 10.f, B, r, epsilon, multithread);
+            art::engine::guidedFilterLog(guide, 10.f, R, r, epsilon, multithread);
+            art::engine::guidedFilterLog(guide, 10.f, G, r, epsilon, multithread);
+            art::engine::guidedFilterLog(guide, 10.f, B, r, epsilon, multithread);
 
 #ifdef _OPENMP
 #pragma omp parallel for if (multithread)
@@ -1205,7 +1205,7 @@ bool ImProcFunctions::guidedSmoothing(Imagefloat *rgb)
     return false;
 }
 
-} // namespace rtengine
+}} // namespace art::engine
 
 
 #ifdef ART_USE_VULKAN
@@ -1221,7 +1221,7 @@ bool ImProcFunctions::guidedSmoothing(Imagefloat *rgb)
 #include <cstring>
 #include <mutex>
 
-namespace rtengine { namespace gpu { namespace ops {
+namespace art { namespace engine { namespace gpu { namespace ops {
 
 namespace {
 
@@ -1843,11 +1843,11 @@ bool nlmeans_smoothing(Imagefloat *rgb,
 }
 
 
-}}} // namespace rtengine::gpu::ops
+}}}} // namespace art::engine::gpu::ops
 
 #else // !ART_USE_VULKAN
 
-namespace rtengine { namespace gpu { namespace ops {
+namespace art { namespace engine { namespace gpu { namespace ops {
 
 bool wavelet_smoothing(Imagefloat *rgb,
                        const TMatrix &ws, float strength, int levels,
@@ -1865,7 +1865,7 @@ bool nlmeans_smoothing(Imagefloat *rgb,
     return false;
 }
 
-}}} // namespace rtengine::gpu::ops
+}}}} // namespace art::engine::gpu::ops
 
 #endif // ART_USE_VULKAN
 

@@ -46,8 +46,8 @@ public:
  * not set by this class but by the CropHandlerListener (i.e. CropWindow) with
  * which it works closely.
  */
-class CropHandler final: public rtengine::DetailedCropListener,
-                         public rtengine::SizeListener {
+class CropHandler final: public art::engine::DetailedCropListener,
+                         public art::engine::SizeListener {
 public:
     CropHandler();
     ~CropHandler() override;
@@ -55,7 +55,7 @@ public:
     void setDisplayHandler(CropDisplayHandler *l) { displayHandler = l; }
     void setEditSubscriber(EditSubscriber *newSubscriber);
 
-    void newImage(std::shared_ptr<rtengine::StagedImageProcessor> ipc_,
+    void newImage(std::shared_ptr<art::engine::StagedImageProcessor> ipc_,
                   bool isDetailWindow);
     void setZoom(int z, int centerx = -1, int centery = -1);
     float getZoomFactor();
@@ -78,16 +78,16 @@ public:
     int getDisplayScale() const { return display_scale_; }
     void setDisplayScale(int scale);
     
-    void colorPick(const rtengine::Coord &pickerPos, float &r, float &g,
+    void colorPick(const art::engine::Coord &pickerPos, float &r, float &g,
                    float &b, float &rpreview, float &gpreview, float &bpreview,
                    LockableColorPicker::Size size);
 
-    rtengine::DetailedCrop *getCrop() { return crop; }
+    art::engine::DetailedCrop *getCrop() { return crop; }
 
     // DetailedCropListener interface
-    void setDetailedCrop(rtengine::IImage8 *im, rtengine::IImage8 *imworking,
-                         const rtengine::procparams::ColorManagementParams &cmp,
-                         const rtengine::procparams::CropParams &cp, int cx,
+    void setDetailedCrop(art::engine::IImage8 *im, art::engine::IImage8 *imworking,
+                         const art::engine::procparams::ColorManagementParams &cmp,
+                         const art::engine::procparams::CropParams &cp, int cx,
                          int cy, int cw, int ch, int skip) override;
     void getWindow(int &cwx, int &cwy, int &cww, int &cwh, int &cskip) override;
 
@@ -96,8 +96,8 @@ public:
 
     void update();
 
-    rtengine::procparams::CropParams cropParams;
-    rtengine::procparams::ColorManagementParams colorParams;
+    art::engine::procparams::CropParams cropParams;
+    art::engine::procparams::ColorManagementParams colorParams;
     Glib::RefPtr<Gdk::Pixbuf>
         cropPixbuf; // image displayed on monitor, using the monitor profile
                     // (i.e. lab to monitor profile)
@@ -134,8 +134,8 @@ private:
     std::vector<unsigned char> cropimgtrue;
     int cropimg_width, cropimg_height, cix, ciy, ciw, cih, cis;
 
-    std::shared_ptr<rtengine::StagedImageProcessor> ipc;
-    rtengine::DetailedCrop *crop;
+    std::shared_ptr<art::engine::StagedImageProcessor> ipc;
+    art::engine::DetailedCrop *crop;
 
     CropDisplayHandler *displayHandler;
 

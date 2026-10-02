@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _DIAGONALCURVEEDITORSUBGROUP_
-#define _DIAGONALCURVEEDITORSUBGROUP_
+#pragma once
 
 #include "curveeditorgroup.h"
 #include <gtkmm.h>
@@ -118,5 +117,3 @@ protected:
                                 Glib::ustring r3, Glib::ustring r4);
     void setSubGroupBottomBarBgGradient();
 };
-
-#endif

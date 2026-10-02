@@ -37,6 +37,9 @@
 #include "rt_math.h"
 #include "settings.h"
 
+namespace art { namespace engine {
+
+
 namespace {
 
 void boxblur2(const float *const *src, float **dst, float **temp, int startY,
@@ -321,7 +324,7 @@ void boxblur_resamp(const float *const *src, float **dst, float **temp, int H,
 
 } // namespace
 
-namespace rtengine {
+
 
 extern const Settings *settings;
 
@@ -1362,7 +1365,7 @@ void RawImageSource::HLRecovery_inpaint(int blur)
             progress += 0.05;
             plistener->setProgress(progress);
         }
-        blur = rtengine::LIM(blur - 1, 0, 3);
+        blur = art::engine::LIM(blur - 1, 0, 3);
 
         constexpr float vals[4][3] = {{4.0f, 0.3f, 0.3f},
                                       //    {3.5f, 0.5f, 0.2f},
@@ -1773,4 +1776,5 @@ void RawImageSource::highlight_recovery_opposed(float scale_mul[3],
     }
 }
 
-} // namespace rtengine
+
+} } // namespace art::engine

@@ -17,8 +17,7 @@
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __COLORPICKER__
-#define __COLORPICKER__
+#pragma once
 
 #include "../rtengine/coord.h"
 #include "edit.h"
@@ -51,8 +50,8 @@ private:
     CropWindow *cropWindow; // the color picker is displayed in a single
                             // cropWindow, the one that the user has clicked in
     ColorPickerType displayedValues;
-    rtengine::Coord position; // Coordinate in image space
-    rtengine::Coord anchorOffset;
+    art::engine::Coord position; // Coordinate in image space
+    art::engine::Coord anchorOffset;
     Size size;
     Glib::ustring *outputProfile;
     Glib::ustring *workingProfile;
@@ -71,12 +70,12 @@ public:
     void draw(Cairo::RefPtr<Cairo::Context> &cr);
 
     // Used to update the RGB color, the HSV values will be updated accordingly
-    void setPosition(const rtengine::Coord &newPos);
+    void setPosition(const art::engine::Coord &newPos);
     void setRGB(const float R, const float G, const float B,
                 const float previewR, const float previewG,
                 const float previewB);
-    void getImagePosition(rtengine::Coord &imgPos);
-    void getScreenPosition(rtengine::Coord &screenPos);
+    void getImagePosition(art::engine::Coord &imgPos);
+    void getScreenPosition(art::engine::Coord &screenPos);
     Size getSize();
     bool isOver(int x, int y);
     void setValidity(Validity isValid);
@@ -87,5 +86,3 @@ public:
     bool cycleRGB();
     bool cycleLCH();
 };
-
-#endif

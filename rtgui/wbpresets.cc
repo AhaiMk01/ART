@@ -25,11 +25,11 @@ std::vector<WBPreset> ToolPanelCoordinator::getWBPresets() const
 {
     std::vector<WBPreset> ret;
     if (ipc) {
-        const rtengine::FramesData *md =
-            dynamic_cast<const rtengine::FramesData *>(
+        const art::engine::FramesData *md =
+            dynamic_cast<const art::engine::FramesData *>(
                 ipc->getInitialImage()->getMetaData());
-        rtengine::RawImageSource *src =
-            dynamic_cast<rtengine::RawImageSource *>(ipc->getInitialImage());
+        art::engine::RawImageSource *src =
+            dynamic_cast<art::engine::RawImageSource *>(ipc->getInitialImage());
         if (md && src) {
             std::string key = md->getInternalMakeModel();
 
@@ -47,7 +47,7 @@ void ToolPanelCoordinator::convertWBCam2Mul(double &rm, double &gm, double &bm)
 {
     if (ipc) {
         auto src =
-            dynamic_cast<rtengine::ImageSource *>(ipc->getInitialImage());
+            dynamic_cast<art::engine::ImageSource *>(ipc->getInitialImage());
         if (src) {
             src->wbCamera2Mul(rm, gm, bm);
         }
@@ -58,7 +58,7 @@ void ToolPanelCoordinator::convertWBMul2Cam(double &rm, double &gm, double &bm)
 {
     if (ipc) {
         auto src =
-            dynamic_cast<rtengine::ImageSource *>(ipc->getInitialImage());
+            dynamic_cast<art::engine::ImageSource *>(ipc->getInitialImage());
         if (src) {
             src->wbMul2Camera(rm, gm, bm);
         }

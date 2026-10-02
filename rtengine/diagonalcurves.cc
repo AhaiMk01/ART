@@ -25,7 +25,7 @@
 #include <glib/gstdio.h>
 #include <vector>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -594,4 +594,4 @@ void DiagonalCurve::getVal(const std::vector<double> &t,
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

@@ -630,10 +630,10 @@ void Options::setDefaults()
     rtSettings.monitorIccDirectory = rtSettings.iccDirectory;
 
     rtSettings.printerProfile = Glib::ustring();
-    rtSettings.printerIntent = rtengine::RI_RELATIVE;
+    rtSettings.printerIntent = art::engine::RI_RELATIVE;
     rtSettings.printerBPC = true;
     rtSettings.monitorProfile = Glib::ustring();
-    rtSettings.monitorIntent = rtengine::RI_RELATIVE;
+    rtSettings.monitorIntent = art::engine::RI_RELATIVE;
     rtSettings.monitorBPC = true;
     rtSettings.autoMonitorProfile = false;
     rtSettings.verbose = 0;
@@ -665,9 +665,9 @@ void Options::setDefaults()
     rtSettings.lensfunDbDirectory = ""; // set also in main.cc and main-cli.cc
 
     rtSettings.thumbnail_inspector_mode =
-        rtengine::Settings::ThumbnailInspectorMode::JPEG;
+        art::engine::Settings::ThumbnailInspectorMode::JPEG;
     rtSettings.thumbnail_inspector_raw_curve =
-        rtengine::Settings::ThumbnailInspectorRawCurve::LINEAR;
+        art::engine::Settings::ThumbnailInspectorRawCurve::LINEAR;
     thumbnail_inspector_zoom_fit = false;
     thumbnail_inspector_show_info = false;
     thumbnail_inspector_enable_cms = false;
@@ -679,11 +679,11 @@ void Options::setDefaults()
 
     thumbnail_rating_mode = Options::ThumbnailRatingMode::XMP;
 #if defined WIN32 || defined __APPLE__
-    rtSettings.xmp_sidecar_style = rtengine::Settings::XmpSidecarStyle::STD;
+    rtSettings.xmp_sidecar_style = art::engine::Settings::XmpSidecarStyle::STD;
 #else
-    rtSettings.xmp_sidecar_style = rtengine::Settings::XmpSidecarStyle::EXT;
+    rtSettings.xmp_sidecar_style = art::engine::Settings::XmpSidecarStyle::EXT;
 #endif
-    rtSettings.metadata_xmp_sync = rtengine::Settings::MetadataXmpSync::READ;
+    rtSettings.metadata_xmp_sync = art::engine::Settings::MetadataXmpSync::READ;
     rtSettings.exiftool_path = "exiftool";
 #ifdef WIN32
     rtSettings.exiftool_path += ".exe";
@@ -731,7 +731,7 @@ void Options::setDefaults()
 
     preview_resampling_quality = PreviewResamplingQuality::MEDIUM;
 
-    rtSettings.os_monitor_profile = rtengine::Settings::StdMonitorProfile::SRGB;
+    rtSettings.os_monitor_profile = art::engine::Settings::StdMonitorProfile::SRGB;
 
     viewing_conditions = ViewingConditions::NORMAL;
     quick_inspect_popup_size_percent = 66;
@@ -1359,7 +1359,7 @@ void Options::readFromFile(Glib::ustring fname)
 
                 if (keyFile.has_key("Performance", "WBPreviewMode")) {
                     int v = keyFile.get_integer("Performance", "WBPreviewMode");
-                    wb_preview_mode = WBPreviewMode(rtengine::LIM(
+                    wb_preview_mode = WBPreviewMode(art::engine::LIM(
                         v, int(WB_AFTER), int(WB_BEFORE_HIGH_DETAIL)));
                 }
 
@@ -1414,13 +1414,13 @@ void Options::readFromFile(Glib::ustring fname)
             if (keyFile.has_group("Inspector")) {
                 if (keyFile.has_key("Inspector", "Mode")) {
                     rtSettings.thumbnail_inspector_mode =
-                        static_cast<rtengine::Settings::ThumbnailInspectorMode>(
+                        static_cast<art::engine::Settings::ThumbnailInspectorMode>(
                             keyFile.get_integer("Inspector", "Mode"));
                 }
 
                 if (keyFile.has_key("Inspector", "RawCurve")) {
                     rtSettings.thumbnail_inspector_raw_curve = static_cast<
-                        rtengine::Settings::ThumbnailInspectorRawCurve>(
+                        art::engine::Settings::ThumbnailInspectorRawCurve>(
                         keyFile.get_integer("Inspector", "RawCurve"));
                 }
 
@@ -1676,7 +1676,7 @@ void Options::readFromFile(Glib::ustring fname)
                 }
 
                 if (keyFile.has_key("GUI", "FrameColor")) {
-                    bgcolor = rtengine::LIM(
+                    bgcolor = art::engine::LIM(
                         keyFile.get_integer("GUI", "FrameColor"), 1, 3);
                 }
 
@@ -1852,7 +1852,7 @@ void Options::readFromFile(Glib::ustring fname)
 
                 if (keyFile.has_key("Color Management", "PrinterIntent")) {
                     rtSettings.printerIntent =
-                        static_cast<rtengine::RenderingIntent>(
+                        static_cast<art::engine::RenderingIntent>(
                             keyFile.get_integer("Color Management",
                                                 "PrinterIntent"));
                 }
@@ -1879,7 +1879,7 @@ void Options::readFromFile(Glib::ustring fname)
 
                 if (keyFile.has_key("Color Management", "Intent")) {
                     rtSettings.monitorIntent =
-                        static_cast<rtengine::RenderingIntent>(
+                        static_cast<art::engine::RenderingIntent>(
                             keyFile.get_integer("Color Management", "Intent"));
                 }
 
@@ -1906,13 +1906,13 @@ void Options::readFromFile(Glib::ustring fname)
                             .lowercase();
                     if (s == "displayp3") {
                         rtSettings.os_monitor_profile =
-                            rtengine::Settings::StdMonitorProfile::DISPLAY_P3;
+                            art::engine::Settings::StdMonitorProfile::DISPLAY_P3;
                     } else if (s == "adobergb") {
                         rtSettings.os_monitor_profile =
-                            rtengine::Settings::StdMonitorProfile::ADOBE_RGB;
+                            art::engine::Settings::StdMonitorProfile::ADOBE_RGB;
                     } else {
                         rtSettings.os_monitor_profile =
-                            rtengine::Settings::StdMonitorProfile::SRGB;
+                            art::engine::Settings::StdMonitorProfile::SRGB;
                     }
                 }
 
@@ -2027,10 +2027,10 @@ void Options::readFromFile(Glib::ustring fname)
                         keyFile.get_string("Metadata", "XMPSidecarStyle");
                     if (val == "ext") {
                         rtSettings.xmp_sidecar_style =
-                            rtengine::Settings::XmpSidecarStyle::EXT;
+                            art::engine::Settings::XmpSidecarStyle::EXT;
                     } else {
                         rtSettings.xmp_sidecar_style =
-                            rtengine::Settings::XmpSidecarStyle::STD;
+                            art::engine::Settings::XmpSidecarStyle::STD;
                     }
                 }
                 if (keyFile.has_key("Metadata", "XMPSynchronization")) {
@@ -2038,13 +2038,13 @@ void Options::readFromFile(Glib::ustring fname)
                         keyFile.get_string("Metadata", "XMPSynchronization");
                     if (val == "read") {
                         rtSettings.metadata_xmp_sync =
-                            rtengine::Settings::MetadataXmpSync::READ;
+                            art::engine::Settings::MetadataXmpSync::READ;
                     } else if (val == "readwrite") {
                         rtSettings.metadata_xmp_sync =
-                            rtengine::Settings::MetadataXmpSync::READ_WRITE;
+                            art::engine::Settings::MetadataXmpSync::READ_WRITE;
                     } else {
                         rtSettings.metadata_xmp_sync =
-                            rtengine::Settings::MetadataXmpSync::NONE;
+                            art::engine::Settings::MetadataXmpSync::NONE;
                     }
                 }
                 if (keyFile.has_key("Metadata", "ExiftoolPath")) {
@@ -2502,7 +2502,7 @@ void Options::saveToFile(Glib::ustring fname)
         keyFile.set_double("GUI", "HistogramScalingFactor",
                            histogram_scaling_factor);
         keyFile.set_integer("GUI", "HistogramScopeType",
-                            rtengine::toUnderlying(histogramScopeType));
+                            art::engine::toUnderlying(histogramScopeType));
         keyFile.set_boolean("GUI", "HistogramShowOptionButtons",
                             histogramShowOptionButtons);
         keyFile.set_double("GUI", "HistogramTraceBrightness",
@@ -2552,10 +2552,10 @@ void Options::saveToFile(Glib::ustring fname)
 
         Glib::ustring os_mon_prof = "";
         switch (rtSettings.os_monitor_profile) {
-        case rtengine::Settings::StdMonitorProfile::DISPLAY_P3:
+        case art::engine::Settings::StdMonitorProfile::DISPLAY_P3:
             os_mon_prof = "DisplayP3";
             break;
-        case rtengine::Settings::StdMonitorProfile::ADOBE_RGB:
+        case art::engine::Settings::StdMonitorProfile::ADOBE_RGB:
             os_mon_prof = "AdobeRGB";
             break;
         default:
@@ -2618,7 +2618,7 @@ void Options::saveToFile(Glib::ustring fname)
                            rtSettings.lensfunDbDirectory);
 
         switch (rtSettings.xmp_sidecar_style) {
-        case rtengine::Settings::XmpSidecarStyle::EXT:
+        case art::engine::Settings::XmpSidecarStyle::EXT:
             keyFile.set_string("Metadata", "XMPSidecarStyle", "ext");
             break;
         default:
@@ -2626,10 +2626,10 @@ void Options::saveToFile(Glib::ustring fname)
         }
 
         switch (rtSettings.metadata_xmp_sync) {
-        case rtengine::Settings::MetadataXmpSync::READ:
+        case art::engine::Settings::MetadataXmpSync::READ:
             keyFile.set_string("Metadata", "XMPSynchronization", "read");
             break;
-        case rtengine::Settings::MetadataXmpSync::READ_WRITE:
+        case art::engine::Settings::MetadataXmpSync::READ_WRITE:
             keyFile.set_string("Metadata", "XMPSynchronization", "readwrite");
             break;
         default:
@@ -2695,24 +2695,24 @@ void Options::load(bool lightweight, int verbose)
 {
 #ifdef __APPLE__
 #ifdef ART_MACOS_GDK_QUARTZ_COLORSPACE
-    rtengine::Settings::color_mgmt_mode =
-        rtengine::Settings::ColorManagementMode::OS_STD_MONITOR_PROFILE;
+    art::engine::Settings::color_mgmt_mode =
+        art::engine::Settings::ColorManagementMode::OS_STD_MONITOR_PROFILE;
 #else
-    rtengine::Settings::color_mgmt_mode =
-        rtengine::Settings::ColorManagementMode::OS_SRGB;
+    art::engine::Settings::color_mgmt_mode =
+        art::engine::Settings::ColorManagementMode::OS_SRGB;
 #endif
 // #elif defined WIN32
 #else
-    rtengine::Settings::color_mgmt_mode =
-        rtengine::Settings::ColorManagementMode::APPLICATION;
+    art::engine::Settings::color_mgmt_mode =
+        art::engine::Settings::ColorManagementMode::APPLICATION;
 // #else
 //     const gchar *desktop_env = g_getenv("XDG_SESSION_TYPE");
 //     if (desktop_env && strcmp(desktop_env, "wayland") == 0) {
-//         rtengine::Settings::color_mgmt_mode =
-//         rtengine::Settings::ColorManagementMode::OS_SRGB;
+//         art::engine::Settings::color_mgmt_mode =
+//         art::engine::Settings::ColorManagementMode::OS_SRGB;
 //     } else {
-//         rtengine::Settings::color_mgmt_mode =
-//         rtengine::Settings::ColorManagementMode::APPLICATION;
+//         art::engine::Settings::color_mgmt_mode =
+//         art::engine::Settings::ColorManagementMode::APPLICATION;
 //     }
 #endif
 
@@ -2985,12 +2985,12 @@ void Options::load(bool lightweight, int verbose)
 
     options.svg_color = Options::svg_dark_color;
     if (options.theme == Options::DEFAULT_THEME) {
-        options.svg_color = rtengine::get_html_color(options.theme_fg_color[0],
+        options.svg_color = art::engine::get_html_color(options.theme_fg_color[0],
                                                      options.theme_fg_color[1],
                                                      options.theme_fg_color[2]);
     }
 
-    rtengine::init(&options.rtSettings, ART_base_dir, user_config_dir,
+    art::engine::init(&options.rtSettings, ART_base_dir, user_config_dir,
                    !lightweight);
 }
 
@@ -3063,59 +3063,59 @@ Glib::ustring Options::getGlobalProfilePath() { return globalProfilePath; }
 bool Options::is_defProfRawMissing()
 {
     return defProfError &
-           rtengine::toUnderlying(DefProfError::defProfRawMissing);
+           art::engine::toUnderlying(DefProfError::defProfRawMissing);
 }
 bool Options::is_defProfImgMissing()
 {
     return defProfError &
-           rtengine::toUnderlying(DefProfError::defProfImgMissing);
+           art::engine::toUnderlying(DefProfError::defProfImgMissing);
 }
 void Options::setDefProfRawMissing(bool value)
 {
     if (value) {
-        defProfError |= rtengine::toUnderlying(DefProfError::defProfRawMissing);
+        defProfError |= art::engine::toUnderlying(DefProfError::defProfRawMissing);
     } else {
         defProfError &=
-            ~rtengine::toUnderlying(DefProfError::defProfRawMissing);
+            ~art::engine::toUnderlying(DefProfError::defProfRawMissing);
     }
 }
 void Options::setDefProfImgMissing(bool value)
 {
     if (value) {
-        defProfError |= rtengine::toUnderlying(DefProfError::defProfImgMissing);
+        defProfError |= art::engine::toUnderlying(DefProfError::defProfImgMissing);
     } else {
         defProfError &=
-            ~rtengine::toUnderlying(DefProfError::defProfImgMissing);
+            ~art::engine::toUnderlying(DefProfError::defProfImgMissing);
     }
 }
 bool Options::is_bundledDefProfRawMissing()
 {
     return defProfError &
-           rtengine::toUnderlying(DefProfError::bundledDefProfRawMissing);
+           art::engine::toUnderlying(DefProfError::bundledDefProfRawMissing);
 }
 bool Options::is_bundledDefProfImgMissing()
 {
     return defProfError &
-           rtengine::toUnderlying(DefProfError::bundledDefProfImgMissing);
+           art::engine::toUnderlying(DefProfError::bundledDefProfImgMissing);
 }
 void Options::setBundledDefProfRawMissing(bool value)
 {
     if (value) {
         defProfError |=
-            rtengine::toUnderlying(DefProfError::bundledDefProfRawMissing);
+            art::engine::toUnderlying(DefProfError::bundledDefProfRawMissing);
     } else {
         defProfError &=
-            ~rtengine::toUnderlying(DefProfError::bundledDefProfRawMissing);
+            ~art::engine::toUnderlying(DefProfError::bundledDefProfRawMissing);
     }
 }
 void Options::setBundledDefProfImgMissing(bool value)
 {
     if (value) {
         defProfError |=
-            rtengine::toUnderlying(DefProfError::bundledDefProfImgMissing);
+            art::engine::toUnderlying(DefProfError::bundledDefProfImgMissing);
     } else {
         defProfError &=
-            ~rtengine::toUnderlying(DefProfError::bundledDefProfImgMissing);
+            ~art::engine::toUnderlying(DefProfError::bundledDefProfImgMissing);
     }
 }
 Glib::ustring Options::getICCProfileCopyright()
@@ -3137,5 +3137,5 @@ Glib::ustring Options::getParamFile(const Glib::ustring &fname)
 
 Glib::ustring Options::getXmpSidecarFile(const Glib::ustring &fname)
 {
-    return rtengine::Exiv2Metadata::xmpSidecarPath(fname);
+    return art::engine::Exiv2Metadata::xmpSidecarPath(fname);
 }

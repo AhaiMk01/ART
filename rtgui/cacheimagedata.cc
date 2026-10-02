@@ -29,8 +29,8 @@ CacheImageData::CacheImageData()
       timeValid(false), year(0), month(0), day(0), hour(0), min(0), sec(0),
       exifValid(false), frameCount(1), fnumber(0.0), shutter(0.0),
       focalLen(0.0), focalLen35mm(0.0), focusDist(0.f), iso(0), isHDR(false),
-      isPixelShift(false), sensortype(rtengine::ST_NONE),
-      sampleFormat(rtengine::IIOSF_UNKNOWN), rating(0), colorLabel(-1),
+      isPixelShift(false), sensortype(art::engine::ST_NONE),
+      sampleFormat(art::engine::IIOSF_UNKNOWN), rating(0), colorLabel(-1),
       timestamp(-1), redAWBMul(-1.0), greenAWBMul(-1.0), blueAWBMul(-1.0),
       rotate(0), thumbImgType(0), width(-1), height(-1)
 {
@@ -199,7 +199,7 @@ int CacheImageData::load(const Glib::ustring &fname)
                 }
                 if (keyFile.has_key("FileInfo", "SampleFormat")) {
                     sampleFormat =
-                        (rtengine::IIO_Sample_Format)keyFile.get_integer(
+                        (art::engine::IIO_Sample_Format)keyFile.get_integer(
                             "FileInfo", "SampleFormat");
                 }
                 if (keyFile.has_key("FileInfo", "Width")) {

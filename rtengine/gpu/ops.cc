@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 
-namespace rtengine { namespace gpu { namespace ops {
+namespace art { namespace engine { namespace gpu { namespace ops {
 
 namespace {
 
@@ -244,4 +244,4 @@ bool rescaleBilinear(Context &ctx, const char *label, Buffer &src,
     });
 }
 
-}}} // namespace rtengine::gpu::ops
+}}}} // namespace art::engine::gpu::ops

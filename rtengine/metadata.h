@@ -27,7 +27,7 @@
 #include <memory>
 #include <unordered_set>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class ProgressListener;
 class Exiftool;
@@ -70,16 +70,16 @@ public:
     }
 
     const Glib::ustring &filename() const { return src_; }
-    const rtengine::procparams::ExifPairs &exif() const { return exif_; }
-    const rtengine::procparams::IPTCPairs &iptc() const { return iptc_; }
-    void setExif(const rtengine::procparams::ExifPairs &exif) { exif_ = exif; }
-    void setIptc(const rtengine::procparams::IPTCPairs &iptc) { iptc_ = iptc; }
+    const art::engine::procparams::ExifPairs &exif() const { return exif_; }
+    const art::engine::procparams::IPTCPairs &iptc() const { return iptc_; }
+    void setExif(const art::engine::procparams::ExifPairs &exif) { exif_ = exif; }
+    void setIptc(const art::engine::procparams::IPTCPairs &iptc) { iptc_ = iptc; }
 
     void saveToImage(ProgressListener *pl, const Glib::ustring &path,
                      bool preserve_all_tags) const;
     void saveToXmp(const Glib::ustring &path) const;
 
-    void setOutputRating(const rtengine::procparams::ProcParams &pparams,
+    void setOutputRating(const art::engine::procparams::ProcParams &pparams,
                          bool from_xmp_sidecar);
 
     void setExifKeys(const std::vector<std::string> *keys);
@@ -110,8 +110,8 @@ private:
     Glib::ustring src_;
     bool merge_xmp_;
     mutable std::shared_ptr<Exiv2::Image> image_;
-    rtengine::procparams::ExifPairs exif_;
-    rtengine::procparams::IPTCPairs iptc_;
+    art::engine::procparams::ExifPairs exif_;
+    art::engine::procparams::IPTCPairs iptc_;
     Exiv2::ExifData exif_data_;
     Exiv2::IptcData iptc_data_;
     Exiv2::XmpData xmp_data_;
@@ -140,4 +140,4 @@ private:
     static std::unique_ptr<Exiftool> exiftool_;
 };
 
-} // namespace rtengine
+}} // namespace art::engine

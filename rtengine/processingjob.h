@@ -17,12 +17,11 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _PROCESSINGJOB_
-#define _PROCESSINGJOB_
+#pragma once
 
 #include "rtengine.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class ProcessingJobImpl: public ProcessingJob {
 
@@ -59,6 +58,4 @@ public:
     bool fastPipeline() const override { return fast; }
 };
 
-} // namespace rtengine
-
-#endif
+}} // namespace art::engine

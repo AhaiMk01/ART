@@ -29,7 +29,7 @@
 #include "image8.h"
 #include "noncopyable.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class GamutWarning: public NonCopyable {
 public:
@@ -46,4 +46,4 @@ private:
     cmsHTRANSFORM softproof2ref;
 };
 
-} // namespace rtengine
+}} // namespace art::engine

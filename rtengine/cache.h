@@ -29,7 +29,7 @@
 
 #include "../rtgui/threadutils.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace cache_helper {
 
@@ -208,4 +208,4 @@ private:
     mutable LruList lru_list;
 };
 
-} // namespace rtengine
+}} // namespace art::engine

@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _THUMBIMAGEUPDATER_
-#define _THUMBIMAGEUPDATER_
+#pragma once
 
 #include <glib.h>
 #include <glibmm.h>
@@ -41,11 +40,11 @@ public:
      * @note no locks are held when called back
      */
     virtual void
-    updateImage(rtengine::IImage8 *img, double scale,
-                const rtengine::procparams::CropParams &cropParams) = 0;
+    updateImage(art::engine::IImage8 *img, double scale,
+                const art::engine::procparams::CropParams &cropParams) = 0;
 };
 
-class ThumbImageUpdater: public rtengine::NonCopyable {
+class ThumbImageUpdater: public art::engine::NonCopyable {
 public:
     /**
      * @brief Singleton entry point.
@@ -100,5 +99,3 @@ private:
  * To use: \c thumbImageUpdater->start() ,
  */
 #define thumbImageUpdater ThumbImageUpdater::getInstance()
-
-#endif

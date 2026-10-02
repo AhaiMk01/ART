@@ -31,9 +31,9 @@ class CLUTParamsPanel: public Gtk::VBox,
 public:
     CLUTParamsPanel();
 
-    void setParams(const rtengine::CLUTParamDescriptorList &params);
-    void setValue(const rtengine::CLUTParamValueMap &val);
-    rtengine::CLUTParamValueMap getValue() const;
+    void setParams(const art::engine::CLUTParamDescriptorList &params);
+    void setValue(const art::engine::CLUTParamValueMap &val);
+    art::engine::CLUTParamValueMap getValue() const;
 
     sigc::signal<void> signal_changed() { return sig_changed_; }
 
@@ -50,7 +50,7 @@ private:
 
     sigc::signal<void> sig_changed_;
     bool sig_blocked_;
-    rtengine::CLUTParamDescriptorList params_;
+    art::engine::CLUTParamDescriptorList params_;
     std::vector<void *> widgets_;
     sigc::connection presets_conn_;
     MyComboBoxText *presets_combo_;

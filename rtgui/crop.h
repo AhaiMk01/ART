@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _CROP_H_
-#define _CROP_H_
+#pragma once
 
 #include "cropguilistener.h"
 #include "guiutils.h"
@@ -38,13 +37,13 @@ public:
 class Crop final: public ToolParamBlock,
                   public CropGUIListener,
                   public FoldableToolPanel,
-                  public rtengine::SizeListener {
+                  public art::engine::SizeListener {
 public:
     Crop();
     ~Crop() override;
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
 
     void ratioChanged();
     void ratioFixedChanged(); // The toggle button
@@ -59,7 +58,7 @@ public:
     bool refreshSpins(bool notify = false);
     void notifyListener();
     void sizeChanged(int w, int h, int ow, int oh) override;
-    void trim(rtengine::procparams::ProcParams *pp, int ow, int oh);
+    void trim(art::engine::procparams::ProcParams *pp, int ow, int oh);
     void readOptions();
     void writeOptions();
 
@@ -93,7 +92,7 @@ public:
     void vFlipCrop();
     void rotateCrop(int deg, bool hflip, bool vflip);
 
-    void setDefaults(const rtengine::procparams::ProcParams *def) override;
+    void setDefaults(const art::engine::procparams::ProcParams *def) override;
     void toolReset(bool to_initial) override;
 
     void setSelecting(bool yes);
@@ -139,7 +138,5 @@ private:
 
     IdleRegister idle_register;
 
-    rtengine::procparams::CropParams initial_params;
+    art::engine::procparams::CropParams initial_params;
 };
-
-#endif

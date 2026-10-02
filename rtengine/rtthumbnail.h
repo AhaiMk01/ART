@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _THUMBPROCESSINGPARAMETERS_
-#define _THUMBPROCESSINGPARAMETERS_
+#pragma once
 
 #include "../rtgui/threadutils.h"
 #include "image16.h"
@@ -28,7 +27,7 @@
 #include <glibmm.h>
 #include <lcms2.h>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class Thumbnail {
     MyMutex thumbMutex;
@@ -175,6 +174,4 @@ public:
         return imgPtr;
     }
 };
-} // namespace rtengine
-
-#endif
+}} // namespace art::engine

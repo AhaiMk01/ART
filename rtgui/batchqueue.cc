@@ -38,7 +38,7 @@
 #include "thumbnail.h"
 #include <sys/time.h>
 
-using namespace rtengine;
+using namespace art::engine;
 
 BatchQueue::BatchQueue(FileCatalog *aFileCatalog)
     : processing(nullptr), fileCatalog(aFileCatalog), sequence(0),
@@ -113,7 +113,7 @@ BatchQueue::BatchQueue(FileCatalog *aFileCatalog)
     format2ext_ = {{"jpg", "jpg"},    {"tif8", "tif"},   {"tif16", "tif"},
                    {"tif16f", "tif"}, {"tif32f", "tif"}, {"png8", "png"},
                    {"png16", "png"}};
-    auto extra_fmts = rtengine::ImageIOManager::getInstance()->getSaveFormats();
+    auto extra_fmts = art::engine::ImageIOManager::getInstance()->getSaveFormats();
     for (auto &p : extra_fmts) {
         format2ext_[p.first] = p.second.extension;
     }
@@ -430,7 +430,7 @@ bool BatchQueue::loadBatchQueue()
             const auto forceFormatOpts = nextIntOr(options.forceFormatOpts);
             const auto fast = nextIntOr(false);
 
-            rtengine::procparams::ProcParams pparams;
+            art::engine::procparams::ProcParams pparams;
 
             if (pparams.load(this, paramsFile)) {
                 continue;
@@ -441,7 +441,7 @@ bool BatchQueue::loadBatchQueue()
             if (!thumb)
                 continue;
 
-            auto job = rtengine::ProcessingJob::create(
+            auto job = art::engine::ProcessingJob::create(
                 source, thumb->getType() == FT_Raw, pparams, fast);
 
             auto prevh = getMaxThumbnailHeight();
@@ -535,7 +535,7 @@ void BatchQueue::cancelItems(const std::vector<ThumbBrowserEntryBase *> &items,
 
             fd.erase(pos);
 
-            rtengine::ProcessingJob::destroy(entry->job);
+            art::engine::ProcessingJob::destroy(entry->job);
 
             if (entry->thumbnail)
                 entry->thumbnail->imageRemovedFromQueue();
@@ -724,7 +724,7 @@ void BatchQueue::startProcessing()
             setButtonSetsVisible(false);
 
             // start batch processing
-            rtengine::startBatchProcessing(next->job, this);
+            art::engine::startBatchProcessing(next->job, this);
             queue_draw();
 
             notifyListener();
@@ -773,7 +773,7 @@ void BatchQueue::setProgressStr(const Glib::ustring &str) {}
 
 void BatchQueue::setProgressState(bool inProcessing) {}
 
-void BatchQueue::pipelineTimes(const rtengine::PipelineTimes &t)
+void BatchQueue::pipelineTimes(const art::engine::PipelineTimes &t)
 {
     // called by the batch processing thread, just before imageReady()
     if (listener) {
@@ -793,7 +793,7 @@ void BatchQueue::error(const Glib::ustring &descr)
         bqbs->setButtonListener(this);
         processing->addButtonSet(bqbs);
         processing->processing = false;
-        processing->job = rtengine::ProcessingJob::create(
+        processing->job = art::engine::ProcessingJob::create(
             processing->filename, processing->thumbnail->getType() == FT_Raw,
             processing->params);
         processing = nullptr;
@@ -824,7 +824,7 @@ namespace {
 // Calculates automatic filename of processed batch entry, but just the base
 // name example output: "c:\out\converted\dsc0121"
 Glib::ustring calcAutoFileNameBase(const Glib::ustring &origFileName,
-                                   rtengine::ProcParams &params, int sequence)
+                                   art::engine::ProcParams &params, int sequence)
 {
 
     std::vector<Glib::ustring> pa;
@@ -929,7 +929,7 @@ Glib::ustring calcAutoFileNameBase(const Glib::ustring &origFileName,
                         }
                         thm->decreaseRef();
                     }
-                    // rtengine::procparams::ProcParams pparams;
+                    // art::engine::procparams::ProcParams pparams;
 
                     // if( pparams.load(nullptr,
                     // options.getParamFile(origFileName)) == 0 ) {
@@ -1005,7 +1005,7 @@ Glib::ustring calcAutoFileNameBase(const Glib::ustring &origFileName,
 
 } // namespace
 
-rtengine::ProcessingJob *BatchQueue::imageReady(rtengine::IImagefloat *img)
+art::engine::ProcessingJob *BatchQueue::imageReady(art::engine::IImagefloat *img)
 {
     GThreadLock glock;
     
@@ -1054,7 +1054,7 @@ rtengine::ProcessingJob *BatchQueue::imageReady(rtengine::IImagefloat *img)
             err = img->saveAsJPEG(fname, saveFormat.jpegQuality,
                                   saveFormat.jpegSubSamp);
         } else {
-            err = rtengine::ImageIOManager::getInstance()->save(
+            err = art::engine::ImageIOManager::getInstance()->save(
                       img, saveFormat.format, fname, this)
                       ? 0
                       : 1;
@@ -1272,12 +1272,12 @@ void BatchQueue::redrawNeeded(LWButton *button)
     queue_draw();
 }
 
-const rtengine::procparams::PartialProfile *BatchQueue::getBatchProfile()
+const art::engine::procparams::PartialProfile *BatchQueue::getBatchProfile()
 {
     return batch_profile_;
 }
 
-void BatchQueue::setBatchProfile(const rtengine::procparams::PartialProfile *bp)
+void BatchQueue::setBatchProfile(const art::engine::procparams::PartialProfile *bp)
 {
     batch_profile_ = bp;
 }

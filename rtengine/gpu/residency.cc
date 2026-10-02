@@ -30,7 +30,7 @@
 #include <cstring>
 #include <iostream>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -354,11 +354,11 @@ ResidencyGuard::~ResidencyGuard()
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine
 
 #else // !ART_USE_VULKAN
 
-namespace rtengine {
+namespace art { namespace engine {
 
 ImageResidency::ImageResidency(Imagefloat *owner):
     owner_(owner), buf_(nullptr), staging_buf_(nullptr), buf_w_(0), buf_h_(0),
@@ -386,6 +386,6 @@ bool ImageResidency::copyTo(ImageResidency &) { return false; }
 
 ResidencyGuard::~ResidencyGuard() {}
 
-} // namespace rtengine
+}} // namespace art::engine
 
 #endif // ART_USE_VULKAN

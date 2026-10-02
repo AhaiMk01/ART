@@ -39,11 +39,11 @@
 #include "rt_math.h"
 #include "sleef.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace {
 // Defringe in Lab mode
-void PF_correct_RT(const rtengine::ProcParams *params, Imagefloat *lab,
+void PF_correct_RT(const art::engine::ProcParams *params, Imagefloat *lab,
                    double radius, int thresh, bool multiThread)
 {
     BENCHFUN
@@ -242,4 +242,4 @@ void ImProcFunctions::defringe(Imagefloat *rgb)
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

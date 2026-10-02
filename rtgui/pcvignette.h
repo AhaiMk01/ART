@@ -21,15 +21,15 @@ protected:
     Adjuster *roundness;
     Adjuster *centerX;
     Adjuster *centerY;
-    rtengine::ProcEvent EvCenter;
+    art::engine::ProcEvent EvCenter;
 
     Gtk::ToggleButton *edit;
-    rtengine::Coord draggedCenter;
+    art::engine::Coord draggedCenter;
     sigc::connection editConn;
     int lastObject;
 
-    rtengine::procparams::PCVignetteParams initial_params;
-    rtengine::procparams::CropParams crop_;
+    art::engine::procparams::PCVignetteParams initial_params;
+    art::engine::procparams::CropParams crop_;
 
     void editToggled();
     void updateGeometry(const int centerX, const int centerY);
@@ -39,14 +39,14 @@ public:
     PCVignette();
     ~PCVignette();
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
     void adjusterChanged(Adjuster *a, double newval) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
     void enabledChanged() override;
-    void trimValues(rtengine::procparams::ProcParams *pp) override;
+    void trimValues(art::engine::procparams::ProcParams *pp) override;
     void toolReset(bool to_initial) override;
 
     void setEditProvider(EditDataProvider *provider) override;
@@ -60,8 +60,8 @@ public:
     void switchOffEditMode() override;
 
     PParamsChangeListener *getPParamsChangeListener() override { return this; }
-    void procParamsChanged(const rtengine::procparams::ProcParams *params,
-                           const rtengine::ProcEvent &ev,
+    void procParamsChanged(const art::engine::procparams::ProcParams *params,
+                           const art::engine::ProcEvent &ev,
                            const Glib::ustring &descr,
                            const ParamsEdited *paramsEdited = nullptr) override;
     void clearParamChanges() override {}

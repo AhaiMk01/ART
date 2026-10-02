@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef __SPLASH__
-#define __SPLASH__
+#pragma once
 
 #include <gtkmm.h>
 
@@ -57,5 +56,3 @@ public:
     bool on_timer();
     void closePressed();
 };
-
-#endif

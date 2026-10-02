@@ -32,7 +32,7 @@
 #include <glibmm.h>
 #include <vector>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 using namespace procparams;
 
@@ -203,4 +203,4 @@ public:
     virtual void wbCamera2Mul(double &rm, double &gm, double &bm) = 0;
 };
 
-} // namespace rtengine
+}} // namespace art::engine

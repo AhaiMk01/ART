@@ -32,8 +32,8 @@ std::shared_ptr<RTSurface> BatchQueueEntry::savedAsIcon;
 std::shared_ptr<RTSurface> BatchQueueEntry::fastExportIcon;
 
 BatchQueueEntry::BatchQueueEntry(
-    rtengine::ProcessingJob *pjob,
-    const rtengine::procparams::ProcParams &pparams, Glib::ustring fname,
+    art::engine::ProcessingJob *pjob,
+    const art::engine::procparams::ProcParams &pparams, Glib::ustring fname,
     int prevw, int prevh, Thumbnail *thm)
     : ThumbBrowserEntryBase(fname), origpw(prevw), origph(prevh), job(pjob),
       params(pparams), progress(0), outFileName(""), sequence(0),
@@ -64,7 +64,7 @@ BatchQueueEntry::BatchQueueEntry(
     use_batch_profile = true;
     if (job) {
         use_batch_profile =
-            static_cast<rtengine::ProcessingJobImpl *>(job)->use_batch_profile;
+            static_cast<art::engine::ProcessingJobImpl *>(job)->use_batch_profile;
     }
 }
 

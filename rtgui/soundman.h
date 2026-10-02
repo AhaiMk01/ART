@@ -18,8 +18,7 @@
  *
  */
 
-#ifndef _SOUNDMAN_
-#define _SOUNDMAN_
+#pragma once
 
 namespace Glib {
 class ustring;
@@ -30,5 +29,3 @@ public:
     static void init();
     static void playSoundAsync(const Glib::ustring &sound);
 };
-
-#endif

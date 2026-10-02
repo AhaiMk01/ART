@@ -490,7 +490,7 @@ void FlatCurveEditorSubGroup::loadPressed()
                 }
             }
 
-            rtengine::sanitizeCurve(p);
+            art::engine::sanitizeCurve(p);
 
             if (p[0] == (double)(FCT_MinMaxCPoints)) {
                 CPointsCurve->setPoints(p);

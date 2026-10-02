@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _RTENGINE_
-#define _RTENGINE_
+#pragma once
 
 #include "../rtgui/editid.h"
 #include "../rtgui/threadutils.h"
@@ -47,7 +46,7 @@
 
 class EditDataProvider;
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class IImage8;
 class IImage16;
@@ -707,6 +706,4 @@ public:
 void startBatchProcessing(ProcessingJob *job, BatchProcessingListener *bpl);
 
 extern MyMutex *lcmsMutex;
-} // namespace rtengine
-
-#endif
+}} // namespace art::engine

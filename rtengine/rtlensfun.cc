@@ -26,7 +26,7 @@
 #define ART_LENSFUN_LEGACY
 #endif
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -561,4 +561,4 @@ std::unique_ptr<LFModifier> LFDatabase::findModifier(
     return ret;
 }
 
-} // namespace rtengine
+}} // namespace art::engine

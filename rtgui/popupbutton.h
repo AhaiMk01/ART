@@ -18,8 +18,7 @@
  *
  *  Class created by Jean-Christophe FRISCH, aka 'Hombre'
  */
-#ifndef _POPUPBUTTON_
-#define _POPUPBUTTON_
+#pragma once
 
 #include "popupcommon.h"
 #include <gtkmm/button.h>
@@ -39,5 +38,3 @@ protected:
 private:
     bool nextOnClicked;
 };
-
-#endif

@@ -46,7 +46,7 @@
 #include "../rtgui/ppversion.h"
 #include "../rtgui/version.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 namespace procparams {
 
 namespace {
@@ -296,7 +296,7 @@ void getFromKeyfile(const KeyFile &keyfile, const Glib::ustring &group_name,
                     const Glib::ustring &key, std::vector<double> &value)
 {
     value = keyfile.get_double_list(group_name, key);
-    rtengine::sanitizeCurve(value);
+    art::engine::sanitizeCurve(value);
 }
 
 void getFromKeyfile(const KeyFile &keyfile, const Glib::ustring &group_name,
@@ -1082,7 +1082,7 @@ bool Mask::load(int ppVersion, const KeyFile &keyfile,
                 if (ppVersion < 1019) {
                     std::vector<float>
                         v; // important: use vector<float> to avoid calling
-                           // rtengine::sanitizeCurve -- need to think of a
+                           // art::engine::sanitizeCurve -- need to think of a
                            // better way
                     if ((found &= assignFromKeyfile(
                              keyfile, group_name,
@@ -1231,7 +1231,7 @@ bool Mask::load(int ppVersion, const KeyFile &keyfile,
     if (ppVersion < 1019) {
         std::vector<float>
             v; // important: use vector<float> to avoid calling
-               // rtengine::sanitizeCurve -- need to think of a better way
+               // art::engine::sanitizeCurve -- need to think of a better way
         if (assignFromKeyfile(keyfile, group_name,
                               prefix + "DrawnMaskStrokes" + suffix, v)) {
             ret = true;
@@ -6624,4 +6624,4 @@ int ProcParamsWithSnapshots::save(ProgressListener *pl,
 }
 
 } // namespace procparams
-} // namespace rtengine
+}} // namespace art::engine

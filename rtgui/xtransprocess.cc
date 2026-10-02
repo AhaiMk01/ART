@@ -21,8 +21,8 @@
 #include "guiutils.h"
 #include "options.h"
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 XTransProcess::XTransProcess()
     : FoldableToolPanel(this, "xtransprocess", M("TP_RAW_LABEL"), true, false,
@@ -30,13 +30,13 @@ XTransProcess::XTransProcess()
 {
     auto m = ProcEventMapper::getInstance();
     EvDemosaicBorder =
-        m->newEvent(rtengine::DEMOSAIC, "HISTORY_MSG_RAW_BORDER");
+        m->newEvent(art::engine::DEMOSAIC, "HISTORY_MSG_RAW_BORDER");
     EvDemosaicContrast =
-        m->newEvent(rtengine::DEMOSAIC, "HISTORY_MSG_DUALDEMOSAIC_CONTRAST");
+        m->newEvent(art::engine::DEMOSAIC, "HISTORY_MSG_DUALDEMOSAIC_CONTRAST");
     EvDemosaicAutoContrast = m->newEvent(
-        rtengine::DEMOSAIC, "HISTORY_MSG_DUALDEMOSAIC_AUTO_CONTRAST");
+        art::engine::DEMOSAIC, "HISTORY_MSG_DUALDEMOSAIC_AUTO_CONTRAST");
 
-    EvToolReset.set_action(rtengine::DEMOSAIC | rtengine::M_PREPROC);
+    EvToolReset.set_action(art::engine::DEMOSAIC | art::engine::M_PREPROC);
 
     Gtk::HBox *hb1 = Gtk::manage(new Gtk::HBox());
     hb1->pack_start(*Gtk::manage(new Gtk::Label(M("TP_RAW_DMETHOD") + ": ")),
@@ -122,7 +122,7 @@ XTransProcess::XTransProcess()
 
 XTransProcess::~XTransProcess() { idle_register.destroy(); }
 
-void XTransProcess::read(const rtengine::procparams::ProcParams *pp)
+void XTransProcess::read(const art::engine::procparams::ProcParams *pp)
 {
     disableListener();
     methodconn.block(true);
@@ -154,7 +154,7 @@ void XTransProcess::read(const rtengine::procparams::ProcParams *pp)
     enableListener();
 }
 
-void XTransProcess::write(rtengine::procparams::ProcParams *pp)
+void XTransProcess::write(art::engine::procparams::ProcParams *pp)
 {
     pp->raw.xtranssensor.dualDemosaicAutoContrast =
         dualDemosaicContrast->getAutoValue();
@@ -173,7 +173,7 @@ void XTransProcess::write(rtengine::procparams::ProcParams *pp)
 }
 
 void XTransProcess::setDefaults(
-    const rtengine::procparams::ProcParams *defParams)
+    const art::engine::procparams::ProcParams *defParams)
 {
     dualDemosaicContrast->setDefault(
         defParams->raw.xtranssensor.dualDemosaicContrast);

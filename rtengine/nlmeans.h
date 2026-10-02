@@ -25,7 +25,7 @@
 #include "gpu/vk_pass.h"
 #endif // ART_USE_VULKAN
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace denoise {
 
@@ -58,4 +58,4 @@ bool NLMeans(Context &ctx, BufferPool &pool, Buffer &plane, int W,
 } // namespace gpu
 #endif // ART_USE_VULKAN
 
-} // namespace rtengine
+}} // namespace art::engine

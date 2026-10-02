@@ -47,7 +47,7 @@
 #include <cstring>
 #include <iostream>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -951,4 +951,4 @@ void ExifLensCorrection::processVignette(int width, int height,
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

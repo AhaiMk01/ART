@@ -22,13 +22,13 @@
 
 namespace {
 
-void adjust_fast_params(rtengine::procparams::ProcParams &params)
+void adjust_fast_params(art::engine::procparams::ProcParams &params)
 {
-    params.resize.unit = rtengine::procparams::ResizeParams::PX;
+    params.resize.unit = art::engine::procparams::ResizeParams::PX;
     if (params.resize.enabled) {
-        params.resize.width = rtengine::min(params.resize.get_width(),
+        params.resize.width = art::engine::min(params.resize.get_width(),
                                             options.fastexport_resize_width);
-        params.resize.height = rtengine::min(params.resize.get_height(),
+        params.resize.height = art::engine::min(params.resize.get_height(),
                                              options.fastexport_resize_height);
     } else {
         params.resize.width = options.fastexport_resize_width;
@@ -44,26 +44,26 @@ void adjust_fast_params(rtengine::procparams::ProcParams &params)
 
 } // namespace
 
-rtengine::ProcessingJob *
+art::engine::ProcessingJob *
 create_processing_job(const Glib::ustring &fname, bool is_raw,
-                      rtengine::procparams::ProcParams params, bool fast)
+                      art::engine::procparams::ProcParams params, bool fast)
 {
     if (fast) {
         adjust_fast_params(params);
     }
 
-    auto ret = rtengine::ProcessingJob::create(fname, is_raw, params, fast);
+    auto ret = art::engine::ProcessingJob::create(fname, is_raw, params, fast);
     return ret;
 }
 
-rtengine::ProcessingJob *
-create_processing_job(rtengine::InitialImage *initialImage,
-                      rtengine::procparams::ProcParams params, bool fast)
+art::engine::ProcessingJob *
+create_processing_job(art::engine::InitialImage *initialImage,
+                      art::engine::procparams::ProcParams params, bool fast)
 {
     if (fast) {
         adjust_fast_params(params);
     }
 
-    auto ret = rtengine::ProcessingJob::create(initialImage, params, fast);
+    auto ret = art::engine::ProcessingJob::create(initialImage, params, fast);
     return ret;
 }

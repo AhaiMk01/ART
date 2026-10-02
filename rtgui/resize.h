@@ -27,17 +27,17 @@
 class Resize final: public ToolParamBlock,
                     public AdjusterListener,
                     public FoldableToolPanel,
-                    public rtengine::SizeListener {
+                    public art::engine::SizeListener {
 public:
     Resize();
     ~Resize() override;
 
     Gtk::Box *getPackBox() { return packBox; }
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
     void adjusterChanged(Adjuster *a, double newval) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
     void entryWChanged();
@@ -51,7 +51,7 @@ public:
     void setDimensions();
     void enabledChanged() override;
 
-    void trimValues(rtengine::procparams::ProcParams *pp) override;
+    void trimValues(art::engine::procparams::ProcParams *pp) override;
 
     void toolReset(bool to_initial) override;
 
@@ -67,18 +67,18 @@ private:
     void updateInfoLabels();
     void setRanges();
     void ppiToExifToggled();
-    rtengine::ProcEvent EvCopyPPIToExif;
+    art::engine::ProcEvent EvCopyPPIToExif;
     Gtk::CheckButton *copy_ppi_to_exif_cb_;
     sigc::connection ppitoexifconn;
 
-    double from_px(int p, rtengine::procparams::ResizeParams::Unit u);
+    double from_px(int p, art::engine::procparams::ResizeParams::Unit u);
     double from_px(int p);
-    int to_px(double p, rtengine::procparams::ResizeParams::Unit u);
+    int to_px(double p, art::engine::procparams::ResizeParams::Unit u);
     int to_px(double p);
 
-    rtengine::ProcEvent EvResizeAllowUpscaling;
-    rtengine::ProcEvent EvUnit;
-    rtengine::ProcEvent EvPPI;
+    art::engine::ProcEvent EvResizeAllowUpscaling;
+    art::engine::ProcEvent EvUnit;
+    art::engine::ProcEvent EvPPI;
     Adjuster *scale;
     Gtk::VBox *sizeBox;
     MyComboBoxText *appliesTo;
@@ -94,7 +94,7 @@ private:
     Gtk::VBox *endBox;
     int maxw, maxh;
     int cropw, croph;
-    rtengine::procparams::ResizeParams::Unit prev_unit;
+    art::engine::procparams::ResizeParams::Unit prev_unit;
     sigc::connection sconn, aconn, wconn, hconn;
     sigc::connection unitconn, ppiconn;
     bool wDirty, hDirty;
@@ -104,5 +104,5 @@ private:
     static constexpr int MAX_SCALE =
         16; // 16 to match the main preview max scale of 1600%
 
-    rtengine::procparams::ResizeParams initial_params;
+    art::engine::procparams::ResizeParams initial_params;
 };

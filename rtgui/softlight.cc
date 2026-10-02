@@ -22,8 +22,8 @@
 #include <cmath>
 #include <iomanip>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 SoftLight::SoftLight()
     : FoldableToolPanel(this, "softlight", M("TP_SOFTLIGHT_LABEL"), false, true,
@@ -31,10 +31,10 @@ SoftLight::SoftLight()
 {
     auto m = ProcEventMapper::getInstance();
     EvSoftLightEnabled =
-        m->newEvent(rtengine::M_LUMINANCE, "HISTORY_MSG_SOFTLIGHT_ENABLED");
+        m->newEvent(art::engine::M_LUMINANCE, "HISTORY_MSG_SOFTLIGHT_ENABLED");
     EvSoftLightStrength =
-        m->newEvent(rtengine::M_LUMINANCE, "HISTORY_MSG_SOFTLIGHT_STRENGTH");
-    EvToolEnabled.set_action(rtengine::M_LUMINANCE);
+        m->newEvent(art::engine::M_LUMINANCE, "HISTORY_MSG_SOFTLIGHT_STRENGTH");
+    EvToolEnabled.set_action(art::engine::M_LUMINANCE);
 
     strength = Gtk::manage(
         new Adjuster(M("TP_SOFTLIGHT_STRENGTH"), 0., 100., 1., 30.));

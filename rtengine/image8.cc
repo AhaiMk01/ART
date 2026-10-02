@@ -21,7 +21,7 @@
 #include <cstdio>
 #include <cstring>
 
-using namespace rtengine;
+using namespace art::engine;
 
 Image8::Image8() {}
 

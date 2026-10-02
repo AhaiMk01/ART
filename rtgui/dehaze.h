@@ -33,10 +33,10 @@ class Dehaze: public ToolParamBlock,
 public:
     Dehaze();
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
     void adjusterChanged(Adjuster *a, double newval) override;
     void enabledChanged() override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override {}
@@ -57,12 +57,12 @@ private:
     MyComboBoxText *luminance;
     Adjuster *blackpoint;
 
-    rtengine::ProcEvent EvDehazeEnabled;
-    rtengine::ProcEvent EvDehazeStrength;
-    rtengine::ProcEvent EvDehazeDepth;
-    rtengine::ProcEvent EvDehazeShowDepthMap;
-    rtengine::ProcEvent EvDehazeLuminance;
-    rtengine::ProcEvent EvDehazeBlackpoint;
+    art::engine::ProcEvent EvDehazeEnabled;
+    art::engine::ProcEvent EvDehazeStrength;
+    art::engine::ProcEvent EvDehazeDepth;
+    art::engine::ProcEvent EvDehazeShowDepthMap;
+    art::engine::ProcEvent EvDehazeLuminance;
+    art::engine::ProcEvent EvDehazeBlackpoint;
 
-    rtengine::procparams::DehazeParams initial_params;
+    art::engine::procparams::DehazeParams initial_params;
 };

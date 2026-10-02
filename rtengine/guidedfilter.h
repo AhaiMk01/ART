@@ -22,7 +22,7 @@
 
 #include "array2D.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 void guidedFilter(const array2D<float> &guide, const array2D<float> &src,
                   array2D<float> &dst, int r, float epsilon, bool multithread,
@@ -65,4 +65,4 @@ bool guidedFilterGPU(Context &ctx, Buffer &guideFull, Buffer &srcFull,
 
 #endif // ART_USE_VULKAN
 
-} // namespace rtengine
+}} // namespace art::engine

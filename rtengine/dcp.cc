@@ -32,13 +32,16 @@
 #include "rawimagesource.h"
 #include "rt_math.h"
 
-namespace rtengine {
+namespace art { namespace engine {
+
+
+
 
 extern const Settings *settings;
 
-}
 
-using namespace rtengine;
+
+using namespace art::engine;
 
 namespace {
 
@@ -2185,3 +2188,6 @@ bool DCPProfile::needStep2(const ApplyState &as) const
 {
     return !(!as.data->use_tone_curve && !as.data->apply_look_table && as.data->bl_scale == 1.f);
 }
+
+
+} } // namespace art::engine

@@ -32,7 +32,7 @@
 #include <map>
 #include <unordered_map>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class ImageIOManager: public NonCopyable {
 public:
@@ -168,4 +168,4 @@ private:
     std::unique_ptr<RAWCache> raw_cache_;
 };
 
-} // namespace rtengine
+}} // namespace art::engine

@@ -28,14 +28,13 @@
  * nothing else.  Enabling it costs two clock reads per operator, which is
  * noise against operators measured in milliseconds.
  */
-#ifndef ART_PIPELINEPROFILE_H
-#define ART_PIPELINEPROFILE_H
+#pragma once
 
 #include "mytime.h"
 #include "gpu/gpu.h"
 #include "rtengine.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class PipelineProfile {
 public:
@@ -144,19 +143,17 @@ private:
     PipelineTimes frozen_;
 };
 
-} // namespace rtengine
+}} // namespace art::engine
 
 #define ART_PROFILE_SCOPE(name)                                                \
-    rtengine::PipelineProfile::Timer _art_prof_scope_(name)
+    art::engine::PipelineProfile::Timer _art_prof_scope_(name)
 
 /* For a phase that does not coincide with a C++ block: declare it, then call
  * var.stop() where the phase actually ends.  Used by ipdenoise.cc's
  * denoise::RGB_denoise, whose phases are interleaved inside one long
  * function. */
 #define ART_PROFILE_SCOPE_NAMED(var, name)                                     \
-    rtengine::PipelineProfile::Timer var(name)
+    art::engine::PipelineProfile::Timer var(name)
 
 #define ART_PIPELINE_TIME_REPORT(title)                                        \
-    rtengine::PipelineTimeReport _art_pipeline_time_report_(title)
-
-#endif // ART_PIPELINEPROFILE_H
+    art::engine::PipelineTimeReport _art_pipeline_time_report_(title)

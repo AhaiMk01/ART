@@ -195,7 +195,7 @@ bool MyCurve::snapCoordinateY(double testedVal, double realVal)
     return false;
 }
 
-float MyCurve::getVal(LUTf &curve, int x)
+float MyCurve::getVal(art::engine::LUTf &curve, int x)
 {
     if (size_t(graphW) == curve.getSize()) {
         return curve[x];

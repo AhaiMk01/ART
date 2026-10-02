@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _BATCHQUEUEBUTTONSET_
-#define _BATCHQUEUEBUTTONSET_
+#pragma once
 
 #include "lwbuttonset.h"
 #include "rtsurface.h"
@@ -39,5 +38,3 @@ public:
 
     explicit BatchQueueButtonSet(BatchQueueEntry *myEntry);
 };
-
-#endif

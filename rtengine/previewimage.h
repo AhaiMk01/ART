@@ -24,7 +24,7 @@
 #include <gtkmm.h>
 #include <memory>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 /** @brief Get a quick preview image out of a raw or standard file
  *
@@ -66,4 +66,4 @@ private:
     cmsHPROFILE imgprof_;
 };
 
-} // namespace rtengine
+}} // namespace art::engine

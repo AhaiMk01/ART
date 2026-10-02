@@ -39,14 +39,14 @@ public:
      * relative to the full size image ; -1,-1 == out of the image
      * @param transform H/V flip and coarse rotation transformation
      */
-    void mouseMove(rtengine::Coord2D pos, int transform);
+    void mouseMove(art::engine::Coord2D pos, int transform);
 
     /** @brief A new image is being flown over
      * @param fullPath Full path of the image that is being hovered inspect, or
      * an empty string if out of any image.
      */
     void switchImage(const Glib::ustring &fullPath, bool recenter = false,
-                     rtengine::Coord2D newcenter = rtengine::Coord2D(-1, -1),
+                     art::engine::Coord2D newcenter = art::engine::Coord2D(-1, -1),
                      int w=-1, int h=-1);
 
     /** @brief Set the new coarse rotation transformation
@@ -89,8 +89,8 @@ public:
 
     sigc::signal<void> signal_ready() { return sig_ready_; }
     sigc::signal<void> signal_active() { return sig_active_; }
-    sigc::signal<void, rtengine::Coord2D> signal_moved() { return sig_moved_; }
-    sigc::signal<void, rtengine::Coord2D> signal_pressed()
+    sigc::signal<void, art::engine::Coord2D> signal_moved() { return sig_moved_; }
+    sigc::signal<void, art::engine::Coord2D> signal_pressed()
     {
         return sig_pressed_;
     }
@@ -107,14 +107,14 @@ private:
     bool onMouseRelease(GdkEventButton *evt);
 
     void deleteBuffers();
-    bool doSwitchImage(bool recenter, rtengine::Coord2D newcenter, int w, int h);
+    bool doSwitchImage(bool recenter, art::engine::Coord2D newcenter, int w, int h);
     void updateHistogram();
     std::shared_ptr<InspectorBuffer>
     doCacheImage(const Glib::ustring &fullPath, int w, int h);
     int getImageDisplayScale();
 
-    rtengine::Coord2D center_;
-    rtengine::Cache<Glib::ustring, std::shared_ptr<InspectorBuffer>> cache_;
+    art::engine::Coord2D center_;
+    art::engine::Cache<Glib::ustring, std::shared_ptr<InspectorBuffer>> cache_;
     std::shared_ptr<InspectorBuffer> cur_image_;
     // double zoom;
     bool active_;
@@ -130,10 +130,10 @@ private:
 
     sigc::signal<void> sig_ready_;
     sigc::signal<void> sig_active_;
-    sigc::signal<void, rtengine::Coord2D> sig_moved_;
-    sigc::signal<void, rtengine::Coord2D> sig_pressed_;
+    sigc::signal<void, art::engine::Coord2D> sig_moved_;
+    sigc::signal<void, art::engine::Coord2D> sig_pressed_;
     sigc::signal<void> sig_released_;
-    rtengine::Coord prev_point_;
+    art::engine::Coord prev_point_;
 
     HistogramArea hist_bb_;
 };
@@ -142,7 +142,7 @@ class Inspector: public Gtk::VBox {
 public:
     Inspector(FileCatalog *filecatalog);
 
-    void mouseMove(rtengine::Coord2D pos, int transform);
+    void mouseMove(art::engine::Coord2D pos, int transform);
     void switchImage(const Glib::ustring &fullPath);
     void flushBuffers();
     void setActive(bool state);
@@ -180,11 +180,11 @@ private:
     void split_toggled();
     void histogram_toggled();
     void focus_mask_toggled();
-    void on_moved(rtengine::Coord2D pos);
-    void on_pressed(rtengine::Coord2D pos);
+    void on_moved(art::engine::Coord2D pos);
+    void on_pressed(art::engine::Coord2D pos);
     void on_released();
     void do_toggle_zoom(Gtk::ToggleButton *b,
-                        rtengine::Coord2D pos = rtengine::Coord2D(-1, -1));
+                        art::engine::Coord2D pos = art::engine::Coord2D(-1, -1));
 
     FileCatalog *filecatalog_;
 

@@ -25,8 +25,8 @@
 #include <cmath>
 #include <iomanip>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 namespace {
 
@@ -60,7 +60,7 @@ const std::vector<std::array<const char *, 2>> filters = {
 
 } // namespace
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern void computeBWMixerConstants(const Glib::ustring &setting,
                                     const Glib::ustring &filter,
@@ -69,7 +69,7 @@ extern void computeBWMixerConstants(const Glib::ustring &setting,
                                     float &mixerBlue, float &kcorec,
                                     double &rrm, double &ggm, double &bbm);
 
-} // namespace rtengine
+}} // namespace art::engine
 
 BlackWhite::BlackWhite()
     : FoldableToolPanel(this, "blackwhite", M("TP_BWMIX_LABEL"), false, true,
@@ -77,7 +77,7 @@ BlackWhite::BlackWhite()
 {
     auto m = ProcEventMapper::getInstance();
     EvColorCast = m->newEvent(M_LUMINANCE, "HISTORY_MSG_BWMIX_COLORCAST");
-    EvToolReset.set_action(rtengine::M_LUMINANCE);
+    EvToolReset.set_action(art::engine::M_LUMINANCE);
 
     nextredbw = 0.3333;
     nextgreenbw = 0.3333;
@@ -388,7 +388,7 @@ void BlackWhite::updateRGBLabel(bool from_preset)
     double mixR, mixG, mixB;
     float filcor;
     Glib::ustring sSetting = getSettingString();
-    rtengine::computeBWMixerConstants(sSetting, getFilterString(), "", filcor,
+    art::engine::computeBWMixerConstants(sSetting, getFilterString(), "", filcor,
                                       r, g, b, kcorrec, mixR, mixG, mixB);
 
     if (filcor != 1.f) {
@@ -421,7 +421,7 @@ void BlackWhite::updateRGBLabel(bool from_preset)
     }
 }
 
-void BlackWhite::trimValues(rtengine::procparams::ProcParams *pp)
+void BlackWhite::trimValues(art::engine::procparams::ProcParams *pp)
 {
 
     mixerRed->trimValue(pp->blackwhite.mixerRed);

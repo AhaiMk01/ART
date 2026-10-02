@@ -18,8 +18,7 @@
  *
  *  Class created by Jean-Christophe FRISCH, aka 'Hombre'
  */
-#ifndef _POPUPCOMMON_
-#define _POPUPCOMMON_
+#pragma once
 
 #include <glibmm/ustring.h>
 #include <gtkmm/enums.h>
@@ -97,5 +96,3 @@ PopUpCommon::signal_item_selected()
 inline int PopUpCommon::getEntryCount() const { return images.size(); }
 
 inline int PopUpCommon::getSelected() const { return posToIndex(selected); }
-
-#endif

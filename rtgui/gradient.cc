@@ -6,15 +6,15 @@
 #include "eventmapper.h"
 #include "rtimage.h"
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 Gradient::Gradient()
     : FoldableToolPanel(this, "gradient", M("TP_GRADIENT_LABEL"), false, true,
                         true),
       EditSubscriber(ET_OBJECTS), lastObject(-1), draggedPointOldAngle(-1000.)
 {
-    EvToolReset.set_action(rtengine::LUMINANCECURVE);
+    EvToolReset.set_action(art::engine::LUMINANCECURVE);
 
     editHBox = Gtk::manage(new Gtk::HBox());
     edit = Gtk::manage(new Gtk::ToggleButton());
@@ -164,8 +164,8 @@ void Gradient::updateGeometry(const int centerX, const int centerY,
         }
     }
 
-    const auto decay = feather * rtengine::norm2<double>(imW, imH) / 200.0;
-    rtengine::Coord origin(imW / 2 + centerX * imW / 200,
+    const auto decay = feather * art::engine::norm2<double>(imW, imH) / 200.0;
+    art::engine::Coord origin(imW / 2 + centerX * imW / 200,
                            imH / 2 + centerY * imH / 200);
 
     const auto updateLine = [&](Geometry *geometry, const float radius,
@@ -274,7 +274,7 @@ void Gradient::enabledChanged()
     }
 }
 
-void Gradient::trimValues(rtengine::procparams::ProcParams *pp)
+void Gradient::trimValues(art::engine::procparams::ProcParams *pp)
 {
     degree->trimValue(pp->gradient.degree);
     feather->trimValue(pp->gradient.feather);
@@ -377,8 +377,8 @@ bool Gradient::button1Pressed(int modifierKey)
             int(halfSizeH + halfSizeH * (centerY->getValue() / 100.)));
 
         // trick to get the correct angle (clockwise/counter-clockwise)
-        rtengine::Coord p1 = draggedCenter;
-        rtengine::Coord p2 = provider->posImage;
+        art::engine::Coord p1 = draggedCenter;
+        art::engine::Coord p2 = provider->posImage;
         int p = p1.y;
         p1.y = p2.y;
         p2.y = p;
@@ -391,9 +391,9 @@ bool Gradient::button1Pressed(int modifierKey)
         if (lastObject == 2 || lastObject == 3) {
             // Dragging a line to change the angle
             PolarCoord draggedPoint;
-            rtengine::Coord currPos;
+            art::engine::Coord currPos;
             currPos = provider->posImage;
-            rtengine::Coord centerPos = draggedCenter;
+            art::engine::Coord centerPos = draggedCenter;
 
             double diagonal =
                 sqrt(double(imW) * double(imW) + double(imH) * double(imH));
@@ -408,7 +408,7 @@ bool Gradient::button1Pressed(int modifierKey)
             draggedFeatherOffset =
                 draggedPoint.radius *
                 sin((draggedPoint.angle - degree->getValue()) / 180. *
-                    rtengine::RT_PI);
+                    art::engine::RT_PI);
 
             if (lastObject == 3) {
                 draggedFeatherOffset = -draggedFeatherOffset;
@@ -456,9 +456,9 @@ bool Gradient::drag1(int modifierKey)
 
         // Dragging a line to change the angle
         PolarCoord draggedPoint;
-        rtengine::Coord currPos;
+        art::engine::Coord currPos;
         currPos = provider->posImage + provider->deltaImage;
-        rtengine::Coord centerPos = draggedCenter;
+        art::engine::Coord centerPos = draggedCenter;
 
         // trick to get the correct angle (clockwise/counter-clockwise)
         int p = centerPos.y;
@@ -506,9 +506,9 @@ bool Gradient::drag1(int modifierKey)
     } else if (lastObject == 2 || lastObject == 3) {
         // Dragging the upper or lower feather bar
         PolarCoord draggedPoint;
-        rtengine::Coord currPos;
+        art::engine::Coord currPos;
         currPos = provider->posImage + provider->deltaImage;
-        rtengine::Coord centerPos = draggedCenter;
+        art::engine::Coord centerPos = draggedCenter;
 
         double diagonal =
             sqrt(double(imW) * double(imW) + double(imH) * double(imH));
@@ -522,7 +522,7 @@ bool Gradient::drag1(int modifierKey)
         double currDraggedFeatherOffset =
             draggedPoint.radius *
             sin((draggedPoint.angle - degree->getValue()) / 180. *
-                rtengine::RT_PI);
+                art::engine::RT_PI);
 
         if (lastObject == 2)
         // Dragging the upper feather bar
@@ -551,7 +551,7 @@ bool Gradient::drag1(int modifierKey)
         }
     } else if (lastObject == 4) {
         // Dragging the circle to change the center
-        rtengine::Coord currPos;
+        art::engine::Coord currPos;
         draggedCenter += provider->deltaPrevImage;
         currPos = draggedCenter;
         currPos.clip(imW, imH);

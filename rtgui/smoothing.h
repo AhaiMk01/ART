@@ -31,10 +31,10 @@ class Smoothing: public ToolParamBlock,
 public:
     Smoothing();
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
 
     void adjusterChanged(Adjuster *a, double newval) override;
     void enabledChanged() override;
@@ -43,8 +43,8 @@ public:
     void setEditProvider(EditDataProvider *provider) override;
 
     PParamsChangeListener *getPParamsChangeListener() override { return this; }
-    void procParamsChanged(const rtengine::procparams::ProcParams *params,
-                           const rtengine::ProcEvent &ev,
+    void procParamsChanged(const art::engine::procparams::ProcParams *params,
+                           const art::engine::ProcEvent &ev,
                            const Glib::ustring &descr,
                            const ParamsEdited *paramsEdited = nullptr) override;
     void clearParamChanges() override {}
@@ -66,44 +66,44 @@ private:
     void channelChanged();
     void modeChanged();
 
-    rtengine::ProcEvent EvEnabled;
-    rtengine::ProcEvent EvChannel;
-    rtengine::ProcEvent EvRadius;
-    rtengine::ProcEvent EvEpsilon;
-    rtengine::ProcEvent EvIterations;
-    rtengine::ProcEvent EvMode;
-    rtengine::ProcEvent EvSigma;
-    rtengine::ProcEvent EvFalloff;
-    rtengine::ProcEvent EvNLStrength;
-    rtengine::ProcEvent EvNLDetail;
-    rtengine::ProcEvent EvNumBlades;
-    rtengine::ProcEvent EvAngle;
-    rtengine::ProcEvent EvCurvature;
-    rtengine::ProcEvent EvOffset;
-    rtengine::ProcEvent EvNoiseStrength;
-    rtengine::ProcEvent EvNoiseCoarseness;
-    rtengine::ProcEvent EvHalationSize;
-    rtengine::ProcEvent EvHalationColor;
-    rtengine::ProcEvent EvWavStrength;
-    rtengine::ProcEvent EvWavLevels;
-    rtengine::ProcEvent EvWavGamma;
+    art::engine::ProcEvent EvEnabled;
+    art::engine::ProcEvent EvChannel;
+    art::engine::ProcEvent EvRadius;
+    art::engine::ProcEvent EvEpsilon;
+    art::engine::ProcEvent EvIterations;
+    art::engine::ProcEvent EvMode;
+    art::engine::ProcEvent EvSigma;
+    art::engine::ProcEvent EvFalloff;
+    art::engine::ProcEvent EvNLStrength;
+    art::engine::ProcEvent EvNLDetail;
+    art::engine::ProcEvent EvNumBlades;
+    art::engine::ProcEvent EvAngle;
+    art::engine::ProcEvent EvCurvature;
+    art::engine::ProcEvent EvOffset;
+    art::engine::ProcEvent EvNoiseStrength;
+    art::engine::ProcEvent EvNoiseCoarseness;
+    art::engine::ProcEvent EvHalationSize;
+    art::engine::ProcEvent EvHalationColor;
+    art::engine::ProcEvent EvWavStrength;
+    art::engine::ProcEvent EvWavLevels;
+    art::engine::ProcEvent EvWavGamma;
 
-    rtengine::ProcEvent EvList;
-    rtengine::ProcEvent EvParametricMask;
-    rtengine::ProcEvent EvHueMask;
-    rtengine::ProcEvent EvChromaticityMask;
-    rtengine::ProcEvent EvLightnessMask;
-    rtengine::ProcEvent EvMaskBlur;
-    rtengine::ProcEvent EvShowMask;
-    rtengine::ProcEvent EvAreaMask;
-    rtengine::ProcEvent EvDeltaEMask;
-    rtengine::ProcEvent EvContrastThresholdMask;
-    rtengine::ProcEvent EvDrawnMask;
-    rtengine::ProcEvent EvMaskPostprocess;
-    rtengine::ProcEvent EvLinkedMask;
-    rtengine::ProcEvent EvExternalMask;
+    art::engine::ProcEvent EvList;
+    art::engine::ProcEvent EvParametricMask;
+    art::engine::ProcEvent EvHueMask;
+    art::engine::ProcEvent EvChromaticityMask;
+    art::engine::ProcEvent EvLightnessMask;
+    art::engine::ProcEvent EvMaskBlur;
+    art::engine::ProcEvent EvShowMask;
+    art::engine::ProcEvent EvAreaMask;
+    art::engine::ProcEvent EvDeltaEMask;
+    art::engine::ProcEvent EvContrastThresholdMask;
+    art::engine::ProcEvent EvDrawnMask;
+    art::engine::ProcEvent EvMaskPostprocess;
+    art::engine::ProcEvent EvLinkedMask;
+    art::engine::ProcEvent EvExternalMask;
 
-    std::vector<rtengine::procparams::SmoothingParams::Region> data;
+    std::vector<art::engine::procparams::SmoothingParams::Region> data;
 
     friend class SmoothingMasksContentProvider;
     std::unique_ptr<MasksContentProvider> masks_content_provider_;
@@ -139,5 +139,5 @@ private:
     Gtk::VBox *halation_box;
     Gtk::VBox *wavelets_box;
 
-    rtengine::procparams::SmoothingParams initial_params;
+    art::engine::procparams::SmoothingParams initial_params;
 };

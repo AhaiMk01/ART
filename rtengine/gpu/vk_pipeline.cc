@@ -32,7 +32,7 @@
 // generated from rtengine/gpu/shaders/*.comp; see doc/gpu_pipeline.md, §2.3
 #include "gpu_shaders_generated.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -259,4 +259,4 @@ void clearPipelineCache(Context &ctx)
 }
 
 } // namespace gpu
-} // namespace rtengine
+}} // namespace art::engine

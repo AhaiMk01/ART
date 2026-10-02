@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _PROFILESTORECOMBOBOX_
-#define _PROFILESTORECOMBOBOX_
+#pragma once
 
 #include <glibmm.h>
 #include <map>
@@ -33,12 +32,12 @@
 
 /**
  * @brief subclass of Gtk::Label with extra fields for Combobox and Menu, to
- * link with a ProfileStoreEntry
+ * link with a art::engine::ProfileStoreEntry
  */
 class ProfileStoreLabel: public Gtk::Label {
 
 public:
-    const ProfileStoreEntry *entry;
+    const art::engine::ProfileStoreEntry *entry;
 
 #ifndef NDEBUG
     ProfileStoreLabel(): Gtk::Label("*** error ***"), entry(nullptr) {}
@@ -48,10 +47,10 @@ public:
 
     /** @brief Create a new ProfileStoreLabel
      *
-     * @param entry      Pointer to the ProfileStoreEntry object, be it a
+     * @param entry      Pointer to the art::engine::ProfileStoreEntry object, be it a
      * directory or a file
      */
-    explicit ProfileStoreLabel(const ProfileStoreEntry *entry);
+    explicit ProfileStoreLabel(const art::engine::ProfileStoreEntry *entry);
     ProfileStoreLabel(const ProfileStoreLabel &other);
 };
 
@@ -61,7 +60,7 @@ protected:
     class MethodColumns: public Gtk::TreeModel::ColumnRecord {
     public:
         Gtk::TreeModelColumn<Glib::ustring> label;
-        Gtk::TreeModelColumn<const ProfileStoreEntry *> profileStoreEntry;
+        Gtk::TreeModelColumn<const art::engine::ProfileStoreEntry *> profileStoreEntry;
         MethodColumns()
         {
             add(label);
@@ -73,9 +72,9 @@ protected:
     MethodColumns methodColumns;
     void refreshProfileList_(
         Gtk::TreeModel::Row *parentRow, int parentFolderId, bool initial,
-        const std::vector<const ProfileStoreEntry *> *entryList);
+        const std::vector<const art::engine::ProfileStoreEntry *> *entryList);
     Gtk::TreeIter findRowFromEntry_(Gtk::TreeModel::Children childs,
-                                    const ProfileStoreEntry *pse);
+                                    const art::engine::ProfileStoreEntry *pse);
     Gtk::TreeIter findRowFromFullPath_(Gtk::TreeModel::Children childs,
                                        int parentFolderId, Glib::ustring &name);
 
@@ -83,16 +82,14 @@ public:
     ProfileStoreComboBox();
     void updateProfileList();
     Glib::ustring getCurrentLabel();
-    const ProfileStoreEntry *getSelectedEntry();
-    Gtk::TreeIter findRowFromEntry(const ProfileStoreEntry *pse);
+    const art::engine::ProfileStoreEntry *getSelectedEntry();
+    Gtk::TreeIter findRowFromEntry(const art::engine::ProfileStoreEntry *pse);
     Gtk::TreeIter findRowFromFullPath(Glib::ustring path);
     Glib::ustring getFullPathFromActiveRow();
     bool setActiveRowFromFullPath(Glib::ustring oldPath);
-    bool setActiveRowFromEntry(const ProfileStoreEntry *pse);
+    bool setActiveRowFromEntry(const art::engine::ProfileStoreEntry *pse);
     bool setInternalEntry();
     Gtk::TreeIter getRowFromLabel(Glib::ustring name);
-    Gtk::TreeIter addRow(const ProfileStoreEntry *profileStoreEntry);
-    void deleteRow(const ProfileStoreEntry *profileStoreEntry);
+    Gtk::TreeIter addRow(const art::engine::ProfileStoreEntry *profileStoreEntry);
+    void deleteRow(const art::engine::ProfileStoreEntry *profileStoreEntry);
 };
-
-#endif

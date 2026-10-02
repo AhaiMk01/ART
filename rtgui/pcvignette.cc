@@ -4,8 +4,8 @@
 #include "pcvignette.h"
 #include "eventmapper.h"
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 PCVignette::PCVignette()
     : FoldableToolPanel(this, "pcvignette", M("TP_PCVIGNETTE_LABEL"), false,
@@ -14,8 +14,8 @@ PCVignette::PCVignette()
 {
     auto m = ProcEventMapper::getInstance();
     EvCenter =
-        m->newEvent(rtengine::LUMINANCECURVE, "HISTORY_MSG_PCVIGNETTE_CENTER");
-    EvToolReset.set_action(rtengine::LUMINANCECURVE);
+        m->newEvent(art::engine::LUMINANCECURVE, "HISTORY_MSG_PCVIGNETTE_CENTER");
+    EvToolReset.set_action(art::engine::LUMINANCECURVE);
 
     Gtk::HBox *hb = Gtk::manage(new Gtk::HBox());
     edit = Gtk::manage(new Gtk::ToggleButton());
@@ -165,7 +165,7 @@ void PCVignette::enabledChanged()
     }
 }
 
-void PCVignette::trimValues(rtengine::procparams::ProcParams *pp)
+void PCVignette::trimValues(art::engine::procparams::ProcParams *pp)
 {
     strength->trimValue(pp->pcvignette.strength);
     feather->trimValue(pp->pcvignette.feather);
@@ -200,7 +200,7 @@ void PCVignette::updateGeometry(const int centerX, const int centerY)
         return;
     }
 
-    rtengine::Coord origin(im_x + imW / 2 + centerX * imW / 200,
+    art::engine::Coord origin(im_x + imW / 2 + centerX * imW / 200,
                            im_y + imH / 2 + centerY * imH / 200);
 
     const auto updateCircle = [&](Geometry *geometry) {
@@ -312,7 +312,7 @@ bool PCVignette::drag1(int modifierKey)
 
     if (lastObject == 0) {
         // Dragging the circle to change the center
-        rtengine::Coord currPos;
+        art::engine::Coord currPos;
         draggedCenter += provider->deltaPrevImage;
         currPos = draggedCenter;
         currPos.clip(imW, imH);
@@ -357,8 +357,8 @@ void PCVignette::switchOffEditMode()
 }
 
 void PCVignette::procParamsChanged(
-    const rtengine::procparams::ProcParams *params,
-    const rtengine::ProcEvent &ev, const Glib::ustring &descr,
+    const art::engine::procparams::ProcParams *params,
+    const art::engine::ProcEvent &ev, const Glib::ustring &descr,
     const ParamsEdited *paramsEdited)
 {
     crop_ = params->crop;

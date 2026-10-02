@@ -23,9 +23,9 @@
 #include "edit.h"
 #include <gtkmm.h>
 
-using rteMaskShape = rtengine::procparams::AreaMask::Shape;
-using rteMaskRect = rtengine::procparams::AreaMask::Rectangle;
-using rteMaskPoly = rtengine::procparams::AreaMask::Polygon;
+using rteMaskShape = art::engine::procparams::AreaMask::Shape;
+using rteMaskRect = art::engine::procparams::AreaMask::Rectangle;
+using rteMaskPoly = art::engine::procparams::AreaMask::Polygon;
 
 class AreaMask: public EditSubscriber {
 public:
@@ -61,7 +61,7 @@ protected:
     double dragged_point_old_angle_;
     double dragged_point_adjuster_angle_;
     double dragged_feather_offset_;
-    rtengine::Coord dragged_center_;
+    art::engine::Coord dragged_center_;
     double center_x_;
     double center_y_;
     double width_;
@@ -94,7 +94,7 @@ protected:
     int prev_poly_knot_id_;          // range identical to poly_knots_
     int next_poly_knot_id_;          // range identical to poly_knots_
     DraggedElement dragged_element_; // true if adjusting the Roundness value
-    std::vector<rtengine::CoordD>
+    std::vector<art::engine::CoordD>
         dragged_points_; // copy of initial points for dragging and bounds
                          // handling
 

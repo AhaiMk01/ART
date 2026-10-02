@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _HISTORY_
-#define _HISTORY_
+#pragma once
 
 #include "../rtengine/rtengine.h"
 #include "paramsedited.h"
@@ -30,7 +29,7 @@ class HistoryBeforeAfterListener {
 public:
     virtual ~HistoryBeforeAfterListener() = default;
     virtual void historyBeforeAfterChanged(
-        const rtengine::procparams::ProcParams &params) = 0;
+        const art::engine::procparams::ProcParams &params) = 0;
 };
 
 class History: public Gtk::VBox, public PParamsChangeListener {
@@ -40,8 +39,8 @@ public:
     public:
         Gtk::TreeModelColumn<Glib::ustring> text;
         Gtk::TreeModelColumn<Glib::ustring> value;
-        Gtk::TreeModelColumn<rtengine::procparams::ProcParams> params;
-        Gtk::TreeModelColumn<rtengine::ProcEvent> chev;
+        Gtk::TreeModelColumn<art::engine::procparams::ProcParams> params;
+        Gtk::TreeModelColumn<art::engine::ProcEvent> chev;
         // Gtk::TreeModelColumn<ParamsEdited>     paramsEdited;
         HistoryColumns()
         {
@@ -56,7 +55,7 @@ public:
     class BookmarkColumns: public Gtk::TreeModel::ColumnRecord {
     public:
         Gtk::TreeModelColumn<Glib::ustring> text;
-        Gtk::TreeModelColumn<rtengine::procparams::ProcParams> params;
+        Gtk::TreeModelColumn<art::engine::procparams::ProcParams> params;
         // Gtk::TreeModelColumn<ParamsEdited>     paramsEdited;
         BookmarkColumns()
         {
@@ -95,7 +94,7 @@ protected:
     bool on_query_tooltip(int x, int y, bool keyboard_tooltip,
                           const Glib::RefPtr<Gtk::Tooltip> &tooltip);
 
-    std::vector<std::pair<Glib::ustring, rtengine::procparams::ProcParams>>
+    std::vector<std::pair<Glib::ustring, art::engine::procparams::ProcParams>>
     getSnapshots();
 
     bool onPressEvent(GdkEventButton *event);
@@ -114,8 +113,8 @@ public:
     bool getBeforeAfterLock() const { return blistenerLock; }
 
     // pparamschangelistener interface
-    void procParamsChanged(const rtengine::procparams::ProcParams *params,
-                           const rtengine::ProcEvent &ev,
+    void procParamsChanged(const art::engine::procparams::ProcParams *params,
+                           const art::engine::ProcEvent &ev,
                            const Glib::ustring &descr,
                            const ParamsEdited *paramsEdited = nullptr) override;
     void clearParamChanges() override;
@@ -124,7 +123,7 @@ public:
     void bookmarkSelectionChanged();
     void initHistory();
 
-    bool getBeforeAfterParams(rtengine::procparams::ProcParams &params);
+    bool getBeforeAfterParams(art::engine::procparams::ProcParams &params);
 
     void addBookmarkWithText(Glib::ustring text);
     void addBookmarkPressed();
@@ -142,12 +141,10 @@ public:
     void setPParamsSnapshotListener(PParamsSnapshotListener *l);
     void
     setSnapshots(const std::vector<
-                 std::pair<Glib::ustring, rtengine::procparams::ProcParams>>
+                 std::pair<Glib::ustring, art::engine::procparams::ProcParams>>
                      &snapshots);
     void enableSnapshots(bool yes);
 
     void activateNextSnapshot();
     void activatePrevSnapshot();
 };
-
-#endif

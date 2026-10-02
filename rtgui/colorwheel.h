@@ -47,7 +47,7 @@
 class ColorWheelArea: public Gtk::DrawingArea, public BackBuffer {
 public:
     ColorWheelArea(
-        bool enable_low = true); // rtengine::ProcEvent evt, const Glib::ustring
+        bool enable_low = true); // art::engine::ProcEvent evt, const Glib::ustring
                                  // &msg, bool enable_low=true);
 
     void getParams(double &x, double &y) const;
@@ -77,7 +77,7 @@ public:
     sigc::signal<void> signal_right_click() { return sig_right_click_; }
 
 private:
-    // rtengine::ProcEvent evt;
+    // art::engine::ProcEvent evt;
     // Glib::ustring evtMsg;
 
     double low_a;

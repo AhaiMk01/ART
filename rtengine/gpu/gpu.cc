@@ -34,7 +34,7 @@
 #include "vk_pipeline.h"
 #endif
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -277,4 +277,4 @@ bool decline(Imagefloat *img)
 } // namespace ops
 
 } // namespace gpu
-} // namespace rtengine
+}} // namespace art::engine

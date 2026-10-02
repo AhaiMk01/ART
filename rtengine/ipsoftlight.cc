@@ -24,7 +24,7 @@
 
 #include "improcfun.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace {
 
@@ -79,4 +79,4 @@ void ImProcFunctions::softLight(Imagefloat *rgb)
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

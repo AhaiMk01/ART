@@ -37,10 +37,10 @@ class ColorCorrection: public ToolParamBlock,
 public:
     ColorCorrection();
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
 
     void adjusterChanged(Adjuster *a, double newval) override;
     void enabledChanged() override;
@@ -50,8 +50,8 @@ public:
     void setListener(ToolPanelListener *tpl) override;
 
     PParamsChangeListener *getPParamsChangeListener() override { return this; }
-    void procParamsChanged(const rtengine::procparams::ProcParams *params,
-                           const rtengine::ProcEvent &ev,
+    void procParamsChanged(const art::engine::procparams::ProcParams *params,
+                           const art::engine::ProcEvent &ev,
                            const Glib::ustring &descr,
                            const ParamsEdited *paramsEdited = nullptr) override;
     void clearParamChanges() override {}
@@ -105,39 +105,39 @@ private:
     void lutChanged();
     void lutParamsChanged();
 
-    rtengine::ProcEvent EvEnabled;
-    rtengine::ProcEvent EvColorWheel;
-    rtengine::ProcEvent EvInSaturation;
-    rtengine::ProcEvent EvOutSaturation;
-    rtengine::ProcEvent EvLightness;
-    rtengine::ProcEvent EvSlope;
-    rtengine::ProcEvent EvOffset;
-    rtengine::ProcEvent EvPower;
-    rtengine::ProcEvent EvPivot;
-    rtengine::ProcEvent EvMode;
-    rtengine::ProcEvent EvRgbLuminance;
-    rtengine::ProcEvent EvHueShift;
-    rtengine::ProcEvent EvCompression;
-    rtengine::ProcEvent EvLUT;
-    rtengine::ProcEvent EvLUTParams;
-    rtengine::ProcEvent EvHSLGamma;
+    art::engine::ProcEvent EvEnabled;
+    art::engine::ProcEvent EvColorWheel;
+    art::engine::ProcEvent EvInSaturation;
+    art::engine::ProcEvent EvOutSaturation;
+    art::engine::ProcEvent EvLightness;
+    art::engine::ProcEvent EvSlope;
+    art::engine::ProcEvent EvOffset;
+    art::engine::ProcEvent EvPower;
+    art::engine::ProcEvent EvPivot;
+    art::engine::ProcEvent EvMode;
+    art::engine::ProcEvent EvRgbLuminance;
+    art::engine::ProcEvent EvHueShift;
+    art::engine::ProcEvent EvCompression;
+    art::engine::ProcEvent EvLUT;
+    art::engine::ProcEvent EvLUTParams;
+    art::engine::ProcEvent EvHSLGamma;
 
-    rtengine::ProcEvent EvList;
-    rtengine::ProcEvent EvParametricMask;
-    rtengine::ProcEvent EvHueMask;
-    rtengine::ProcEvent EvChromaticityMask;
-    rtengine::ProcEvent EvLightnessMask;
-    rtengine::ProcEvent EvMaskBlur;
-    rtengine::ProcEvent EvShowMask;
-    rtengine::ProcEvent EvAreaMask;
-    rtengine::ProcEvent EvDeltaEMask;
-    rtengine::ProcEvent EvContrastThresholdMask;
-    rtengine::ProcEvent EvDrawnMask;
-    rtengine::ProcEvent EvMaskPostprocess;
-    rtengine::ProcEvent EvLinkedMask;
-    rtengine::ProcEvent EvExternalMask;
+    art::engine::ProcEvent EvList;
+    art::engine::ProcEvent EvParametricMask;
+    art::engine::ProcEvent EvHueMask;
+    art::engine::ProcEvent EvChromaticityMask;
+    art::engine::ProcEvent EvLightnessMask;
+    art::engine::ProcEvent EvMaskBlur;
+    art::engine::ProcEvent EvShowMask;
+    art::engine::ProcEvent EvAreaMask;
+    art::engine::ProcEvent EvDeltaEMask;
+    art::engine::ProcEvent EvContrastThresholdMask;
+    art::engine::ProcEvent EvDrawnMask;
+    art::engine::ProcEvent EvMaskPostprocess;
+    art::engine::ProcEvent EvLinkedMask;
+    art::engine::ProcEvent EvExternalMask;
 
-    std::vector<rtengine::procparams::ColorCorrectionParams::Region> data;
+    std::vector<art::engine::procparams::ColorCorrectionParams::Region> data;
 
     friend class ColorCorrectionMasksContentProvider;
     std::unique_ptr<MasksContentProvider> masks_content_provider_;
@@ -184,5 +184,5 @@ private:
     Gtk::DrawingArea *curve_lum;
     Gtk::DrawingArea *curve_rgb;
 
-    rtengine::procparams::ColorCorrectionParams initial_params;
+    art::engine::procparams::ColorCorrectionParams initial_params;
 };

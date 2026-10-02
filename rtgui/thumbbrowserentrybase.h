@@ -134,7 +134,7 @@ public:
     int getY() const { return ofsY + starty; }
 
     bool inside(int x, int y) const;
-    rtengine::Coord2D getPosInImgSpace(int x, int y) const;
+    art::engine::Coord2D getPosInImgSpace(int x, int y) const;
     bool insideWindow(int x, int y, int w, int h) const;
     void setPosition(int x, int y, int w, int h);
     void setOffset(int x, int y);

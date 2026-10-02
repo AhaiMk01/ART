@@ -28,7 +28,7 @@
 #include "rawimagesource.h"
 #include <cmath>
 
-using namespace rtengine;
+using namespace art::engine;
 
 #define TS 224
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

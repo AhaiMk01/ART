@@ -33,7 +33,7 @@
 #include "improcfun.h"
 #include "masks.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace {
 
@@ -508,4 +508,4 @@ bool ImProcFunctions::localContrast(Imagefloat *rgb)
     return false;
 }
 
-} // namespace rtengine
+}} // namespace art::engine

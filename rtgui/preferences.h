@@ -26,7 +26,7 @@
 #include <gtkmm.h>
 #include <vector>
 
-class Preferences: public Gtk::Dialog, public ProfileStoreListener {
+class Preferences: public Gtk::Dialog, public art::engine::ProfileStoreListener {
     class ExtensionColumns: public Gtk::TreeModel::ColumnRecord {
     public:
         Gtk::TreeModelColumn<bool> enabled;

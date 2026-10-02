@@ -24,7 +24,7 @@
 #include "imagesource.h"
 #include "procparams.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class ControlLine {
 public:
@@ -65,4 +65,4 @@ private:
     float ihomograph_[3][3];
 };
 
-} // namespace rtengine
+}} // namespace art::engine

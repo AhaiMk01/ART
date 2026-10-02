@@ -21,8 +21,8 @@
 #include <cmath>
 #include <iomanip>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 //-----------------------------------------------------------------------------
 // EPDMasksContentProvider
@@ -147,7 +147,7 @@ TextureBoost::TextureBoost()
     : FoldableToolPanel(this, "epd", M("TP_EPD_LABEL"), true, true, true)
 {
     auto m = ProcEventMapper::getInstance();
-    auto EVENT = rtengine::LUMINANCECURVE;
+    auto EVENT = art::engine::LUMINANCECURVE;
     EvIterations = m->newEvent(EVENT, "HISTORY_MSG_EPD_ITERATIONS");
     EvDetailThreshold = m->newEvent(EVENT, "HISTORY_MSG_EPD_DETAIL_THRESHOLD");
     EvList = m->newEvent(EVENT, "HISTORY_MSG_EPD_LIST");
@@ -206,8 +206,8 @@ void TextureBoost::read(const ProcParams *pp)
     data = pp->textureBoost.regions;
     auto m = pp->textureBoost.masks;
     if (data.empty()) {
-        data.emplace_back(rtengine::procparams::TextureBoostParams::Region());
-        m.emplace_back(rtengine::procparams::Mask());
+        data.emplace_back(art::engine::procparams::TextureBoostParams::Region());
+        m.emplace_back(art::engine::procparams::Mask());
     }
     masks_->setMasks(m, pp->textureBoost.selectedRegion,
                      pp->textureBoost.showMask >= 0 &&
@@ -287,8 +287,8 @@ void TextureBoost::setEditProvider(EditDataProvider *provider)
 }
 
 void TextureBoost::procParamsChanged(
-    const rtengine::procparams::ProcParams *params,
-    const rtengine::ProcEvent &ev, const Glib::ustring &descr,
+    const art::engine::procparams::ProcParams *params,
+    const art::engine::ProcEvent &ev, const Glib::ustring &descr,
     const ParamsEdited *paramsEdited)
 {
     masks_->updateLinkedMaskList(params);

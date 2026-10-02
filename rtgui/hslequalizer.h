@@ -37,8 +37,8 @@ public:
     HSLEqualizer();
     ~HSLEqualizer() override;
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void curveChanged(CurveEditor *ce) override;
     void setEditProvider(EditDataProvider *provider) override;
     void autoOpenCurve() override;
@@ -50,11 +50,11 @@ public:
     void adjusterChanged(Adjuster *a, double newval) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
 
-    void setDefaults(const rtengine::procparams::ProcParams *def) override;
+    void setDefaults(const art::engine::procparams::ProcParams *def) override;
     void toolReset(bool to_initial) override;
 
 private:
-    rtengine::ProcEvent EvHSLSmoothing;
+    art::engine::ProcEvent EvHSLSmoothing;
 
     CurveEditorGroup *curveEditorG;
     FlatCurveEditor *hshape;
@@ -62,6 +62,6 @@ private:
     FlatCurveEditor *lshape;
     Adjuster *smoothing;
 
-    rtengine::procparams::HSLEqualizerParams initial_params;
+    art::engine::procparams::HSLEqualizerParams initial_params;
     std::vector<double> default_flat_curve_;
 };

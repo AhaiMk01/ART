@@ -81,7 +81,7 @@ std::vector<double> MyFlatCurve::get_vector(int veclen)
 
     // Get the curve control points
     std::vector<double> curveDescr = getPoints();
-    rtengine::FlatCurve rtcurve(curveDescr, periodic,
+    art::engine::FlatCurve rtcurve(curveDescr, periodic,
                                 veclen * 1.2 > 5000 ? 5000 : veclen * 1.2);
 
     // Create the sample values that will be converted
@@ -99,14 +99,14 @@ std::vector<double> MyFlatCurve::get_vector(int veclen)
     return convertedValues;
 }
 
-void MyFlatCurve::get_LUT(LUTf &lut)
+void MyFlatCurve::get_LUT(art::engine::LUTf &lut)
 {
 
     int size = lut.getSize();
 
     // Get the curve control points
     std::vector<double> curveDescr = getPoints();
-    rtengine::FlatCurve rtcurve(
+    art::engine::FlatCurve rtcurve(
         curveDescr, periodic,
         lut.getUpperBound() * 1.2 > 5000 ? 5000 : lut.getUpperBound() * 1.2);
 
@@ -297,8 +297,8 @@ void MyFlatCurve::draw()
         for (int i = 0; i < (int)curve.x.size(); ++i) {
 
             if (curve.x.at(i) != -1.) {
-                double coloredLineWidth = rtengine::min<double>(
-                    rtengine::max<double>(75. * s, graphW) / (75. * s), 8. * s);
+                double coloredLineWidth = art::engine::min<double>(
+                    art::engine::max<double>(75. * s, graphW) / (75. * s), 8. * s);
 
                 cr->set_line_width(coloredLineWidth);
                 colorProvider->colorForValue(curve.x.at(i), curve.y.at(i),
@@ -534,13 +534,13 @@ void MyFlatCurve::draw()
                 graphH *
                     curve.y.at(i); // project (curve.y.at(i), 0, 1, graphH);
 
-            cr->arc(x, y, RADIUS * s + 0.5, 0, 2 * rtengine::RT_PI);
+            cr->arc(x, y, RADIUS * s + 0.5, 0, 2 * art::engine::RT_PI);
             cr->fill();
 
             if (i == edited_point) {
                 set_source_rgb(cr, 1.0, 0.0, 0.0);
                 cr->set_line_width(2. * s);
-                cr->arc(x, y, (RADIUS + 2.) * s, 0, 2 * rtengine::RT_PI);
+                cr->arc(x, y, (RADIUS + 2.) * s, 0, 2 * art::engine::RT_PI);
                 cr->stroke();
                 cr->set_line_width(1. * s);
             }
@@ -1446,7 +1446,7 @@ bool MyFlatCurve::pipetteButton1Pressed(EditDataProvider *provider,
     switch (area) {
 
     case (FCT_Area_Insertion): {
-        rtengine::FlatCurve rtCurve(getPoints(), true, GRAPH_SIZE * s);
+        art::engine::FlatCurve rtCurve(getPoints(), true, GRAPH_SIZE * s);
 
         std::vector<double>::iterator itx, ity, itlt, itrt;
         int num = (int)curve.x.size();

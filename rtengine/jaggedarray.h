@@ -24,7 +24,7 @@
 
 #include "array2D.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 // These emulate a jagged array, but use only 2 allocations instead of 1 + H.
 
@@ -43,4 +43,4 @@ public:
     T *operator[](int index) { return operator[](size_t(index)); }
 };
 
-} // namespace rtengine
+}} // namespace art::engine

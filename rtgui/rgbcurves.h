@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _RGBCURVES_H_
-#define _RGBCURVES_H_
+#pragma once
 
 #include "adjuster.h"
 #include "colorprovider.h"
@@ -38,26 +37,26 @@ private:
     DiagonalCurveEditor *Gshape;
     DiagonalCurveEditor *Bshape;
 
-    rtengine::procparams::RGBCurvesParams initial_params;
+    art::engine::procparams::RGBCurvesParams initial_params;
 
 public:
     RGBCurves();
     ~RGBCurves() override;
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void setEditProvider(EditDataProvider *provider) override;
     void autoOpenCurve() override;
 
     void curveChanged(CurveEditor *ce) override;
     void updateCurveBackgroundHistogram(
-        const LUTu &histToneCurve, const LUTu &histLCurve,
-        const LUTu &histCCurve, const LUTu &histLCAM, const LUTu &histCCAM,
-        const LUTu &histRed, const LUTu &histGreen, const LUTu &histBlue,
-        const LUTu &histLuma, const LUTu &histLRETI);
+        const art::engine::LUTu &histToneCurve, const art::engine::LUTu &histLCurve,
+        const art::engine::LUTu &histCCurve, const art::engine::LUTu &histLCAM, const art::engine::LUTu &histCCAM,
+        const art::engine::LUTu &histRed, const art::engine::LUTu &histGreen, const art::engine::LUTu &histBlue,
+        const art::engine::LUTu &histLuma, const art::engine::LUTu &histLRETI);
     void enabledChanged() override;
 
-    void setDefaults(const rtengine::procparams::ProcParams *def) override;
+    void setDefaults(const art::engine::procparams::ProcParams *def) override;
     void toolReset(bool to_initial) override;
 
     void renderCurveBackground(int caller_id,
@@ -65,5 +64,3 @@ public:
                                Cairo::RefPtr<Cairo::Context> cr, double x,
                                double y, double w, double h) override;
 };
-
-#endif

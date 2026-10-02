@@ -19,7 +19,7 @@
 // Pad a 3x3 matrix into a 3x4 row-major array matching std430's mat3-as-three-vec4s layout.
 #pragma once
 
-namespace rtengine {
+namespace art { namespace engine {
 namespace gpu {
 
 inline void fillRows(float dst[3][4], const float src[3][3])
@@ -46,4 +46,4 @@ inline void fillMat3(float m[3][4], const float *rows)
 
 
 } // namespace gpu
-} // namespace rtengine
+}} // namespace art::engine

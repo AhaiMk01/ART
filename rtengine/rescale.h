@@ -23,7 +23,7 @@
 #include "array2D.h"
 #include "opthelper.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 inline float getBilinearValue(const array2D<float> &src, float x, float y)
 {
@@ -155,4 +155,4 @@ inline void rescaleNearest(const array2D<T> &src, array2D<T> &dst,
                    dst.width(), dst.height(), multithread);
 }
 
-} // namespace rtengine
+}} // namespace art::engine

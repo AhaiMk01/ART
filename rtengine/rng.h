@@ -27,7 +27,7 @@
 #include <math.h>
 #include <stdint.h>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 // xoshiro++128 from https://en.wikipedia.org/wiki/Xorshift
 class RandomNumberGenerator {
@@ -114,4 +114,4 @@ private:
     bool has_spare_;
 };
 
-} // namespace rtengine
+}} // namespace art::engine

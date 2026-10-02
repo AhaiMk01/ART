@@ -24,7 +24,7 @@
 #include <map>
 #include <string>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class DFInfo {
 public:
@@ -110,4 +110,4 @@ protected:
 
 extern DFManager dfm;
 
-} // namespace rtengine
+}} // namespace art::engine

@@ -23,8 +23,8 @@
 #include "rtimage.h"
 #include <set>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 namespace {
 
@@ -589,7 +589,7 @@ void IPTCPanel::setImageData(const FramesMetaData *id)
     embeddedData.clear();
     if (id) {
         try {
-            rtengine::Exiv2Metadata meta(id->getFileName());
+            art::engine::Exiv2Metadata meta(id->getFileName());
             meta.load();
             auto &iptc = meta.iptcData();
             for (auto &tag : iptc) {
@@ -805,7 +805,7 @@ void IPTCPanel::applyChangeList()
     keyword->get_entry()->set_text("");
     suppCategory->get_entry()->set_text("");
 
-    for (rtengine::procparams::IPTCPairs::iterator i = changeList.begin();
+    for (art::engine::procparams::IPTCPairs::iterator i = changeList.begin();
          i != changeList.end(); ++i) {
         if (i->first == CAPTION && !i->second.empty()) {
             captionText->set_text(i->second.at(0));

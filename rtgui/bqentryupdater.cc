@@ -29,7 +29,7 @@ BatchQueueEntryUpdater::BatchQueueEntryUpdater(): tostop_(false), stopped_(true)
 
 void BatchQueueEntryUpdater::process(guint8 *oimg, int ow, int oh, int newh,
                                      BQEntryUpdateListener *listener,
-                                     rtengine::ProcParams *pparams,
+                                     art::engine::ProcParams *pparams,
                                      Thumbnail *thumbnail)
 {
     if (!oimg && (!pparams || !thumbnail)) {
@@ -71,8 +71,8 @@ void BatchQueueEntryUpdater::process(guint8 *oimg, int ow, int oh, int newh,
         stopped_ = false;
         tostop_ = false;
 
-        stopped_future_ = rtengine::ThreadPool::add_task(
-            rtengine::ThreadPool::Priority::NORMAL,
+        stopped_future_ = art::engine::ThreadPool::add_task(
+            art::engine::ThreadPool::Priority::NORMAL,
             sigc::mem_fun(*this, &BatchQueueEntryUpdater::process_thread));
     }
 }
@@ -97,7 +97,7 @@ bool BatchQueueEntryUpdater::process_thread()
             break;
         }
 
-        rtengine::IImage8 *img = nullptr;
+        art::engine::IImage8 *img = nullptr;
         bool newBuffer = false;
 
         if (current.thumbnail && current.pparams) {

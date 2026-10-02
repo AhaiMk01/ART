@@ -25,8 +25,8 @@
 
 #include <glibmm/regex.h>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 ExifPanel::ExifPanel(): idata(nullptr), pl_(nullptr)
 {
@@ -322,7 +322,7 @@ void ExifPanel::refreshTags()
     };
 
     try {
-        rtengine::Exiv2Metadata meta(fn);
+        art::engine::Exiv2Metadata meta(fn);
         meta.load();
         Exiv2::ExifData exif = meta.exifData();
 
@@ -342,12 +342,12 @@ void ExifPanel::refreshTags()
             return "<i>(" + M("EXIFPANEL_VALUE_NOT_SHOWN") + ")</i>";
         };
 
-        if (const rtengine::FramesData *fd =
-                dynamic_cast<const rtengine::FramesData *>(idata)) {
+        if (const art::engine::FramesData *fd =
+                dynamic_cast<const art::engine::FramesData *>(idata)) {
             fd->fillBasicTags(exif);
         }
 
-        const rtengine::procparams::ExifPairs *cl[2] = {
+        const art::engine::procparams::ExifPairs *cl[2] = {
             &changeList,
             &override_list_
         };
@@ -827,7 +827,7 @@ void ExifPanel::onEditExifTagValue(const Glib::ustring &path,
     }
 }
 
-void ExifPanel::setProgressListener(rtengine::ProgressListener *pl)
+void ExifPanel::setProgressListener(art::engine::ProgressListener *pl)
 {
     pl_ = pl;
 }
@@ -847,8 +847,8 @@ void ExifPanel::setExifTagIcon(Gtk::CellRenderer *renderer,
 
 
 void ExifPanel::procParamsChanged(
-    const rtengine::procparams::ProcParams *params,
-    const rtengine::ProcEvent &ev,
+    const art::engine::procparams::ProcParams *params,
+    const art::engine::ProcEvent &ev,
     const Glib::ustring &descr,
     const ParamsEdited *paramsEdited)
 {

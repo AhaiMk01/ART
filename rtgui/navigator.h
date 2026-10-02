@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _NAVIGATOR_
-#define _NAVIGATOR_
+#pragma once
 
 #include "../rtengine/iccstore.h"
 #include "options.h"
@@ -56,7 +55,7 @@ public:
                       const Glib::ustring &profileW, int x, int y, int r, int g,
                       int b, bool raw = false) override;
     void setInvalid(int fullWidth = -1, int fullHeight = -1);
-    void setMetaInfo(const rtengine::FramesMetaData *idata);
+    void setMetaInfo(const art::engine::FramesMetaData *idata);
 
     void getRGBText(int r, int g, int b, Glib::ustring &sR, Glib::ustring &sG,
                     Glib::ustring &sB, bool isRaw = false) override;
@@ -65,5 +64,3 @@ public:
     void getLABText(float l, float a, float b, Glib::ustring &sL,
                     Glib::ustring &sA, Glib::ustring &sB) override;
 };
-
-#endif

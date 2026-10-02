@@ -21,15 +21,15 @@
 #include "guiutils.h"
 #include <sstream>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 RAWExposure::RAWExposure()
     : FoldableToolPanel(this, "rawexposure", M("TP_EXPOS_WHITEPOINT_LABEL"),
                         false, true, true)
 {
-    EvToolEnabled.set_action(rtengine::DARKFRAME);
-    EvToolReset.set_action(rtengine::DARKFRAME);
+    EvToolEnabled.set_action(art::engine::DARKFRAME);
+    EvToolReset.set_action(art::engine::DARKFRAME);
 
     PexPos =
         Gtk::manage(new Adjuster(M("TP_RAWEXPOS_LINEAR"), 0.1, 32.0, 0.01, 1));
@@ -44,7 +44,7 @@ RAWExposure::RAWExposure()
     PexPos->setLogScale(100, 0);
 }
 
-void RAWExposure::read(const rtengine::procparams::ProcParams *pp)
+void RAWExposure::read(const art::engine::procparams::ProcParams *pp)
 {
     disableListener();
     setEnabled(pp->raw.enable_whitepoint);
@@ -52,7 +52,7 @@ void RAWExposure::read(const rtengine::procparams::ProcParams *pp)
     enableListener();
 }
 
-void RAWExposure::write(rtengine::procparams::ProcParams *pp)
+void RAWExposure::write(art::engine::procparams::ProcParams *pp)
 {
     pp->raw.enable_whitepoint = getEnabled();
     pp->raw.expos = PexPos->getValue();
@@ -71,12 +71,12 @@ void RAWExposure::adjusterChanged(Adjuster *a, double newval)
 
 void RAWExposure::adjusterAutoToggled(Adjuster *a, bool newval) {}
 
-void RAWExposure::setDefaults(const rtengine::procparams::ProcParams *defParams)
+void RAWExposure::setDefaults(const art::engine::procparams::ProcParams *defParams)
 {
     PexPos->setDefault(defParams->raw.expos);
 }
 
-void RAWExposure::trimValues(rtengine::procparams::ProcParams *pp)
+void RAWExposure::trimValues(art::engine::procparams::ProcParams *pp)
 {
 
     PexPos->trimValue(pp->raw.expos);

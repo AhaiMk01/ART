@@ -240,7 +240,7 @@ FileBrowser::FileBrowser()
     session_id_ = 0;
     last_selected_fname_ = "";
 
-    ProfileStore::getInstance()->addListener(this);
+    art::engine::ProfileStore::getInstance()->addListener(this);
 
     pmenu = nullptr;
     pmenuColorLabels = nullptr;
@@ -251,7 +251,7 @@ FileBrowser::~FileBrowser()
 {
     idle_register.destroy();
 
-    ProfileStore::getInstance()->removeListener(this);
+    art::engine::ProfileStore::getInstance()->removeListener(this);
     delete pmenu;
     delete pmenuColorLabels;
     // delete[] amiExtProg;
@@ -1101,7 +1101,7 @@ void FileBrowser::menuItemActivated(Gtk::MenuItem *m)
 
     else if (m == autoDF) {
         for (size_t i = 0; i < mselected.size(); i++) {
-            rtengine::procparams::ProcParams pp =
+            art::engine::procparams::ProcParams pp =
                 mselected[i]->thumbnail->getProcParams();
             pp.raw.df_autoselect = true;
             pp.raw.dark_frame.clear();
@@ -1109,7 +1109,7 @@ void FileBrowser::menuItemActivated(Gtk::MenuItem *m)
         }
     } else if (m == selectDF) {
         if (!mselected.empty()) {
-            rtengine::procparams::ProcParams pp =
+            art::engine::procparams::ProcParams pp =
                 mselected[0]->thumbnail->getProcParams();
             Gtk::FileChooserDialog fc(getToplevelWindow(this), "Dark Frame",
                                       Gtk::FILE_CHOOSER_ACTION_OPEN);
@@ -1123,7 +1123,7 @@ void FileBrowser::menuItemActivated(Gtk::MenuItem *m)
 
             if (fc.run() == Gtk::RESPONSE_APPLY) {
                 for (size_t i = 0; i < mselected.size(); i++) {
-                    rtengine::procparams::ProcParams pp =
+                    art::engine::procparams::ProcParams pp =
                         mselected[i]->thumbnail->getProcParams();
                     pp.raw.dark_frame = fc.get_filename();
                     pp.raw.df_autoselect = false;
@@ -1152,7 +1152,7 @@ void FileBrowser::menuItemActivated(Gtk::MenuItem *m)
                 }
 
                 // Reinit cache
-                rtengine::dfm.init(options.rtSettings.darkFramesPath);
+                art::engine::dfm.init(options.rtSettings.darkFramesPath);
             } else {
                 // Target directory creation failed, we clear the darkFramesPath
                 // setting
@@ -1176,7 +1176,7 @@ void FileBrowser::menuItemActivated(Gtk::MenuItem *m)
         }
     } else if (m == autoFF) {
         for (size_t i = 0; i < mselected.size(); i++) {
-            rtengine::procparams::ProcParams pp =
+            art::engine::procparams::ProcParams pp =
                 mselected[i]->thumbnail->getProcParams();
             pp.raw.ff_AutoSelect = true;
             pp.raw.ff_file.clear();
@@ -1184,7 +1184,7 @@ void FileBrowser::menuItemActivated(Gtk::MenuItem *m)
         }
     } else if (m == selectFF) {
         if (!mselected.empty()) {
-            rtengine::procparams::ProcParams pp =
+            art::engine::procparams::ProcParams pp =
                 mselected[0]->thumbnail->getProcParams();
             Gtk::FileChooserDialog fc(getToplevelWindow(this), "Flat Field",
                                       Gtk::FILE_CHOOSER_ACTION_OPEN);
@@ -1198,7 +1198,7 @@ void FileBrowser::menuItemActivated(Gtk::MenuItem *m)
 
             if (fc.run() == Gtk::RESPONSE_APPLY) {
                 for (size_t i = 0; i < mselected.size(); i++) {
-                    rtengine::procparams::ProcParams pp =
+                    art::engine::procparams::ProcParams pp =
                         mselected[i]->thumbnail->getProcParams();
                     pp.raw.ff_file = fc.get_filename();
                     pp.raw.ff_AutoSelect = false;
@@ -1227,7 +1227,7 @@ void FileBrowser::menuItemActivated(Gtk::MenuItem *m)
                 }
 
                 // Reinit cache
-                rtengine::ffm.init(options.rtSettings.flatFieldsPath);
+                art::engine::ffm.init(options.rtSettings.flatFieldsPath);
             } else {
                 // Target directory creation failed, we clear the flatFieldsPath
                 // setting
@@ -1312,7 +1312,7 @@ void FileBrowser::menuItemActivated(Gtk::MenuItem *m)
             mselected[i]->thumbnail->createProcParamsForUpdate(false, true);
 
             // Empty run to update the thumb
-            rtengine::procparams::ProcParams params =
+            art::engine::procparams::ProcParams params =
                 mselected[i]->thumbnail->getProcParams();
             mselected[i]->thumbnail->setProcParams(params, FILEBROWSER, true,
                                                    true);
@@ -1371,7 +1371,7 @@ void FileBrowser::pasteProfile()
         for (unsigned int i = 0; i < mselected.size(); i++) {
             // applying the PartialProfile to the thumb's ProcParams
             mselected[i]->thumbnail->setProcParams(
-                rtengine::procparams::FullPartialProfile(
+                art::engine::procparams::FullPartialProfile(
                     clipboard.getProcParams()),
                 FILEBROWSER);
         }
@@ -1414,7 +1414,7 @@ void FileBrowser::partPasteProfile()
                 const auto &pp = clipboard.getProcParams();
                 auto ped = partial_paste_dlg_->getParamsEdited();
                 mselected[i]->thumbnail->setProcParams(
-                    rtengine::procparams::PEditedPartialProfile(pp, ped),
+                    art::engine::procparams::PEditedPartialProfile(pp, ped),
                     FILEBROWSER);
             }
 
@@ -1616,8 +1616,8 @@ void FileBrowser::applyMenuItemActivated(ProfileStoreLabel *label)
 {
     MYREADERLOCK(l, entryRW);
 
-    const rtengine::procparams::PartialProfile *partProfile =
-        ProfileStore::getInstance()->getProfile(label->entry);
+    const art::engine::procparams::PartialProfile *partProfile =
+        art::engine::ProfileStore::getInstance()->getProfile(label->entry);
 
     if (partProfile /*->pparams*/ && !selected.empty()) {
         for (size_t i = 0; i < selected.size(); i++) {
@@ -1640,8 +1640,8 @@ void FileBrowser::applyPartialMenuItemActivated(ProfileStoreLabel *label)
         }
     }
 
-    const rtengine::procparams::PartialProfile *srcProfiles =
-        ProfileStore::getInstance()->getProfile(label->entry);
+    const art::engine::procparams::PartialProfile *srcProfiles =
+        art::engine::ProfileStore::getInstance()->getProfile(label->entry);
 
     if (srcProfiles) {
         if (!partial_paste_dlg_) {
@@ -1656,12 +1656,12 @@ void FileBrowser::applyPartialMenuItemActivated(ProfileStoreLabel *label)
 
             for (size_t i = 0; i < selected.size(); i++) {
                 selected[i]->thumbnail->createProcParamsForUpdate(false, false);
-                rtengine::procparams::ProcParams pp;
+                art::engine::procparams::ProcParams pp;
                 srcProfiles->applyTo(pp);
                 auto pe = partial_paste_dlg_->getParamsEdited();
                 (static_cast<FileBrowserEntry *>(selected[i]))
                     ->thumbnail->setProcParams(
-                        rtengine::procparams::PEditedPartialProfile(pp, pe),
+                        art::engine::procparams::PEditedPartialProfile(pp, pe),
                         FILEBROWSER);
             }
 
@@ -1869,18 +1869,18 @@ bool FileBrowser::checkFilter(
     }
 
     return (!filter.exifFilter.filterShutter ||
-            (rtengine::FramesMetaData::shutterFromString(
-                 rtengine::FramesMetaData::shutterToString(cfs->shutter)) >=
+            (art::engine::FramesMetaData::shutterFromString(
+                 art::engine::FramesMetaData::shutterToString(cfs->shutter)) >=
                  filter.exifFilter.shutterFrom - tol2 &&
-             rtengine::FramesMetaData::shutterFromString(
-                 rtengine::FramesMetaData::shutterToString(cfs->shutter)) <=
+             art::engine::FramesMetaData::shutterFromString(
+                 art::engine::FramesMetaData::shutterToString(cfs->shutter)) <=
                  filter.exifFilter.shutterTo + tol2)) &&
            (!filter.exifFilter.filterFNumber ||
-            (rtengine::FramesMetaData::apertureFromString(
-                 rtengine::FramesMetaData::apertureToString(cfs->fnumber)) >=
+            (art::engine::FramesMetaData::apertureFromString(
+                 art::engine::FramesMetaData::apertureToString(cfs->fnumber)) >=
                  filter.exifFilter.fnumberFrom - tol2 &&
-             rtengine::FramesMetaData::apertureFromString(
-                 rtengine::FramesMetaData::apertureToString(cfs->fnumber)) <=
+             art::engine::FramesMetaData::apertureFromString(
+                 art::engine::FramesMetaData::apertureToString(cfs->fnumber)) <=
                  filter.exifFilter.fnumberTo + tol2)) &&
            (!filter.exifFilter.filterFocalLen ||
             (cfs->focalLen >= filter.exifFilter.focalFrom - tol &&
@@ -2389,8 +2389,8 @@ void FileBrowser::updateProfileList()
     // submenu applmenu
     int p = 0;
 
-    const std::vector<const ProfileStoreEntry *> *profEntries =
-        ProfileStore::getInstance()
+    const std::vector<const art::engine::ProfileStoreEntry *> *profEntries =
+        art::engine::ProfileStore::getInstance()
             ->getFileList(); // lock and get a pointer to the profiles' list
 
     std::map<unsigned short /* folderId */, Gtk::Menu *>
@@ -2410,7 +2410,7 @@ void FileBrowser::updateProfileList()
 
         // create a new Menu object if the entry is a folder and not the root
         // one
-        if (currLabel->entry->type == PSET_FOLDER) {
+        if (currLabel->entry->type == art::engine::PSET_FOLDER) {
             // creating the new sub-menu
             Gtk::Menu *subMenu = Gtk::manage(new Gtk::Menu());
 
@@ -2429,7 +2429,7 @@ void FileBrowser::updateProfileList()
         subMenuList[parentMenuId]->attach(*mi, 0, 1, p, p + 1);
         p++;
 
-        if (currLabel->entry->type == PSET_FILE) {
+        if (currLabel->entry->type == art::engine::PSET_FILE) {
             mi->signal_activate().connect(sigc::bind(
                 sigc::mem_fun(*this, &FileBrowser::applyMenuItemActivated),
                 currLabel));
@@ -2458,7 +2458,7 @@ void FileBrowser::updateProfileList()
 
         Gtk::MenuItem *mi = Gtk::manage(new Gtk::MenuItem(*currLabel));
 
-        if (currLabel->entry->type == PSET_FOLDER) {
+        if (currLabel->entry->type == art::engine::PSET_FOLDER) {
             // creating the new sub-menu
             Gtk::Menu *subMenu = Gtk::manage(new Gtk::Menu());
 
@@ -2477,7 +2477,7 @@ void FileBrowser::updateProfileList()
         subMenuList[parentMenuId]->attach(*mi, 0, 1, p, p + 1);
         p++;
 
-        if (currLabel->entry->type == PSET_FILE) {
+        if (currLabel->entry->type == art::engine::PSET_FILE) {
             mi->signal_activate().connect(sigc::bind(
                 sigc::mem_fun(*this,
                               &FileBrowser::applyPartialMenuItemActivated),
@@ -2494,7 +2494,7 @@ void FileBrowser::updateProfileList()
         applypartprof->set_submenu(*(subMenuList.at(0)));
     }
 
-    ProfileStore::getInstance()->releaseFileList();
+    art::engine::ProfileStore::getInstance()->releaseFileList();
     subMenuList.clear();
 }
 

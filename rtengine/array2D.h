@@ -64,7 +64,7 @@
 #include "alignedbuffer.h"
 #include "noncopyable.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 // flags for use
 constexpr unsigned int ARRAY2D_CLEAR_DATA = 2;
@@ -72,7 +72,7 @@ constexpr unsigned int ARRAY2D_BYREFERENCE = 4;
 constexpr unsigned int ARRAY2D_ALIGNED = 16;
 constexpr unsigned int ARRAY2D_ALIGNED_BUF = 32;
 
-template <typename T> class array2D: public rtengine::NonCopyable {
+template <typename T> class array2D: public art::engine::NonCopyable {
 private:
     int width_;
     int height_;
@@ -315,4 +315,4 @@ public:
     }
 };
 
-} // namespace rtengine
+}} // namespace art::engine

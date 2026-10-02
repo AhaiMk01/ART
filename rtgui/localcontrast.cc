@@ -22,8 +22,8 @@
 #include <cmath>
 #include <iomanip>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 //-----------------------------------------------------------------------------
 // LocalContrastMasksContentProvider
@@ -160,7 +160,7 @@ LocalContrast::LocalContrast()
                         true, true, true)
 {
     auto m = ProcEventMapper::getInstance();
-    auto EVENT = rtengine::DISPLAY;
+    auto EVENT = art::engine::DISPLAY;
     EvLocalContrastEnabled =
         m->newEvent(EVENT, "HISTORY_MSG_LOCALCONTRAST_ENABLED");
     EvLocalContrastContrast =
@@ -230,8 +230,8 @@ void LocalContrast::read(const ProcParams *pp)
     auto m = pp->localContrast.masks;
     if (regionData.empty()) {
         regionData.emplace_back(
-            rtengine::procparams::LocalContrastParams::Region());
-        m.emplace_back(rtengine::procparams::Mask());
+            art::engine::procparams::LocalContrastParams::Region());
+        m.emplace_back(art::engine::procparams::Mask());
     }
     masks_->setMasks(m, pp->localContrast.selectedRegion,
                      pp->localContrast.showMask >= 0 &&
@@ -308,8 +308,8 @@ void LocalContrast::setEditProvider(EditDataProvider *provider)
 }
 
 void LocalContrast::procParamsChanged(
-    const rtengine::procparams::ProcParams *params,
-    const rtengine::ProcEvent &ev, const Glib::ustring &descr,
+    const art::engine::procparams::ProcParams *params,
+    const art::engine::ProcEvent &ev, const Glib::ustring &descr,
     const ParamsEdited *paramsEdited)
 {
     masks_->updateLinkedMaskList(params);

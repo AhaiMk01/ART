@@ -245,7 +245,7 @@ bool init_rt()
     return true;
 }
 
-void cleanup_rt() { rtengine::cleanup(); }
+void cleanup_rt() { art::engine::cleanup(); }
 
 RTWindow *create_rt_window()
 {

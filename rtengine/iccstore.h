@@ -31,7 +31,7 @@
 #include "linalgebra.h"
 #include "settings.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace procparams {
 struct ColorManagementParams;
@@ -77,7 +77,7 @@ public:
     ProfileContent getContent(const Glib::ustring &name) const;
 
     cmsHPROFILE
-    getStdMonitorProfile(rtengine::Settings::StdMonitorProfile name) const;
+    getStdMonitorProfile(art::engine::Settings::StdMonitorProfile name) const;
     cmsHPROFILE getActiveMonitorProfile() const;
 
     static std::string getProfileTag(cmsHPROFILE profile, cmsTagSignature tag);
@@ -129,4 +129,4 @@ private:
     const std::unique_ptr<Implementation> implementation;
 };
 
-} // namespace rtengine
+}} // namespace art::engine

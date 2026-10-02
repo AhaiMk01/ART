@@ -24,7 +24,7 @@
 #include "options.h"
 #include <glibmm.h>
 
-class CacheImageData: public rtengine::FramesMetaData {
+class CacheImageData: public art::engine::FramesMetaData {
 public:
     // basic information
     Glib::ustring md5;
@@ -52,7 +52,7 @@ public:
     bool isHDR;
     bool isPixelShift;
     int sensortype;
-    rtengine::IIO_Sample_Format sampleFormat;
+    art::engine::IIO_Sample_Format sampleFormat;
     Glib::ustring lens;
     Glib::ustring orientation;
     Glib::ustring camMake;
@@ -65,7 +65,7 @@ public:
 
     // store a copy of the autoWB's multipliers computed in
     // Thumbnail::_generateThumbnailImage they are not stored in the cache file
-    // by this class, but by rtengine::Thumbnail -1 = Unknown
+    // by this class, but by art::engine::Thumbnail -1 = Unknown
     double redAWBMul, greenAWBMul, blueAWBMul;
 
     // additional info on raw images
@@ -116,16 +116,16 @@ public:
     {
         return isPixelShift ? "PS" : isHDR ? "HDR" : "STD";
     }
-    rtengine::IIOSampleFormat getSampleFormat() const override
+    art::engine::IIOSampleFormat getSampleFormat() const override
     {
         return sampleFormat;
     }
     std::string getSoftware() const override { return ""; }
     int getRating() const override { return rating; }
     int getColorLabel() const override { return colorLabel; }
-    std::vector<rtengine::GainMap> getGainMaps() const override
+    std::vector<art::engine::GainMap> getGainMaps() const override
     {
-        return std::vector<rtengine::GainMap>();
+        return std::vector<art::engine::GainMap>();
     }
     void getDimensions(int &w, int &h) const override
     {

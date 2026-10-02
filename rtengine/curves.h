@@ -42,7 +42,7 @@
 
 #define CLIPI(a) ((a) > 0 ? ((a) < 65534 ? (a) : 65534) : 0)
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class ToneCurve;
 
@@ -676,6 +676,6 @@ inline void SatAndValueBlendingToneCurve::Apply(float &ir, float &ig,
     ib = b;
 }
 
-} // namespace rtengine
+}} // namespace art::engine
 
 #undef CLIPI

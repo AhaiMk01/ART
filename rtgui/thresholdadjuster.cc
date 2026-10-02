@@ -370,7 +370,7 @@ void ThresholdAdjuster::sendToListener()
     if (tSelector.getPrecision() > 0) {
         // if precision is >0, then we assume that the listener is waiting for
         // doubles
-        rtengine::procparams::Threshold<double> t =
+        art::engine::procparams::Threshold<double> t =
             tSelector.getPositions<double>();
 
         if (tSelector.isDouble()) {
@@ -387,7 +387,7 @@ void ThresholdAdjuster::sendToListener()
     } else {
         // if precision is equal to 0, then we assume that the listener is
         // waiting for integers
-        rtengine::procparams::Threshold<int> t = tSelector.getPositions<int>();
+        art::engine::procparams::Threshold<int> t = tSelector.getPositions<int>();
 
         if (tSelector.isDouble()) {
             adjusterListener->adjusterChanged(

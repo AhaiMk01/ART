@@ -28,11 +28,13 @@
 #define BENCHMARK
 #include "StopWatch.h"
 
-namespace rtengine {
-extern const Settings *settings;
-} // namespace rtengine
+namespace art { namespace engine {
 
-using namespace rtengine;
+
+
+extern const Settings *settings;
+
+using namespace art::engine;
 using namespace procparams;
 
 PreviewImage::PreviewImage(const Glib::ustring &fname, const Glib::ustring &ext,
@@ -815,3 +817,6 @@ Image8 *PreviewImage::load_raw(const Glib::ustring &fname, int w, int h)
 
     return img;
 }
+
+
+} } // namespace art::engine

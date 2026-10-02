@@ -18,8 +18,7 @@
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef FILM_SIMULATION_INCLUDED
-#define FILM_SIMULATION_INCLUDED
+#pragma once
 
 #include "adjuster.h"
 #include "clutparamspanel.h"
@@ -86,11 +85,11 @@ public:
 
     void adjusterChanged(Adjuster *a, double newval) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
-    void trimValues(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
+    void trimValues(art::engine::procparams::ProcParams *pp) override;
 
-    void setDefaults(const rtengine::procparams::ProcParams *pp) override;
+    void setDefaults(const art::engine::procparams::ProcParams *pp) override;
     void toolReset(bool to_initial) override;
 
 private:
@@ -110,10 +109,8 @@ private:
 
     CLUTParamsPanel *lut_params_;
 
-    rtengine::procparams::FilmSimulationParams initial_params;
+    art::engine::procparams::FilmSimulationParams initial_params;
 
-    rtengine::ProcEvent EvAfterToneCurve;
-    rtengine::ProcEvent EvClutParams;
+    art::engine::ProcEvent EvAfterToneCurve;
+    art::engine::ProcEvent EvClutParams;
 };
-
-#endif

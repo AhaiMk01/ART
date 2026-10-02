@@ -8,6 +8,6 @@
 namespace art {
 
 void gdk_set_monitor_profile(GdkWindow *window,
-                             rtengine::Settings::StdMonitorProfile prof);
+                             art::engine::Settings::StdMonitorProfile prof);
 
 } // namespace art

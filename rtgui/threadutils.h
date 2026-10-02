@@ -39,7 +39,7 @@ public:
     void release() { unlock(); }
 };
 
-class MyRWMutex: public rtengine::NonCopyable {
+class MyRWMutex: public art::engine::NonCopyable {
 public:
     friend class MyReaderLock;
     friend class MyWriterLock;
@@ -52,7 +52,7 @@ private:
     std::size_t readerCount = 0;
 };
 
-class MyReaderLock: public rtengine::NonCopyable {
+class MyReaderLock: public art::engine::NonCopyable {
 public:
     ~MyReaderLock();
 
@@ -66,7 +66,7 @@ private:
     bool locked;
 };
 
-class MyWriterLock: public rtengine::NonCopyable {
+class MyWriterLock: public art::engine::NonCopyable {
 public:
     ~MyWriterLock();
 

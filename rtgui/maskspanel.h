@@ -35,20 +35,20 @@
 class MasksContentProvider {
 public:
     struct Events {
-        rtengine::ProcEvent mask_list;
-        rtengine::ProcEvent parametric_mask;
-        rtengine::ProcEvent h_mask;
-        rtengine::ProcEvent c_mask;
-        rtengine::ProcEvent l_mask;
-        rtengine::ProcEvent blur;
-        rtengine::ProcEvent show;
-        rtengine::ProcEvent area_mask;
-        rtengine::ProcEvent deltaE_mask;
-        rtengine::ProcEvent contrastThreshold_mask;
-        rtengine::ProcEvent drawn_mask;
-        rtengine::ProcEvent mask_postprocess;
-        rtengine::ProcEvent linked_mask;
-        rtengine::ProcEvent external_mask;
+        art::engine::ProcEvent mask_list;
+        art::engine::ProcEvent parametric_mask;
+        art::engine::ProcEvent h_mask;
+        art::engine::ProcEvent c_mask;
+        art::engine::ProcEvent l_mask;
+        art::engine::ProcEvent blur;
+        art::engine::ProcEvent show;
+        art::engine::ProcEvent area_mask;
+        art::engine::ProcEvent deltaE_mask;
+        art::engine::ProcEvent contrastThreshold_mask;
+        art::engine::ProcEvent drawn_mask;
+        art::engine::ProcEvent mask_postprocess;
+        art::engine::ProcEvent linked_mask;
+        art::engine::ProcEvent external_mask;
     };
 
     virtual ~MasksContentProvider() {}
@@ -102,7 +102,7 @@ public:
 class DeltaEColorProvider {
 public:
     virtual ~DeltaEColorProvider() = default;
-    virtual bool getDeltaELCH(EditUniqueID id, rtengine::Coord pos, float &L,
+    virtual bool getDeltaELCH(EditUniqueID id, art::engine::Coord pos, float &L,
                               float &C, float &H) = 0;
 };
 
@@ -117,9 +117,9 @@ public:
     MasksPanel(MasksContentProvider *cp);
     ~MasksPanel();
 
-    void setMasks(const std::vector<rtengine::procparams::Mask> &masks,
+    void setMasks(const std::vector<art::engine::procparams::Mask> &masks,
                   int selected_idx, bool show_mask);
-    void getMasks(std::vector<rtengine::procparams::Mask> &masks,
+    void getMasks(std::vector<art::engine::procparams::Mask> &masks,
                   int &show_mask_idx);
     int getSelected();
 
@@ -172,7 +172,7 @@ public:
     {
     }
 
-    void updateLinkedMaskList(const rtengine::procparams::ProcParams *params);
+    void updateLinkedMaskList(const art::engine::procparams::ProcParams *params);
 
     void setExternalMaskPath(const Glib::ustring &dir);
 
@@ -212,10 +212,10 @@ private:
     void setListEnabled(Gtk::CellRenderer *renderer,
                         const Gtk::TreeModel::iterator &it);
 
-    void shapeAddPressed(rtengine::procparams::AreaMask::Shape::Type type,
+    void shapeAddPressed(art::engine::procparams::AreaMask::Shape::Type type,
                          bool list_only);
     void setAdjustersVisibility(
-        bool visible, rtengine::procparams::AreaMask::Shape::Type shape_type);
+        bool visible, art::engine::procparams::AreaMask::Shape::Type shape_type);
     void updateRectangleAreaMask(bool from_mask);
     void updateGradientAreaMask(bool from_mask);
     void maskGet(int idx);
@@ -233,10 +233,10 @@ private:
     void onMaskCopyPressed();
     void onMaskPastePressed();
 
-    const rtengine::ProcEvent &areaMaskEvent() const;
-    const rtengine::ProcEvent &deltaEMaskEvent() const;
+    const art::engine::ProcEvent &areaMaskEvent() const;
+    const art::engine::ProcEvent &deltaEMaskEvent() const;
 
-    void onDeltaESpotRequested(rtengine::Coord pos);
+    void onDeltaESpotRequested(art::engine::Coord pos);
     void onDeltaEPickClicked();
     void onDrawnMaskUpdated();
 
@@ -249,26 +249,26 @@ private:
     void onExternalMaskChanged();
 
     MasksContentProvider *cp_;
-    std::vector<rtengine::procparams::Mask> masks_;
+    std::vector<art::engine::procparams::Mask> masks_;
     unsigned int selected_;
 
-    rtengine::ProcEvent EvMaskList;
-    rtengine::ProcEvent EvParametricMask;
-    rtengine::ProcEvent EvHMask;
-    rtengine::ProcEvent EvCMask;
-    rtengine::ProcEvent EvLMask;
-    rtengine::ProcEvent EvMaskBlur;
-    rtengine::ProcEvent EvShowMask;
-    rtengine::ProcEvent EvAreaMask;
-    rtengine::ProcEvent EvAreaMaskVoid;
-    rtengine::ProcEvent EvDeltaEMask;
-    rtengine::ProcEvent EvDeltaEMaskVoid;
-    rtengine::ProcEvent EvContrastThresholdMask;
-    rtengine::ProcEvent EvDrawnMask;
-    rtengine::ProcEvent EvMaskName;
-    rtengine::ProcEvent EvMaskPostprocess;
-    rtengine::ProcEvent EvLinkedMask;
-    rtengine::ProcEvent EvExternalMask;
+    art::engine::ProcEvent EvMaskList;
+    art::engine::ProcEvent EvParametricMask;
+    art::engine::ProcEvent EvHMask;
+    art::engine::ProcEvent EvCMask;
+    art::engine::ProcEvent EvLMask;
+    art::engine::ProcEvent EvMaskBlur;
+    art::engine::ProcEvent EvShowMask;
+    art::engine::ProcEvent EvAreaMask;
+    art::engine::ProcEvent EvAreaMaskVoid;
+    art::engine::ProcEvent EvDeltaEMask;
+    art::engine::ProcEvent EvDeltaEMaskVoid;
+    art::engine::ProcEvent EvContrastThresholdMask;
+    art::engine::ProcEvent EvDrawnMask;
+    art::engine::ProcEvent EvMaskName;
+    art::engine::ProcEvent EvMaskPostprocess;
+    art::engine::ProcEvent EvLinkedMask;
+    art::engine::ProcEvent EvExternalMask;
 
     class ListColumns: public Gtk::TreeModel::ColumnRecord {
     public:
@@ -352,7 +352,7 @@ private:
     Adjuster *areaMaskGradFeather;
     std::vector<Adjuster *> areaMaskAdjusters;
     std::vector<bool> listenerDisabled;
-    rtengine::procparams::AreaMask::Rectangle defaultAreaShape;
+    art::engine::procparams::AreaMask::Rectangle defaultAreaShape;
     bool listEdited;
     AreaDrawListener *adl_;
     sigc::connection scrollDelayConn;

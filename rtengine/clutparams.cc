@@ -25,7 +25,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace {
 
@@ -515,4 +515,4 @@ bool CLUTParamDescriptorList::add_preset(const std::string &key,
     return true;
 }
 
-} // namespace rtengine
+}} // namespace art::engine

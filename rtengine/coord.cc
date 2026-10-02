@@ -21,12 +21,12 @@
 
 #include "rt_math.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 Coord &Coord::operator=(const PolarCoord &other)
 {
     const auto radius = other.radius;
-    const auto angle = other.angle / 180.0 * rtengine::RT_PI;
+    const auto angle = other.angle / 180.0 * art::engine::RT_PI;
 
     x = radius * std::cos(angle);
     y = radius * std::sin(angle);
@@ -37,7 +37,7 @@ Coord &Coord::operator=(const PolarCoord &other)
 CoordD &CoordD::operator=(const PolarCoord &other)
 {
     const auto radius = other.radius;
-    const auto angle = other.angle / 180.0 * rtengine::RT_PI;
+    const auto angle = other.angle / 180.0 * art::engine::RT_PI;
 
     x = radius * std::cos(angle);
     y = radius * std::sin(angle);
@@ -50,8 +50,8 @@ PolarCoord &PolarCoord::operator=(const Coord &other)
     const double x = other.x;
     const double y = other.y;
 
-    radius = rtengine::norm2(x, y);
-    angle = std::atan2(y, x) * 180.0 / rtengine::RT_PI;
+    radius = art::engine::norm2(x, y);
+    angle = std::atan2(y, x) * 180.0 / art::engine::RT_PI;
 
     return *this;
 }
@@ -61,8 +61,8 @@ PolarCoord &PolarCoord::operator=(const CoordD &other)
     const double x = other.x;
     const double y = other.y;
 
-    radius = rtengine::norm2(x, y);
-    angle = std::atan2(y, x) * 180.0 / rtengine::RT_PI;
+    radius = art::engine::norm2(x, y);
+    angle = std::atan2(y, x) * 180.0 / art::engine::RT_PI;
 
     return *this;
 }
@@ -71,8 +71,8 @@ PolarCoord &PolarCoord::operator=(const CoordD &other)
 /// @return true if the x or y coordinate has changed
 bool Coord::clip(const int width, const int height)
 {
-    const auto newX = rtengine::LIM<int>(x, 0, width);
-    const auto newY = rtengine::LIM<int>(y, 0, height);
+    const auto newX = art::engine::LIM<int>(x, 0, width);
+    const auto newY = art::engine::LIM<int>(y, 0, height);
 
     if (x != newX || y != newY) {
 
@@ -89,8 +89,8 @@ bool Coord::clip(const int width, const int height)
 /// @return true if the x or y coordinate has changed
 bool CoordD::clip(const int width, const int height)
 {
-    const auto newX = rtengine::LIM<double>(x, 0., width);
-    const auto newY = rtengine::LIM<double>(y, 0., height);
+    const auto newX = art::engine::LIM<double>(x, 0., width);
+    const auto newY = art::engine::LIM<double>(y, 0., height);
 
     if (x != newX || y != newY) {
 
@@ -103,6 +103,6 @@ bool CoordD::clip(const int width, const int height)
     }
 }
 
-double CoordD::getLength() { return rtengine::norm2<double>(x, y); }
+double CoordD::getLength() { return art::engine::norm2<double>(x, y); }
 
-} // namespace rtengine
+}} // namespace art::engine

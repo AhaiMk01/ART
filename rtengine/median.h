@@ -36,6 +36,9 @@
 
 #include "opthelper.h"
 
+namespace art { namespace engine {
+
+
 #if defined __GNUC__ && __GNUC__ >= 6 && defined ART_SIMD
 #pragma GCC diagnostic ignored "-Wignored-attributes"
 #endif
@@ -6277,6 +6280,7 @@ inline std::array<vfloat, 4> middle4of6(const std::array<vfloat, 6> &array)
 
     return res;
 }
+
 #endif
 
 template <typename T>
@@ -6287,3 +6291,5 @@ inline std::array<T, 4> middle4of6(T arg0, T arg1, T arg2, T arg3, T arg4,
                                        std::move(arg2), std::move(arg3),
                                        std::move(arg4), std::move(arg5)});
 }
+
+} } // namespace art::engine

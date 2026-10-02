@@ -27,7 +27,7 @@
 #include <iostream>
 #include <sstream>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -703,4 +703,4 @@ std::vector<badPix> *DFManager::getBadPixels(const std::string &mak,
 // Global variable
 DFManager dfm;
 
-} // namespace rtengine
+}} // namespace art::engine

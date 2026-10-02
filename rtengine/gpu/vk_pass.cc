@@ -26,7 +26,7 @@
 #include <cstring>
 #include <iostream>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -627,4 +627,4 @@ bool PassSeq::flush()
 }
 
 } // namespace gpu
-} // namespace rtengine
+}} // namespace art::engine

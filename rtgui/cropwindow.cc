@@ -33,7 +33,7 @@
 #include "rtimage.h"
 #include "threadutils.h"
 
-using namespace rtengine;
+using namespace art::engine;
 
 bool CropWindow::initialized = false;
 
@@ -465,7 +465,7 @@ void CropWindow::buttonPress(int button, int type, int bstate, int x, int y,
                             }
                         } else {
                             // Add a new Color Picker
-                            rtengine::Coord imgPos;
+                            art::engine::Coord imgPos;
                             screenCoordToImage(x, y, imgPos.x, imgPos.y);
                             LockableColorPicker *newPicker =
                                 new LockableColorPicker(
@@ -813,8 +813,8 @@ void CropWindow::buttonRelease(int button, int num, int bstate, int x, int y)
                 needRedraw = editSubscriber->button3Released();
             }
 
-            rtengine::Crop *crop =
-                static_cast<rtengine::Crop *>(cropHandler.getCrop());
+            art::engine::Crop *crop =
+                static_cast<art::engine::Crop *>(cropHandler.getCrop());
             Coord imgPos;
             action_x = x;
             action_y = y;
@@ -1162,8 +1162,8 @@ void CropWindow::pointerMoved(int bstate, int x, int y, double pressure)
         // Keep this if statement, the onArea will find out the hoveredPicker
         // and will be used to update the cursor
     } else if (editSubscriber) {
-        rtengine::Crop *crop =
-            static_cast<rtengine::Crop *>(cropHandler.getCrop());
+        art::engine::Crop *crop =
+            static_cast<art::engine::Crop *>(cropHandler.getCrop());
 
         if (state == SNormal || state == SEditPick1 || state == SEditPick2 ||
             state == SEditPick3) {
@@ -1347,7 +1347,7 @@ void CropWindow::pointerMoved(int bstate, int x, int y, double pressure)
 bool CropWindow::onArea(CursorArea a, int x, int y)
 {
 
-    int CROPRESIZEBORDER = rtengine::max<int>(9 / zoomSteps[cropZoom].zoom, 3);
+    int CROPRESIZEBORDER = art::engine::max<int>(9 / zoomSteps[cropZoom].zoom, 3);
     int x1, y1, w, h;
 
     switch (a) {
@@ -1795,9 +1795,9 @@ void get_rgb(const char *color, guint8 *rgb)
     }
     int r = rgb[0], g = rgb[1], b = rgb[2];
     getGUIColor(r, g, b);
-    rgb[0] = rtengine::LIM(r, 0, 255);
-    rgb[1] = rtengine::LIM(g, 0, 255);
-    rgb[2] = rtengine::LIM(b, 0, 255);
+    rgb[0] = art::engine::LIM(r, 0, 255);
+    rgb[1] = art::engine::LIM(g, 0, 255);
+    rgb[2] = art::engine::LIM(b, 0, 255);
 }
 
 void show_false_colors(Glib::RefPtr<Gdk::Pixbuf> pixbuf,
@@ -1816,7 +1816,7 @@ void show_false_colors(Glib::RefPtr<Gdk::Pixbuf> pixbuf,
 
     const auto L_to_IRE = [](int val) -> int {
         constexpr float scale = (100.f - 7.5f) / (235.f - 16.f);
-        return rtengine::LIM(int((val - 16) * scale + 7.5f), 0, 108);
+        return art::engine::LIM(int((val - 16) * scale + 7.5f), 0, 108);
     };
 
     std::map<int, guint8[3]> fcmap;
@@ -1927,8 +1927,8 @@ void CropWindow::expose(Cairo::RefPtr<Cairo::Context> cr)
             int posY = y + imgAreaY + imgY;
             Gdk::Cairo::set_source_pixbuf(cr, rough, posX, posY);
             cr->rectangle(posX, posY,
-                          rtengine::min(rough->get_width(), imgAreaW - imgX),
-                          rtengine::min(rough->get_height(), imgAreaH - imgY));
+                          art::engine::min(rough->get_width(), imgAreaW - imgX),
+                          art::engine::min(rough->get_height(), imgAreaH - imgY));
             cr->fill();
             if (cropParams.enabled) {
                 int cropX, cropY;
@@ -1996,7 +1996,7 @@ void CropWindow::expose(Cairo::RefPtr<Cairo::Context> cr)
                 get_rgb(options.clipped_shadows_color.c_str(), cs_color);
             }
 
-            const auto ipc = static_cast<const rtengine::ImProcCoordinator *>(
+            const auto ipc = static_cast<const art::engine::ImProcCoordinator *>(
                 iarea->getImProcCoordinator().get());
             const bool mask_shown = ipc && ipc->is_mask_image();
 
@@ -2216,8 +2216,8 @@ void CropWindow::expose(Cairo::RefPtr<Cairo::Context> cr)
                 int posX = x + imgAreaX + imgX;
                 int posY = y + imgAreaY + imgY;
 
-                int rw = rtengine::min(pixbuf->get_width(), (imgAreaW - imgX) * deviceScale);
-                int rh = rtengine::min(pixbuf->get_height(), (imgAreaH - imgY) * deviceScale);
+                int rw = art::engine::min(pixbuf->get_width(), (imgAreaW - imgX) * deviceScale);
+                int rh = art::engine::min(pixbuf->get_height(), (imgAreaH - imgY) * deviceScale);
                 cropbuf_.setDrawRectangle(Cairo::FORMAT_RGB24, 0, 0, rw, rh);
                 auto cr2 = cropbuf_.getContext();
                 RTScalable::setDisplayScale(cropbuf_.getSurface(), 1);
@@ -2344,8 +2344,8 @@ void CropWindow::expose(Cairo::RefPtr<Cairo::Context> cr)
                 Gdk::Cairo::set_source_pixbuf(cr, rough, posX, posY);
                 cr->rectangle(
                     posX, posY,
-                    rtengine::min(rough->get_width(), imgAreaW - imgX),
-                    rtengine::min(rough->get_height(), imgAreaH - imgY));
+                    art::engine::min(rough->get_width(), imgAreaW - imgX),
+                    art::engine::min(rough->get_height(), imgAreaH - imgY));
                 cr->fill();
 
                 if (cropParams.enabled) {
@@ -2403,7 +2403,7 @@ void CropWindow::expose(Cairo::RefPtr<Cairo::Context> cr)
 void CropWindow::drawGridOverlay(Cairo::RefPtr<Cairo::Context> cr)
 {
     if (this == iarea->mainCropWindow) {
-        rtengine::CropParams cparams;
+        art::engine::CropParams cparams;
         cparams.enabled = true;
         cparams.guide = ".GridOverlay";
         cparams.x = 0;
@@ -2655,21 +2655,21 @@ void CropWindow::redrawNeeded(LWButton *button)
     iarea->redraw();
 }
 
-void CropWindow::updateHoveredPicker(rtengine::Coord *imgPos)
+void CropWindow::updateHoveredPicker(art::engine::Coord *imgPos)
 {
 
     if (!hoveredPicker) {
         return;
     }
 
-    rtengine::Coord cropPos;
+    art::engine::Coord cropPos;
     float r = 0.f, g = 0.f, b = 0.f;
     float rpreview = 0.f, gpreview = 0.f, bpreview = 0.f;
     if (imgPos) {
         imageCoordToCropImage(imgPos->x, imgPos->y, cropPos.x, cropPos.y);
         hoveredPicker->setPosition(*imgPos);
     } else {
-        rtengine::Coord imgPos2;
+        art::engine::Coord imgPos2;
         hoveredPicker->getImagePosition(imgPos2);
         imageCoordToCropImage(imgPos2.x, imgPos2.y, cropPos.x, cropPos.y);
     }
@@ -2712,31 +2712,31 @@ void CropWindow::changeZoom(int zoom, bool notify, int centerx, int centery,
 
 LockableColorPicker::Validity
 CropWindow::checkValidity(LockableColorPicker *picker,
-                          const rtengine::Coord &pos)
+                          const art::engine::Coord &pos)
 {
 
     if (!cropHandler.cropPixbuftrue) {
         return LockableColorPicker::Validity::OUTSIDE;
     }
-    rtengine::Coord cropTopLeft, cropBottomRight, cropSize;
+    art::engine::Coord cropTopLeft, cropBottomRight, cropSize;
     int skip;
     cropHandler.getWindow(cropTopLeft.x, cropTopLeft.y, cropSize.x, cropSize.y,
                           skip);
     cropBottomRight = cropTopLeft + cropSize;
-    rtengine::Coord pickerPos, cropPickerPos;
+    art::engine::Coord pickerPos, cropPickerPos;
     picker->getImagePosition(pickerPos);
-    rtengine::Coord minPos(0, 0);
-    rtengine::Coord maxPos(cropHandler.cropPixbuftrue->get_width(),
+    art::engine::Coord minPos(0, 0);
+    art::engine::Coord maxPos(cropHandler.cropPixbuftrue->get_width(),
                            cropHandler.cropPixbuftrue->get_height());
-    rtengine::Coord halfPickerSize((int)picker->getSize() / 2,
+    art::engine::Coord halfPickerSize((int)picker->getSize() / 2,
                                    (int)picker->getSize() / 2);
     imageCoordToCropImage(pickerPos.x, pickerPos.y, cropPickerPos.x,
                           cropPickerPos.y);
     imageCoordToCropImage(cropTopLeft.x, cropTopLeft.y, minPos.x, minPos.y);
     imageCoordToCropImage(cropBottomRight.x, cropBottomRight.y, maxPos.x,
                           maxPos.y);
-    rtengine::Coord pickerMinPos = cropPickerPos - halfPickerSize;
-    rtengine::Coord pickerMaxPos = cropPickerPos + halfPickerSize;
+    art::engine::Coord pickerMinPos = cropPickerPos - halfPickerSize;
+    art::engine::Coord pickerMaxPos = cropPickerPos + halfPickerSize;
     if (pickerMaxPos.x < minPos.x || pickerMaxPos.y < minPos.y ||
         pickerMinPos.x > maxPos.x || pickerMinPos.y > maxPos.y) {
         return LockableColorPicker::Validity::OUTSIDE;
@@ -2759,7 +2759,7 @@ void CropWindow::deleteColorPickers()
 void CropWindow::screenCoordToCropBuffer(double phyx, double phyy,
                                          double &cropx, double &cropy)
 {
-    rtengine::Crop *crop = static_cast<rtengine::Crop *>(cropHandler.getCrop());
+    art::engine::Crop *crop = static_cast<art::engine::Crop *>(cropHandler.getCrop());
     double x = phyx - xpos - imgX - imgAreaX;
     double y = phyy - ypos - imgY - imgAreaY;
 
@@ -2886,7 +2886,7 @@ void CropWindow::imageCoordToCropBuffer(int imgx, int imgy, int &phyx,
                                         int &phyy)
 {
     int cropX, cropY;
-    rtengine::Crop *crop = static_cast<rtengine::Crop *>(cropHandler.getCrop());
+    art::engine::Crop *crop = static_cast<art::engine::Crop *>(cropHandler.getCrop());
     cropHandler.getPosition(cropX, cropY);
     phyx = (imgx - cropX) * zoomSteps[cropZoom].zoom +
            /*xpos + imgX +*/ crop->getLeftBorder();
@@ -2898,7 +2898,7 @@ void CropWindow::imageCoordToCropBuffer(double imgx, double imgy, double &phyx,
                                         double &phyy)
 {
     int cropX, cropY;
-    rtengine::Crop *crop = static_cast<rtengine::Crop *>(cropHandler.getCrop());
+    art::engine::Crop *crop = static_cast<art::engine::Crop *>(cropHandler.getCrop());
     cropHandler.getPosition(cropX, cropY);
     phyx = (imgx - double(cropX)) * zoomSteps[cropZoom].zoom +
            double(/*xpos + imgX +*/ crop->getLeftBorder());
@@ -3009,7 +3009,7 @@ void CropWindow::drawStraightenGuide(Cairo::RefPtr<Cairo::Context> cr)
                      sqrt(double((press_x - action_x) * (press_x - action_x) +
                                  (press_y - action_y) * (press_y - action_y)));
         double sol1, sol2;
-        double pi = rtengine::RT_PI;
+        double pi = art::engine::RT_PI;
 
         if (press_y > action_y) {
             sol1 = acos(arg) * 180 / pi;

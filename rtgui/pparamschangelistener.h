@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _PPARAMSCHANGELISTENER_
-#define _PPARAMSCHANGELISTENER_
+#pragma once
 
 #include "../rtengine/rtengine.h"
 #include "paramsedited.h"
@@ -28,8 +27,8 @@ class PParamsChangeListener {
 public:
     virtual ~PParamsChangeListener() = default;
     virtual void
-    procParamsChanged(const rtengine::procparams::ProcParams *params,
-                      const rtengine::ProcEvent &ev, const Glib::ustring &descr,
+    procParamsChanged(const art::engine::procparams::ProcParams *params,
+                      const art::engine::ProcEvent &ev, const Glib::ustring &descr,
                       const ParamsEdited *paramsEdited = nullptr) = 0;
     virtual void clearParamChanges() = 0;
 };
@@ -39,8 +38,6 @@ public:
     virtual ~PParamsSnapshotListener() = default;
     virtual void
     snapshotsChanged(const std::vector<
-                     std::pair<Glib::ustring, rtengine::procparams::ProcParams>>
+                     std::pair<Glib::ustring, art::engine::procparams::ProcParams>>
                          &snapshots) = 0;
 };
-
-#endif

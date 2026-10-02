@@ -24,8 +24,8 @@
 #include <iomanip>
 #include <sigc++/slot.h>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 namespace {
 
@@ -68,23 +68,23 @@ ToneCurve::ToneCurve()
                         true)
 {
     auto m = ProcEventMapper::getInstance();
-    EvHistMatching = m->newEvent(rtengine::AUTOEXP, "HISTORY_MSG_HISTMATCHING");
+    EvHistMatching = m->newEvent(art::engine::AUTOEXP, "HISTORY_MSG_HISTMATCHING");
     EvHistMatchingBatch =
-        m->newEvent(rtengine::M_VOID, "HISTORY_MSG_HISTMATCHING");
+        m->newEvent(art::engine::M_VOID, "HISTORY_MSG_HISTMATCHING");
     EvSatCurve =
-        m->newEvent(rtengine::LUMINANCECURVE, "HISTORY_MSG_TONECURVE_SATCURVE");
+        m->newEvent(art::engine::LUMINANCECURVE, "HISTORY_MSG_TONECURVE_SATCURVE");
     EvPerceptualStrength = m->newEvent(
-        rtengine::LUMINANCECURVE, "HISTORY_MSG_TONECURVE_PERCEPTUAL_STRENGTH");
-    EvContrastLegacy = m->newEvent(rtengine::LUMINANCECURVE,
+        art::engine::LUMINANCECURVE, "HISTORY_MSG_TONECURVE_PERCEPTUAL_STRENGTH");
+    EvContrastLegacy = m->newEvent(art::engine::LUMINANCECURVE,
                                    "HISTORY_MSG_TONECURVE_CONTRAST_LEGACY");
-    EvWhitePoint = m->newEvent(rtengine::LUMINANCECURVE,
+    EvWhitePoint = m->newEvent(art::engine::LUMINANCECURVE,
                                "HISTORY_MSG_TONECURVE_WHITEPOINT");
     EvMode =
-        m->newEvent(rtengine::LUMINANCECURVE, "HISTORY_MSG_TONECURVE_MODE");
-    EvBaseCurve = m->newEvent(rtengine::LUMINANCECURVE,
+        m->newEvent(art::engine::LUMINANCECURVE, "HISTORY_MSG_TONECURVE_MODE");
+    EvBaseCurve = m->newEvent(art::engine::LUMINANCECURVE,
                               "HISTORY_MSG_TONECURVE_BASECURVE");
-    EvToolEnabled.set_action(rtengine::AUTOEXP);
-    EvToolReset.set_action(rtengine::AUTOEXP);
+    EvToolEnabled.set_action(art::engine::AUTOEXP);
+    EvToolReset.set_action(art::engine::AUTOEXP);
 
     basecurve_ = Gtk::manage(new MyComboBoxText());
     basecurve_->append(M("TP_TONECURVE_BASECURVE_LINEAR"));
@@ -514,13 +514,13 @@ void ToneCurve::enableAll(bool yes)
     basecurve_->set_sensitive(yes);
 }
 
-void ToneCurve::trimValues(rtengine::procparams::ProcParams *pp) {}
+void ToneCurve::trimValues(art::engine::procparams::ProcParams *pp) {}
 
 void ToneCurve::updateCurveBackgroundHistogram(
-    const LUTu &histToneCurve, const LUTu &histLCurve, const LUTu &histCCurve,
-    const LUTu &histLCAM, const LUTu &histCCAM, const LUTu &histRed,
-    const LUTu &histGreen, const LUTu &histBlue, const LUTu &histLuma,
-    const LUTu &histLRETI)
+    const art::engine::LUTu &histToneCurve, const art::engine::LUTu &histLCurve, const art::engine::LUTu &histCCurve,
+    const art::engine::LUTu &histLCAM, const art::engine::LUTu &histCCAM, const art::engine::LUTu &histRed,
+    const art::engine::LUTu &histGreen, const art::engine::LUTu &histBlue, const art::engine::LUTu &histLuma,
+    const art::engine::LUTu &histLRETI)
 {
     shape->updateBackgroundHistogram(histToneCurve);
     shape2->updateBackgroundHistogram(histToneCurve);
@@ -564,7 +564,7 @@ void ToneCurve::autoMatchedToneCurveChanged(const std::vector<double> &curve,
         disableListener();
         enableAll();
 
-        // toneCurveMode->set_active(rtengine::toUnderlying(nextToneCurveMode));
+        // toneCurveMode->set_active(art::engine::toUnderlying(nextToneCurveMode));
         shape->setCurve(nextToneCurve);
         shape2->setCurve(nextToneCurve2);
         shape->openIfNonlinear();
@@ -649,9 +649,9 @@ void ToneCurve::colorForValue(double valX, double valY,
     float R = 0.5, G = 0.5, B = 0.5;
 
     if (callerId == 1) {
-        rtengine::Color::hsv2rgb01(float(valY), float(valX), 0.8f, R, G, B);
+        art::engine::Color::hsv2rgb01(float(valY), float(valX), 0.8f, R, G, B);
     } else if (callerId == 2) {
-        rtengine::Color::hsv2rgb01(float(valY), 1.f - float(valX), 0.8f, R, G,
+        art::engine::Color::hsv2rgb01(float(valY), 1.f - float(valX), 0.8f, R, G,
                                    B);
     }
     caller->ccRed = R;

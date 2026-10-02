@@ -29,9 +29,9 @@ public:
 
 private:
     void reset();
-    void update_rule(Gtk::TreeModel::Row row, const DynamicProfileRule &rule);
-    void add_rule(const DynamicProfileRule &rule);
-    DynamicProfileRule to_rule(Gtk::TreeModel::Row row, int serial = 0);
+    void update_rule(Gtk::TreeModel::Row row, const art::engine::DynamicProfileRule &rule);
+    void add_rule(const art::engine::DynamicProfileRule &rule);
+    art::engine::DynamicProfileRule to_rule(Gtk::TreeModel::Row row, int serial = 0);
 
     void on_button_quit();
     void on_button_up();
@@ -59,17 +59,17 @@ private:
             add(profilepath);
         }
 
-        Gtk::TreeModelColumn<DynamicProfileRule::Range<int>> iso;
-        Gtk::TreeModelColumn<DynamicProfileRule::Range<double>> fnumber;
-        Gtk::TreeModelColumn<DynamicProfileRule::Range<double>> focallen;
-        Gtk::TreeModelColumn<DynamicProfileRule::Range<double>> shutterspeed;
-        Gtk::TreeModelColumn<DynamicProfileRule::Range<double>> expcomp;
-        Gtk::TreeModelColumn<DynamicProfileRule::Optional> camera;
-        Gtk::TreeModelColumn<DynamicProfileRule::Optional> lens;
-        Gtk::TreeModelColumn<DynamicProfileRule::Optional> imagetype;
-        Gtk::TreeModelColumn<DynamicProfileRule::Optional> software;
-        Gtk::TreeModelColumn<DynamicProfileRule::Optional> filetype;
-        Gtk::TreeModelColumn<DynamicProfileRule::CustomMetadata> customdata;
+        Gtk::TreeModelColumn<art::engine::DynamicProfileRule::Range<int>> iso;
+        Gtk::TreeModelColumn<art::engine::DynamicProfileRule::Range<double>> fnumber;
+        Gtk::TreeModelColumn<art::engine::DynamicProfileRule::Range<double>> focallen;
+        Gtk::TreeModelColumn<art::engine::DynamicProfileRule::Range<double>> shutterspeed;
+        Gtk::TreeModelColumn<art::engine::DynamicProfileRule::Range<double>> expcomp;
+        Gtk::TreeModelColumn<art::engine::DynamicProfileRule::Optional> camera;
+        Gtk::TreeModelColumn<art::engine::DynamicProfileRule::Optional> lens;
+        Gtk::TreeModelColumn<art::engine::DynamicProfileRule::Optional> imagetype;
+        Gtk::TreeModelColumn<art::engine::DynamicProfileRule::Optional> software;
+        Gtk::TreeModelColumn<art::engine::DynamicProfileRule::Optional> filetype;
+        Gtk::TreeModelColumn<art::engine::DynamicProfileRule::CustomMetadata> customdata;
         Gtk::TreeModelColumn<Glib::ustring> profilepath;
     };
 
@@ -102,8 +102,8 @@ private:
     class EditDialog: public Gtk::Dialog {
     public:
         EditDialog(const Glib::ustring &title, Gtk::Window &parent);
-        void set_rule(const DynamicProfileRule &rule);
-        DynamicProfileRule get_rule();
+        void set_rule(const art::engine::DynamicProfileRule &rule);
+        art::engine::DynamicProfileRule get_rule();
 
     private:
         void set_ranges();

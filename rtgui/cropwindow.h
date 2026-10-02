@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _CROPWINDOW_
-#define _CROPWINDOW_
+#pragma once
 
 #include "../rtengine/rtengine.h"
 #include "cropguilistener.h"
@@ -134,12 +133,12 @@ class CropWindow: public LWButtonListener,
     void drawGridOverlay(Cairo::RefPtr<Cairo::Context> cr);
     void changeZoom(int zoom, bool notify = true, int centerx = -1,
                     int centery = -1, bool needsRedraw = true);
-    void updateHoveredPicker(rtengine::Coord *imgPos = nullptr);
+    void updateHoveredPicker(art::engine::Coord *imgPos = nullptr);
     void cycleRGB();
     void cycleLCH();
 
     LockableColorPicker::Validity checkValidity(LockableColorPicker *picker,
-                                                const rtengine::Coord &pos);
+                                                const art::engine::Coord &pos);
 
     // Used by the mainCropWindow only
     void getObservedFrameArea(int &x, int &y, int &w, int &h, int rw = 0,
@@ -291,5 +290,3 @@ public:
 
     void setHiDPI(bool yes);
 };
-
-#endif

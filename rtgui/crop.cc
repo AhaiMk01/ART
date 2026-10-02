@@ -21,8 +21,8 @@
 #include "options.h"
 #include "rtimage.h"
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 extern Options options;
 
@@ -81,7 +81,7 @@ Crop::Crop()
       opt(0), wDirty(true), hDirty(true), xDirty(true), yDirty(true),
       lastFixRatio(true), selecting_(false)
 {
-    EvToolReset.set_action(rtengine::CROP);
+    EvToolReset.set_action(art::engine::CROP);
 
     clistener = nullptr;
 

@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _CURVEEDITORGROUP_
-#define _CURVEEDITORGROUP_
+#pragma once
 
 #include "adjuster.h"
 #include "guiutils.h"
@@ -169,5 +168,3 @@ protected:
     virtual void removeEditor() = 0;
     virtual const std::vector<double> getCurveFromGUI(int type) = 0;
 };
-
-#endif

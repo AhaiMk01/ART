@@ -28,11 +28,11 @@
 
 namespace {
 
-using Shape = rtengine::procparams::AreaMask::Shape;
+using Shape = art::engine::procparams::AreaMask::Shape;
 
 constexpr int ID_HUE_MASK = 5;
 
-inline bool hasMask(const rtengine::procparams::Mask &m,
+inline bool hasMask(const art::engine::procparams::Mask &m,
                     const std::vector<double> &dflt,
                     const std::vector<double> &mask)
 {
@@ -101,14 +101,14 @@ public:
         Cairo::RefPtr<Cairo::Context> cr = getContext();
 
         if (isDirty()) {
-            float h = H_ * 2.f * rtengine::RT_PI / 360.f;
+            float h = H_ * 2.f * art::engine::RT_PI / 360.f;
             float a = C_ * std::cos(h);
             float b = C_ * std::sin(h);
             float R, G, B;
             auto iws =
-                rtengine::ICCStore::getInstance()->workingSpaceInverseMatrix(
+                art::engine::ICCStore::getInstance()->workingSpaceInverseMatrix(
                     "sRGB");
-            rtengine::Color::lab2rgb(L_ * 32768.f, a * 42000.f, b * 42000.f, R,
+            art::engine::Color::lab2rgb(L_ * 32768.f, a * 42000.f, b * 42000.f, R,
                                      G, B, iws);
             cr->set_line_cap(Cairo::LINE_CAP_SQUARE);
 
@@ -189,7 +189,7 @@ public:
         return true;
     }
 
-    typedef sigc::signal<void, rtengine::Coord> SigSpotRequested;
+    typedef sigc::signal<void, art::engine::Coord> SigSpotRequested;
     SigSpotRequested signal_spot_requested() { return sig_spot_requested_; }
 
     void activateSpot()
@@ -269,13 +269,13 @@ private:
                     coordSystem.imageCoordToScreen(s.x * image_w, s.y * image_h,
                                                    cx, cy);
                     cr->arc(cx + 0.5, cy + 0.5, radius, 0.,
-                            2. * rtengine::RT_PI);
+                            2. * art::engine::RT_PI);
                     cr->fill();
                 }
             }
         }
 
-        std::vector<rtengine::procparams::DrawnMask::Stroke> strokes;
+        std::vector<art::engine::procparams::DrawnMask::Stroke> strokes;
         int image_w;
         int image_h;
     };
@@ -284,7 +284,7 @@ public:
     DrawnMaskPanel()
         : MyExpander(true, M("TP_LABMASKS_DRAWNMASK")),
           EditSubscriber(ET_OBJECTS), prev_erase_(false),
-          pressure_mode_(PRESSURE_OFF), cur_pressure_(rtengine::RT_NAN)
+          pressure_mode_(PRESSURE_OFF), cur_pressure_(art::engine::RT_NAN)
     {
         brush_preview_ = new BrushPreview();
 
@@ -477,7 +477,7 @@ public:
     {
         if (mask_) {
             mask_->feather = feather_->getValue();
-            mask_->opacity = rtengine::LIM01(opacity_->getValue() / 100.0);
+            mask_->opacity = art::engine::LIM01(opacity_->getValue() / 100.0);
             mask_->smoothness = smoothness_->getValue() / 100.0;
             sig_draw_updated_.emit();
         }
@@ -524,7 +524,7 @@ public:
         bool alt = modifierKey & GDK_MOD1_MASK;
         bool dragging = shift && !mask_->strokes.empty();
         if (ctrl && !shift) {
-            mask_->strokes.push_back(rtengine::procparams::DrawnMask::Stroke());
+            mask_->strokes.push_back(art::engine::procparams::DrawnMask::Stroke());
             dragging = false;
         } else if ((!ctrl && alt) != prev_erase_) {
             prev_erase_ = !ctrl && alt;
@@ -630,7 +630,7 @@ public:
         update_pressure(PRESSURE_OFF);
     }
 
-    void setTargetMask(rtengine::procparams::DrawnMask *mask,
+    void setTargetMask(art::engine::procparams::DrawnMask *mask,
                        bool force = false)
     {
         if (mask != mask_ || force) {
@@ -645,7 +645,7 @@ public:
                     M("TP_LABMASKS_DRAWNMASK_INFO"), mask->strokes.size()));
                 setEnabled(mask->enabled);
                 feather_->setValue(mask->feather);
-                opacity_->setValue(rtengine::LIM01(mask->opacity) * 100.0);
+                opacity_->setValue(art::engine::LIM01(mask->opacity) * 100.0);
                 smoothness_->setValue(mask->smoothness * 100.0);
                 contrast_->setCurve(mask->contrast);
                 set_mode(int(mask->mode));
@@ -757,7 +757,7 @@ private:
         auto provider = getEditProvider();
         int w, h;
         provider->getImageSize(w, h);
-        rtengine::Coord p = provider->posImage;
+        art::engine::Coord p = provider->posImage;
         if (dragging) {
             p += provider->deltaImage;
         }
@@ -765,14 +765,14 @@ private:
         double y = double(p.y) / double(h);
         double radius = 0;
         if (pressure_mode_ == PRESSURE_RADIUS) {
-            radius = rtengine::SQR(
-                rtengine::LIM01(int(cur_pressure_ * 100.0) / 100.0));
+            radius = art::engine::SQR(
+                art::engine::LIM01(int(cur_pressure_ * 100.0) / 100.0));
         } else {
             radius = radius_->getValue() / 100.0;
         }
         double hardness = 0;
         if (pressure_mode_ == PRESSURE_HARDNESS) {
-            hardness = rtengine::LIM01(int(cur_pressure_ * 100.0) / 75.0);
+            hardness = art::engine::LIM01(int(cur_pressure_ * 100.0) / 75.0);
         } else {
             hardness = hardness_->getValue() / 100.0;
         }
@@ -784,14 +784,14 @@ private:
             double dy = y - prev.y;
             double dr = radius - prev.radius;
             double distance =
-                std::sqrt(rtengine::SQR(dx * w) + rtengine::SQR(dy * h));
+                std::sqrt(art::engine::SQR(dx * w) + art::engine::SQR(dy * h));
             double delta =
                 std::min(radius, prev.radius) * std::min(w, h) * 0.25 * 0.3;
             if (delta > 0.0) {
                 int steps = distance / delta + 0.5;
                 for (int i = 1; i < steps; ++i) {
                     mask_->strokes.push_back(
-                        rtengine::procparams::DrawnMask::Stroke());
+                        art::engine::procparams::DrawnMask::Stroke());
                     auto &s = mask_->strokes.back();
                     s.x = prev.x + (dx / steps) * i;
                     s.y = prev.y + (dy / steps) * i;
@@ -804,7 +804,7 @@ private:
             }
         }
 
-        mask_->strokes.push_back(rtengine::procparams::DrawnMask::Stroke());
+        mask_->strokes.push_back(art::engine::procparams::DrawnMask::Stroke());
         auto &s = mask_->strokes.back();
         s.x = x;
         s.y = y;
@@ -827,7 +827,7 @@ private:
             pen_->center += provider->deltaImage;
         }
         if (pressure_mode_ == PRESSURE_RADIUS) {
-            pen_->radius = rtengine::SQR(rtengine::LIM01(
+            pen_->radius = art::engine::SQR(art::engine::LIM01(
                                int(cur_pressure_ * 100.0) / 100.0)) *
                            std::min(w, h) * 0.25;
         } else {
@@ -854,10 +854,10 @@ private:
         if (mask_) {
             mask_->mode =
                 mode_[0]->get_active()
-                    ? rtengine::procparams::DrawnMask::INTERSECT
+                    ? art::engine::procparams::DrawnMask::INTERSECT
                     : (mode_[1]->get_active()
-                           ? rtengine::procparams::DrawnMask::ADD
-                           : rtengine::procparams::DrawnMask::ADD_BOUNDED);
+                           ? art::engine::procparams::DrawnMask::ADD
+                           : art::engine::procparams::DrawnMask::ADD_BOUNDED);
             sig_draw_updated_.emit();
         }
     }
@@ -877,7 +877,7 @@ private:
             info_->set_markup(Glib::ustring::compose(
                 M("TP_LABMASKS_DRAWNMASK_INFO"), mask_->strokes.size()));
             feather_->setValue(mask_->feather);
-            opacity_->setValue(rtengine::LIM01(mask_->opacity) * 100.0);
+            opacity_->setValue(art::engine::LIM01(mask_->opacity) * 100.0);
             smoothness_->setValue(mask_->smoothness * 100.0);
             contrast_->setCurve(mask_->contrast);
             set_mode(int(mask_->mode));
@@ -936,7 +936,7 @@ private:
             }
         }
         if (pressure_mode_ == PRESSURE_HARDNESS) {
-            mask_->strokes.push_back(rtengine::procparams::DrawnMask::Stroke());
+            mask_->strokes.push_back(art::engine::procparams::DrawnMask::Stroke());
         }
 
         const auto clear_strokes = [this]() -> bool {
@@ -951,7 +951,7 @@ private:
         }
     }
 
-    rtengine::procparams::DrawnMask *mask_;
+    art::engine::procparams::DrawnMask *mask_;
     Circle *pen_;
     BrushPreview *brush_preview_;
     sigc::connection brush_preview_clear_conn_;
@@ -1005,11 +1005,11 @@ MasksPanel::MasksPanel(MasksContentProvider *cp)
     EvLinkedMask = events.linked_mask;
     EvExternalMask = events.external_mask;
     EvAreaMaskVoid = ProcEventMapper::getInstance()->newEvent(
-        rtengine::M_VOID, EvAreaMask.get_message());
+        art::engine::M_VOID, EvAreaMask.get_message());
     EvDeltaEMaskVoid = ProcEventMapper::getInstance()->newEvent(
-        rtengine::M_VOID, EvDeltaEMask.get_message());
+        art::engine::M_VOID, EvDeltaEMask.get_message());
     EvMaskName = ProcEventMapper::getInstance()->newEvent(
-        rtengine::M_VOID, "HISTORY_MSG_LABMASKS_MASK_NAME");
+        art::engine::M_VOID, "HISTORY_MSG_LABMASKS_MASK_NAME");
 
     CurveListener::setMulti(true);
 
@@ -1163,7 +1163,7 @@ MasksPanel::MasksPanel(MasksContentProvider *cp)
         new CurveEditorGroup(options.lastColorToningCurvesDir, "", 0.7));
     maskEditorGroup->setCurveListener(this);
 
-    rtengine::procparams::Mask default_params;
+    art::engine::procparams::Mask default_params;
 
     EditUniqueID eh, ec, el, ede;
     cp_->getEditIDs(eh, ec, el, ede);
@@ -1747,14 +1747,14 @@ void MasksPanel::maskGet(int idx)
         switch (a->getType()) {
         case Shape::Type::POLYGON: {
             auto poly =
-                static_cast<rtengine::procparams::AreaMask::Polygon *>(a.get());
+                static_cast<art::engine::procparams::AreaMask::Polygon *>(a.get());
             poly->knots = getPolygon();
             poly->mode = Shape::Mode(getAreaShapeMode());
             break;
         }
         case Shape::Type::GRADIENT: {
             auto gradient =
-                static_cast<rtengine::procparams::AreaMask::Gradient *>(
+                static_cast<art::engine::procparams::AreaMask::Gradient *>(
                     a.get());
             gradient->x = areaMaskX->getValue();
             gradient->y = areaMaskY->getValue();
@@ -1768,7 +1768,7 @@ void MasksPanel::maskGet(int idx)
         case Shape::Type::RECTANGLE:
         default: {
             auto rect =
-                static_cast<rtengine::procparams::AreaMask::Rectangle *>(
+                static_cast<art::engine::procparams::AreaMask::Rectangle *>(
                     a.get());
             rect->x = areaMaskX->getValue();
             rect->y = areaMaskY->getValue();
@@ -1828,8 +1828,8 @@ void MasksPanel::onAddPressed()
 
     listEdited = true;
     // selected_ = masks_.size();
-    // masks_.push_back(rtengine::procparams::Mask());
-    auto it = masks_.insert(masks_.begin() + idx, rtengine::procparams::Mask());
+    // masks_.push_back(art::engine::procparams::Mask());
+    auto it = masks_.insert(masks_.begin() + idx, art::engine::procparams::Mask());
     selected_ = it - masks_.begin();
     populateList();
     area_shape_index_ = 0;
@@ -1849,7 +1849,7 @@ void MasksPanel::onRemovePressed()
 
     listEdited = true;
     masks_.erase(masks_.begin() + selected_);
-    selected_ = rtengine::LIM(int(selected_) - 1, 0, int(masks_.size() - 1));
+    selected_ = art::engine::LIM(int(selected_) - 1, 0, int(masks_.size() - 1));
     populateList();
     area_shape_index_ = 0;
     maskShow(selected_);
@@ -1920,7 +1920,7 @@ void MasksPanel::onResetPressed()
 {
     if (selected_ < masks_.size() && cp_->resetPressed(selected_)) {
         listEdited = true;
-        masks_[selected_] = rtengine::procparams::Mask();
+        masks_[selected_] = art::engine::procparams::Mask();
         populateList();
         area_shape_index_ = 0;
         maskShow(selected_);
@@ -1946,7 +1946,7 @@ void MasksPanel::populateList()
 {
     ConnectionBlocker b(selectionConn);
     list_model_->clear();
-    rtengine::procparams::Mask dflt;
+    art::engine::procparams::Mask dflt;
 
     int n = cp_->getColumnCount();
     for (size_t i = 0; i < masks_.size(); ++i) {
@@ -2020,7 +2020,7 @@ void MasksPanel::populateList()
 void MasksPanel::maskShow(int idx, bool list_only, bool unsub)
 {
     disableListener();
-    rtengine::procparams::Mask dflt;
+    art::engine::procparams::Mask dflt;
     auto &r = masks_[idx];
     if (!list_only) {
         cp_->selectionChanged(idx);
@@ -2061,7 +2061,7 @@ void MasksPanel::maskShow(int idx, bool list_only, bool unsub)
             switch (a->getType()) {
             case Shape::Type::RECTANGLE: {
                 auto rect =
-                    static_cast<rtengine::procparams::AreaMask::Rectangle *>(
+                    static_cast<art::engine::procparams::AreaMask::Rectangle *>(
                         a.get());
                 areaMaskX->setValue(rect->x);
                 areaMaskY->setValue(rect->y);
@@ -2074,7 +2074,7 @@ void MasksPanel::maskShow(int idx, bool list_only, bool unsub)
             }
             case Shape::Type::GRADIENT: {
                 auto gradient =
-                    static_cast<rtengine::procparams::AreaMask::Gradient *>(
+                    static_cast<art::engine::procparams::AreaMask::Gradient *>(
                         a.get());
                 areaMaskX->setValue(gradient->x);
                 areaMaskY->setValue(gradient->y);
@@ -2087,7 +2087,7 @@ void MasksPanel::maskShow(int idx, bool list_only, bool unsub)
             }
             case Shape::Type::POLYGON: {
                 auto poly =
-                    static_cast<rtengine::procparams::AreaMask::Polygon *>(
+                    static_cast<art::engine::procparams::AreaMask::Polygon *>(
                         a.get());
                 setPolygon(poly->knots);
                 setAdjustersVisibility(false, Shape::Type::POLYGON);
@@ -2342,7 +2342,7 @@ void MasksPanel::updateGradientAreaMask(bool from_mask)
     enableListener();
 }
 
-inline const rtengine::ProcEvent &MasksPanel::areaMaskEvent() const
+inline const art::engine::ProcEvent &MasksPanel::areaMaskEvent() const
 {
     return areaMask->getEnabled() ? EvAreaMask : EvAreaMaskVoid;
 }
@@ -2556,7 +2556,7 @@ void MasksPanel::adjusterChanged(ThresholdAdjuster *a, double newBottom,
 
 void MasksPanel::adjusterAutoToggled(Adjuster *a, bool newval) {}
 
-void MasksPanel::setMasks(const std::vector<rtengine::procparams::Mask> &masks,
+void MasksPanel::setMasks(const std::vector<art::engine::procparams::Mask> &masks,
                           int selected_idx, bool show_mask)
 {
     disableListener();
@@ -2578,7 +2578,7 @@ void MasksPanel::setMasks(const std::vector<rtengine::procparams::Mask> &masks,
     enableListener();
 }
 
-void MasksPanel::getMasks(std::vector<rtengine::procparams::Mask> &masks,
+void MasksPanel::getMasks(std::vector<art::engine::procparams::Mask> &masks,
                           int &show_mask_idx)
 {
     maskGet(selected_);
@@ -2600,18 +2600,18 @@ void MasksPanel::colorForValue(double valX, double valY,
     double alpha = 0.f;
 
     auto iws =
-        rtengine::ICCStore::getInstance()->workingSpaceInverseMatrix("sRGB");
+        art::engine::ICCStore::getInstance()->workingSpaceInverseMatrix("sRGB");
 
     const auto lch2rgb = [iws](float l, float c, float h, float &R, float &G,
                                float &B) -> void {
-        float d = h / 180.0 * rtengine::RT_PI_F;
+        float d = h / 180.0 * art::engine::RT_PI_F;
         float a = c * std::cos(d);
         float b = c * std::sin(d);
-        rtengine::Color::lab2rgb(l * 32768.f, a * 32768.f, b * 32768.f, R, G, B,
+        art::engine::Color::lab2rgb(l * 32768.f, a * 32768.f, b * 32768.f, R, G, B,
                                  iws);
-        R = rtengine::LIM01(rtengine::Color::gamma_srgbclipped(R) / 65535.f);
-        G = rtengine::LIM01(rtengine::Color::gamma_srgbclipped(G) / 65535.f);
-        B = rtengine::LIM01(rtengine::Color::gamma_srgbclipped(B) / 65535.f);
+        R = art::engine::LIM01(art::engine::Color::gamma_srgbclipped(R) / 65535.f);
+        G = art::engine::LIM01(art::engine::Color::gamma_srgbclipped(G) / 65535.f);
+        B = art::engine::LIM01(art::engine::Color::gamma_srgbclipped(B) / 65535.f);
     };
 
     if (callerId == ID_HUE_MASK) {
@@ -2619,27 +2619,27 @@ void MasksPanel::colorForValue(double valX, double valY,
         if (x < 0.f) {
             x += 1.f;
         }
-        x = rtengine::log2lin(x, 3.f);
-        rtengine::Color::hsv2rgb01(x, 0.5f, 0.65f, R, G, B);
+        x = art::engine::log2lin(x, 3.f);
+        art::engine::Color::hsv2rgb01(x, 0.5f, 0.65f, R, G, B);
     } else if (callerId == ID_HUE_MASK + 1) {
-        rtengine::Color::hsv2rgb01(float(valY), float(valX), 0.8f, R, G, B);
+        art::engine::Color::hsv2rgb01(float(valY), float(valX), 0.8f, R, G, B);
     } else if (callerId == ID_HUE_MASK + 2) {
         double dummy, w, h;
         deltaEH->getValue(dummy, h);
         lch2rgb(valX, 0.5f, h, R, G, B);
         deltaEL->getValue(w, dummy);
-        alpha = rtengine::LIM01(1.0 - w / 100.0);
+        alpha = art::engine::LIM01(1.0 - w / 100.0);
     } else if (callerId == ID_HUE_MASK + 3) {
         double dummy, w, h;
         deltaEH->getValue(dummy, h);
         lch2rgb(0.65f, valX, h, R, G, B);
         deltaEC->getValue(w, dummy);
-        alpha = rtengine::LIM01(1.0 - w / 100.0);
+        alpha = art::engine::LIM01(1.0 - w / 100.0);
     } else if (callerId == ID_HUE_MASK + 4) {
         double dummy, w;
         lch2rgb(0.65f, 0.5f, valX * 360.f, R, G, B);
         deltaEH->getValue(w, dummy);
-        alpha = rtengine::LIM01(1.0 - w / 100.0);
+        alpha = art::engine::LIM01(1.0 - w / 100.0);
     }
 
     caller->ccRed = double(R);
@@ -2652,13 +2652,13 @@ float MasksPanel::blendPipetteValues(CurveEditor *ce, float chan1, float chan2,
                                      float chan3)
 {
     if (ce == chromaticityMask && chan1 > 0.f) {
-        return rtengine::lin2log(chan1, 50.f);
+        return art::engine::lin2log(chan1, 50.f);
     } else if (ce == hueMask && chan1 > 0.f) {
         float x = chan1 + 1.f / 6.f;
         if (x > 1.f) {
             x -= 1.f;
         }
-        return rtengine::lin2log(x, 3.f);
+        return art::engine::lin2log(x, 3.f);
     }
     return CurveListener::blendPipetteValues(ce, chan1, chan2, chan3);
 }
@@ -2708,7 +2708,7 @@ void MasksPanel::onAreaShapeSelectionChanged()
         switch (s->getType()) {
         case Shape::Type::RECTANGLE: {
             auto rect =
-                static_cast<rtengine::procparams::AreaMask::Rectangle *>(
+                static_cast<art::engine::procparams::AreaMask::Rectangle *>(
                     s.get());
             updateRectangleAreaMask(false);
             rect->x = center_x_;
@@ -2721,13 +2721,13 @@ void MasksPanel::onAreaShapeSelectionChanged()
         }
         case Shape::Type::POLYGON: {
             auto poly =
-                static_cast<rtengine::procparams::AreaMask::Polygon *>(s.get());
+                static_cast<art::engine::procparams::AreaMask::Polygon *>(s.get());
             poly->knots = getPolygon();
             break;
         }
         case Shape::Type::GRADIENT: {
             auto gradient =
-                static_cast<rtengine::procparams::AreaMask::Gradient *>(
+                static_cast<art::engine::procparams::AreaMask::Gradient *>(
                     s.get());
             updateGradientAreaMask(false);
             gradient->x = center_x_;
@@ -2792,7 +2792,7 @@ void MasksPanel::shapeAddPressed(Shape::Type type, bool list_only)
         switch (type) {
         case Shape::Type::RECTANGLE:
             am.shapes.back().reset(
-                new rtengine::procparams::AreaMask::Rectangle(
+                new art::engine::procparams::AreaMask::Rectangle(
                     defaultAreaShape));
             for (size_t j = am.shapes.size() - 1; j > 0; --j) {
                 if (am.shapes[j - 1]->getType() == Shape::Type::RECTANGLE) {
@@ -2805,11 +2805,11 @@ void MasksPanel::shapeAddPressed(Shape::Type type, bool list_only)
             break;
         case Shape::Type::GRADIENT:
             am.shapes.back().reset(
-                new rtengine::procparams::AreaMask::Gradient());
+                new art::engine::procparams::AreaMask::Gradient());
             break;
         case Shape::Type::POLYGON:
             am.shapes.back().reset(
-                new rtengine::procparams::AreaMask::Polygon());
+                new art::engine::procparams::AreaMask::Polygon());
             break;
         default:
             break;
@@ -2963,7 +2963,7 @@ void MasksPanel::populateShapeList(int idx, int sel)
         switch (a->getType()) {
         case Shape::Type::POLYGON: {
             auto poly =
-                static_cast<rtengine::procparams::AreaMask::Polygon *>(a.get());
+                static_cast<art::engine::procparams::AreaMask::Polygon *>(a.get());
             label = Glib::ustring::compose(
                 M("TP_LABMASKS_AREA_SHAPE_POLY_NONEMPTY") + "%2",
                 poly->knots.size(), m(poly->mode));
@@ -2972,7 +2972,7 @@ void MasksPanel::populateShapeList(int idx, int sel)
         } break;
         case Shape::Type::GRADIENT: {
             auto gradient =
-                static_cast<rtengine::procparams::AreaMask::Gradient *>(
+                static_cast<art::engine::procparams::AreaMask::Gradient *>(
                     a.get());
             label = Glib::ustring::compose(
                 "%1 %2 %3 %4 %5 %6 %7", rd(gradient->x), rd(gradient->y),
@@ -2982,7 +2982,7 @@ void MasksPanel::populateShapeList(int idx, int sel)
         case Shape::Type::RECTANGLE:
         default: {
             auto rect =
-                static_cast<rtengine::procparams::AreaMask::Rectangle *>(
+                static_cast<art::engine::procparams::AreaMask::Rectangle *>(
                     a.get());
             label = Glib::ustring::compose("%1 %2 %3 %4 %5 %6 %7", rd(rect->x),
                                            rd(rect->y), rd(rect->width),
@@ -3021,7 +3021,7 @@ void MasksPanel::onAreaMaskPastePressed()
         if (area_shape_index_ < a.shapes.size()) {
             switch (a.shapes[area_shape_index_]->getType()) {
             case Shape::Type::POLYGON: {
-                auto s = static_cast<rtengine::procparams::AreaMask::Polygon *>(
+                auto s = static_cast<art::engine::procparams::AreaMask::Polygon *>(
                     a.shapes[area_shape_index_].get());
                 setAdjustersVisibility(false, Shape::Type::POLYGON);
                 setPolygon(s->knots);
@@ -3029,7 +3029,7 @@ void MasksPanel::onAreaMaskPastePressed()
             }
             case Shape::Type::GRADIENT: {
                 auto s =
-                    static_cast<rtengine::procparams::AreaMask::Gradient *>(
+                    static_cast<art::engine::procparams::AreaMask::Gradient *>(
                         a.shapes[area_shape_index_].get());
                 setAdjustersVisibility(false, Shape::Type::GRADIENT);
                 center_x_ = s->x;
@@ -3043,7 +3043,7 @@ void MasksPanel::onAreaMaskPastePressed()
             case Shape::Type::RECTANGLE:
             default: {
                 auto s =
-                    static_cast<rtengine::procparams::AreaMask::Rectangle *>(
+                    static_cast<art::engine::procparams::AreaMask::Rectangle *>(
                         a.shapes[area_shape_index_].get());
                 setAdjustersVisibility(true, Shape::Type::RECTANGLE);
                 center_x_ = s->x;
@@ -3082,7 +3082,7 @@ void MasksPanel::areaShapeSelect(int sel, bool update_list)
         auto &ns = masks_[selected_].areaMask.shapes[sel];
         switch (ns->getType()) {
         case Shape::Type::POLYGON: {
-            auto s = static_cast<rtengine::procparams::AreaMask::Polygon *>(
+            auto s = static_cast<art::engine::procparams::AreaMask::Polygon *>(
                 ns.get());
             setPolygon(s->knots);
             setAdjustersVisibility(false, Shape::Type::POLYGON);
@@ -3090,7 +3090,7 @@ void MasksPanel::areaShapeSelect(int sel, bool update_list)
             break;
         }
         case Shape::Type::GRADIENT: {
-            auto s = static_cast<rtengine::procparams::AreaMask::Gradient *>(
+            auto s = static_cast<art::engine::procparams::AreaMask::Gradient *>(
                 ns.get());
             setAdjustersVisibility(true, Shape::Type::GRADIENT);
             center_x_ = s->x;
@@ -3105,7 +3105,7 @@ void MasksPanel::areaShapeSelect(int sel, bool update_list)
         }
         case Shape::Type::RECTANGLE:
         default: {
-            auto s = static_cast<rtengine::procparams::AreaMask::Rectangle *>(
+            auto s = static_cast<art::engine::procparams::AreaMask::Rectangle *>(
                 ns.get());
             setAdjustersVisibility(true, Shape::Type::RECTANGLE);
             center_x_ = s->x;
@@ -3287,7 +3287,7 @@ void MasksPanel::onDeltaEMaskEnableToggled()
     }
 }
 
-inline const rtengine::ProcEvent &MasksPanel::deltaEMaskEvent() const
+inline const art::engine::ProcEvent &MasksPanel::deltaEMaskEvent() const
 {
     return deltaEMask->getEnabled() ? EvDeltaEMask : EvDeltaEMaskVoid;
 }
@@ -3297,7 +3297,7 @@ void MasksPanel::onDeltaEPickClicked()
     static_cast<DeltaEArea *>(deltaEColor)->activateSpot();
 }
 
-void MasksPanel::onDeltaESpotRequested(rtengine::Coord pos)
+void MasksPanel::onDeltaESpotRequested(art::engine::Coord pos)
 {
     if (deltaE_provider_) {
         deltaEMask->set_sensitive(false);
@@ -3414,7 +3414,7 @@ void MasksPanel::onMaskPastePressed()
 }
 
 void MasksPanel::updateLinkedMaskList(
-    const rtengine::procparams::ProcParams *params)
+    const art::engine::procparams::ProcParams *params)
 {
     static std::unordered_map<std::string, std::string> tools_labels;
     Glib::ustring mytoolname = cp_->getToolName();
@@ -3422,7 +3422,7 @@ void MasksPanel::updateLinkedMaskList(
         available_linked_masks_.clear();
         used_linked_masks_.clear();
         const auto add =
-            [&](const std::vector<rtengine::procparams::Mask> &masks,
+            [&](const std::vector<art::engine::procparams::Mask> &masks,
                 const Glib::ustring &tool,
                 const Glib::ustring &mytoolname) -> void {
             for (unsigned int i = 0, n = masks.size(); i < n; ++i) {

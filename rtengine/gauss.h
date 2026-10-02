@@ -21,6 +21,8 @@
 
 #include <vector>
 
+namespace art { namespace engine {
+
 enum eGaussType { GAUSS_STANDARD, GAUSS_MULT, GAUSS_DIV };
 
 void gaussianBlur(float **src, float **dst, const int W, const int H,
@@ -28,10 +30,12 @@ void gaussianBlur(float **src, float **dst, const int W, const int H,
                   eGaussType gausstype = GAUSS_STANDARD,
                   float **buffer2 = nullptr);
 
+}} // namespace art::engine
+
 
 #ifdef ART_USE_VULKAN
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace gpu {
 
@@ -55,6 +59,6 @@ bool gaussianBlurPasses(Pass &pass, Buffer &a, Buffer &b, Buffer &weights,
 
 } // namespace ops
 } // namespace gpu
-} // namespace rtengine
+}} // namespace art::engine
 
 #endif // ART_USE_VULKAN

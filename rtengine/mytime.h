@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _MYTIME_
-#define _MYTIME_
+#pragma once
 
 #ifdef WIN32
 #include <windows.h>
@@ -26,6 +25,9 @@
 #else
 #include <ctime>
 #endif
+
+namespace art { namespace engine {
+
 
 class MyTime {
 
@@ -72,4 +74,5 @@ public:
     }
 };
 
-#endif
+
+} } // namespace art::engine

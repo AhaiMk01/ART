@@ -22,14 +22,14 @@
 #include "eventmapper.h"
 #include <iomanip>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 LabCurve::LabCurve()
     : FoldableToolPanel(this, "labcurves", M("TP_LABCURVE_LABEL"), false, true,
                         true)
 {
-    EvToolReset.set_action(rtengine::LUMINANCECURVE);
+    EvToolReset.set_action(art::engine::LUMINANCECURVE);
 
     std::vector<GradientMilestone> milestones;
 
@@ -201,15 +201,15 @@ void LabCurve::adjusterChanged(Adjuster *a, double newval)
 void LabCurve::adjusterAutoToggled(Adjuster *a, bool newval) {}
 
 void LabCurve::updateCurveBackgroundHistogram(
-    const LUTu &histToneCurve, const LUTu &histLCurve, const LUTu &histCCurve,
-    const LUTu &histLCAM, const LUTu &histCCAM, const LUTu &histRed,
-    const LUTu &histGreen, const LUTu &histBlue, const LUTu &histLuma,
-    const LUTu &histLRETI)
+    const art::engine::LUTu &histToneCurve, const art::engine::LUTu &histLCurve, const art::engine::LUTu &histCCurve,
+    const art::engine::LUTu &histLCAM, const art::engine::LUTu &histCCAM, const art::engine::LUTu &histRed,
+    const art::engine::LUTu &histGreen, const art::engine::LUTu &histBlue, const art::engine::LUTu &histLuma,
+    const art::engine::LUTu &histLRETI)
 {
     lshape->updateBackgroundHistogram(histLCurve);
 }
 
-void LabCurve::trimValues(rtengine::procparams::ProcParams *pp)
+void LabCurve::trimValues(art::engine::procparams::ProcParams *pp)
 {
     brightness->trimValue(pp->labCurve.brightness);
     contrast->trimValue(pp->labCurve.contrast);

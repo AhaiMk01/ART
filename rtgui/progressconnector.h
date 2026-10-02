@@ -28,9 +28,9 @@
 
 #undef THREAD_PRIORITY_NORMAL
 
-class PLDBridge: public rtengine::ProgressListener {
+class PLDBridge: public art::engine::ProgressListener {
 public:
-    explicit PLDBridge(rtengine::ProgressListener *pb): pl(pb) {}
+    explicit PLDBridge(art::engine::ProgressListener *pb): pl(pb) {}
 
     // ProgressListener interface
     void setProgress(double p) override
@@ -59,7 +59,7 @@ public:
     }
 
 private:
-    rtengine::ProgressListener *const pl;
+    art::engine::ProgressListener *const pl;
 };
 
 template <class T> class ProgressConnector {
@@ -96,8 +96,8 @@ public:
         if (!working_) {
             opStart.connect(startHandler);
             opEnd.connect(endHandler);
-            rtengine::ThreadPool::add_task(
-                rtengine::ThreadPool::Priority::NORMAL,
+            art::engine::ThreadPool::add_task(
+                art::engine::ThreadPool::Priority::NORMAL,
                 sigc::mem_fun(*this, &ProgressConnector<T>::workingThread));
         }
     }

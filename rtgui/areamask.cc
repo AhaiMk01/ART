@@ -21,8 +21,8 @@
 #include "areamask.h"
 #include "edit.h"
 
-using rtengine::Coord;
-using rtengine::PolarCoord;
+using art::engine::Coord;
+using art::engine::PolarCoord;
 
 namespace {
 
@@ -492,8 +492,8 @@ bool AreaMask::button1Pressed(int modifierKey)
                                 halfSizeH + halfSizeH * center_y_ / 100);
 
             // trick to get the correct angle (clockwise/counter-clockwise)
-            rtengine::Coord p1 = dragged_center_;
-            rtengine::Coord p2 = provider->posImage;
+            art::engine::Coord p1 = dragged_center_;
+            art::engine::Coord p2 = provider->posImage;
             int p = p1.y;
             p1.y = p2.y;
             p2.y = p;
@@ -526,8 +526,8 @@ bool AreaMask::button1Pressed(int modifierKey)
                 int(halfSizeH + halfSizeH * (center_y_ / 100.)));
 
             // trick to get the correct angle (clockwise/counter-clockwise)
-            rtengine::Coord p1 = dragged_center_;
-            rtengine::Coord p2 = provider->posImage;
+            art::engine::Coord p1 = dragged_center_;
+            art::engine::Coord p2 = provider->posImage;
             int p = p1.y;
             p1.y = p2.y;
             p2.y = p;
@@ -541,9 +541,9 @@ bool AreaMask::button1Pressed(int modifierKey)
             if (last_object_ == 2 || last_object_ == 3) {
                 // Dragging a line to change the angle
                 PolarCoord draggedPoint;
-                rtengine::Coord currPos;
+                art::engine::Coord currPos;
                 currPos = provider->posImage;
-                rtengine::Coord centerPos = dragged_center_;
+                art::engine::Coord centerPos = dragged_center_;
 
                 double diagonal =
                     sqrt(double(imW) * double(imW) + double(imH) * double(imH));
@@ -557,7 +557,7 @@ bool AreaMask::button1Pressed(int modifierKey)
                 // compute the projected value of the dragged point
                 dragged_feather_offset_ =
                     draggedPoint.radius *
-                    sin((draggedPoint.angle - angle_) / 180. * rtengine::RT_PI);
+                    sin((draggedPoint.angle - angle_) / 180. * art::engine::RT_PI);
 
                 if (last_object_ == 3) {
                     dragged_feather_offset_ = -dragged_feather_offset_;
@@ -616,7 +616,7 @@ bool AreaMask::button1Pressed(int modifierKey)
                         : sel_poly_knot_id_ + 1;
                 hovered_line_id_ = -1;
             }
-            rtengine::CoordD pt(newKnot.x, newKnot.y);
+            art::engine::CoordD pt(newKnot.x, newKnot.y);
             dragged_points_.emplace_back(pt);
             dragged_element_ = DraggedElement::POINT;
             EditSubscriber::action = ES_ACTION_DRAGGING;
@@ -630,7 +630,7 @@ bool AreaMask::button1Pressed(int modifierKey)
                 }
             } else {
                 dragged_element_ = DraggedElement::POINT;
-                rtengine::CoordD pt(poly_knots_.at(sel_poly_knot_id_).x,
+                art::engine::CoordD pt(poly_knots_.at(sel_poly_knot_id_).x,
                                     poly_knots_.at(sel_poly_knot_id_).y);
                 dragged_points_.emplace_back(pt);
                 EditSubscriber::action = ES_ACTION_DRAGGING;
@@ -639,7 +639,7 @@ bool AreaMask::button1Pressed(int modifierKey)
             if ((modifierKey & GDK_SHIFT_MASK) &&
                 !(modifierKey & GDK_CONTROL_MASK)) {
                 dragged_element_ = DraggedElement::WHOLE;
-                rtengine::CoordD pt;
+                art::engine::CoordD pt;
                 for (auto knot : poly_knots_) {
                     pt.x = knot.x;
                     pt.y = knot.y;
@@ -648,7 +648,7 @@ bool AreaMask::button1Pressed(int modifierKey)
                 EditSubscriber::action = ES_ACTION_DRAGGING;
             } else {
                 dragged_element_ = DraggedElement::SEGMENT;
-                rtengine::CoordD pt;
+                art::engine::CoordD pt;
                 pt.x = poly_knots_.at(hovered_line_id_).x;
                 pt.y = poly_knots_.at(hovered_line_id_).y;
                 dragged_points_.emplace_back(pt);
@@ -713,8 +713,8 @@ bool AreaMask::drag1(int modifierKey)
 
         if (last_object_ == rotate_w_id_ || last_object_ == rotate_h_id_) {
             // Dragging a line to change the angle
-            rtengine::Coord currPos = provider->posImage + provider->deltaImage;
-            rtengine::Coord centerPos = dragged_center_;
+            art::engine::Coord currPos = provider->posImage + provider->deltaImage;
+            art::engine::Coord centerPos = dragged_center_;
 
             // trick to get the correct angle (clockwise/counter-clockwise)
             std::swap(centerPos.y, currPos.y);
@@ -750,8 +750,8 @@ bool AreaMask::drag1(int modifierKey)
             }
         } else if (last_object_ >= top_id_ && last_object_ <= right_id_) {
             // Dragging to resize
-            rtengine::Coord currPos = provider->posImage + provider->deltaImage;
-            rtengine::Coord centerPos = dragged_center_;
+            art::engine::Coord currPos = provider->posImage + provider->deltaImage;
+            art::engine::Coord centerPos = dragged_center_;
 
             // trick to get the correct angle (clockwise/counter-clockwise)
             std::swap(centerPos.y, currPos.y);
@@ -759,10 +759,10 @@ bool AreaMask::drag1(int modifierKey)
             PolarCoord draggedPoint(currPos - centerPos);
             double cur_offset_h =
                 draggedPoint.radius *
-                sin((draggedPoint.angle - angle_) / 180. * rtengine::RT_PI);
+                sin((draggedPoint.angle - angle_) / 180. * art::engine::RT_PI);
             double cur_offset_w =
                 draggedPoint.radius *
-                cos((draggedPoint.angle - angle_) / 180. * rtengine::RT_PI);
+                cos((draggedPoint.angle - angle_) / 180. * art::engine::RT_PI);
 
             double ww = width_, hh = height_;
 
@@ -785,7 +785,7 @@ bool AreaMask::drag1(int modifierKey)
         } else if (last_object_ == center_id_) {
             // Dragging the circle to change the center
             dragged_center_ += provider->deltaPrevImage;
-            rtengine::Coord currPos = dragged_center_;
+            art::engine::Coord currPos = dragged_center_;
             currPos.clip(imW, imH);
             double cx = (double(currPos.x) - halfSizeW) / halfSizeW * 100.;
             double cy = (double(currPos.y) - halfSizeH) / halfSizeH * 100.;
@@ -807,9 +807,9 @@ bool AreaMask::drag1(int modifierKey)
 
             // Dragging a line to change the angle
             PolarCoord draggedPoint;
-            rtengine::Coord currPos;
+            art::engine::Coord currPos;
             currPos = provider->posImage + provider->deltaImage;
-            rtengine::Coord centerPos = dragged_center_;
+            art::engine::Coord centerPos = dragged_center_;
 
             // trick to get the correct angle (clockwise/counter-clockwise)
             std::swap(centerPos.y, currPos.y);
@@ -851,9 +851,9 @@ bool AreaMask::drag1(int modifierKey)
         } else if (last_object_ == 2 || last_object_ == 3) {
             // Dragging the upper or lower feather bar
             PolarCoord draggedPoint;
-            rtengine::Coord currPos;
+            art::engine::Coord currPos;
             currPos = provider->posImage + provider->deltaImage;
-            rtengine::Coord centerPos = dragged_center_;
+            art::engine::Coord centerPos = dragged_center_;
 
             double diagonal =
                 sqrt(double(imW) * double(imW) + double(imH) * double(imH));
@@ -866,7 +866,7 @@ bool AreaMask::drag1(int modifierKey)
             draggedPoint = currPos - centerPos;
             double curr_dragged_feather_offset =
                 draggedPoint.radius *
-                sin((draggedPoint.angle - angle_) / 180. * rtengine::RT_PI);
+                sin((draggedPoint.angle - angle_) / 180. * art::engine::RT_PI);
 
             if (last_object_ == 2)
             // Dragging the upper feather bar
@@ -889,7 +889,7 @@ bool AreaMask::drag1(int modifierKey)
             }
         } else if (last_object_ == 4) {
             // Dragging the circle to change the center
-            rtengine::Coord currPos;
+            art::engine::Coord currPos;
             dragged_center_ += provider->deltaPrevImage;
             currPos = dragged_center_;
             currPos.clip(imW, imH);
@@ -906,7 +906,7 @@ bool AreaMask::drag1(int modifierKey)
         break;
     }
     case rteMaskShape::Type::POLYGON: {
-        rtengine::CoordD d;
+        art::engine::CoordD d;
         bool moved = false;
         const auto clipDelta = [this, &d]() -> bool {
             for (auto point : dragged_points_) {
@@ -956,7 +956,7 @@ bool AreaMask::drag1(int modifierKey)
                 old_val + provider->deltaPrevScreen.x /
                               (modifierKey & GDK_CONTROL_MASK ? 10. : 2.);
             poly_knots_.at(sel_poly_knot_id_).roundness = new_val =
-                rtengine::LIM<double>(new_val, 0., 100.);
+                art::engine::LIM<double>(new_val, 0., 100.);
             moved = old_val != new_val;
             break;
         }
@@ -1039,7 +1039,7 @@ bool AreaMask::scroll(int modifierKey, GdkScrollDirection direction,
     double old_val = poly_knots_.at(sel_poly_knot_id_).roundness;
     double new_val = old_val - delta;
     poly_knots_.at(sel_poly_knot_id_).roundness = new_val =
-        rtengine::LIM<double>(new_val, 0., 100.);
+        art::engine::LIM<double>(new_val, 0., 100.);
     if (old_val != new_val) {
         updateGeometry();
         return true;
@@ -1107,7 +1107,7 @@ void AreaMask::updateGeometry(const int fullWidth, const int fullHeight)
             return;
         }
 
-        rtengine::Coord origin(rteMaskShape::toImgSpace(center_x_, imW),
+        art::engine::Coord origin(rteMaskShape::toImgSpace(center_x_, imW),
                                rteMaskShape::toImgSpace(center_y_, imH));
 
         const auto update_border = [&](Geometry *geometry, int direction) {
@@ -1257,14 +1257,14 @@ void AreaMask::updateGeometry(const int fullWidth, const int fullHeight)
         updateKnot(next_poly_knot_id_, next_knot);
 
         curve->points =
-            rtengine::procparams::AreaMask::Polygon::get_tessellation(
+            art::engine::procparams::AreaMask::Polygon::get_tessellation(
                 imgSpacePoly);
         curve->setVisible(poly_knots_.size() > 1);
         break;
     }
     case rteMaskShape::Type::GRADIENT: {
-        const auto decay = feather_ * rtengine::norm2<double>(imW, imH) / 200.0;
-        rtengine::Coord origin(imW / 2 + center_x_ * imW / 200,
+        const auto decay = feather_ * art::engine::norm2<double>(imW, imH) / 200.0;
+        art::engine::Coord origin(imW / 2 + center_x_ * imW / 200,
                                imH / 2 + center_y_ * imH / 200);
 
         const auto updateLine = [&](Geometry *geometry, const float radius,

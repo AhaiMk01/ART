@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _SHARPENING_H_
-#define _SHARPENING_H_
+#pragma once
 
 #include "adjuster.h"
 #include "thresholdadjuster.h"
@@ -29,7 +28,7 @@ class Sharpening: public ToolParamBlock,
                   public ThresholdAdjusterListener,
                   public AdjusterListener,
                   public FoldableToolPanel,
-                  public rtengine::AutoDeconvRadiusListener {
+                  public art::engine::AutoDeconvRadiusListener {
 protected:
     Adjuster *contrast;
     // Adjuster* blur;
@@ -62,27 +61,27 @@ protected:
     MyFileChooserButton *psf_kernel;
     Adjuster *psf_iterations;
 
-    rtengine::ProcEvent EvSharpenContrast;
-    rtengine::ProcEvent EvSharpenBlur;
-    rtengine::ProcEvent EvAutoRadiusOn;
-    rtengine::ProcEvent EvAutoRadiusOff;
-    rtengine::ProcEvent EvDeconvCornerBoost;
-    rtengine::ProcEvent EvDeconvCornerLatitude;
-    rtengine::ProcEvent EvPSFKernel;
-    rtengine::ProcEvent EvPSFIterations;
+    art::engine::ProcEvent EvSharpenContrast;
+    art::engine::ProcEvent EvSharpenBlur;
+    art::engine::ProcEvent EvAutoRadiusOn;
+    art::engine::ProcEvent EvAutoRadiusOff;
+    art::engine::ProcEvent EvDeconvCornerBoost;
+    art::engine::ProcEvent EvDeconvCornerLatitude;
+    art::engine::ProcEvent EvPSFKernel;
+    art::engine::ProcEvent EvPSFIterations;
 
     IdleRegister idle_register;
 
-    rtengine::procparams::SharpeningParams initial_params;
+    art::engine::procparams::SharpeningParams initial_params;
 
 public:
     Sharpening();
     ~Sharpening() override;
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
     void adjusterChanged(Adjuster *a, double newval) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
     void enabledChanged() override;
@@ -103,11 +102,9 @@ public:
     void adjusterChanged2(ThresholdAdjuster *a, int newBottomL, int newTopL,
                           int newBottomR, int newTopR) override;
 
-    void trimValues(rtengine::procparams::ProcParams *pp) override;
+    void trimValues(art::engine::procparams::ProcParams *pp) override;
 
     void autoDeconvRadiusChanged(float radius) override;
 
     void toolReset(bool to_initial) override;
 };
-
-#endif

@@ -40,8 +40,8 @@ namespace thumbimgcache {
  * height
  * image data
  ******************************************************************************/
-rtengine::IImage8 *load(const Glib::ustring &cache_fname,
-                        const rtengine::procparams::ProcParams &pparams, int h)
+art::engine::IImage8 *load(const Glib::ustring &cache_fname,
+                        const art::engine::procparams::ProcParams &pparams, int h)
 {
     if (!options.thumb_cache_processed) {
         return nullptr;
@@ -71,7 +71,7 @@ rtengine::IImage8 *load(const Glib::ustring &cache_fname,
         return nullptr;
     }
     buffer[33] = '\0';
-    if (strcmp(buffer, rtengine::ICCStore::getInstance()
+    if (strcmp(buffer, art::engine::ICCStore::getInstance()
                            ->getThumbnailMonitorHash()
                            .c_str()) != 0) {
         fclose(f);
@@ -85,14 +85,14 @@ rtengine::IImage8 *load(const Glib::ustring &cache_fname,
         return nullptr;
     }
 
-    rtengine::procparams::ProcParams imgparams;
+    art::engine::procparams::ProcParams imgparams;
     {
         std::vector<uint8_t> profzdata(profsz);
         if (fread(&profzdata[0], sizeof(uint8_t), profsz, f) < profsz) {
             fclose(f);
             return nullptr;
         }
-        std::string profdata = rtengine::decompress(profzdata);
+        std::string profdata = art::engine::decompress(profzdata);
         if (!imgparams.from_data(profdata.c_str())) {
             fclose(f);
             return nullptr;
@@ -125,14 +125,14 @@ rtengine::IImage8 *load(const Glib::ustring &cache_fname,
         return nullptr;
     }
 
-    rtengine::Image8 *image = new rtengine::Image8(width, height);
+    art::engine::Image8 *image = new art::engine::Image8(width, height);
     image->readData(f);
     fclose(f);
 
     // if (guint32(h) < height) {
     //     int w = int(float(width) * float(guint32(h) / height));
-    //     rtengine::Image8 *resized = new rtengine::Image8(w, h);
-    //     image->resizeImgTo<>(w, h, rtengine::TI_Nearest, resized);
+    //     art::engine::Image8 *resized = new art::engine::Image8(w, h);
+    //     image->resizeImgTo<>(w, h, art::engine::TI_Nearest, resized);
     //     delete image;
     //     image = resized;
     // }
@@ -146,8 +146,8 @@ rtengine::IImage8 *load(const Glib::ustring &cache_fname,
 }
 
 bool store(const Glib::ustring &cache_fname,
-           const rtengine::procparams::ProcParams &pparams,
-           rtengine::IImage8 *img)
+           const art::engine::procparams::ProcParams &pparams,
+           art::engine::IImage8 *img)
 {
     if (!options.thumb_cache_processed) {
         return false;
@@ -161,9 +161,9 @@ bool store(const Glib::ustring &cache_fname,
     }
 
     fputs("ART\n", f);
-    fputs(rtengine::ICCStore::getInstance()->getThumbnailMonitorHash().c_str(),
+    fputs(art::engine::ICCStore::getInstance()->getThumbnailMonitorHash().c_str(),
           f);
-    std::vector<uint8_t> profzdata = rtengine::compress(pparams.to_data(), 1);
+    std::vector<uint8_t> profzdata = art::engine::compress(pparams.to_data(), 1);
     guint32 profsz = guint32(profzdata.size());
     fwrite(&profsz, sizeof(guint32), 1, f);
     fwrite(&profzdata[0], sizeof(uint8_t), profsz, f);

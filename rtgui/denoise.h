@@ -29,15 +29,15 @@
 class Denoise: public ToolParamBlock,
                public AdjusterListener,
                public FoldableToolPanel,
-               public rtengine::AutoChromaListener {
+               public art::engine::AutoChromaListener {
 public:
     Denoise();
     ~Denoise() override;
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
     void adjusterChanged(Adjuster *a, double newval) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
     void enabledChanged() override;
@@ -52,7 +52,7 @@ public:
     {
     }
 
-    void trimValues(rtengine::procparams::ProcParams *pp) override;
+    void trimValues(art::engine::procparams::ProcParams *pp) override;
 
     void toolReset(bool to_initial) override;
 
@@ -62,12 +62,12 @@ private:
     void smoothingEnabledToggled();
     void colorSpaceChanged();
 
-    rtengine::ProcEvent EvGuidedChromaRadius;
-    rtengine::ProcEvent EvChrominanceAutoFactor;
-    rtengine::ProcEvent EvLuminanceDetailThreshold;
-    rtengine::ProcEvent EvColorSpace;
-    rtengine::ProcEvent EvNlDetail;
-    rtengine::ProcEvent EvNlStrength;
+    art::engine::ProcEvent EvGuidedChromaRadius;
+    art::engine::ProcEvent EvChrominanceAutoFactor;
+    art::engine::ProcEvent EvLuminanceDetailThreshold;
+    art::engine::ProcEvent EvColorSpace;
+    art::engine::ProcEvent EvNlDetail;
+    art::engine::ProcEvent EvNlStrength;
 
     MyComboBoxText *aggressive;
     MyComboBoxText *colorSpace;
@@ -87,5 +87,5 @@ private:
 
     IdleRegister idle_register;
 
-    rtengine::procparams::DenoiseParams initial_params;
+    art::engine::procparams::DenoiseParams initial_params;
 };

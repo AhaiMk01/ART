@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _IMAGEIO_
-#define _IMAGEIO_
+#pragma once
 
 #define IMIO_SUCCESS 0
 #define IMIO_CANNOTREADFILE 1
@@ -37,7 +36,7 @@
 #include "rtengine.h"
 #include <glibmm.h>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class ProgressListener;
 class Imagefloat;
@@ -125,5 +124,4 @@ public:
     MyMutex &mutex();
 };
 
-} // namespace rtengine
-#endif
+}} // namespace art::engine

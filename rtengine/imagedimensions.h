@@ -19,6 +19,9 @@
 
 #pragma once
 
+namespace art { namespace engine {
+
+
 class PreviewProps {
 public:
     PreviewProps(int _x, int _y, int _width, int _height, int _skip);
@@ -55,3 +58,6 @@ protected:
     int width;
     int height;
 };
+
+
+} } // namespace art::engine

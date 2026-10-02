@@ -21,8 +21,8 @@
 #include "guiutils.h"
 #include <iomanip>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 namespace {
 constexpr double IN_TO_CM = 2.54;
@@ -35,12 +35,12 @@ Resize::Resize()
 {
     auto m = ProcEventMapper::getInstance();
     EvResizeAllowUpscaling =
-        m->newEvent(rtengine::RESIZE, "HISTORY_MSG_RESIZE_ALLOWUPSCALING");
-    EvUnit = m->newEvent(rtengine::RESIZE, "HISTORY_MSG_RESIZE_UNIT");
-    EvPPI = m->newEvent(rtengine::RESIZE, "HISTORY_MSG_RESIZE_PPI");
+        m->newEvent(art::engine::RESIZE, "HISTORY_MSG_RESIZE_ALLOWUPSCALING");
+    EvUnit = m->newEvent(art::engine::RESIZE, "HISTORY_MSG_RESIZE_UNIT");
+    EvPPI = m->newEvent(art::engine::RESIZE, "HISTORY_MSG_RESIZE_PPI");
     EvCopyPPIToExif =
-        m->newEvent(rtengine::M_VOID, "HISTORY_MSG_RESIZE_COPY_PPI_TO_EXIF");
-    EvToolReset.set_action(rtengine::RESIZE);
+        m->newEvent(art::engine::M_VOID, "HISTORY_MSG_RESIZE_COPY_PPI_TO_EXIF");
+    EvToolReset.set_action(art::engine::RESIZE);
 
     cropw = 0;
     croph = 0;
@@ -735,7 +735,7 @@ void Resize::allowUpscalingChanged()
     }
 }
 
-void Resize::trimValues(rtengine::procparams::ProcParams *pp)
+void Resize::trimValues(art::engine::procparams::ProcParams *pp)
 {
 
     scale->trimValue(pp->resize.scale);

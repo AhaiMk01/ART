@@ -41,7 +41,7 @@ namespace OCIO = OCIO_NAMESPACE;
 #include <CtlSimdInterpreter.h>
 #endif
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class HaldCLUT final: public NonCopyable {
 public:
@@ -215,4 +215,4 @@ public:
 
 #endif // ART_USE_OCIO
 
-} // namespace rtengine
+}} // namespace art::engine

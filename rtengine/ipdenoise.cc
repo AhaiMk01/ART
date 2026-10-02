@@ -79,7 +79,7 @@
 #endif
 #include "StopWatch.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 using namespace procparams;
@@ -3069,25 +3069,25 @@ private:
         for (int i = 0; i < TS; ++i) {
             float i1 = abs((i > TS / 2 ? i - TS + 1 : i));
             float vmask =
-                (i1 < border ? SQR(sin((rtengine::RT_PI * i1) / (2 * border)))
+                (i1 < border ? SQR(sin((art::engine::RT_PI * i1) / (2 * border)))
                              : 1.0f);
             float vmask2 =
                 (i1 < 2 * border
-                     ? SQR(sin((rtengine::RT_PI * i1) / (2 * border)))
+                     ? SQR(sin((art::engine::RT_PI * i1) / (2 * border)))
                      : 1.0f);
 
             for (int j = 0; j < TS; ++j) {
                 float j1 = abs((j > TS / 2 ? j - TS + 1 : j));
                 maskIn_[i][j] =
                     (vmask * (j1 < border
-                                  ? SQR(sin((rtengine::RT_PI * j1) /
+                                  ? SQR(sin((art::engine::RT_PI * j1) /
                                             (2 * border)))
                                   : 1.0f)) +
                     kEpsilon;
                 maskOut_[i][j] =
                     (vmask2 *
                      (j1 < 2 * border
-                          ? SQR(sin((rtengine::RT_PI * j1) / (2 * border)))
+                          ? SQR(sin((art::engine::RT_PI * j1) / (2 * border)))
                           : 1.0f)) +
                     kEpsilon;
             }
@@ -4134,7 +4134,7 @@ void finalSmoothing(ImProcData &im, Imagefloat *img,
 } // namespace denoise
 
 
-} // namespace rtengine
+}} // namespace art::engine
 
 
 
@@ -4159,7 +4159,7 @@ void finalSmoothing(ImProcData &im, Imagefloat *img,
 #include <sstream>
 #include <vector>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -6205,11 +6205,11 @@ bool finalSmoothingGPU(ImProcData &im, Imagefloat *rgb,
 }
 
 
-}}} // namespace rtengine::gpu::ops
+}}}} // namespace art::engine::gpu::ops
 
 #else // !ART_USE_VULKAN
 
-namespace rtengine { namespace gpu { namespace ops {
+namespace art { namespace engine { namespace gpu { namespace ops {
 
 bool denoiseWaveletGPU(int, int, float **, float **, float **,
                        const DenoiseWaveletGPU &, BufferPool *, Context *)
@@ -6275,6 +6275,6 @@ bool finalSmoothingGPU(ImProcData &im, Imagefloat *src,
     return false;
 }
 
-}}} // namespace rtengine::gpu::ops
+}}}} // namespace art::engine::gpu::ops
 
 #endif // ART_USE_VULKAN

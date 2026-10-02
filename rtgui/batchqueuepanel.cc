@@ -352,18 +352,18 @@ void BatchQueuePanel::startBatchProc()
         // callback in response to the *reported* state.
         queueShouldRun = true;
 
-        const rtengine::procparams::PartialProfile *bp = nullptr;
+        const art::engine::procparams::PartialProfile *bp = nullptr;
         if (apply_batch_profile_->get_active()) {
             auto entry = profiles_cb_->getSelectedEntry();
             if (entry) {
-                bp = ProfileStore::getInstance()->getProfile(entry);
+                bp = art::engine::ProfileStore::getInstance()->getProfile(entry);
             }
         }
         bqprof_.clear();
         if (bp) {
             bqprof_.add(bp);
         }
-        bp = rtengine::ImageIOManager::getInstance()->getSaveProfile(
+        bp = art::engine::ImageIOManager::getInstance()->getSaveProfile(
             options.saveFormatBatch.format);
         if (bp) {
             bqprof_.add(bp);
@@ -450,7 +450,7 @@ bool BatchQueuePanel::handleShortcutKey(GdkEventKey *event)
     return batchQueue->keyPressed(event);
 }
 
-void BatchQueuePanel::lastExportTimes(const rtengine::PipelineTimes &t)
+void BatchQueuePanel::lastExportTimes(const art::engine::PipelineTimes &t)
 {
     statusLabel->set_text(Glib::ustring::compose(M("QUEUE_LASTEXPORT_TIME"),
                                                  formatPipelineTimes(t)));

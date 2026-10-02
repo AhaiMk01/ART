@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _PREVIEWWINDOW_
-#define _PREVIEWWINDOW_
+#pragma once
 
 #include "cropwindow.h"
 #include "cursormanager.h"
@@ -78,5 +77,3 @@ public:
     void cropZoomChanged(CropWindow *w) override;
     void initialImageArrived() override;
 };
-
-#endif

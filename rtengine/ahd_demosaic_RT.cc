@@ -32,7 +32,7 @@
 // #define BENCHMARK
 #include "StopWatch.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 #define TS 144
 void RawImageSource::ahd_demosaic()
 {
@@ -247,4 +247,4 @@ void RawImageSource::ahd_demosaic()
 }
 #undef TS
 
-} // namespace rtengine
+}} // namespace art::engine

@@ -103,7 +103,7 @@ std::vector<double> MyDiagonalCurve::get_vector(int veclen)
 
     // calculate remaining points
     std::vector<double> curveDescr = getPoints();
-    rtengine::DiagonalCurve rtcurve(curveDescr, veclen * 1.2);
+    art::engine::DiagonalCurve rtcurve(curveDescr, veclen * 1.2);
     std::vector<double> t;
     t.resize(veclen);
 
@@ -115,7 +115,7 @@ std::vector<double> MyDiagonalCurve::get_vector(int veclen)
     return vector;
 }
 
-void MyDiagonalCurve::get_LUT(LUTf &lut)
+void MyDiagonalCurve::get_LUT(art::engine::LUTf &lut)
 {
 
     int size = lut.getSize();
@@ -164,7 +164,7 @@ void MyDiagonalCurve::get_LUT(LUTf &lut)
 
     // calculate remaining points
     std::vector<double> curveDescr = getPoints();
-    rtengine::DiagonalCurve rtcurve(curveDescr, lut.getUpperBound() * 1.2);
+    art::engine::DiagonalCurve rtcurve(curveDescr, lut.getUpperBound() * 1.2);
 
     double maxVal = double(lut.getUpperBound());
 
@@ -541,12 +541,12 @@ void MyDiagonalCurve::draw(int handle)
                 graphH *
                     curve.y.at(i); // project (curve.y.at(i), 0, 1, graphH);
 
-            cr->arc(x, y, RADIUS * s + 0.5, 0, 2 * rtengine::RT_PI);
+            cr->arc(x, y, RADIUS * s + 0.5, 0, 2 * art::engine::RT_PI);
             cr->fill();
 
             if (i == edited_point) {
                 cr->set_line_width(2. * s);
-                cr->arc(x, y, (RADIUS + 2.) * s, 0, 2 * rtengine::RT_PI);
+                cr->arc(x, y, (RADIUS + 2.) * s, 0, 2 * art::engine::RT_PI);
                 cr->stroke();
                 cr->set_line_width(1. * s);
             }
@@ -1625,7 +1625,7 @@ void MyDiagonalCurve::setActiveParam(int ac)
     queue_draw();
 }
 
-void MyDiagonalCurve::updateBackgroundHistogram(LUTu &hist)
+void MyDiagonalCurve::updateBackgroundHistogram(art::engine::LUTu &hist)
 {
     if (hist) {
         // memcpy (bghist, hist, 256*sizeof(unsigned int));

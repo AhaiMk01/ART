@@ -20,14 +20,14 @@
 #include "../rtengine/curves.h"
 #include "eventmapper.h"
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 RGBCurves::RGBCurves()
     : FoldableToolPanel(this, "rgbcurves", M("TP_RGBCURVES_LABEL"), false, true,
                         true)
 {
-    EvToolReset.set_action(rtengine::RGBCURVE);
+    EvToolReset.set_action(art::engine::RGBCURVE);
 
     std::vector<GradientMilestone> milestones;
 
@@ -138,10 +138,10 @@ void RGBCurves::curveChanged(CurveEditor *ce)
 }
 
 void RGBCurves::updateCurveBackgroundHistogram(
-    const LUTu &histToneCurve, const LUTu &histLCurve, const LUTu &histCCurve,
-    const LUTu &histLCAM, const LUTu &histCCAM, const LUTu &histRed,
-    const LUTu &histGreen, const LUTu &histBlue, const LUTu &histLuma,
-    const LUTu &histLRETI)
+    const art::engine::LUTu &histToneCurve, const art::engine::LUTu &histLCurve, const art::engine::LUTu &histCCurve,
+    const art::engine::LUTu &histLCAM, const art::engine::LUTu &histCCAM, const art::engine::LUTu &histRed,
+    const art::engine::LUTu &histGreen, const art::engine::LUTu &histBlue, const art::engine::LUTu &histLuma,
+    const art::engine::LUTu &histLRETI)
 {
 }
 
@@ -187,7 +187,7 @@ void RGBCurves::renderCurveBackground(int caller_id,
         if (i != caller_id) {
             auto ci = curves[i]->getCurve();
             if (ci != mine) {
-                rtengine::DiagonalCurve curve(ci);
+                art::engine::DiagonalCurve curve(ci);
                 constexpr double v = 0.5;
                 cr->set_source_rgb(i == 0 ? v : 0.0, i == 1 ? v : 0.0,
                                    i == 2 ? v : 0.0);

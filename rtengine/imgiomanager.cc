@@ -32,7 +32,7 @@
 #include <iostream>
 #include <unistd.h>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -642,4 +642,4 @@ void ImageIOManager::Hook::rm(const Glib::ustring &pth)
     g_remove(pth.c_str());
 }
 
-} // namespace rtengine
+}} // namespace art::engine

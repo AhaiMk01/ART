@@ -17,13 +17,12 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _ALPHA_H_
-#define _ALPHA_H_
+#pragma once
 
 #include <assert.h>
 #include <gtkmm.h>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 /// Alpha channel class (8 bits)
 class Alpha {
@@ -50,6 +49,4 @@ public:
     unsigned char operator()(unsigned row, unsigned col) const;
 };
 
-} // namespace rtengine
-
-#endif
+}} // namespace art::engine

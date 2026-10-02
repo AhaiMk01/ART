@@ -40,7 +40,7 @@ class BatchQueueEntryUpdater {
         guint8 *oimg;
         int ow, oh, newh;
         BQEntryUpdateListener *listener;
-        rtengine::ProcParams *pparams;
+        art::engine::ProcParams *pparams;
         Thumbnail *thumbnail;
 
         Job() = default;
@@ -51,7 +51,7 @@ public:
 
     void process(guint8 *oimg, int ow, int oh, int newh,
                  BQEntryUpdateListener *listener,
-                 rtengine::ProcParams *pparams = nullptr,
+                 art::engine::ProcParams *pparams = nullptr,
                  Thumbnail *thumbnail = nullptr);
     void removeJobs(BQEntryUpdateListener *listener);
     void terminate();

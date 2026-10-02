@@ -27,7 +27,7 @@
 #include <cmath>
 #include <cstring>
 
-using namespace rtengine;
+using namespace art::engine;
 
 constexpr float HistogramArea::MAX_BRIGHT;
 constexpr float HistogramArea::MIN_BRIGHT;
@@ -939,7 +939,7 @@ void HistogramRGBArea::updateBackBuffer(int r, int g, int b,
                  options.histogramScopeType == ScopeType::PARADE ||
                  options.histogramScopeType == ScopeType::WAVEFORM)) {
                 float Lab_L, Lab_a, Lab_b;
-                rtengine::Color::rgb2lab01(
+                art::engine::Color::rgb2lab01(
                     profile, profileW, r / 255.f, g / 255.f, b / 255.f, Lab_L,
                     Lab_a, Lab_b, options.rtSettings.HistogramWorking);
 
@@ -1269,9 +1269,9 @@ bool HistogramArea::updatePending(void)
 }
 
 void HistogramArea::update(
-    const LUTu &histRed, const LUTu &histGreen, const LUTu &histBlue,
-    const LUTu &histLuma, const LUTu &histChroma, const LUTu &histRedRaw,
-    const LUTu &histGreenRaw, const LUTu &histBlueRaw, int vectorscopeScale,
+    const art::engine::LUTu &histRed, const art::engine::LUTu &histGreen, const art::engine::LUTu &histBlue,
+    const art::engine::LUTu &histLuma, const art::engine::LUTu &histChroma, const art::engine::LUTu &histRedRaw,
+    const art::engine::LUTu &histGreenRaw, const art::engine::LUTu &histBlueRaw, int vectorscopeScale,
     const array2D<int> &vectorscopeHC, const array2D<int> &vectorscopeHS,
     int waveformScale, const array2D<int> &waveformRed,
     const array2D<int> &waveformGreen, const array2D<int> &waveformBlue,
@@ -1415,7 +1415,7 @@ void HistogramArea::updateNonRaw(Cairo::RefPtr<Cairo::Context> cr)
 
     // determine the number of h-gridlines based on current h
     int nrOfHGridPartitions =
-        (int)rtengine::min(16.0, pow(2.0, floor((hh - 100) / 250) + 2));
+        (int)art::engine::min(16.0, pow(2.0, floor((hh - 100) / 250) + 2));
     int nrOfVGridPartitions =
         8; // always show 8 stops (lines at 1,3,7,15,31,63,127)
 
@@ -1478,9 +1478,9 @@ void HistogramArea::updateNonRaw(Cairo::RefPtr<Cairo::Context> cr)
 
     if (valid && scopeType == ScopeType::HISTOGRAM) {
         // For RAW mode use the other hists
-        LUTu &rh = rhist;
-        LUTu &gh = ghist;
-        LUTu &bh = bhist;
+        art::engine::LUTu &rh = rhist;
+        art::engine::LUTu &gh = ghist;
+        art::engine::LUTu &bh = bhist;
 
         // make copies of LUT for faster access
         unsigned int lhisttemp[256] ALIGNED16{0}, chisttemp[256] ALIGNED16{0},
@@ -1666,10 +1666,10 @@ void HistogramArea::updateRaw(Cairo::RefPtr<Cairo::Context> cr)
 
     // determine the number of h-gridlines based on current h
     int nrOfHGridPartitions =
-        (int)rtengine::min(16.0, pow(2.0, floor((hh - 100) / 250) + 2));
+        (int)art::engine::min(16.0, pow(2.0, floor((hh - 100) / 250) + 2));
     double sz = 2;
     if (valid) {
-        sz = rtengine::max(rhistRaw.getUpperBound(), ghistRaw.getUpperBound(),
+        sz = art::engine::max(rhistRaw.getUpperBound(), ghistRaw.getUpperBound(),
                            bhistRaw.getUpperBound());
     }
 
@@ -1709,7 +1709,7 @@ void HistogramArea::updateRaw(Cairo::RefPtr<Cairo::Context> cr)
     if (drawMode == 2) {
         for (int i = 1; i < nrOfHGridPartitions; i++) {
             double y = double(i) / nrOfHGridPartitions;
-            y = rtengine::log2lin(y, 10.0);
+            y = art::engine::log2lin(y, 10.0);
             cr->move_to(0., y * hh);
             cr->line_to(ww, y * hh);
             cr->stroke();
@@ -1726,14 +1726,14 @@ void HistogramArea::updateRaw(Cairo::RefPtr<Cairo::Context> cr)
 
     if (valid) {
         // For RAW mode use the other hists
-        LUTu &rh = rhistRaw;
-        LUTu &gh = ghistRaw;
-        LUTu &bh = bhistRaw;
+        art::engine::LUTu &rh = rhistRaw;
+        art::engine::LUTu &gh = ghistRaw;
+        art::engine::LUTu &bh = bhistRaw;
 
-        auto ub = rtengine::max(rh.getUpperBound(), gh.getUpperBound(),
+        auto ub = art::engine::max(rh.getUpperBound(), gh.getUpperBound(),
                                 bh.getUpperBound());
 
-        const auto bin = [](LUTu &data, int i, int next) -> double {
+        const auto bin = [](art::engine::LUTu &data, int i, int next) -> double {
             double val = 0.0;
             for (int j = i; j < next; ++j) {
                 val += data[j];
@@ -1817,7 +1817,7 @@ void HistogramArea::updateRaw(Cairo::RefPtr<Cairo::Context> cr)
             totsum[c] = 0;
         }
 
-        const auto update = [&](int c, LUTu &data, unsigned int i) -> void {
+        const auto update = [&](int c, art::engine::LUTu &data, unsigned int i) -> void {
             if (i < data.getSize()) {
                 int cnt = data[i];
                 if (cnt > 0) {
@@ -1879,7 +1879,7 @@ void HistogramArea::updateRaw(Cairo::RefPtr<Cairo::Context> cr)
     }
 }
 
-void HistogramArea::drawRawCurve(Cairo::RefPtr<Cairo::Context> &cr, LUTu &data,
+void HistogramArea::drawRawCurve(Cairo::RefPtr<Cairo::Context> &cr, art::engine::LUTu &data,
                                  unsigned int ub, double scale, int hsize,
                                  int vsize)
 {
@@ -1909,7 +1909,7 @@ void HistogramArea::drawRawCurve(Cairo::RefPtr<Cairo::Context> &cr, LUTu &data,
         val = std::min(val / scale, 1.0);
 
         if (drawMode == 2 && val > 0) { // scale y for log-scale
-            // val = rtengine::lin2log(val, ybase);
+            // val = art::engine::lin2log(val, ybase);
             val = std::max((ylogmax + std::log10(val)) / ylogmax, 0.0);
         }
 
@@ -1943,7 +1943,7 @@ void HistogramArea::on_realize()
 }
 
 void HistogramArea::drawCurve(Cairo::RefPtr<Cairo::Context> &cr,
-                              const LUTu &data, double scale, int hsize,
+                              const art::engine::LUTu &data, double scale, int hsize,
                               int vsize)
 {
     double s = 1;
@@ -1975,7 +1975,7 @@ void HistogramArea::drawCurve(Cairo::RefPtr<Cairo::Context> &cr,
 }
 
 void HistogramArea::drawMarks(Cairo::RefPtr<Cairo::Context> &cr,
-                              const LUTu &data, double scale, int hsize,
+                              const art::engine::LUTu &data, double scale, int hsize,
                               int &ui, int &oi)
 {
     int s = 8 * 1;
@@ -2375,12 +2375,12 @@ void HistogramArea::drawWaveform(Cairo::RefPtr<Cairo::Context> &cr, int w,
                 int b =
                     needBlue ? std::min<float>(scale * b_row[col], val_max) : 0;
                 int g = needGreen
-                            ? rtengine::LIM(
+                            ? art::engine::LIM(
                                   std::min<float>(scale * g_row[col], val_max) +
                                       float(needBlue ? b * rgb_B[1] : 0),
                                   0.f, val_max)
                             : 0;
-                int value = rtengine::max(r, g, b);
+                int value = art::engine::max(r, g, b);
                 if (value != 0) {
                     // Ensures correct order regardless of endianness.
                     getGUIColor(r, g, b);

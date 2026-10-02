@@ -41,7 +41,7 @@
 #include "gpu/ops.h"
 #endif // ART_USE_VULKAN
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -310,9 +310,9 @@ void NLMeans(array2D<float> &img, float normcoeff, int strength,
 }
 
 } // namespace denoise
-} // namespace rtengine
+}} // namespace art::engine
 
-namespace rtengine {
+namespace art { namespace engine {
 namespace denoise {
 
 namespace {
@@ -427,7 +427,7 @@ void detail_mask(const array2D<float> &src, array2D<float> &mask, float scaling,
 
 
 } // namespace denoise
-} // namespace rtengine
+}} // namespace art::engine
 
 #ifdef ART_USE_VULKAN
 
@@ -446,7 +446,7 @@ void detail_mask(const array2D<float> &src, array2D<float> &mask, float scaling,
 #include <memory>
 #include <mutex>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -714,11 +714,11 @@ bool NLMeans(Context &ctx, BufferPool &pool, Buffer &plane, int W,
 
 } // namespace ops
 } // namespace gpu
-} // namespace rtengine
+}} // namespace art::engine
 
 #else // !ART_USE_VULKAN
 
-namespace rtengine {
+namespace art { namespace engine {
 namespace gpu {
 namespace ops {
 
@@ -731,7 +731,7 @@ bool NLMeans(Context &ctx, BufferPool &pool, Buffer &plane, int W,
 
 } // namespace ops
 } // namespace gpu
-} // namespace rtengine
+}} // namespace art::engine
 
 #endif // ART_USE_VULKAN
 

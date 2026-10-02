@@ -21,10 +21,10 @@
 
 #include "../rtengine/rtengine.h"
 
-rtengine::ProcessingJob *
+art::engine::ProcessingJob *
 create_processing_job(const Glib::ustring &fname, bool is_raw,
-                      rtengine::procparams::ProcParams pparams, bool fast);
+                      art::engine::procparams::ProcParams pparams, bool fast);
 
-rtengine::ProcessingJob *
-create_processing_job(rtengine::InitialImage *initialImage,
-                      rtengine::procparams::ProcParams params, bool fast);
+art::engine::ProcessingJob *
+create_processing_job(art::engine::InitialImage *initialImage,
+                      art::engine::procparams::ProcParams params, bool fast);

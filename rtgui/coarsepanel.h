@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef __COARSEPANEL__
-#define __COARSEPANEL__
+#pragma once
 
 #include "toolpanel.h"
 #include <gtkmm.h>
@@ -36,8 +35,8 @@ protected:
 public:
     CoarsePanel();
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void initBatchBehavior();
 
     void rotateLeft();
@@ -45,5 +44,3 @@ public:
     void flipHorizontal();
     void flipVertical();
 };
-
-#endif

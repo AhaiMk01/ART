@@ -32,7 +32,7 @@
 #include "noncopyable.h"
 #include "procparams.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class LFModifier final: public LensCorrection, public NonCopyable {
 public:
@@ -130,4 +130,4 @@ private:
     mutable std::set<std::string> notFound;
 };
 
-} // namespace rtengine
+}} // namespace art::engine

@@ -36,7 +36,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -696,4 +696,4 @@ std::string ExternalLUT3D::recompute_lut(const std::string &params)
     return fn;
 }
 
-} // namespace rtengine
+}} // namespace art::engine

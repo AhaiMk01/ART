@@ -313,8 +313,8 @@ cmsToneCurve *make_trc(float gamma, float slope)
     if (slope == 0.f) {
         return cmsBuildGamma(NULL, gamma);
     } else {
-        rtengine::LMCSToneCurveParams params;
-        rtengine::Color::compute_LCMS_tone_curve_params(gamma, slope, params);
+        art::engine::LMCSToneCurveParams params;
+        art::engine::Color::compute_LCMS_tone_curve_params(gamma, slope, params);
         return cmsBuildParametricToneCurve(NULL, 5, &params[0]);
     }
 }
@@ -355,9 +355,9 @@ int ART_makeicc_main(std::ostream &out, const std::vector<std::string> &args)
 
     cmsToneCurve *trc = nullptr;
     if (opts.gamma == -2) {
-        trc = make_trc(4096, &rtengine::Color::eval_PQ_curve);
+        trc = make_trc(4096, &art::engine::Color::eval_PQ_curve);
     } else if (opts.gamma == -1) {
-        trc = make_trc(4096, &rtengine::Color::eval_HLG_curve);
+        trc = make_trc(4096, &art::engine::Color::eval_HLG_curve);
     } else if (opts.gamma == 0) {
         trc = make_trc(opts.trcfile);
     } else {

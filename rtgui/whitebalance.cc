@@ -27,8 +27,8 @@
 #include "options.h"
 #include "rtimage.h"
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 std::vector<std::shared_ptr<RTSurface>> WhiteBalance::wbPixbufs;
 
@@ -101,8 +101,8 @@ WhiteBalance::WhiteBalance()
       wbp(nullptr), wblistener(nullptr)
 {
     auto m = ProcEventMapper::getInstance();
-    EvToolReset.set_action(rtengine::WHITEBALANCE);
-    EvWBMult = m->newEvent(rtengine::WHITEBALANCE, "HISTORY_MSG_WBALANCE_MULT");
+    EvToolReset.set_action(art::engine::WHITEBALANCE);
+    EvWBMult = m->newEvent(art::engine::WHITEBALANCE, "HISTORY_MSG_WBALANCE_MULT");
 
     Gtk::Grid *methodgrid = Gtk::manage(new Gtk::Grid());
     methodgrid->get_style_context()->add_class("grid-spacing");
@@ -379,7 +379,7 @@ void WhiteBalance::methodChanged()
     switch (m) {
     case int(WBParams::CAMERA): {
         if (wbp) {
-            rtengine::ColorTemp ct;
+            art::engine::ColorTemp ct;
             wbp->getCamWB(ct);
             double m[3];
             ct.getMultipliers(m[0], m[1], m[2]);
@@ -458,7 +458,7 @@ void WhiteBalance::read(const ProcParams *pp)
     switch (pp->wb.method) {
     case WBParams::CAMERA:
         if (wbp) {
-            rtengine::ColorTemp ctemp;
+            art::engine::ColorTemp ctemp;
             wbp->getCamWB(ctemp);
             double m[3];
             ctemp.getMultipliers(m[0], m[1], m[2]);
@@ -478,7 +478,7 @@ void WhiteBalance::read(const ProcParams *pp)
         syncSliders(true);
         break;
     case WBParams::CUSTOM_MULT_LEGACY: {
-        rtengine::ColorTemp ct(m[0], m[1], m[2], 1.0);
+        art::engine::ColorTemp ct(m[0], m[1], m[2], 1.0);
         if (wbp) {
             wbp->convertWBMul2Cam(m[0], m[1], m[2]);
             for (int i = 0; i < 3; ++i) {
@@ -518,7 +518,7 @@ void WhiteBalance::setDefaults(const ProcParams *defParams)
     equal->setDefault(defParams->wb.equal);
 
     if (wbp && defParams->wb.method == WBParams::CAMERA) {
-        rtengine::ColorTemp ctemp;
+        art::engine::ColorTemp ctemp;
         wbp->getCamWB(ctemp);
 
         // FIXME: Seems to be always -1.0, called too early? Broken!
@@ -545,7 +545,7 @@ int WhiteBalance::getSize()
     return atoi(spotsize->get_active_text().c_str());
 }
 
-void WhiteBalance::setWB(rtengine::ColorTemp ctemp)
+void WhiteBalance::setWB(art::engine::ColorTemp ctemp)
 {
     disableListener();
     ConnectionBlocker methblocker(methconn);
@@ -582,7 +582,7 @@ void WhiteBalance::setWB(rtengine::ColorTemp ctemp)
     // green->setLogScale(100, vgreen, true);
 }
 
-void WhiteBalance::trimValues(rtengine::procparams::ProcParams *pp)
+void WhiteBalance::trimValues(art::engine::procparams::ProcParams *pp)
 {
     temp->trimValue(pp->wb.temperature);
     green->trimValue(pp->wb.green);
@@ -592,7 +592,7 @@ void WhiteBalance::trimValues(rtengine::procparams::ProcParams *pp)
     }
 }
 
-void WhiteBalance::WBChanged(rtengine::ColorTemp ctemp)
+void WhiteBalance::WBChanged(art::engine::ColorTemp ctemp)
 {
     idle_register.add([this, ctemp]() -> bool {
         disableListener();
@@ -629,20 +629,20 @@ void WhiteBalance::syncSliders(bool from_mult)
         double m[3] = {mult[0]->getValue(), mult[1]->getValue(),
                        mult[2]->getValue()};
         wbp->convertWBCam2Mul(m[0], m[1], m[2]);
-        rtengine::ColorTemp ct(m[0], m[1], m[2]);
+        art::engine::ColorTemp ct(m[0], m[1], m[2]);
         temp->setValue(ct.getTemp());
         green->setValue(ct.getGreen());
         equal->setValue(1.0);
 
-        rtengine::ColorTemp ct2(ct.getTemp(), ct.getGreen(), 1.0, "");
+        art::engine::ColorTemp ct2(ct.getTemp(), ct.getGreen(), 1.0, "");
         double m2[3];
         ct2.getMultipliers(m2[0], m2[1], m2[2]);
-        if (rtengine::max(std::abs(m[0] - m2[0]), std::abs(m[1] - m2[1]),
+        if (art::engine::max(std::abs(m[0] - m2[0]), std::abs(m[1] - m2[1]),
                           std::abs(m[2] - m2[2])) > 1e-2) {
             temp_warning_->show();
         }
     } else {
-        rtengine::ColorTemp ct(temp->getValue(), green->getValue(),
+        art::engine::ColorTemp ct(temp->getValue(), green->getValue(),
                                equal->getValue(), "");
         double m[3];
         ct.getMultipliers(m[0], m[1], m[2]);
@@ -664,14 +664,14 @@ void WhiteBalance::updateMethodGui(bool check_temp)
         multBox->hide();
         tempBox->show();
         if (check_temp && wbp) {
-            rtengine::ColorTemp ct1(temp->getValue(), green->getValue(),
+            art::engine::ColorTemp ct1(temp->getValue(), green->getValue(),
                                     equal->getValue(), "");
             double m1[3];
             ct1.getMultipliers(m1[0], m1[1], m1[2]);
             double m2[3] = {mult[0]->getValue(), mult[1]->getValue(),
                             mult[2]->getValue()};
             wbp->convertWBCam2Mul(m2[0], m2[1], m2[2]);
-            if (rtengine::max(std::abs(m1[0] - m2[0]), std::abs(m1[1] - m2[1]),
+            if (art::engine::max(std::abs(m1[0] - m2[0]), std::abs(m1[1] - m2[1]),
                               std::abs(m1[2] - m2[2])) > 1e-2) {
                 multBox->show();
                 tempBox->hide();

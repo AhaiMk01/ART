@@ -20,8 +20,8 @@
 #include "guiutils.h"
 #include "rtimage.h"
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 SensorXTrans::SensorXTrans()
     : FoldableToolPanel(this, "sensorxtrans", M("TP_RAW_SENSOR_XTRANS_LABEL"))

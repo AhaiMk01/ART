@@ -21,7 +21,7 @@
 // #include <giomm.h>
 #include <helpers.h>
 
-class PListener: public rtengine::ProgressListener {
+class PListener: public art::engine::ProgressListener {
 public:
     void setProgressStr(const Glib::ustring &str)
     {
@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    rtengine::Settings s;
+    art::engine::Settings s;
     s.demosaicMethod = "hphd";
     s.colorCorrectionSteps = 2;
     s.iccDirectory = "";
@@ -47,15 +47,15 @@ int main(int argc, char *argv[])
     s.monitorProfile = "";
 
     Glib::thread_init();
-    rtengine::init(s, "");
+    art::engine::init(s, "");
     PListener pl;
 
-    rtengine::InitialImage *ii;
+    art::engine::InitialImage *ii;
     int errorCode;
-    ii = rtengine::InitialImage::load(argv[1], true, errorCode, &pl);
+    ii = art::engine::InitialImage::load(argv[1], true, errorCode, &pl);
 
     if (!ii) {
-        ii = rtengine::InitialImage::load(argv[1], false, errorCode, &pl);
+        ii = art::engine::InitialImage::load(argv[1], false, errorCode, &pl);
     }
 
     if (!ii) {
@@ -63,10 +63,10 @@ int main(int argc, char *argv[])
         exit(2);
     }
 
-    rtengine::procparams::ProcParams params;
+    art::engine::procparams::ProcParams params;
     params.load(argv[2]);
 
-    rtengine::ProcessingJob *job = ProcessingJob::create(ii, params);
-    rtengine::IImage16 *res = rtengine::processImage(job, errorCode, &pl);
+    art::engine::ProcessingJob *job = ProcessingJob::create(ii, params);
+    art::engine::IImage16 *res = art::engine::processImage(job, errorCode, &pl);
     res->saveToFile(argv[3]);
 }

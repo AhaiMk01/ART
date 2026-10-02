@@ -20,7 +20,7 @@
 
 #pragma once
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class NonCopyable {
 public:
@@ -30,4 +30,4 @@ public:
     NonCopyable &operator=(const NonCopyable &) = delete;
 };
 
-} // namespace rtengine
+}} // namespace art::engine

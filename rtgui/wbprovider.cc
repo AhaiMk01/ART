@@ -26,9 +26,9 @@
 #include "../rtengine/settings.h"
 #include "wbprovider.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 extern const Settings *settings;
-}
+}}
 
 namespace wb_presets {
 
@@ -45,13 +45,13 @@ std::map<std::string, std::vector<WBPreset>> load(const Glib::ustring &path)
 
     FILE *const f = g_fopen(fileName.c_str(), "r");
 
-    if (rtengine::settings->verbose > 1) {
+    if (art::engine::settings->verbose > 1) {
         std::cout << "trying to load white balance presets from " << fileName
                   << std::flush;
     }
 
     if (!f) {
-        if (rtengine::settings->verbose > 1) {
+        if (art::engine::settings->verbose > 1) {
             std::cout << " FAIL" << std::endl;
         }
 
@@ -62,7 +62,7 @@ std::map<std::string, std::vector<WBPreset>> load(const Glib::ustring &path)
     long length = ftell(f);
 
     if (length <= 0) {
-        if (rtengine::settings->verbose > 1) {
+        if (art::engine::settings->verbose > 1) {
             std::cout << " FAIL" << std::endl;
         }
 
@@ -87,7 +87,7 @@ std::map<std::string, std::vector<WBPreset>> load(const Glib::ustring &path)
     }
 
     if (!root) {
-        if (rtengine::settings->verbose > 1) {
+        if (art::engine::settings->verbose > 1) {
             std::cout << " FAIL" << std::endl;
         }
 
@@ -150,7 +150,7 @@ std::map<std::string, std::vector<WBPreset>> load(const Glib::ustring &path)
 
     cJSON_Delete(root);
 
-    if (rtengine::settings->verbose > 1) {
+    if (art::engine::settings->verbose > 1) {
         std::cout << " OK" << std::endl;
     }
 
@@ -158,7 +158,7 @@ std::map<std::string, std::vector<WBPreset>> load(const Glib::ustring &path)
 
 parse_error:
 
-    if (rtengine::settings->verbose) {
+    if (art::engine::settings->verbose) {
         std::cout << " ERROR in parsing " << fileName << std::endl;
     }
 

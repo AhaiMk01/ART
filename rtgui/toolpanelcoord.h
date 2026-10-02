@@ -99,12 +99,12 @@ class ToolPanelCoordinator: public ToolPanelListener,
                             public PerspCorrectionPanelListener,
                             public ICMPanelListener,
                             public ImageAreaToolListener,
-                            public rtengine::ImageTypeListener,
-                            public rtengine::AutoExpListener,
+                            public art::engine::ImageTypeListener,
+                            public art::engine::AutoExpListener,
                             public FilmNegProvider,
                             public AreaDrawListenerProvider,
                             public DeltaEColorProvider,
-                            public rtengine::NonCopyable {
+                            public art::engine::NonCopyable {
 protected:
     WhiteBalance *whitebalance;
     Vignetting *vignetting;
@@ -162,7 +162,7 @@ protected:
 
     std::vector<PParamsChangeListener *> paramcListeners;
 
-    rtengine::StagedImageProcessor *ipc;
+    art::engine::StagedImageProcessor *ipc;
 
     std::vector<ToolPanel *> toolPanels;
     std::vector<FoldableToolPanel *> favorites;
@@ -223,10 +223,10 @@ public:
 
     bool getChangedState() { return hasChanged; }
     void updateCurveBackgroundHistogram(
-        const LUTu &histToneCurve, const LUTu &histLCurve,
-        const LUTu &histCCurve, const LUTu &histLCAM, const LUTu &histCCAM,
-        const LUTu &histRed, const LUTu &histGreen, const LUTu &histBlue,
-        const LUTu &histLuma, const LUTu &histLRETI);
+        const art::engine::LUTu &histToneCurve, const art::engine::LUTu &histLCurve,
+        const art::engine::LUTu &histCCurve, const art::engine::LUTu &histLCAM, const art::engine::LUTu &histCCAM,
+        const art::engine::LUTu &histRed, const art::engine::LUTu &histGreen, const art::engine::LUTu &histBlue,
+        const art::engine::LUTu &histLuma, const art::engine::LUTu &histLRETI);
     void foldAllButOne(Gtk::Box *parent, FoldableToolPanel *openedSection);
 
     // multiple listeners can be added that are notified on changes (typical:
@@ -237,24 +237,24 @@ public:
     }
 
     // toolpanellistener interface
-    void refreshPreview(const rtengine::ProcEvent &event) override;
-    void panelChanged(const rtengine::ProcEvent &event,
+    void refreshPreview(const art::engine::ProcEvent &event) override;
+    void panelChanged(const art::engine::ProcEvent &event,
                       const Glib::ustring &descr) override;
-    void setTweakOperator(rtengine::TweakOperator *tOperator) override;
-    void unsetTweakOperator(rtengine::TweakOperator *tOperator) override;
+    void setTweakOperator(art::engine::TweakOperator *tOperator) override;
+    void unsetTweakOperator(art::engine::TweakOperator *tOperator) override;
 
     void imageTypeChanged(bool isRaw, bool isBayer, bool isXtrans,
                           bool isMono = false) override;
 
     //    void autoContrastChanged (double autoContrast);
     // profilechangelistener interface
-    void profileChange(const rtengine::procparams::PartialProfile *nparams,
-                       const rtengine::ProcEvent &event,
+    void profileChange(const art::engine::procparams::PartialProfile *nparams,
+                       const art::engine::ProcEvent &event,
                        const Glib::ustring &descr,
                        const ParamsEdited *paramsEdited = nullptr,
                        bool fromLastSave = false) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defparams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defparams) override;
 
     // DirSelectionListener interface
     void dirSelected(const Glib::ustring &dirname,
@@ -267,7 +267,7 @@ public:
                           // changes
 
     // init the toolpanelcoordinator with an image & close it
-    void initImage(rtengine::StagedImageProcessor *ipc_, bool israw);
+    void initImage(art::engine::StagedImageProcessor *ipc_, bool israw);
     void closeImage();
 
     // update the "expanded" state of the Tools
@@ -281,13 +281,13 @@ public:
     void writeToolExpandedStatus(std::vector<int> &tpOpen);
 
     // wbprovider interface
-    void getAutoWB(rtengine::ColorTemp &out, double equal) override
+    void getAutoWB(art::engine::ColorTemp &out, double equal) override
     {
         if (ipc) {
             ipc->getAutoWB(out, equal);
         }
     }
-    void getCamWB(rtengine::ColorTemp &out) override
+    void getCamWB(art::engine::ColorTemp &out) override
     {
         if (ipc) {
             ipc->getCamWB(out);
@@ -299,15 +299,15 @@ public:
     void convertWBMul2Cam(double &rm, double &gm, double &bm) override;
 
     // DFProvider interface
-    rtengine::RawImage *getDF() override;
+    art::engine::RawImage *getDF() override;
 
     // FFProvider interface
-    rtengine::RawImage *getFF() override;
+    art::engine::RawImage *getFF() override;
     Glib::ustring GetCurrentImageFilePath() override;
     bool hasEmbeddedFF() override;
 
     // FilmNegProvider interface
-    bool getFilmNegativeSpot(rtengine::Coord spot, int spotSize, RGB &refInput,
+    bool getFilmNegativeSpot(art::engine::Coord spot, int spotSize, RGB &refInput,
                              RGB &refOutput) override;
 
     // rotatelistener interface
@@ -317,8 +317,8 @@ public:
     void autoPerspectiveRequested(
         bool horiz, bool vert, double &angle, double &horizontal,
         double &vertical, double &shear,
-        const std::vector<rtengine::ControlLine> *lines = nullptr) override;
-    void updateTransformPreviewRequested(rtengine::ProcEvent event,
+        const std::vector<art::engine::ControlLine> *lines = nullptr) override;
+    void updateTransformPreviewRequested(art::engine::ProcEvent event,
                                          bool render_perspective) override;
 
     // spotwblistener interface
@@ -366,10 +366,10 @@ public:
     void setAreaDrawListener(AreaDrawListener *listener) override;
 
     // DeltaEColorProvider interface
-    bool getDeltaELCH(EditUniqueID id, rtengine::Coord pos, float &L, float &C,
+    bool getDeltaELCH(EditUniqueID id, art::engine::Coord pos, float &L, float &C,
                       float &H) override;
 
-    void setProgressListener(rtengine::ProgressListener *pl);
+    void setProgressListener(art::engine::ProgressListener *pl);
 
     void setToolShortcutManager(ToolShortcutManager *mgr);
 

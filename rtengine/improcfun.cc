@@ -49,7 +49,7 @@
 #include "gpu/vk_context.h"
 #endif
 
-namespace rtengine {
+namespace art { namespace engine {
 
 using namespace procparams;
 
@@ -381,7 +381,7 @@ void proPhotoBlue(Imagefloat *rgb, bool multiThread)
                     float b = rgb->b(y, x + k);
 
                     if ((r == 0.0f || g == 0.0f) &&
-                        rtengine::min(r, g, b) >= 0.f) {
+                        art::engine::min(r, g, b) >= 0.f) {
                         float h, s, v;
                         Color::rgb2hsv(r, g, b, h, s, v);
                         s *= 0.99f;
@@ -397,7 +397,7 @@ void proPhotoBlue(Imagefloat *rgb, bool multiThread)
             float g = rgb->g(y, x);
             float b = rgb->b(y, x);
 
-            if ((r == 0.0f || g == 0.0f) && rtengine::min(r, g, b) >= 0.f) {
+            if ((r == 0.0f || g == 0.0f) && art::engine::min(r, g, b) >= 0.f) {
                 float h, s, v;
                 Color::rgb2hsv(r, g, b, h, s, v);
                 s *= 0.99f;
@@ -439,15 +439,15 @@ double ImProcFunctions::getAutoDistor(const Glib::ustring &fname,
         int w_raw = -1, h_raw = thumb_size;
         int w_thumb = -1, h_thumb = thumb_size;
 
-        eSensorType sensorType = rtengine::ST_NONE;
-        Thumbnail *thumb = rtengine::Thumbnail::loadQuickFromRaw(
+        eSensorType sensorType = art::engine::ST_NONE;
+        Thumbnail *thumb = art::engine::Thumbnail::loadQuickFromRaw(
             fname, sensorType, w_thumb, h_thumb, 1, FALSE);
 
         if (!thumb) {
             return 0.0;
         }
 
-        Thumbnail *raw = rtengine::Thumbnail::loadFromRaw(
+        Thumbnail *raw = art::engine::Thumbnail::loadFromRaw(
             fname, sensorType, w_raw, h_raw, 1, 1.0, FALSE);
 
         if (!raw) {
@@ -739,4 +739,4 @@ bool ImProcFunctions::needsDCPProfile()
     return dcpProf && dcpApplyState && dcpProf->needStep2(*dcpApplyState);
 }
 
-} // namespace rtengine
+}} // namespace art::engine

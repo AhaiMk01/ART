@@ -25,7 +25,7 @@
 #include "rtengine.h"
 #include <memory>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class ExifLensCorrection: public LensCorrection {
 public:
@@ -71,4 +71,4 @@ private:
     float r_;
 };
 
-} // namespace rtengine
+}} // namespace art::engine

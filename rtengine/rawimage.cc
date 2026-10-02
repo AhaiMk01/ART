@@ -24,7 +24,10 @@
 #include <libraw.h>
 #endif // ART_USE_LIBRAW
 
-namespace rtengine {
+namespace art { namespace engine {
+
+
+
 
 extern const Settings *settings;
 extern MyMutex *librawMutex;
@@ -1397,15 +1400,15 @@ float **RawImage::compress_image(unsigned int frameNum, bool freeImage)
 bool RawImage::is_supportedThumb() const
 {
     return ((thumb_width * thumb_height) > 0 &&
-            (write_thumb == &rtengine::RawImage::jpeg_thumb ||
-             write_thumb == &rtengine::RawImage::ppm_thumb) &&
+            (write_thumb == &art::engine::RawImage::jpeg_thumb ||
+             write_thumb == &art::engine::RawImage::ppm_thumb) &&
             !thumb_load_raw);
 }
 
 bool RawImage::is_ppmThumb() const
 {
     return ((thumb_width * thumb_height) > 0 &&
-            write_thumb == &rtengine::RawImage::ppm_thumb && !thumb_load_raw);
+            write_thumb == &art::engine::RawImage::ppm_thumb && !thumb_load_raw);
 }
 
 void RawImage::getXtransMatrix(int XtransMatrix[6][6])
@@ -1542,8 +1545,6 @@ Image8 *RawImage::getThumbnail()
 #endif // ART_USE_LIBRAW
     return nullptr;
 }
-
-} // namespace rtengine
 
 bool DCraw::dcraw_coeff_overrides(const char make[], const char model[],
                                   const int iso_speed, short trans[12],
@@ -1794,9 +1795,9 @@ bool DCraw::dcraw_coeff_overrides(const char make[], const char model[],
     {
         // test if we have any information in the camera constants store, if so
         // we take that.
-        rtengine::CameraConstantsStore *ccs =
-            rtengine::CameraConstantsStore::getInstance();
-        rtengine::CameraConst *cc = ccs->get(make, model);
+        art::engine::CameraConstantsStore *ccs =
+            art::engine::CameraConstantsStore::getInstance();
+        art::engine::CameraConst *cc = ccs->get(make, model);
 
         if (cc) {
             if (RT_blacklevel_from_constant == ThreeValBool::T) {
@@ -1841,3 +1842,6 @@ bool DCraw::dcraw_coeff_overrides(const char make[], const char model[],
 
     return false;
 }
+
+
+} } // namespace art::engine

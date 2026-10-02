@@ -20,6 +20,9 @@
 #include "imagedimensions.h"
 #include "rtengine.h"
 
+namespace art { namespace engine {
+
+
 PreviewProps::PreviewProps(int _x, int _y, int _width, int _height, int _skip)
     : x(_x), y(_y), width(_width), height(_height), skip(_skip)
 {
@@ -97,3 +100,6 @@ void ImageDimensions::transform(const PreviewProps &pp, int tran, int &sx1,
         sy1 = 0;
     }
 }
+
+
+} } // namespace art::engine

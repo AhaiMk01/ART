@@ -34,7 +34,7 @@
 #include "imagefloat.h"
 #include "noncopyable.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class DCPProfile final {
 public:
@@ -181,4 +181,4 @@ private:
     mutable std::map<Glib::ustring, DCPProfile *> profile_cache;
 };
 
-} // namespace rtengine
+}} // namespace art::engine

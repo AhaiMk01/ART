@@ -31,13 +31,13 @@
 
 class Thumbnail;
 
-class CacheManager: public rtengine::NonCopyable {
+class CacheManager: public art::engine::NonCopyable {
 private:
     using Entries = std::map<std::string, Thumbnail *>;
     Entries openEntries;
     Glib::ustring baseDir;
     mutable MyMutex mutex;
-    rtengine::ProgressListener *pl_;
+    art::engine::ProgressListener *pl_;
 
     void deleteDir(const Glib::ustring &dirName) const;
     void deleteFiles(const Glib::ustring &fname, const std::string &md5,
@@ -50,8 +50,8 @@ public:
     static CacheManager *getInstance();
 
     void init();
-    void setProgressListener(rtengine::ProgressListener *pl) { pl_ = pl; }
-    rtengine::ProgressListener *getProgressListener() { return pl_; }
+    void setProgressListener(art::engine::ProgressListener *pl) { pl_ = pl; }
+    art::engine::ProgressListener *getProgressListener() { return pl_; }
 
     Thumbnail *getEntry(const Glib::ustring &fname);
     void deleteEntry(const Glib::ustring &fname);

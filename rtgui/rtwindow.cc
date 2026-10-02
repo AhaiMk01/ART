@@ -514,7 +514,7 @@ RTWindow::RTWindow()
         actionGrid->show_all();
 
         pldBridge =
-            new PLDBridge(static_cast<rtengine::ProgressListener *>(this));
+            new PLDBridge(static_cast<art::engine::ProgressListener *>(this));
 
         main_widget = mainNB;
 
@@ -532,7 +532,7 @@ RTWindow::RTWindow()
     init(main_widget);
 
     cacheMgr->setProgressListener(this);
-    ProfileStore::getInstance()->setProgressListener(this);
+    art::engine::ProfileStore::getInstance()->setProgressListener(this);
 
     const auto on_show = [this](GdkEventAny *e) -> bool {
         static bool first_draw = true;
@@ -567,7 +567,7 @@ RTWindow::RTWindow()
 
         if (thm) {
             int error;
-            rtengine::InitialImage *ii = rtengine::InitialImage::load(
+            art::engine::InitialImage *ii = art::engine::InitialImage::load(
                 argv1, thm->getType() == FT_Raw, &error, nullptr);
             epanel->open(thm, ii);
         }
@@ -584,7 +584,7 @@ RTWindow::~RTWindow()
     idle_register.destroy();
 
     cacheMgr->setProgressListener(nullptr);
-    ProfileStore::getInstance()->setProgressListener(nullptr);
+    art::engine::ProfileStore::getInstance()->setProgressListener(nullptr);
 
     if (!simpleEditor) {
         delete pldBridge;
@@ -1273,7 +1273,7 @@ void RTWindow::MoveFileBrowserToEditor()
 }
 
 void RTWindow::updateProfiles(const Glib::ustring &printerProfile,
-                              rtengine::RenderingIntent printerIntent,
+                              art::engine::RenderingIntent printerIntent,
                               bool printerBPC)
 {
     if (epanel) {

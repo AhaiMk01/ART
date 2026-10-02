@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _PREVIEWHANDLER_
-#define _PREVIEWHANDLER_
+#pragma once
 
 #include <list>
 
@@ -42,7 +41,7 @@ struct PreviewHandlerIdleHelper {
     int pending;
 };
 
-class PreviewHandler: public rtengine::PreviewImageListener {
+class PreviewHandler: public art::engine::PreviewImageListener {
 private:
     friend int setImageUI(void *data);
     friend int delImageUI(void *data);
@@ -51,8 +50,8 @@ private:
     IdleRegister idle_register;
 
 protected:
-    rtengine::IImage8 *image;
-    rtengine::procparams::CropParams cropParams;
+    art::engine::IImage8 *image;
+    art::engine::procparams::CropParams cropParams;
     double previewScale;
     PreviewHandlerIdleHelper *pih;
     std::list<PreviewListener *> listeners;
@@ -66,10 +65,10 @@ public:
     void addPreviewImageListener(PreviewListener *l) { listeners.push_back(l); }
 
     // previewimagelistener
-    void setImage(rtengine::IImage8 *img, double scale,
-                  const rtengine::procparams::CropParams &cp) override;
-    void delImage(rtengine::IImage8 *img) override;
-    void imageReady(const rtengine::procparams::CropParams &cp) override;
+    void setImage(art::engine::IImage8 *img, double scale,
+                  const art::engine::procparams::CropParams &cp) override;
+    void delImage(art::engine::IImage8 *img) override;
+    void imageReady(const art::engine::procparams::CropParams &cp) override;
 
     // this function is called when a new preview image arrives from rtengine
     void previewImageChanged();
@@ -80,7 +79,5 @@ public:
                                             double zoom);
     Glib::RefPtr<Gdk::Pixbuf> getRoughImage(int desiredW, int desiredH,
                                             double &zoom);
-    rtengine::procparams::CropParams getCropParams() { return cropParams; }
+    art::engine::procparams::CropParams getCropParams() { return cropParams; }
 };
-
-#endif

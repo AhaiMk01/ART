@@ -25,7 +25,7 @@
 // #define BENCHMARK
 #include "StopWatch.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace {
 
@@ -799,4 +799,4 @@ int RawImageSource::findZeroPixels(PixelsMap &bpMap) const
     return counter;
 }
 
-} // namespace rtengine
+}} // namespace art::engine

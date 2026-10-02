@@ -22,7 +22,7 @@
 
 #include "labimage.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 LabImage::LabImage(int w, int h): W(w), H(h) { allocLab(w, h); }
 
@@ -96,4 +96,4 @@ void LabImage::deleteLab()
 
 void LabImage::reallocLab() { allocLab(W, H); }
 
-} // namespace rtengine
+}} // namespace art::engine

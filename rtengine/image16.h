@@ -20,14 +20,13 @@
 // A class representing a 16 bit rgb image with separate planes and 16 byte
 // aligned data
 //
-#ifndef _IMAGE16_
-#define _IMAGE16_
+#pragma once
 
 #include "imagefloat.h"
 #include "imageio.h"
 #include "rtengine.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class Image8;
 
@@ -96,5 +95,4 @@ public:
      * LabImage &labImage, int cx, int cy); */
 };
 
-} // namespace rtengine
-#endif
+}} // namespace art::engine

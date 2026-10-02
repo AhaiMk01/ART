@@ -46,12 +46,12 @@ void writeFailed(Gtk::Window &parent, const std::string &filename);
 void drawCrop(Glib::RefPtr<Gtk::StyleContext> style,
               Cairo::RefPtr<Cairo::Context> cr, int imx, int imy, int imw,
               int imh, int startx, int starty, double scale,
-              const rtengine::procparams::CropParams &cparams,
+              const art::engine::procparams::CropParams &cparams,
               bool drawGuide = true, bool useBgColor = true,
               bool fullImageVisible = true);
 void drawCrop(Cairo::RefPtr<Cairo::Context> cr, int imx, int imy, int imw,
               int imh, int startx, int starty, double scale,
-              const rtengine::procparams::CropParams &cparams,
+              const art::engine::procparams::CropParams &cparams,
               bool drawGuide = true, bool useBgColor = true,
               bool fullImageVisible = true);
 gboolean acquireGUI(void *data);
@@ -61,9 +61,9 @@ Gtk::Border getPadding(const Glib::RefPtr<Gtk::StyleContext> style);
 
 /** Human-readable pipeline time, e.g. "85 ms" or, if the GPU ran,
  * "1.20 s (CPU 0.90 s, GPU 0.30 s)". */
-Glib::ustring formatPipelineTimes(const rtengine::PipelineTimes &t);
+Glib::ustring formatPipelineTimes(const art::engine::PipelineTimes &t);
 
-class IdleRegister final: public rtengine::NonCopyable {
+class IdleRegister final: public art::engine::NonCopyable {
 public:
     ~IdleRegister();
 
@@ -601,7 +601,7 @@ class BackBuffer: public RefCount {
 
 protected:
     int x, y, w, h;         // Rectangle where the colored bar has to be drawn
-    rtengine::Coord offset; // Offset of the source region to draw, relative to
+    art::engine::Coord offset; // Offset of the source region to draw, relative to
                             // the top left corner
     Cairo::RefPtr<Cairo::ImageSurface> surface;
     bool dirty; // mean that the Surface has to be (re)allocated
@@ -626,9 +626,9 @@ public:
     // time
     void setDestPosition(int x, int y);
     void setSrcOffset(int x, int y);
-    void setSrcOffset(const rtengine::Coord &newOffset);
+    void setSrcOffset(const art::engine::Coord &newOffset);
     void getSrcOffset(int &x, int &y);
-    void getSrcOffset(rtengine::Coord &offset);
+    void getSrcOffset(art::engine::Coord &offset);
 
     void copyRGBCharData(const unsigned char *srcData, int srcX, int srcY,
                          int srcW, int srcH, int srcRowStride, int dstX,

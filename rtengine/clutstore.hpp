@@ -22,7 +22,7 @@
 
 #include "clutstore.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 inline void CLUTApplication::apply_single(int thread_id, float &r, float &g, float &b)
 {
@@ -227,4 +227,4 @@ inline void CLUTApplication::apply_vec(int thread_id, vfloat &r, vfloat &g, vflo
 
 #endif // ART_SIMD
 
-} // namespace rtengine
+}} // namespace art::engine

@@ -21,8 +21,8 @@
 #include "rtimage.h"
 #include <iomanip>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 Distortion::Distortion()
     : FoldableToolPanel(this, "distortion", M("TP_DISTORTION_LABEL"), false,
@@ -31,12 +31,12 @@ Distortion::Distortion()
     rlistener = nullptr;
 
     auto m = ProcEventMapper::getInstance();
-    EvAuto = m->newEvent(rtengine::TRANSFORM, "HISTORY_MSG_DISTORTION_AUTO");
-    EvAutoLoad = m->newAnonEvent(rtengine::TRANSFORM);
+    EvAuto = m->newEvent(art::engine::TRANSFORM, "HISTORY_MSG_DISTORTION_AUTO");
+    EvAutoLoad = m->newAnonEvent(art::engine::TRANSFORM);
     is_auto_load_event_ = false;
 
-    EvToolEnabled.set_action(rtengine::TRANSFORM);
-    EvToolReset.set_action(rtengine::TRANSFORM);
+    EvToolEnabled.set_action(art::engine::TRANSFORM);
+    EvToolReset.set_action(art::engine::TRANSFORM);
 
     autoDistor = Gtk::manage(new Gtk::ToggleButton(M("GENERAL_AUTO")));
     autoDistor->set_image(
@@ -138,7 +138,7 @@ void Distortion::idPressed()
     }
 }
 
-void Distortion::trimValues(rtengine::procparams::ProcParams *pp)
+void Distortion::trimValues(art::engine::procparams::ProcParams *pp)
 {
     distor->trimValue(pp->distortion.amount);
 }

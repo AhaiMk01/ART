@@ -30,7 +30,7 @@
 #include <string>
 #include <vector>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -166,4 +166,4 @@ PipelineTimeReport::~PipelineTimeReport()
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

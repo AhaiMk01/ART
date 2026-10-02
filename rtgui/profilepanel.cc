@@ -25,8 +25,8 @@
 
 #include <iostream>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 PartialPasteDlg *ProfilePanel::partialProfileDlg = nullptr;
 Gtk::Window *ProfilePanel::parent;
@@ -111,7 +111,7 @@ ProfilePanel::ProfilePanel()
     defprofile = nullptr;
     dontupdate = false;
 
-    ProfileStore::getInstance()->addListener(this);
+    art::engine::ProfileStore::getInstance()->addListener(this);
 
     changeconn = profiles->signal_changed().connect(
         sigc::mem_fun(*this, &ProfilePanel::selection_changed));
@@ -127,7 +127,7 @@ ProfilePanel::ProfilePanel()
 ProfilePanel::~ProfilePanel()
 {
 
-    ProfileStore::getInstance()->removeListener(this);
+    art::engine::ProfileStore::getInstance()->removeListener(this);
 
     if (custom) {
         delete custom;
@@ -204,8 +204,8 @@ Gtk::TreeIter ProfilePanel::addCustomRow()
         customPSE = nullptr;
     }
 
-    customPSE = new ProfileStoreEntry(
-        Glib::ustring("(" + M("PROFILEPANEL_PCUSTOM") + ")"), PSET_FILE, 0, 0);
+    customPSE = new art::engine::ProfileStoreEntry(
+        Glib::ustring("(" + M("PROFILEPANEL_PCUSTOM") + ")"), art::engine::PSET_FILE, 0, 0);
     Gtk::TreeIter newEntry = profiles->addRow(customPSE);
     return newEntry;
 }
@@ -218,8 +218,8 @@ Gtk::TreeIter ProfilePanel::addLastSavedRow()
         lastSavedPSE = nullptr;
     }
 
-    lastSavedPSE = new ProfileStoreEntry(
-        Glib::ustring("(" + M("PROFILEPANEL_PLASTSAVED") + ")"), PSET_FILE, 0,
+    lastSavedPSE = new art::engine::ProfileStoreEntry(
+        Glib::ustring("(" + M("PROFILEPANEL_PLASTSAVED") + ")"), art::engine::PSET_FILE, 0,
         0);
     Gtk::TreeIter newEntry = profiles->addRow(lastSavedPSE);
     return newEntry;
@@ -235,10 +235,10 @@ void ProfilePanel::storeCurrentValue()
         // storing the current entry's procparams, if not "Custom" or
         // "LastSaved"
 
-        const ProfileStoreEntry *entry = profiles->getSelectedEntry();
+        const art::engine::ProfileStoreEntry *entry = profiles->getSelectedEntry();
         const PartialProfile *currProfile;
 
-        if (entry && (currProfile = ProfileStore::getInstance()->getProfile(
+        if (entry && (currProfile = art::engine::ProfileStore::getInstance()->getProfile(
                           entry)) != nullptr) {
             currProfile->applyTo(stored_pp_);
         } else {
@@ -247,8 +247,8 @@ void ProfilePanel::storeCurrentValue()
     }
 }
 
-/* Get the ProfileStore's entry list and recreate the combobox entries
- * If you want want to update the ProfileStore list itself (rescan the dir
+/* Get the art::engine::ProfileStore's entry list and recreate the combobox entries
+ * If you want want to update the art::engine::ProfileStore list itself (rescan the dir
  * tree), use its "parseProfiles" method instead
  */
 void ProfilePanel::updateProfileList()
@@ -383,9 +383,9 @@ void ProfilePanel::save_clicked(GdkEventButton *event)
             // } else if (isDefaultSelected()) {
             //     toSave = defprofile;
             // } else {
-            //     const ProfileStoreEntry* entry =
+            //     const art::engine::ProfileStoreEntry* entry =
             //     profiles->getSelectedEntry(); toSave = entry ?
-            //     ProfileStore::getInstance()->getProfile
+            //     art::engine::ProfileStore::getInstance()->getProfile
             //     (profiles->getSelectedEntry()) : nullptr;
             // }
 
@@ -415,7 +415,7 @@ void ProfilePanel::save_clicked(GdkEventButton *event)
                     ProcParams pparams;
                     toSave->applyTo(pparams);
                     int retCode = pparams.save(
-                        dynamic_cast<rtengine::ProgressListener *>(parent),
+                        dynamic_cast<art::engine::ProgressListener *>(parent),
                         fname, "", &pe);
 
                     if (retCode) {
@@ -423,7 +423,7 @@ void ProfilePanel::save_clicked(GdkEventButton *event)
                     } else {
                         done = true;
                         bool ccPrevState = changeconn.block(true);
-                        ProfileStore::getInstance()->parseProfiles();
+                        art::engine::ProfileStore::getInstance()->parseProfiles();
                         changeconn.block(ccPrevState);
                     }
                 } else {
@@ -431,7 +431,7 @@ void ProfilePanel::save_clicked(GdkEventButton *event)
                     ProcParams pparams;
                     toSave->applyTo(pparams);
                     int retCode = pparams.save(
-                        dynamic_cast<rtengine::ProgressListener *>(parent),
+                        dynamic_cast<art::engine::ProgressListener *>(parent),
                         fname);
 
                     if (retCode) {
@@ -439,7 +439,7 @@ void ProfilePanel::save_clicked(GdkEventButton *event)
                     } else {
                         done = true;
                         bool ccPrevState = changeconn.block(true);
-                        ProfileStore::getInstance()->parseProfiles();
+                        art::engine::ProfileStore::getInstance()->parseProfiles();
                         changeconn.block(ccPrevState);
                     }
                 }
@@ -470,7 +470,7 @@ void ProfilePanel::copy_clicked(GdkEventButton *event)
     }
 
     if (toSave) {
-        rtengine::procparams::ProcParams pp;
+        art::engine::procparams::ProcParams pp;
         toSave->applyTo(pp);
         clipboard.setProcParams(pp);
         clipboard.setParamsEdited(ParamsEdited(true));
@@ -552,10 +552,10 @@ void ProfilePanel::load_clicked(GdkEventButton *event)
 
         ProcParams pp;
         int err =
-            pp.load(dynamic_cast<rtengine::ProgressListener *>(parent), fname);
+            pp.load(dynamic_cast<art::engine::ProgressListener *>(parent), fname);
 
         if (!err) {
-            auto pl = dynamic_cast<rtengine::ProgressListener *>(parent);
+            auto pl = dynamic_cast<art::engine::ProgressListener *>(parent);
             if (event->state & Gdk::CONTROL_MASK) {
                 if (!partialProfileDlg) {
                     partialProfileDlg =
@@ -659,9 +659,9 @@ void ProfilePanel::selection_changed()
         changeTo(defprofile,
                  Glib::ustring("(" + M("PROFILEPANEL_PDEFAULT") + ")"));
     } else {
-        const ProfileStoreEntry *pse = profiles->getSelectedEntry();
+        const art::engine::ProfileStoreEntry *pse = profiles->getSelectedEntry();
 
-        if (pse->type == PSET_FOLDER) {
+        if (pse->type == art::engine::PSET_FOLDER) {
             // this entry is invalid, restoring the old value
             bool ccPrevState = changeconn.block(true);
             profiles->set_active(currRow);
@@ -672,14 +672,14 @@ void ProfilePanel::selection_changed()
             currRow = profiles->get_active();
         }
 
-        const PartialProfile *s = ProfileStore::getInstance()->getProfile(pse);
+        const PartialProfile *s = art::engine::ProfileStore::getInstance()->getProfile(pse);
 
         if (s) {
             if (append_mode_->get_active()) {
                 if (const FilePartialProfile *fs =
                         dynamic_cast<const FilePartialProfile *>(s)) {
                     FilePartialProfile f(
-                        dynamic_cast<rtengine::ProgressListener *>(parent),
+                        dynamic_cast<art::engine::ProgressListener *>(parent),
                         fs->filename(), true);
                     changeTo(&f, pse->label + "+");
                 } else {
@@ -699,8 +699,8 @@ void ProfilePanel::selection_changed()
     dontupdate = false;
 }
 
-void ProfilePanel::procParamsChanged(const rtengine::procparams::ProcParams *p,
-                                     const rtengine::ProcEvent &ev,
+void ProfilePanel::procParamsChanged(const art::engine::procparams::ProcParams *p,
+                                     const art::engine::ProcEvent &ev,
                                      const Glib::ustring &descr,
                                      const ParamsEdited *paramsEdited)
 {
@@ -737,10 +737,10 @@ void ProfilePanel::clearParamChanges() {}
  */
 void ProfilePanel::initProfile(const Glib::ustring &profileFullPath,
                                ProcParams *lastSaved,
-                               const rtengine::FramesMetaData *metadata)
+                               const art::engine::FramesMetaData *metadata)
 {
 
-    const ProfileStoreEntry *pse = nullptr;
+    const art::engine::ProfileStoreEntry *pse = nullptr;
     // const PartialProfile *defprofile = nullptr;
 
     bool ccPrevState = changeconn.block(true);
@@ -764,18 +764,18 @@ void ProfilePanel::initProfile(const Glib::ustring &profileFullPath,
         lastsaved = new FullPartialProfile(*lastSaved);
     }
 
-    if (!(pse = ProfileStore::getInstance()->findEntryFromFullPath(
+    if (!(pse = art::engine::ProfileStore::getInstance()->findEntryFromFullPath(
               profileFullPath))) {
-        // entry not found, pse = the Internal ProfileStoreEntry
-        pse = ProfileStore::getInstance()->getInternalDefaultPSE();
+        // entry not found, pse = the Internal art::engine::ProfileStoreEntry
+        pse = art::engine::ProfileStore::getInstance()->getInternalDefaultPSE();
     }
 
-    if (pse == ProfileStore::getInstance()->getInternalDefaultPSE() &&
+    if (pse == art::engine::ProfileStore::getInstance()->getInternalDefaultPSE() &&
         profileFullPath == Options::DEFPROFILE_DYNAMIC) {
-        auto dyn = ProfileStore::getInstance()->loadDynamicProfile(metadata);
+        auto dyn = art::engine::ProfileStore::getInstance()->loadDynamicProfile(metadata);
         defprofile = dyn.release();
     } else {
-        auto *dp = ProfileStore::getInstance()->getProfile(pse);
+        auto *dp = art::engine::ProfileStore::getInstance()->getProfile(pse);
         ProcParams pp;
         dp->applyTo(pp);
         defprofile = new FullPartialProfile(pp);
@@ -793,12 +793,12 @@ void ProfilePanel::initProfile(const Glib::ustring &profileFullPath,
     }
 
     // if (!(pse =
-    // ProfileStore::getInstance()->findEntryFromFullPath(profileFullPath))) {
-    //     // entry not found, pse = the Internal ProfileStoreEntry
-    //     pse = ProfileStore::getInstance()->getInternalDefaultPSE();
+    // art::engine::ProfileStore::getInstance()->findEntryFromFullPath(profileFullPath))) {
+    //     // entry not found, pse = the Internal art::engine::ProfileStoreEntry
+    //     pse = art::engine::ProfileStore::getInstance()->getInternalDefaultPSE();
     // }
 
-    // defprofile = ProfileStore::getInstance()->getProfile (pse);
+    // defprofile = art::engine::ProfileStore::getInstance()->getProfile (pse);
 
     // selecting the "Internal" entry
     profiles->setInternalEntry();
@@ -864,8 +864,8 @@ Gtk::TreeIter ProfilePanel::addDefaultRow()
         delete defaultPSE;
     }
 
-    defaultPSE = new ProfileStoreEntry(
-        Glib::ustring("(" + M("PROFILEPANEL_PDEFAULT") + ")"), PSET_FILE, 0, 0);
+    defaultPSE = new art::engine::ProfileStoreEntry(
+        Glib::ustring("(" + M("PROFILEPANEL_PDEFAULT") + ")"), art::engine::PSET_FILE, 0, 0);
     Gtk::TreeIter newEntry = profiles->addRow(defaultPSE);
     return newEntry;
 }

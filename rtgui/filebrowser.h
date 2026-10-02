@@ -59,7 +59,7 @@ public:
  */
 class FileBrowser: public ThumbBrowserBase,
                    public LWButtonListener,
-                   public ProfileStoreListener {
+                   public art::engine::ProfileStoreListener {
 private:
     typedef sigc::signal<void> type_trash_changed;
 

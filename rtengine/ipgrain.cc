@@ -25,7 +25,7 @@
 #include "improcfun.h"
 #include "rt_math.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace {
 
@@ -77,9 +77,9 @@ public:
     procparams::ProcParams *get_params() { return &params_; }
 
 private:
-    rtengine::ProcParams params_;
-    const rtengine::ProcParams *prev_;
-    const rtengine::ProcParams *&torestore_;
+    art::engine::ProcParams params_;
+    const art::engine::ProcParams *prev_;
+    const art::engine::ProcParams *&torestore_;
 };
 
 } // namespace
@@ -96,4 +96,4 @@ void ImProcFunctions::filmGrain(Imagefloat *rgb)
     guidedSmoothing(rgb);
 }
 
-} // namespace rtengine
+}} // namespace art::engine

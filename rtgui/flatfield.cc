@@ -24,18 +24,18 @@
 #include "rtimage.h"
 #include <sstream>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 FlatField::FlatField()
     : FoldableToolPanel(this, "flatfield", M("TP_FLATFIELD_LABEL"), false, true,
                         true)
 {
     auto m = ProcEventMapper::getInstance();
-    EvToolEnabled.set_action(rtengine::DARKFRAME);
-    EvToolReset.set_action(rtengine::DARKFRAME);
+    EvToolEnabled.set_action(art::engine::DARKFRAME);
+    EvToolReset.set_action(art::engine::DARKFRAME);
     EvEmbedded =
-        m->newEvent(rtengine::DARKFRAME, "HISTORY_MSG_FLATFIELD_EMBEDDED");
+        m->newEvent(art::engine::DARKFRAME, "HISTORY_MSG_FLATFIELD_EMBEDDED");
 
     hbff = Gtk::manage(new Gtk::HBox());
     hbff->set_spacing(2);
@@ -147,7 +147,7 @@ FlatField::FlatField()
 
 FlatField::~FlatField() { idle_register.destroy(); }
 
-void FlatField::read(const rtengine::procparams::ProcParams *pp)
+void FlatField::read(const art::engine::procparams::ProcParams *pp)
 {
     disableListener();
     setEnabled(pp->raw.enable_flatfield);
@@ -191,7 +191,7 @@ void FlatField::read(const rtengine::procparams::ProcParams *pp)
 
     if (pp->raw.ff_AutoSelect && ffp) {
         // retrieve the auto-selected ff filename
-        rtengine::RawImage *img = ffp->getFF();
+        art::engine::RawImage *img = ffp->getFF();
 
         if (img) {
             ffInfo->set_text(Glib::ustring::compose(
@@ -267,7 +267,7 @@ void FlatField::read(const rtengine::procparams::ProcParams *pp)
     enableListener();
 }
 
-void FlatField::write(rtengine::procparams::ProcParams *pp)
+void FlatField::write(art::engine::procparams::ProcParams *pp)
 {
     pp->raw.enable_flatfield = getEnabled();
     pp->raw.ff_file = flatFieldFile->get_filename();
@@ -321,12 +321,12 @@ void FlatField::adjusterAutoToggled(Adjuster *a, bool newval)
     }
 }
 
-void FlatField::trimValues(rtengine::procparams::ProcParams *pp)
+void FlatField::trimValues(art::engine::procparams::ProcParams *pp)
 {
     flatFieldClipControl->trimValue(pp->raw.ff_clipControl);
 }
 
-void FlatField::setDefaults(const rtengine::procparams::ProcParams *defParams)
+void FlatField::setDefaults(const art::engine::procparams::ProcParams *defParams)
 {
     flatFieldBlurRadius->setDefault(defParams->raw.ff_BlurRadius);
     flatFieldClipControl->setDefault(defParams->raw.ff_clipControl);
@@ -391,7 +391,7 @@ void FlatField::flatFieldAutoSelectChanged()
 
     if (flatFieldAutoSelect->get_active() && ffp) {
         // retrieve the auto-selected ff filename
-        rtengine::RawImage *img = ffp->getFF();
+        art::engine::RawImage *img = ffp->getFF();
 
         if (img) {
             ffInfo->set_text(Glib::ustring::compose(

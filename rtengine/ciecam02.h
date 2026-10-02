@@ -16,13 +16,12 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _CIECAM02_
-#define _CIECAM02_
+#pragma once
 #include "LUT.h"
 #include "opthelper.h"
 #include <cmath>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class Ciecam02 {
 private:
@@ -125,5 +124,4 @@ public:
 
 #endif
 };
-} // namespace rtengine
-#endif
+}} // namespace art::engine

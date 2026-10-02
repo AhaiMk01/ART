@@ -77,7 +77,7 @@
 #include "settings.h"
 #include "sleef.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 /******************************************************************************
  * RT code
@@ -1302,4 +1302,4 @@ void ImProcFunctions::dynamicRangeCompression(Imagefloat *rgb)
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

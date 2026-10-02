@@ -102,7 +102,7 @@ void ObjectMOBuffer::resize(int newWidth, int newHeight)
     }
 }
 
-int ObjectMOBuffer::getObjectID(const rtengine::Coord &location)
+int ObjectMOBuffer::getObjectID(const art::engine::Coord &location)
 {
     int id = 0;
 
@@ -211,11 +211,11 @@ void Circle::drawOuterGeometry(Cairo::RefPtr<Cairo::Context> &cr,
 
         set_source_rgba(cr, color.getR(), color.getG(), color.getB(),
                         OUTERGEOM_OPACITY *
-                            rtengine::min(innerLineWidth / 2.f, 1.f));
+                            art::engine::min(innerLineWidth / 2.f, 1.f));
         cr->set_line_width(lineWidth);
         cr->set_line_cap(Cairo::LINE_CAP_ROUND);
 
-        rtengine::Coord center_ = center;
+        art::engine::Coord center_ = center;
         double radius_ = radiusInImageSpace
                              ? coordSystem.scaleValueToCanvas(double(radius))
                              : double(radius);
@@ -231,7 +231,7 @@ void Circle::drawOuterGeometry(Cairo::RefPtr<Cairo::Context> &cr,
         }
 
         cr->arc(center_.x + 0.5, center_.y + 0.5, radius_, 0.,
-                2. * rtengine::RT_PI);
+                2. * art::engine::RT_PI);
         cr->stroke();
     }
 }
@@ -258,7 +258,7 @@ void Circle::drawInnerGeometry(Cairo::RefPtr<Cairo::Context> &cr,
         cr->set_line_cap(flags & F_DASHED ? Cairo::LINE_CAP_BUTT
                                           : Cairo::LINE_CAP_ROUND);
 
-        rtengine::Coord center_ = center;
+        art::engine::Coord center_ = center;
         double radius_ = radiusInImageSpace
                              ? coordSystem.scaleValueToCanvas(double(radius))
                              : double(radius);
@@ -279,7 +279,7 @@ void Circle::drawInnerGeometry(Cairo::RefPtr<Cairo::Context> &cr,
 
         if (filled) {
             cr->arc(center_.x + 0.5, center_.y + 0.5, radius_, 0.,
-                    2. * rtengine::RT_PI);
+                    2. * art::engine::RT_PI);
             if (innerLineWidth > 0.) {
                 cr->fill_preserve();
                 cr->stroke();
@@ -288,7 +288,7 @@ void Circle::drawInnerGeometry(Cairo::RefPtr<Cairo::Context> &cr,
             }
         } else if (innerLineWidth > 0.) {
             cr->arc(center_.x + 0.5, center_.y + 0.5, radius_, 0.,
-                    2. * rtengine::RT_PI);
+                    2. * art::engine::RT_PI);
             cr->stroke();
         }
 
@@ -305,7 +305,7 @@ void Circle::drawToMOChannel(Cairo::RefPtr<Cairo::Context> &cr,
     if (flags & F_HOVERABLE) {
         cr->set_line_width(getMouseOverLineWidth());
         cr->set_line_cap(Cairo::LINE_CAP_ROUND);
-        rtengine::Coord center_ = center;
+        art::engine::Coord center_ = center;
         double radius_ = radiusInImageSpace
                              ? coordSystem.scaleValueToCanvas(double(radius))
                              : double(radius);
@@ -327,7 +327,7 @@ void Circle::drawToMOChannel(Cairo::RefPtr<Cairo::Context> &cr,
             set_source_rgba(cr, 0., 0., 0., (id + 1) / 65535.);
         }
         cr->arc(center_.x + 0.5, center_.y + 0.5, radius_, 0,
-                2. * rtengine::RT_PI);
+                2. * art::engine::RT_PI);
 
         if (filled) {
             if (innerLineWidth > 0.) {
@@ -359,12 +359,12 @@ void Line::drawOuterGeometry(Cairo::RefPtr<Cairo::Context> &cr,
 
         set_source_rgba(cr, color.getR(), color.getG(), color.getB(),
                         OUTERGEOM_OPACITY *
-                            rtengine::min(innerLineWidth / 2.f, 1.f));
+                            art::engine::min(innerLineWidth / 2.f, 1.f));
         cr->set_line_width(lineWidth);
         cr->set_line_cap(Cairo::LINE_CAP_ROUND);
 
-        rtengine::Coord begin_ = begin;
-        rtengine::Coord end_ = end;
+        art::engine::Coord begin_ = begin;
+        art::engine::Coord end_ = end;
 
         if (datum == IMAGE) {
             coordSystem.imageCoordToScreen(begin.x, begin.y, begin_.x,
@@ -408,8 +408,8 @@ void Line::drawInnerGeometry(Cairo::RefPtr<Cairo::Context> &cr,
         cr->set_line_cap(flags & F_DASHED ? Cairo::LINE_CAP_BUTT
                                           : Cairo::LINE_CAP_ROUND);
 
-        rtengine::Coord begin_ = begin;
-        rtengine::Coord end_ = end;
+        art::engine::Coord begin_ = begin;
+        art::engine::Coord end_ = end;
 
         if (datum == IMAGE) {
             coordSystem.imageCoordToScreen(begin.x, begin.y, begin_.x,
@@ -446,8 +446,8 @@ void Line::drawToMOChannel(Cairo::RefPtr<Cairo::Context> &cr, unsigned short id,
     if (flags & F_HOVERABLE) {
         cr->set_line_width(getMouseOverLineWidth());
         cr->set_line_cap(Cairo::LINE_CAP_ROUND);
-        rtengine::Coord begin_ = begin;
-        rtengine::Coord end_ = end;
+        art::engine::Coord begin_ = begin;
+        art::engine::Coord end_ = end;
 
         if (datum == IMAGE) {
             coordSystem.imageCoordToCropCanvas(begin.x, begin.y, begin_.x,
@@ -492,12 +492,12 @@ void PolyLine::drawOuterGeometry(Cairo::RefPtr<Cairo::Context> &cr,
 
         set_source_rgba(cr, color.getR(), color.getG(), color.getB(),
                         OUTERGEOM_OPACITY *
-                            rtengine::min(innerLineWidth / 2.f, 1.f));
+                            art::engine::min(innerLineWidth / 2.f, 1.f));
         cr->set_line_width(lineWidth);
         cr->set_line_cap(Cairo::LINE_CAP_ROUND);
         cr->set_line_join(Cairo::LINE_JOIN_ROUND);
 
-        rtengine::CoordD currPos;
+        art::engine::CoordD currPos;
 
         for (unsigned int i = 0; i < points.size(); ++i) {
             currPos = points.at(i);
@@ -559,7 +559,7 @@ void PolyLine::drawInnerGeometry(Cairo::RefPtr<Cairo::Context> &cr,
         }
 
         if (filled && state != INSENSITIVE) {
-            rtengine::CoordD currPos;
+            art::engine::CoordD currPos;
 
             for (unsigned int i = 0; i < points.size(); ++i) {
                 currPos = points.at(i);
@@ -591,7 +591,7 @@ void PolyLine::drawInnerGeometry(Cairo::RefPtr<Cairo::Context> &cr,
                 cr->fill();
             }
         } else if (innerLineWidth > 0.) {
-            rtengine::CoordD currPos;
+            art::engine::CoordD currPos;
 
             for (unsigned int i = 0; i < points.size(); ++i) {
                 currPos = points.at(i);
@@ -629,7 +629,7 @@ void PolyLine::drawToMOChannel(Cairo::RefPtr<Cairo::Context> &cr,
                                EditCoordSystem &coordSystem)
 {
     if ((flags & F_HOVERABLE) && points.size() > 1) {
-        rtengine::CoordD currPos;
+        art::engine::CoordD currPos;
 
         // setting the color to the objet's ID
         if (objectBuffer->getObjectMode() == OM_255) {
@@ -690,13 +690,13 @@ void Rectangle::setXYXY(int left, int top, int right, int bottom)
     bottomRight.set(right, bottom);
 }
 
-void Rectangle::setXYWH(rtengine::Coord topLeft, rtengine::Coord widthHeight)
+void Rectangle::setXYWH(art::engine::Coord topLeft, art::engine::Coord widthHeight)
 {
     this->topLeft = topLeft;
     this->bottomRight = topLeft + widthHeight;
 }
 
-void Rectangle::setXYXY(rtengine::Coord topLeft, rtengine::Coord bottomRight)
+void Rectangle::setXYXY(art::engine::Coord topLeft, art::engine::Coord bottomRight)
 {
     this->topLeft = topLeft;
     this->bottomRight = bottomRight;
@@ -719,11 +719,11 @@ void Rectangle::drawOuterGeometry(Cairo::RefPtr<Cairo::Context> &cr,
 
         set_source_rgba(cr, color.getR(), color.getG(), color.getB(),
                         OUTERGEOM_OPACITY *
-                            rtengine::min(innerLineWidth / 2.f, 1.f));
+                            art::engine::min(innerLineWidth / 2.f, 1.f));
         cr->set_line_width(lineWidth);
         cr->set_line_join(Cairo::LINE_JOIN_BEVEL);
 
-        rtengine::Coord tl, br;
+        art::engine::Coord tl, br;
 
         if (datum == IMAGE) {
             coordSystem.imageCoordToScreen(topLeft.x, topLeft.y, tl.x, tl.y);
@@ -776,7 +776,7 @@ void Rectangle::drawInnerGeometry(Cairo::RefPtr<Cairo::Context> &cr,
         cr->set_line_width(innerLineWidth);
         cr->set_line_join(Cairo::LINE_JOIN_BEVEL);
 
-        rtengine::Coord tl, br;
+        art::engine::Coord tl, br;
 
         if (datum == IMAGE) {
             coordSystem.imageCoordToScreen(topLeft.x, topLeft.y, tl.x, tl.y);
@@ -829,7 +829,7 @@ void Rectangle::drawToMOChannel(Cairo::RefPtr<Cairo::Context> &cr,
         cr->set_line_width(getMouseOverLineWidth());
         cr->set_line_join(Cairo::LINE_JOIN_ROUND);
 
-        rtengine::Coord tl, br;
+        art::engine::Coord tl, br;
 
         if (datum == IMAGE) {
             coordSystem.imageCoordToCropCanvas(topLeft.x, topLeft.y, tl.x,
@@ -872,9 +872,9 @@ void Rectangle::drawToMOChannel(Cairo::RefPtr<Cairo::Context> &cr,
     }
 }
 
-void OPIcon::drivenPointToRectangle(const rtengine::Coord &pos,
-                                    rtengine::Coord &topLeft,
-                                    rtengine::Coord &bottomRight, int W, int H)
+void OPIcon::drivenPointToRectangle(const art::engine::Coord &pos,
+                                    art::engine::Coord &topLeft,
+                                    art::engine::Coord &bottomRight, int W, int H)
 {
     switch (drivenPoint) {
     case (DP_CENTERCENTER):
@@ -1000,7 +1000,7 @@ void OPIcon::drawImage(Cairo::RefPtr<RTSurface> &img,
     int imgW = img->getWidth();
     int imgH = img->getHeight();
 
-    rtengine::Coord pos;
+    art::engine::Coord pos;
 
     if (datum == IMAGE) {
         coordSystem.imageCoordToScreen(position.x, position.y, pos.x, pos.y);
@@ -1010,7 +1010,7 @@ void OPIcon::drawImage(Cairo::RefPtr<RTSurface> &img,
         pos = position + objectBuffer->getDataProvider()->posScreen +
               objectBuffer->getDataProvider()->deltaScreen;
 
-    rtengine::Coord tl,
+    art::engine::Coord tl,
         br; // Coordinate of the rectangle in the CropBuffer coordinate system
     drivenPointToRectangle(pos, tl, br, imgW, imgH);
 
@@ -1030,7 +1030,7 @@ void OPIcon::drawMOImage(Cairo::RefPtr<RTSurface> &img,
     int imgW = img->getWidth();
     int imgH = img->getHeight();
 
-    rtengine::Coord pos;
+    art::engine::Coord pos;
 
     if (datum == IMAGE)
         coordSystem.imageCoordToCropCanvas(position.x, position.y, pos.x,
@@ -1041,7 +1041,7 @@ void OPIcon::drawMOImage(Cairo::RefPtr<RTSurface> &img,
         pos = position + objectBuffer->getDataProvider()->posScreen +
               objectBuffer->getDataProvider()->deltaScreen;
 
-    rtengine::Coord tl,
+    art::engine::Coord tl,
         br; // Coordinate of the rectangle in the CropBuffer coordinate system
     drivenPointToRectangle(pos, tl, br, imgW, imgH);
 

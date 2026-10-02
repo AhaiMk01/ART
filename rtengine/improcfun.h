@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _IMPROCFUN_H_
-#define _IMPROCFUN_H_
+#pragma once
 
 #include "LUT.h"
 #include "color.h"
@@ -36,7 +35,7 @@
 #include "pipettebuffer.h"
 #include "procparams.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -234,9 +233,9 @@ public:
     int setDeltaEData(EditUniqueID id, double x, double y);
 
     // Spot Removal Tool
-    void removeSpots(rtengine::Imagefloat *img, rtengine::ImageSource *imgsrc,
+    void removeSpots(art::engine::Imagefloat *img, art::engine::ImageSource *imgsrc,
                      const std::vector<procparams::SpotEntry> &entries,
-                     const PreviewProps &pp, const rtengine::ColorTemp &currWB,
+                     const PreviewProps &pp, const art::engine::ColorTemp &currWB,
                      const procparams::ColorManagementParams *cmp, int tr,
                      DenoiseInfoStore *dnstore);
 
@@ -245,8 +244,8 @@ public:
                              const RAWParams &rawParams,
                              const ImageSource *imgsrc,
                              const ColorTemp &currWB);
-    void filmNegativeProcess(rtengine::Imagefloat *input,
-                             rtengine::Imagefloat *output,
+    void filmNegativeProcess(art::engine::Imagefloat *input,
+                             art::engine::Imagefloat *output,
                              const procparams::FilmNegativeParams &params);
 
 private:
@@ -312,6 +311,4 @@ private:
     Ret apply(const char *name, Method op, Imagefloat *img, bool can_skip_sync);
 };
 
-} // namespace rtengine
-
-#endif
+}} // namespace art::engine

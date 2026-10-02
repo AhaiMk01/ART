@@ -34,7 +34,7 @@
 #include "rescale.h"
 #include "sleef.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 #if 0
 #define DEBUG_DUMP(arr)                                                        \
@@ -270,7 +270,7 @@ void guidedFilterLog(float base, array2D<float> &chan, int r, float eps,
     guidedFilterLog(chan, base, chan, r, eps, multithread, subsampling);
 }
 
-} // namespace rtengine
+}} // namespace art::engine
 
 #ifdef ART_USE_VULKAN
 
@@ -278,7 +278,7 @@ void guidedFilterLog(float base, array2D<float> &chan, int r, float eps,
 #include "gpu/ops.h"
 #include "gpu/vk_pass.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 namespace gpu {
 namespace ops {
 
@@ -492,6 +492,6 @@ bool guidedFilterGPU(Context &ctx, Buffer &guideFull, Buffer &srcFull,
 
 } // namespace ops
 } // namespace gpu
-} // namespace rtengine
+}} // namespace art::engine
 
 #endif // ART_USE_VULKAN

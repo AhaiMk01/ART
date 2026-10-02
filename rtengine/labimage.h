@@ -16,10 +16,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _LABIMAGE_H_
-#define _LABIMAGE_H_
+#pragma once
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class LabImage {
 private:
@@ -43,5 +42,4 @@ public:
     void reallocLab();
 };
 
-} // namespace rtengine
-#endif
+}} // namespace art::engine

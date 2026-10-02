@@ -99,7 +99,7 @@ namespace {
 void poke_rgba(unsigned char *&dest, double r, double g, double b, double a)
 {
     getGUIColor(r, g, b);
-    rtengine::poke01_d(dest, r, g, b, a);
+    art::engine::poke01_d(dest, r, g, b, a);
 }
 
 } // namespace

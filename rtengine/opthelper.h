@@ -23,7 +23,7 @@
 #ifndef OPTHELPER_H
 #define OPTHELPER_H
 
-#define pow_F(a, b) (xexpf(b * xlogf(a)))
+#define pow_F(a, b) (art::engine::xexpf(b * art::engine::xlogf(a)))
 
 #ifdef ART_SIMD
 #  include "sleefsseavx.h"

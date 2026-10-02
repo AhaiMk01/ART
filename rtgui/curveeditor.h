@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _CURVEEDITOR_
-#define _CURVEEDITOR_
+#pragma once
 
 #include "../rtengine/LUT.h"
 #include "coloredbar.h"
@@ -54,7 +53,7 @@ protected:
      */
 
     PopUpToggleButton *curveType;
-    LUTu histogram; // histogram values
+    art::engine::LUTu histogram; // histogram values
     bool bgHistValid;
 
     bool remoteDrag;
@@ -91,7 +90,7 @@ public:
     void curveTypeToggled();
     bool isUnChanged();
     void setUnChanged(bool uc);
-    void updateBackgroundHistogram(const LUTu &hist);
+    void updateBackgroundHistogram(const art::engine::LUTu &hist);
 
     void setLeftBarColorProvider(ColorProvider *cp, int callerId);
     void setBottomBarColorProvider(ColorProvider *cp, int callerId);
@@ -219,5 +218,3 @@ public:
     void setResetCurve(FlatCurveType cType,
                        const std::vector<double> &resetCurve);
 };
-
-#endif

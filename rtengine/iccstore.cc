@@ -49,7 +49,7 @@
 
 #define inkc_constant 0x696E6B43
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -726,15 +726,15 @@ public:
     }
 
     cmsHPROFILE
-    getStdMonitorProfile(rtengine::Settings::StdMonitorProfile name) const
+    getStdMonitorProfile(art::engine::Settings::StdMonitorProfile name) const
     {
         auto self = const_cast<Implementation *>(this);
         switch (name) {
-        case rtengine::Settings::StdMonitorProfile::SRGB:
+        case art::engine::Settings::StdMonitorProfile::SRGB:
             return self->getProfile_unlocked("RTv4_sRGB");
-        case rtengine::Settings::StdMonitorProfile::DISPLAY_P3:
+        case art::engine::Settings::StdMonitorProfile::DISPLAY_P3:
             return self->getProfile_unlocked("RTv4_DisplayP3");
-        case rtengine::Settings::StdMonitorProfile::ADOBE_RGB:
+        case art::engine::Settings::StdMonitorProfile::ADOBE_RGB:
             return self->getProfile_unlocked("RTv4_Medium");
         default:
             return nullptr;
@@ -1529,4 +1529,4 @@ cmsHPROFILE ICCStore::createFromMatrix(const double matrix[3][3], bool gamma,
     return createFromMatrix(fmatrix, gamma, name);
 }
 
-} // namespace rtengine
+}} // namespace art::engine

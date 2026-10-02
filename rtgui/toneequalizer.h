@@ -29,15 +29,15 @@ class ToneEqualizer: public ToolParamBlock,
 public:
     ToneEqualizer();
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
     void adjusterChanged(Adjuster *a, double newval) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
     void enabledChanged() override;
 
-    void trimValues(rtengine::procparams::ProcParams *pp) override;
+    void trimValues(art::engine::procparams::ProcParams *pp) override;
 
     void toolReset(bool to_initial) override;
     void registerShortcuts(ToolShortcutManager *mgr) override;
@@ -50,11 +50,11 @@ private:
     Adjuster *pivot;
     Gtk::CheckButton *show_colormap;
 
-    rtengine::ProcEvent EvEnabled;
-    rtengine::ProcEvent EvBands;
-    rtengine::ProcEvent EvRegularization;
-    rtengine::ProcEvent EvColormap;
-    rtengine::ProcEvent EvPivot;
+    art::engine::ProcEvent EvEnabled;
+    art::engine::ProcEvent EvBands;
+    art::engine::ProcEvent EvRegularization;
+    art::engine::ProcEvent EvColormap;
+    art::engine::ProcEvent EvPivot;
 
-    rtengine::procparams::ToneEqualizerParams inital_params;
+    art::engine::procparams::ToneEqualizerParams inital_params;
 };

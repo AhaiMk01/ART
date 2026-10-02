@@ -15,14 +15,13 @@
  *  You should have received a copy of the GNU General Public License
  *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef ART_GPU_VK_PIPELINE_H
-#define ART_GPU_VK_PIPELINE_H
+#pragma once
 
 #include "vk_context.h"
 
 #include <string>
 
-namespace rtengine {
+namespace art { namespace engine {
 namespace gpu {
 
 // see doc/gpu_pipeline.md, §2.3
@@ -62,6 +61,4 @@ const ComputePipeline *getComputePipeline(Context &ctx, const char *name,
 void clearPipelineCache(Context &ctx);
 
 } // namespace gpu
-} // namespace rtengine
-
-#endif // ART_GPU_VK_PIPELINE_H
+}} // namespace art::engine

@@ -34,7 +34,7 @@
 #include "stdimagesource.h"
 #include <sstream>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -116,10 +116,10 @@ void sharpenHaloCtrl(float **luminance, float **blurmap, float **base,
                 nL[i + 1][j + 1] / 3.f;
 
             // Max/Min of all these deltas and the last two max/min
-            float maxn = rtengine::max(np1, np2, np3);
-            float minn = rtengine::min(np1, np2, np3);
-            float max_ = rtengine::max(max1, max2, maxn);
-            float min_ = rtengine::min(min1, min2, minn);
+            float maxn = art::engine::max(np1, np2, np3);
+            float minn = art::engine::min(np1, np2, np3);
+            float max_ = art::engine::max(max1, max2, maxn);
+            float min_ = art::engine::min(min1, min2, minn);
 
             // Shift the queue
             max1 = max2;
@@ -142,7 +142,7 @@ void sharpenHaloCtrl(float **luminance, float **blurmap, float **base,
             constexpr float upperBound =
                 2000.f; // WARNING: Duplicated value, it's baaaaaad !
             float delta = sharpenParam.threshold.multiply<float, float, float>(
-                rtengine::min(fabsf(diff),
+                art::engine::min(fabsf(diff),
                               upperBound), // X axis value = absolute value of
                                            // the difference
                 sharpFac * diff // Y axis max value = sharpening.amount * signed
@@ -826,4 +826,4 @@ bool ImProcFunctions::prsharpening(Imagefloat *img)
     return doSharpening(img, params->prsharpening, false);
 }
 
-} // namespace rtengine
+}} // namespace art::engine

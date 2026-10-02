@@ -52,7 +52,7 @@
 #include "gpu/ops.h"
 #endif // ART_USE_VULKAN
 
-namespace rtengine {
+namespace art { namespace engine {
 
 wavelet_decomposition::~wavelet_decomposition()
 {
@@ -71,7 +71,7 @@ wavelet_decomposition::~wavelet_decomposition()
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine
 
 
 #ifdef ART_USE_VULKAN
@@ -83,7 +83,7 @@ wavelet_decomposition::~wavelet_decomposition()
 #include <cstring>
 #include <utility>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -522,7 +522,7 @@ bool waveletMadExact(Context &ctx, Pass &pass, BufferPool &pool,
 
 } // namespace ops
 } // namespace gpu
-} // namespace rtengine
+}} // namespace art::engine
 
 #endif // ART_USE_VULKAN
 

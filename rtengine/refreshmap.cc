@@ -19,7 +19,7 @@
 #include "refreshmap.h"
 #include "procevents.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 // Aligned so the first entry starts on line 30.
 int refreshmap[NUMOFEVENTS] = {
@@ -519,9 +519,9 @@ int refreshmap[NUMOFEVENTS] = {
     LUMINANCECURVE        // EvLEnabled
 };
 
-RefreshMapper::RefreshMapper(): next_event_(rtengine::NUMOFEVENTS)
+RefreshMapper::RefreshMapper(): next_event_(art::engine::NUMOFEVENTS)
 {
-    for (int event = 0; event < rtengine::NUMOFEVENTS; ++event) {
+    for (int event = 0; event < art::engine::NUMOFEVENTS; ++event) {
         actions_[event] = refreshmap[event];
     }
 }
@@ -554,4 +554,4 @@ RefreshMapper *RefreshMapper::getInstance()
     return &instance;
 }
 
-} // namespace rtengine
+}} // namespace art::engine

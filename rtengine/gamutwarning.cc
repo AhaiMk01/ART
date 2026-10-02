@@ -26,7 +26,7 @@
 #include "gamutwarning.h"
 #include <iostream>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 GamutWarning::GamutWarning(cmsHPROFILE gamutprof, RenderingIntent intent,
                            bool gamutbpc)
@@ -148,4 +148,4 @@ inline void GamutWarning::mark(Image8 *image, int y, int x)
     image->b(y, x) = 255;
 }
 
-} // namespace rtengine
+}} // namespace art::engine

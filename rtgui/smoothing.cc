@@ -22,8 +22,8 @@
 #include <cmath>
 #include <iomanip>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 //-----------------------------------------------------------------------------
 // SmoothingMasksContentProvider
@@ -200,7 +200,7 @@ Smoothing::Smoothing()
                         true)
 {
     auto m = ProcEventMapper::getInstance();
-    auto EVENT = rtengine::LUMINANCECURVE | rtengine::M_LUMACURVE;
+    auto EVENT = art::engine::LUMINANCECURVE | art::engine::M_LUMACURVE;
     EvEnabled = m->newEvent(EVENT, "HISTORY_MSG_SMOOTHING_ENABLED");
     EvChannel = m->newEvent(EVENT, "HISTORY_MSG_SMOOTHING_CHANNEL");
     EvRadius = m->newEvent(EVENT, "HISTORY_MSG_SMOOTHING_RADIUS");
@@ -419,8 +419,8 @@ void Smoothing::read(const ProcParams *pp)
     data = pp->smoothing.regions;
     auto m = pp->smoothing.masks;
     if (data.empty()) {
-        data.emplace_back(rtengine::procparams::SmoothingParams::Region());
-        m.emplace_back(rtengine::procparams::Mask());
+        data.emplace_back(art::engine::procparams::SmoothingParams::Region());
+        m.emplace_back(art::engine::procparams::Mask());
     }
     masks_->setMasks(m, pp->smoothing.selectedRegion,
                      pp->smoothing.showMask >= 0 &&
@@ -538,8 +538,8 @@ void Smoothing::setEditProvider(EditDataProvider *provider)
 }
 
 void Smoothing::procParamsChanged(
-    const rtengine::procparams::ProcParams *params,
-    const rtengine::ProcEvent &ev, const Glib::ustring &descr,
+    const art::engine::procparams::ProcParams *params,
+    const art::engine::ProcEvent &ev, const Glib::ustring &descr,
     const ParamsEdited *paramsEdited)
 {
     masks_->updateLinkedMaskList(params);

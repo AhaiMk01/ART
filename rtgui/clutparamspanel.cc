@@ -54,7 +54,7 @@ Gtk::SizeRequestMode CLUTParamsPanel::get_request_mode_vfunc() const
     return Gtk::SIZE_REQUEST_HEIGHT_FOR_WIDTH;
 }
 
-void CLUTParamsPanel::setParams(const rtengine::CLUTParamDescriptorList &params)
+void CLUTParamsPanel::setParams(const art::engine::CLUTParamDescriptorList &params)
 {
     widgets_.clear();
     for (auto c : get_children()) {
@@ -131,9 +131,9 @@ void CLUTParamsPanel::setParams(const rtengine::CLUTParamDescriptorList &params)
     for (auto &d : params) {
         if (!d.gui_group.empty()) {
             switch (d.type) {
-            case rtengine::CLUTParamType::PT_CURVE:
-            case rtengine::CLUTParamType::PT_FLATCURVE:
-            case rtengine::CLUTParamType::PT_FLATCURVE_PERIODIC:
+            case art::engine::CLUTParamType::PT_CURVE:
+            case art::engine::CLUTParamType::PT_FLATCURVE:
+            case art::engine::CLUTParamType::PT_FLATCURVE_PERIODIC:
                 if (group_is_curve.find(d.gui_group) == group_is_curve.end()) {
                     group_is_curve[d.gui_group] = 1;
                 } else if (group_is_curve[d.gui_group] > 0) {
@@ -171,7 +171,7 @@ void CLUTParamsPanel::setParams(const rtengine::CLUTParamDescriptorList &params)
         }
         bool tooltip_ok = true;
         switch (d.type) {
-        case rtengine::CLUTParamType::PT_BOOL: {
+        case art::engine::CLUTParamType::PT_BOOL: {
             Gtk::CheckButton *b =
                 Gtk::manage(new Gtk::CheckButton(lbl(d.gui_name)));
             b->signal_toggled().connect(
@@ -179,7 +179,7 @@ void CLUTParamsPanel::setParams(const rtengine::CLUTParamDescriptorList &params)
             w = b;
             box->pack_start(*b);
         } break;
-        case rtengine::CLUTParamType::PT_CHOICE: {
+        case art::engine::CLUTParamType::PT_CHOICE: {
             MyComboBoxText *c = Gtk::manage(new MyComboBoxText());
             for (auto &p : d.choices) {
                 c->append(lbl(p.first));
@@ -193,9 +193,9 @@ void CLUTParamsPanel::setParams(const rtengine::CLUTParamDescriptorList &params)
             w = c;
             box->pack_start(*hb);
         } break;
-        case rtengine::CLUTParamType::PT_CURVE:
-        case rtengine::CLUTParamType::PT_FLATCURVE:
-        case rtengine::CLUTParamType::PT_FLATCURVE_PERIODIC: {
+        case art::engine::CLUTParamType::PT_CURVE:
+        case art::engine::CLUTParamType::PT_FLATCURVE:
+        case art::engine::CLUTParamType::PT_FLATCURVE_PERIODIC: {
             CLUTParamsCurveEditorGroup *grp = nullptr;
             bool grp_shared =
                 !d.gui_group.empty() && group_is_curve[d.gui_group];
@@ -223,14 +223,14 @@ void CLUTParamsPanel::setParams(const rtengine::CLUTParamDescriptorList &params)
             }
             grp->setCurveListener(this);
             CurveEditor *ce = nullptr;
-            if (d.type == rtengine::CLUTParamType::PT_CURVE) {
+            if (d.type == art::engine::CLUTParamType::PT_CURVE) {
                 ce = grp->addCurve(CT_Diagonal, label);
                 static_cast<DiagonalCurveEditor *>(ce)->setResetCurve(
                     DiagonalCurveType(d.value_default[0]), d.value_default);
             } else {
                 ce = grp->addCurve(
                     CT_Flat, label, nullptr, false,
-                    d.type == rtengine::CLUTParamType::PT_FLATCURVE_PERIODIC);
+                    d.type == art::engine::CLUTParamType::PT_FLATCURVE_PERIODIC);
                 static_cast<FlatCurveEditor *>(ce)->setResetCurve(
                     FlatCurveType(d.value_default[0]), d.value_default);
             }
@@ -261,8 +261,8 @@ void CLUTParamsPanel::setParams(const rtengine::CLUTParamDescriptorList &params)
             }
             tooltip_ok = false;
         } break;
-        case rtengine::CLUTParamType::PT_INT:
-        case rtengine::CLUTParamType::PT_FLOAT:
+        case art::engine::CLUTParamType::PT_INT:
+        case art::engine::CLUTParamType::PT_FLOAT:
         default: {
             Adjuster *a = Gtk::manage(new Adjuster(
                 lbl(d.gui_name), d.value_min, d.value_max, d.gui_step,
@@ -281,9 +281,9 @@ void CLUTParamsPanel::setParams(const rtengine::CLUTParamDescriptorList &params)
     show_all_children();
 }
 
-rtengine::CLUTParamValueMap CLUTParamsPanel::getValue() const
+art::engine::CLUTParamValueMap CLUTParamsPanel::getValue() const
 {
-    rtengine::CLUTParamValueMap values;
+    art::engine::CLUTParamValueMap values;
 
     for (size_t i = 0; i < params_.size(); ++i) {
         auto w = widgets_[i];
@@ -292,19 +292,19 @@ rtengine::CLUTParamValueMap CLUTParamsPanel::getValue() const
         std::vector<double> v = {0};
 
         switch (d.type) {
-        case rtengine::CLUTParamType::PT_BOOL:
+        case art::engine::CLUTParamType::PT_BOOL:
             v[0] = static_cast<Gtk::CheckButton *>(w)->get_active();
             break;
-        case rtengine::CLUTParamType::PT_CHOICE:
+        case art::engine::CLUTParamType::PT_CHOICE:
             v[0] = d.choices[static_cast<MyComboBoxText *>(w)->get_active_row_number()].second;
             break;
-        case rtengine::CLUTParamType::PT_CURVE:
-        case rtengine::CLUTParamType::PT_FLATCURVE:
-        case rtengine::CLUTParamType::PT_FLATCURVE_PERIODIC:
+        case art::engine::CLUTParamType::PT_CURVE:
+        case art::engine::CLUTParamType::PT_FLATCURVE:
+        case art::engine::CLUTParamType::PT_FLATCURVE_PERIODIC:
             v = static_cast<CurveEditor *>(w)->getCurve();
             break;
-        case rtengine::CLUTParamType::PT_INT:
-        case rtengine::CLUTParamType::PT_FLOAT:
+        case art::engine::CLUTParamType::PT_INT:
+        case art::engine::CLUTParamType::PT_FLOAT:
         default:
             v[0] = static_cast<Adjuster *>(w)->getValue();
             break;
@@ -316,7 +316,7 @@ rtengine::CLUTParamValueMap CLUTParamsPanel::getValue() const
     return values;
 }
 
-void CLUTParamsPanel::setValue(const rtengine::CLUTParamValueMap &val)
+void CLUTParamsPanel::setValue(const art::engine::CLUTParamValueMap &val)
 {
     bool prev = sig_blocked_;
     sig_blocked_ = true;
@@ -331,10 +331,10 @@ void CLUTParamsPanel::setValue(const rtengine::CLUTParamValueMap &val)
         auto v = vv.empty() ? 0.0 : vv[0];
 
         switch (d.type) {
-        case rtengine::CLUTParamType::PT_BOOL:
+        case art::engine::CLUTParamType::PT_BOOL:
             static_cast<Gtk::CheckButton *>(w)->set_active(bool(v));
             break;
-        case rtengine::CLUTParamType::PT_CHOICE:
+        case art::engine::CLUTParamType::PT_CHOICE:
             if (!d.choices.empty()) {
                 static_cast<MyComboBoxText *>(w)->set_active(0);
             }
@@ -345,15 +345,15 @@ void CLUTParamsPanel::setValue(const rtengine::CLUTParamValueMap &val)
                 }
             }
             break;
-        case rtengine::CLUTParamType::PT_CURVE:
-        case rtengine::CLUTParamType::PT_FLATCURVE:
-        case rtengine::CLUTParamType::PT_FLATCURVE_PERIODIC: {
+        case art::engine::CLUTParamType::PT_CURVE:
+        case art::engine::CLUTParamType::PT_FLATCURVE:
+        case art::engine::CLUTParamType::PT_FLATCURVE_PERIODIC: {
             CurveEditor *ce = static_cast<CurveEditor *>(w);
             ce->setCurve(vv);
             ce->openIfNonlinear();
         } break;
-        case rtengine::CLUTParamType::PT_INT:
-        case rtengine::CLUTParamType::PT_FLOAT:
+        case art::engine::CLUTParamType::PT_INT:
+        case art::engine::CLUTParamType::PT_FLOAT:
         default:
             static_cast<Adjuster *>(w)->setValue(v);
             break;
@@ -365,7 +365,7 @@ void CLUTParamsPanel::setValue(const rtengine::CLUTParamValueMap &val)
         ConnectionBlocker b(presets_conn_);
         presets_combo_->set_active(0);
         for (size_t i = 0; i < presets.size(); ++i) {
-            rtengine::CLUTParamValueMap pv;
+            art::engine::CLUTParamValueMap pv;
             params_.apply_preset(presets[i].first, pv);
             bool found = true;
             for (auto &p : pv) {
@@ -394,7 +394,7 @@ void CLUTParamsPanel::emit_signal()
             ConnectionBlocker b(presets_conn_);
             int idx = presets_combo_->get_active_row_number();
             if (idx > 0) {
-                rtengine::CLUTParamValueMap pv;
+                art::engine::CLUTParamValueMap pv;
                 params_.apply_preset(presets[idx - 1].first, pv);
                 auto val = getValue();
                 for (auto &p : pv) {

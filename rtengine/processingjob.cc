@@ -18,7 +18,7 @@
  */
 #include "processingjob.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 ProcessingJob *ProcessingJob::create(const Glib::ustring &fname, bool isRaw,
                                      const procparams::ProcParams &pparams,
@@ -42,4 +42,4 @@ void ProcessingJob::destroy(ProcessingJob *job)
     delete static_cast<ProcessingJobImpl *>(job);
 }
 
-} // namespace rtengine
+}} // namespace art::engine

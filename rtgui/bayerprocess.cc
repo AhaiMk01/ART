@@ -20,8 +20,8 @@
 #include "eventmapper.h"
 #include "guiutils.h"
 #include "options.h"
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 namespace {
 
@@ -45,15 +45,15 @@ BayerProcess::BayerProcess()
 
     auto m = ProcEventMapper::getInstance();
     EvDemosaicBorder =
-        m->newEvent(rtengine::DEMOSAIC, "HISTORY_MSG_RAW_BORDER");
+        m->newEvent(art::engine::DEMOSAIC, "HISTORY_MSG_RAW_BORDER");
     EvDemosaicContrast =
-        m->newEvent(rtengine::DEMOSAIC, "HISTORY_MSG_DUALDEMOSAIC_CONTRAST");
+        m->newEvent(art::engine::DEMOSAIC, "HISTORY_MSG_DUALDEMOSAIC_CONTRAST");
     EvDemosaicAutoContrast = m->newEvent(
-        rtengine::DEMOSAIC, "HISTORY_MSG_DUALDEMOSAIC_AUTO_CONTRAST");
+        art::engine::DEMOSAIC, "HISTORY_MSG_DUALDEMOSAIC_AUTO_CONTRAST");
     EvDemosaicPixelshiftDemosaicMethod =
-        m->newEvent(rtengine::DEMOSAIC, "HISTORY_MSG_PIXELSHIFT_DEMOSAIC");
+        m->newEvent(art::engine::DEMOSAIC, "HISTORY_MSG_PIXELSHIFT_DEMOSAIC");
 
-    EvToolReset.set_action(rtengine::DEMOSAIC | rtengine::M_PREPROC);
+    EvToolReset.set_action(art::engine::DEMOSAIC | art::engine::M_PREPROC);
 
     Gtk::HBox *hb1 = Gtk::manage(new Gtk::HBox());
     hb1->pack_start(*Gtk::manage(new Gtk::Label(M("TP_RAW_DMETHOD") + ": ")),
@@ -304,7 +304,7 @@ BayerProcess::BayerProcess()
 
 BayerProcess::~BayerProcess() { idle_register.destroy(); }
 
-void BayerProcess::read(const rtengine::procparams::ProcParams *pp)
+void BayerProcess::read(const art::engine::procparams::ProcParams *pp)
 {
     disableListener();
     method->block(true);
@@ -412,7 +412,7 @@ void BayerProcess::read(const rtengine::procparams::ProcParams *pp)
     enableListener();
 }
 
-void BayerProcess::write(rtengine::procparams::ProcParams *pp)
+void BayerProcess::write(art::engine::procparams::ProcParams *pp)
 {
     pp->raw.bayersensor.ccSteps = ccSteps->getIntValue();
     pp->raw.bayersensor.dcb_iterations = dcbIterations->getIntValue();
@@ -465,7 +465,7 @@ void BayerProcess::write(rtengine::procparams::ProcParams *pp)
     }
 }
 
-void BayerProcess::trimValues(rtengine::procparams::ProcParams *pp)
+void BayerProcess::trimValues(art::engine::procparams::ProcParams *pp)
 {
     border->trimValue(pp->raw.bayersensor.border);
     ccSteps->trimValue(pp->raw.bayersensor.ccSteps);
@@ -478,7 +478,7 @@ void BayerProcess::trimValues(rtengine::procparams::ProcParams *pp)
 }
 
 void BayerProcess::setDefaults(
-    const rtengine::procparams::ProcParams *defParams)
+    const art::engine::procparams::ProcParams *defParams)
 {
     dcbIterations->setDefault(defParams->raw.bayersensor.dcb_iterations);
     lmmseIterations->setDefault(defParams->raw.bayersensor.lmmse_iterations);

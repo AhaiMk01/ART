@@ -27,7 +27,7 @@
 #include <string>
 #include <vector>
 
-namespace rtengine { namespace gpu { namespace ops {
+namespace art { namespace engine { namespace gpu { namespace ops {
 
 /* Two forms of each helper.
  *
@@ -108,6 +108,6 @@ bool yuv2rgb(Context &ctx, Buffer &Y, Buffer &U, Buffer &V, int W, int H,
 bool rescaleBilinear(Context &ctx, const char *label, Buffer &src,
                      int ws, int hs, Buffer &dst, int wd, int hd);
 
-}}} // namespace rtengine::gpu::ops
+}}}} // namespace art::engine::gpu::ops
 
 #endif // ART_USE_VULKAN

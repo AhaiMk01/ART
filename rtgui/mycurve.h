@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _MYCURVE_
-#define _MYCURVE_
+#pragma once
 
 #include "../rtengine/LUT.h"
 #include "coloredbar.h"
@@ -84,9 +83,9 @@ protected:
     Gdk::ModifierType mod_type;
     int cursorX; /// X coordinate in the graph of the cursor
     int cursorY; /// Y coordinate in the graph of the cursor
-    LUTf point;
-    LUTf upoint;
-    LUTf lpoint;
+    art::engine::LUTf point;
+    art::engine::LUTf upoint;
+    art::engine::LUTf lpoint;
     bool buttonPressed;
     /**
      * snapToElmt, which will be used for the Y axis only,  must be interpreted
@@ -111,7 +110,7 @@ protected:
     virtual std::vector<double> get_vector(int veclen) = 0;
     bool snapCoordinateX(double testedVal, double realVal);
     bool snapCoordinateY(double testedVal, double realVal);
-    float getVal(LUTf &curve, int x);
+    float getVal(art::engine::LUTf &curve, int x);
     void calcDimensions();
 
 public:
@@ -121,7 +120,7 @@ public:
     void setCurveListener(CurveListener *cl) { listener = cl; }
     void setColoredBar(ColoredBar *left, ColoredBar *bottom);
     void notifyListener();
-    void updateBackgroundHistogram(LUTu &hist) { return; };
+    void updateBackgroundHistogram(art::engine::LUTu &hist) { return; };
     void refresh();
     void setCurveDirty() { curveIsDirty = true; }
     void on_style_updated() override;
@@ -162,5 +161,3 @@ public:
 
     void clearPixmap() { myCurve->setDirty(true); }
 };
-
-#endif

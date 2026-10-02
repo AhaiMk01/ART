@@ -30,7 +30,7 @@
 #define BENCHMARK
 #include "StopWatch.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -528,4 +528,4 @@ ImProcFunctions::rgb2out(Imagefloat *img,
     return image;
 }
 
-} // namespace rtengine
+}} // namespace art::engine

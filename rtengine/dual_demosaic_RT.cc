@@ -34,7 +34,7 @@
 #define BENCHMARK
 #include "StopWatch.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 void RawImageSource::dual_demosaic_RT(
     bool isBayer, const procparams::RAWParams &raw, int winw, int winh,
@@ -161,4 +161,4 @@ void RawImageSource::dual_demosaic_RT(
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

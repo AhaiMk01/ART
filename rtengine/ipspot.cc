@@ -30,7 +30,7 @@
 #define BENCHMARK
 #include "StopWatch.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace {
 
@@ -251,8 +251,8 @@ public:
         {
             if (intersects(other)) {
                 std::unique_ptr<Rectangle> intsec(new Rectangle(
-                    rtengine::max(x1, other.x1), rtengine::max(y1, other.y1),
-                    rtengine::min(x2, other.x2), rtengine::min(y2, other.y2)));
+                    art::engine::max(x1, other.x1), art::engine::max(y1, other.y1),
+                    art::engine::min(x2, other.x2), art::engine::min(y2, other.y2)));
 
                 if (intsec->x1 > intsec->x2 || intsec->y1 > intsec->y2) {
                     return false;
@@ -487,10 +487,10 @@ public:
         if (!spotIntersects(other)) {
             return false;
         }
-        imgArea.x1 = rtengine::max(spotArea.x1, other.spotArea.x1);
-        imgArea.x2 = rtengine::min(spotArea.x2, other.spotArea.x2);
-        imgArea.y1 = rtengine::max(spotArea.y1, other.spotArea.y1);
-        imgArea.y2 = rtengine::min(spotArea.y2, other.spotArea.y2);
+        imgArea.x1 = art::engine::max(spotArea.x1, other.spotArea.x1);
+        imgArea.x2 = art::engine::min(spotArea.x2, other.spotArea.x2);
+        imgArea.y1 = art::engine::max(spotArea.y1, other.spotArea.y1);
+        imgArea.y2 = art::engine::min(spotArea.y2, other.spotArea.y2);
         if (imgArea.x1 > imgArea.x2 || imgArea.y1 > imgArea.y2) {
             return false;
         }
@@ -682,7 +682,7 @@ public:
     }
 };
 
-void ImProcFunctions::removeSpots(rtengine::Imagefloat *img,
+void ImProcFunctions::removeSpots(art::engine::Imagefloat *img,
                                   ImageSource *imgsrc,
                                   const std::vector<SpotEntry> &entries,
                                   const PreviewProps &pp,
@@ -844,4 +844,4 @@ void ImProcFunctions::removeSpots(rtengine::Imagefloat *img,
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

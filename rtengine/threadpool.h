@@ -39,7 +39,7 @@ freely, subject to the following restrictions:
 
 #include "noncopyable.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class ThreadPool: public NonCopyable {
 public:
@@ -177,4 +177,4 @@ auto ThreadPool::add_task(Priority p, F &&f, Args &&...args)
     return instance_->enqueue(p, f, args...);
 }
 
-} // namespace rtengine
+}} // namespace art::engine

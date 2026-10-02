@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _CHMIXER_H_
-#define _CHMIXER_H_
+#pragma once
 
 #include "adjuster.h"
 #include "toolpanel.h"
@@ -30,13 +29,13 @@ class ChMixer: public ToolParamBlock,
 public:
     ChMixer();
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
     void adjusterChanged(Adjuster *a, double newval) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
-    void trimValues(rtengine::procparams::ProcParams *pp) override;
+    void trimValues(art::engine::procparams::ProcParams *pp) override;
     void enabledChanged() override;
 
     void toolReset(bool to_initial) override;
@@ -54,12 +53,10 @@ private:
     Adjuster *hue_tweak[3];
     Adjuster *sat_tweak[3];
 
-    rtengine::procparams::ChannelMixerParams initial_params;
+    art::engine::procparams::ChannelMixerParams initial_params;
 
-    rtengine::ProcEvent EvMode;
-    rtengine::ProcEvent EvRedPrimary;
-    rtengine::ProcEvent EvGreenPrimary;
-    rtengine::ProcEvent EvBluePrimary;
+    art::engine::ProcEvent EvMode;
+    art::engine::ProcEvent EvRedPrimary;
+    art::engine::ProcEvent EvGreenPrimary;
+    art::engine::ProcEvent EvBluePrimary;
 };
-
-#endif

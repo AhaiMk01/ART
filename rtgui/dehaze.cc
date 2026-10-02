@@ -22,24 +22,24 @@
 #include <cmath>
 #include <iomanip>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 Dehaze::Dehaze()
     : FoldableToolPanel(this, "dehaze", M("TP_DEHAZE_LABEL"), false, true, true)
 {
     auto m = ProcEventMapper::getInstance();
-    EvDehazeEnabled = m->newEvent(rtengine::HDR, "HISTORY_MSG_DEHAZE_ENABLED");
+    EvDehazeEnabled = m->newEvent(art::engine::HDR, "HISTORY_MSG_DEHAZE_ENABLED");
     EvDehazeStrength =
-        m->newEvent(rtengine::HDR, "HISTORY_MSG_DEHAZE_STRENGTH");
+        m->newEvent(art::engine::HDR, "HISTORY_MSG_DEHAZE_STRENGTH");
     EvDehazeShowDepthMap =
-        m->newEvent(rtengine::HDR, "HISTORY_MSG_DEHAZE_SHOW_DEPTH_MAP");
-    EvDehazeDepth = m->newEvent(rtengine::HDR, "HISTORY_MSG_DEHAZE_DEPTH");
+        m->newEvent(art::engine::HDR, "HISTORY_MSG_DEHAZE_SHOW_DEPTH_MAP");
+    EvDehazeDepth = m->newEvent(art::engine::HDR, "HISTORY_MSG_DEHAZE_DEPTH");
     EvDehazeLuminance =
-        m->newEvent(rtengine::HDR, "HISTORY_MSG_DEHAZE_LUMINANCE");
+        m->newEvent(art::engine::HDR, "HISTORY_MSG_DEHAZE_LUMINANCE");
     EvDehazeBlackpoint =
-        m->newEvent(rtengine::HDR, "HISTORY_MSG_DEHAZE_BLACKPOINT");
-    EvToolReset.set_action(rtengine::HDR);
+        m->newEvent(art::engine::HDR, "HISTORY_MSG_DEHAZE_BLACKPOINT");
+    EvToolReset.set_action(art::engine::HDR);
 
     std::vector<GradientMilestone> bottomMilestones;
     bottomMilestones.push_back(GradientMilestone(0., 0., 0., 0.));

@@ -30,7 +30,7 @@
 #include <cstring>
 #include <tiffio.h>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 Imagefloat::Imagefloat():
     color_space_("sRGB"), mode_(Mode::RGB), scale_(Scale::U16),
@@ -166,9 +166,9 @@ void Imagefloat::getScanline(int row, unsigned char *buffer, int bps,
                 sbuffer[ix++] = CLIP(gi);
                 sbuffer[ix++] = CLIP(bi);
             } else if (bps == 8) {
-                buffer[ix++] = rtengine::uint16ToUint8Rounded(CLIP(ri));
-                buffer[ix++] = rtengine::uint16ToUint8Rounded(CLIP(gi));
-                buffer[ix++] = rtengine::uint16ToUint8Rounded(CLIP(bi));
+                buffer[ix++] = art::engine::uint16ToUint8Rounded(CLIP(ri));
+                buffer[ix++] = art::engine::uint16ToUint8Rounded(CLIP(gi));
+                buffer[ix++] = art::engine::uint16ToUint8Rounded(CLIP(bi));
             }
         }
     }
@@ -1069,4 +1069,4 @@ void Imagefloat::getLab(int y, int x, float &L, float &a, float &b)
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

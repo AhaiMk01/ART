@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _PREVIEWLOADER_
-#define _PREVIEWLOADER_
+#pragma once
 
 #include <glibmm.h>
 #include <set>
@@ -45,7 +44,7 @@ public:
     virtual void previewsFinished(int dir_id_) = 0;
 };
 
-class PreviewLoader: public rtengine::NonCopyable {
+class PreviewLoader: public art::engine::NonCopyable {
 public:
     /**
      * @brief Singleton entry point.
@@ -92,5 +91,3 @@ private:
  * To use: \c previewLoader->start() ,
  */
 #define previewLoader PreviewLoader::getInstance()
-
-#endif

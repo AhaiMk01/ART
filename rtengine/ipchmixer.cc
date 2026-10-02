@@ -23,7 +23,7 @@
 #include "improcfun.h"
 #include "linalgebra.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 using namespace procparams;
 
@@ -217,4 +217,4 @@ void ImProcFunctions::channelMixer(Imagefloat *img)
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

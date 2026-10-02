@@ -21,23 +21,23 @@
 #include "guiutils.h"
 #include <sstream>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 BayerPreProcess::BayerPreProcess()
     : FoldableToolPanel(this, "bayerpreprocess", M("TP_PREPROCESS_LABEL"),
                         false, true, true)
 {
-    EvToolEnabled.set_action(rtengine::DARKFRAME);
-    EvToolReset.set_action(rtengine::DARKFRAME);
+    EvToolEnabled.set_action(art::engine::DARKFRAME);
+    EvToolReset.set_action(art::engine::DARKFRAME);
 
     auto m = ProcEventMapper::getInstance();
     EvLineDenoiseDirection = m->newEvent(
-        rtengine::DARKFRAME, "HISTORY_MSG_PREPROCESS_LINEDENOISE_DIRECTION");
-    EvPDAFLinesFilter = m->newEvent(rtengine::DARKFRAME,
+        art::engine::DARKFRAME, "HISTORY_MSG_PREPROCESS_LINEDENOISE_DIRECTION");
+    EvPDAFLinesFilter = m->newEvent(art::engine::DARKFRAME,
                                     "HISTORY_MSG_PREPROCESS_PDAFLINESFILTER");
     EvDynamicRowNoiseFilter = m->newEvent(
-        rtengine::DARKFRAME, "HISTORY_MSG_PREPROCESS_DYNROWNOISEFILTER");
+        art::engine::DARKFRAME, "HISTORY_MSG_PREPROCESS_DYNROWNOISEFILTER");
 
     lineDenoise = Gtk::manage(
         new Adjuster(M("TP_PREPROCESS_LINEDENOISE"), 0, 1000, 1, 0));
@@ -102,7 +102,7 @@ BayerPreProcess::BayerPreProcess()
     pack_start(*dynamicRowNoiseFilter, Gtk::PACK_SHRINK, 4);
 }
 
-void BayerPreProcess::read(const rtengine::procparams::ProcParams *pp)
+void BayerPreProcess::read(const art::engine::procparams::ProcParams *pp)
 {
     disableListener();
 
@@ -124,7 +124,7 @@ void BayerPreProcess::read(const rtengine::procparams::ProcParams *pp)
     enableListener();
 }
 
-void BayerPreProcess::write(rtengine::procparams::ProcParams *pp)
+void BayerPreProcess::write(art::engine::procparams::ProcParams *pp)
 {
     pp->raw.bayersensor.enable_preproc = getEnabled();
     pp->raw.bayersensor.linenoise = lineDenoise->getIntValue();
@@ -159,14 +159,14 @@ void BayerPreProcess::adjusterChanged(Adjuster *a, double newval)
 void BayerPreProcess::adjusterAutoToggled(Adjuster *a, bool newval) {}
 
 void BayerPreProcess::setDefaults(
-    const rtengine::procparams::ProcParams *defParams)
+    const art::engine::procparams::ProcParams *defParams)
 {
     lineDenoise->setDefault(defParams->raw.bayersensor.linenoise);
     greenEqThreshold->setDefault(defParams->raw.bayersensor.greenthresh);
     initial_params = defParams->raw.bayersensor;
 }
 
-void BayerPreProcess::trimValues(rtengine::procparams::ProcParams *pp)
+void BayerPreProcess::trimValues(art::engine::procparams::ProcParams *pp)
 {
 
     lineDenoise->trimValue(pp->raw.bayersensor.linenoise);

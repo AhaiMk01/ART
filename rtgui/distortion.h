@@ -33,11 +33,11 @@ protected:
     sigc::connection idConn;
     LensGeomListener *rlistener;
 
-    rtengine::ProcEvent EvAuto;
-    rtengine::ProcEvent EvAutoLoad;
+    art::engine::ProcEvent EvAuto;
+    art::engine::ProcEvent EvAutoLoad;
     bool is_auto_load_event_;
 
-    rtengine::procparams::DistortionParams initial_params;
+    art::engine::procparams::DistortionParams initial_params;
 
     IdleRegister idle_register;
 
@@ -45,13 +45,13 @@ public:
     Distortion();
     ~Distortion();
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
     void adjusterChanged(Adjuster *a, double newval) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
-    void trimValues(rtengine::procparams::ProcParams *pp) override;
+    void trimValues(art::engine::procparams::ProcParams *pp) override;
     void idPressed();
     void setLensGeomListener(LensGeomListener *l) { rlistener = l; }
 

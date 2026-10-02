@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _FILEBROWSERENTRY_
-#define _FILEBROWSERENTRY_
+#pragma once
 
 #include <atomic>
 
@@ -52,7 +51,7 @@ class FileBrowserEntry: public ThumbBrowserEntryBase,
     int press_x, press_y, action_x, action_y;
     double rot_deg;
     int coarse_rotate;
-    rtengine::procparams::CropParams cropParams;
+    art::engine::procparams::CropParams cropParams;
     CropGUIListener *cropgl;
     FileBrowserEntryIdleHelper *feih;
 
@@ -98,10 +97,10 @@ public:
     void procParamsChanged(Thumbnail *thm, int whoChangedIt) override;
     // thumbimageupdatelistener interface
     void
-    updateImage(rtengine::IImage8 *img, double scale,
-                const rtengine::procparams::CropParams &cropParams) override;
-    void _updateImage(rtengine::IImage8 *img, double scale,
-                      const rtengine::procparams::CropParams
+    updateImage(art::engine::IImage8 *img, double scale,
+                const art::engine::procparams::CropParams &cropParams) override;
+    void _updateImage(art::engine::IImage8 *img, double scale,
+                      const art::engine::procparams::CropParams
                           &cropParams); // inside gtk thread
 
     bool motionNotify(int x, int y) override;
@@ -110,5 +109,3 @@ public:
 
     void enableThumbRefresh();
 };
-
-#endif

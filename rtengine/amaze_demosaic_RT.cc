@@ -35,7 +35,7 @@
 #include "rtengine.h"
 #include "sleef.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 void RawImageSource::amaze_demosaic_RT(int winx, int winy, int winw, int winh,
                                        const array2D<float> &rawData,
@@ -2594,4 +2594,4 @@ void RawImageSource::amaze_demosaic_RT(int winx, int winy, int winw, int winh,
         plistener->setProgress(1.0);
     }
 }
-} // namespace rtengine
+}} // namespace art::engine

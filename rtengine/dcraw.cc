@@ -33,8 +33,8 @@
 #include "StopWatch.h"
 #include "halffloat.h"
 
-using rtengine::DNG_FP24ToFloat;
-using rtengine::DNG_HalfToFloat_i;
+using art::engine::DNG_FP24ToFloat;
+using art::engine::DNG_HalfToFloat_i;
 
 #include <stdint.h>
 #include <zlib.h>
@@ -139,6 +139,8 @@ typedef unsigned char uchar;
 typedef unsigned short ushort;
 
 #include "dcraw.h"
+
+namespace art { namespace engine {
 /*
    RT All global variables are defined here, and all functions that
    access them are prefixed with "CLASS".  Note that a thread-safe
@@ -159,13 +161,13 @@ const float d65_white[3] = { 0.950456, 1, 1.088754 };
 #define FORC4 FORC(4)
 #define FORCC FORC(colors)
 
-#define SQR(x) rtengine::SQR(x)
+#define SQR(x) art::engine::SQR(x)
 #define ABS(x) (((int)(x) ^ ((int)(x) >> 31)) - ((int)(x) >> 31))
-#define MIN(a,b) rtengine::min(a,static_cast<__typeof__(a)>(b))
-#define MAX(a,b) rtengine::max(a,static_cast<__typeof__(a)>(b))
-#define LIM(x,min,max) rtengine::LIM(x,static_cast<__typeof__(x)>(min),static_cast<__typeof__(x)>(max))
-#define ULIM(x,y,z) rtengine::median(x,static_cast<__typeof__(x)>(y),static_cast<__typeof__(x)>(z))
-#define CLIP(x) rtengine::CLIP(x)
+#define MIN(a,b) art::engine::min(a,static_cast<__typeof__(a)>(b))
+#define MAX(a,b) art::engine::max(a,static_cast<__typeof__(a)>(b))
+#define LIM(x,min,max) art::engine::LIM(x,static_cast<__typeof__(x)>(min),static_cast<__typeof__(x)>(max))
+#define ULIM(x,y,z) art::engine::median(x,static_cast<__typeof__(x)>(y),static_cast<__typeof__(x)>(z))
+#define CLIP(x) art::engine::CLIP(x)
 #define SWAP(a,b) { a=a+b; b=a-b; a=a-b; }
 
 /*
@@ -362,7 +364,7 @@ void CLASS read_shorts (ushort *pixel, int count)
 {
   if (fread (pixel, 2, count, ifp) < count) derror();
   if ((order == 0x4949) == (ntohs(0x1234) == 0x1234))
-	  rtengine::swab ((char*)pixel, (char*)pixel, count*2);
+	  art::engine::swab ((char*)pixel, (char*)pixel, count*2);
 }
 
 void CLASS cubic_spline (const int *x_, const int *y_, const int len)
@@ -1114,7 +1116,7 @@ void CLASS ljpeg_idct (struct jhead *jh)
     47,55,62,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63 };
 
   if (!cs[0])
-    FORC(106) cs[c] = cos((c & 31)*rtengine::RT_PI/16)/2;
+    FORC(106) cs[c] = cos((c & 31)*art::engine::RT_PI/16)/2;
   memset (work, 0, sizeof work);
   work[0][0][0] = jh->vpred[0] += ljpeg_diff (jh->huff[0]) * jh->quant[0];
   for (i=1; i < 64; i++ ) {
@@ -1126,8 +1128,8 @@ void CLASS ljpeg_idct (struct jhead *jh)
       coef -= (1 << len) - 1;
     ((float *)work)[zigzag[i]] = coef * jh->quant[i];
   }
-  FORC(8) work[0][0][c] *= rtengine::RT_SQRT1_2;
-  FORC(8) work[0][c][0] *= rtengine::RT_SQRT1_2;
+  FORC(8) work[0][0][c] *= art::engine::RT_SQRT1_2;
+  FORC(8) work[0][c][0] *= art::engine::RT_SQRT1_2;
   for (i=0; i < 8; i++)
     for (j=0; j < 8; j++)
       FORC(8) work[1][i][j] += work[0][i][c] * cs[(j*2+1)*c];
@@ -1266,7 +1268,7 @@ void CLASS packed_dng_load_raw()
       }
       if ((order == 0x4949) == (ntohs(0x1234) == 0x1234)) {
         char *d = reinterpret_cast<char *>(float_raw_image);
-        rtengine::swab(d, d, sizeof(float)*raw_width);
+        art::engine::swab(d, d, sizeof(float)*raw_width);
       }
     } else {
       getbits(-1);
@@ -1633,14 +1635,14 @@ void CLASS phase_one_flat_field (int is_float, int nc)
                     mult0 += (c0 & 1) ? mult1 : 0;
                     for (unsigned col = cend - uhead[4] + (c0 & 1); col < std::min(colLimit, cend); col += 2) {
                         unsigned val = RAW(row, col) * mult0;
-                        RAW(row, col) = rtengine::min(val, 65535u);
+                        RAW(row, col) = art::engine::min(val, 65535u);
                         mult0 += mult1;
                         mult0 += mult1; // <= this could be reduced to one addition inside the loop, but then the result is not exactly the same as with old code, though it should be even more accurate then
                     }
                 } else {
                     for (unsigned col = cend - uhead[4]; col < std::min(colLimit, cend); col++) {
                         unsigned val = RAW(row, col) * mult0;
-                        RAW(row, col) = rtengine::min(val, 65535u);
+                        RAW(row, col) = art::engine::min(val, 65535u);
                         mult0 += mult1;
                     }
                 }
@@ -2945,7 +2947,7 @@ fill_input_buffer (j_decompress_ptr cinfo)
   size_t nbytes;
 
   nbytes = fread (jpeg_buffer, 1, 4096, ifp);
-  rtengine::swab ((char*)jpeg_buffer, (char*)jpeg_buffer, nbytes);
+  art::engine::swab ((char*)jpeg_buffer, (char*)jpeg_buffer, nbytes);
   cinfo->src->next_input_byte = jpeg_buffer;
   cinfo->src->bytes_in_buffer = nbytes;
   return TRUE;
@@ -4021,7 +4023,7 @@ short * CLASS foveon_make_curve (double max, double mul, double filt)
   double x;
 
   if (!filt) filt = 0.8;
-  size = 4*rtengine::RT_PI*max / filt;
+  size = 4*art::engine::RT_PI*max / filt;
   if (size == UINT_MAX) size--;
   curve = (short *) calloc (size+1, sizeof *curve);
   merror (curve, "foveon_make_curve()");
@@ -11071,3 +11073,6 @@ void CLASS nikon_14bit_load_raw()
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
+
+
+} } // namespace art::engine

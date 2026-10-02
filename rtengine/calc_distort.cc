@@ -10,6 +10,9 @@ and prints the features to the screen.
 #include <cmath>
 #include <cstring>
 
+namespace art { namespace engine {
+
+
 #define N_FEATURES 100
 #define DELTA_1 0.05
 #define DELTA_2 0.01
@@ -293,3 +296,6 @@ int calcDistortion(unsigned char *img1, unsigned char *img2, int ncols,
     KLTFreeTrackingContext(tc);
     return 1;
 }
+
+
+} } // namespace art::engine

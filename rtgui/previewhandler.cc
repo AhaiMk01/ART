@@ -20,8 +20,8 @@
 #include "../rtengine/rtengine.h"
 #include <gtkmm.h>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 PreviewHandler::PreviewHandler(): image(nullptr), previewScale(1.)
 {
@@ -45,8 +45,8 @@ PreviewHandler::~PreviewHandler()
 
 //----------------previewimagelistener functions--------------------
 
-void PreviewHandler::setImage(rtengine::IImage8 *i, double scale,
-                              const rtengine::procparams::CropParams &cp)
+void PreviewHandler::setImage(art::engine::IImage8 *i, double scale,
+                              const art::engine::procparams::CropParams &cp)
 {
     pih->pending++;
 
@@ -112,7 +112,7 @@ void PreviewHandler::delImage(IImage8 *i)
     });
 }
 
-void PreviewHandler::imageReady(const rtengine::procparams::CropParams &cp)
+void PreviewHandler::imageReady(const art::engine::procparams::CropParams &cp)
 {
     pih->pending++;
 
@@ -163,9 +163,9 @@ Glib::RefPtr<Gdk::Pixbuf> PreviewHandler::getRoughImage(int x, int y, int w,
         x *= zoom;
         y *= zoom;
 
-        w = rtengine::LIM<int>(w, 0,
+        w = art::engine::LIM<int>(w, 0,
                                int(previewImg->get_width() * totalZoom) - x);
-        h = rtengine::LIM<int>(h, 0,
+        h = art::engine::LIM<int>(h, 0,
                                int(previewImg->get_height() * totalZoom) - y);
 
         resPixbuf = Gdk::Pixbuf::create(Gdk::COLORSPACE_RGB, false, 8, w, h);

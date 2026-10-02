@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _SENSORBAYER_H_
-#define _SENSORBAYER_H_
+#pragma once
 
 #include "toolpanel.h"
 #include <gtkmm.h>
@@ -32,5 +31,3 @@ public:
 
     Gtk::Box *getPackBox() { return packBox; }
 };
-
-#endif

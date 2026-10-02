@@ -29,7 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 // classical filtering if the support window is small:
 
@@ -1017,4 +1017,4 @@ void boxabsblur(T *src, A *dst, int radx, int rady, int W, int H, float *temp)
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

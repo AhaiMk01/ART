@@ -17,13 +17,12 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef __REFRESHMAP__
-#define __REFRESHMAP__
+#pragma once
 
 #include "procevents.h"
 #include <unordered_map>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 // Use M_VOID if you wish to update the proc params without updating the preview
 // at all !
@@ -126,6 +125,4 @@ private:
     std::unordered_map<int, int> actions_;
 };
 
-} // namespace rtengine
-
-#endif
+}} // namespace art::engine

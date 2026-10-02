@@ -21,10 +21,10 @@
 
 #include <vector>
 
-namespace rtengine {
+namespace art { namespace engine {
 class ControlLine;
 class ProcEvent;
-} // namespace rtengine
+}} // namespace art::engine
 
 class LensGeomListener {
 public:
@@ -35,7 +35,7 @@ public:
     virtual void autoPerspectiveRequested(
         bool horiz, bool vert, double &angle, double &horizontal,
         double &vertical, double &shear,
-        const std::vector<rtengine::ControlLine> *lines = nullptr) = 0;
-    virtual void updateTransformPreviewRequested(rtengine::ProcEvent event,
+        const std::vector<art::engine::ControlLine> *lines = nullptr) = 0;
+    virtual void updateTransformPreviewRequested(art::engine::ProcEvent event,
                                                  bool render_perspective) = 0;
 };

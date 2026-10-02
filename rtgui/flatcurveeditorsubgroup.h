@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _FLATCURVEEDITORSUBGROUP_
-#define _FLATCURVEEDITORSUBGROUP_
+#pragma once
 
 #include "curveeditorgroup.h"
 #include <gtkmm.h>
@@ -80,5 +79,3 @@ protected:
     void editPointToggled(Gtk::ToggleButton *button);
     void editToggled(Gtk::ToggleButton *button);
 };
-
-#endif

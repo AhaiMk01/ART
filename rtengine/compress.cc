@@ -23,7 +23,7 @@
 #include <glib/gstdio.h>
 #include <glibmm.h>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 std::vector<uint8_t> compress(const std::string &src, int level)
 {
@@ -127,4 +127,4 @@ bool compress_to(const std::string &src_fname, const std::string &dest_fname)
     return convert_to(src_fname, dest_fname, true);
 }
 
-} // namespace rtengine
+}} // namespace art::engine

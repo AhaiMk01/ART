@@ -17,15 +17,14 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _COLORTEMP_
-#define _COLORTEMP_
+#pragma once
 
 #include <array>
 #include <cmath>
 #include <map>
 #include <string>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 constexpr double MINTEMP = 1500.0;
 constexpr double MAXTEMP = 60000.0;
@@ -80,5 +79,4 @@ private:
     mutable bool clipped_;
 };
 
-} // namespace rtengine
-#endif
+}} // namespace art::engine

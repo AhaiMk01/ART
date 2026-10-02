@@ -4,7 +4,7 @@
 #include "../rtengine/stdimagesource.h"
 #include <stdio.h>
 
-using namespace rtengine;
+using namespace art::engine;
 
 void save(array2D<float> &img, const char *filename)
 {
@@ -41,7 +41,7 @@ int main(int argc, const char **argv)
     int w, h;
     src->getFullSize(w, h);
     Imagefloat im(w, h);
-    src->getImage(ColorTemp(), TR_NONE, &im, PreviewProps(0, 0, w, h, 1),
+    src->getImage(ColorTemp(), TR_NONE, &im, art::engine::PreviewProps(0, 0, w, h, 1),
                   ExposureParams(), RAWParams());
 
     fprintf(stderr, "before saving\n");

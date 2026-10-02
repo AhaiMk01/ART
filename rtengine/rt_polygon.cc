@@ -21,7 +21,7 @@
 #include "procparams.h"
 #include "rtengine.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 namespace procparams {
 
 // Created in own file to speed up build process during elaboration
@@ -206,7 +206,7 @@ AreaMask::Polygon::get_tessellation(std::vector<Knot> &knots)
         CoordD dist1(cornerKnots[1] - currStart);
         CoordD dist2(cornerKnots[1] - currEnd);
 
-        int nbrPoints = rtengine::max<int>(
+        int nbrPoints = art::engine::max<int>(
             int((dist1.getLength() + dist2.getLength()) / 10.),
             5); // one segment for 5 px ;
         double increment = 1. / double(nbrPoints - 1);
@@ -235,4 +235,4 @@ AreaMask::Polygon::get_tessellation(std::vector<Knot> &knots)
 #endif
 
 } // namespace procparams
-} // namespace rtengine
+}} // namespace art::engine

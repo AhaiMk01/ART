@@ -29,7 +29,7 @@
 #include <omp.h>
 #endif
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -40,7 +40,7 @@ bool loadFile(const Glib::ustring &filename,
               AlignedBuffer<std::uint16_t> &clut_image,
               unsigned int &clut_level)
 {
-    rtengine::StdImageSource img_src;
+    art::engine::StdImageSource img_src;
 
     if (!Glib::file_test(filename, Glib::FILE_TEST_EXISTS) ||
         img_src.load(filename)) {
@@ -66,18 +66,18 @@ bool loadFile(const Glib::ustring &filename,
     }
 
     if (res) {
-        rtengine::ColorTemp curr_wb = img_src.getWB();
-        std::unique_ptr<rtengine::Imagefloat> img_float =
-            std::unique_ptr<rtengine::Imagefloat>(
-                new rtengine::Imagefloat(fw, fh));
+        art::engine::ColorTemp curr_wb = img_src.getWB();
+        std::unique_ptr<art::engine::Imagefloat> img_float =
+            std::unique_ptr<art::engine::Imagefloat>(
+                new art::engine::Imagefloat(fw, fh));
         const PreviewProps pp(0, 0, fw, fh, 1);
 
-        rtengine::procparams::ColorManagementParams icm;
+        art::engine::procparams::ColorManagementParams icm;
         icm.workingProfile = working_color_space;
 
         img_src.getImage(curr_wb, TR_NONE, img_float.get(), pp,
-                         rtengine::procparams::ExposureParams(),
-                         rtengine::procparams::RAWParams());
+                         art::engine::procparams::ExposureParams(),
+                         art::engine::procparams::RAWParams());
 
         if (!working_color_space.empty()) {
             img_src.convertColorSpace(img_float.get(), icm, curr_wb);
@@ -133,19 +133,19 @@ vfloat2 getClutValues(const AlignedBuffer<std::uint16_t> &clut_image,
 
 } // namespace
 
-rtengine::HaldCLUT::HaldCLUT()
+art::engine::HaldCLUT::HaldCLUT()
     : clut_level(0), flevel_minus_one(0.0f), flevel_minus_two(0.0f),
       clut_profile("sRGB")
 {
 }
 
-rtengine::HaldCLUT::~HaldCLUT() {}
+art::engine::HaldCLUT::~HaldCLUT() {}
 
-bool rtengine::HaldCLUT::load(const Glib::ustring &filename)
+bool art::engine::HaldCLUT::load(const Glib::ustring &filename)
 {
     if (loadFile(filename, "", clut_image, clut_level)) {
         Glib::ustring name, ext;
-        rtengine::CLUTStore::splitClutFilename(filename, name, ext,
+        art::engine::CLUTStore::splitClutFilename(filename, name, ext,
                                                clut_profile);
 
         clut_filename = filename;
@@ -158,13 +158,13 @@ bool rtengine::HaldCLUT::load(const Glib::ustring &filename)
     return false;
 }
 
-rtengine::HaldCLUT::operator bool() const { return !clut_image.isEmpty(); }
+art::engine::HaldCLUT::operator bool() const { return !clut_image.isEmpty(); }
 
-Glib::ustring rtengine::HaldCLUT::getFilename() const { return clut_filename; }
+Glib::ustring art::engine::HaldCLUT::getFilename() const { return clut_filename; }
 
-Glib::ustring rtengine::HaldCLUT::getProfile() const { return clut_profile; }
+Glib::ustring art::engine::HaldCLUT::getProfile() const { return clut_profile; }
 
-void rtengine::HaldCLUT::getRGB(float strength, std::size_t line_size,
+void art::engine::HaldCLUT::getRGB(float strength, std::size_t line_size,
                                 const float *r, const float *g, const float *b,
                                 float *out_rgbx) const
 {
@@ -288,8 +288,8 @@ void rtengine::HaldCLUT::getRGB(float strength, std::size_t line_size,
     }
 }
 
-rtengine::CLUTStore::CLUTName
-rtengine::CLUTStore::getClutDisplayName(const Glib::ustring &filename)
+art::engine::CLUTStore::CLUTName
+art::engine::CLUTStore::getClutDisplayName(const Glib::ustring &filename)
 {
     Glib::ustring name;
 
@@ -381,7 +381,7 @@ rtengine::CLUTStore::getClutDisplayName(const Glib::ustring &filename)
     return name;
 }
 
-void rtengine::CLUTStore::splitClutFilename(const Glib::ustring &filename,
+void art::engine::CLUTStore::splitClutFilename(const Glib::ustring &filename,
                                             Glib::ustring &name,
                                             Glib::ustring &extension,
                                             Glib::ustring &profile_name)
@@ -410,7 +410,7 @@ void rtengine::CLUTStore::splitClutFilename(const Glib::ustring &filename,
 #endif // ART_USE_CTL
     if (search_profile_name && !name.empty()) {
         for (const auto &working_profile :
-             rtengine::ICCStore::getInstance()->getWorkingProfiles()) {
+             art::engine::ICCStore::getInstance()->getWorkingProfiles()) {
             if (!working_profile
                      .empty() // This isn't strictly needed, but an empty wp
                               // name should be skipped anyway
@@ -427,17 +427,17 @@ void rtengine::CLUTStore::splitClutFilename(const Glib::ustring &filename,
     }
 }
 
-rtengine::CLUTStore &rtengine::CLUTStore::getInstance()
+art::engine::CLUTStore &art::engine::CLUTStore::getInstance()
 {
     static CLUTStore instance;
     return instance;
 }
 
-std::shared_ptr<rtengine::HaldCLUT>
-rtengine::CLUTStore::getHaldClut(const Glib::ustring &filename) const
+std::shared_ptr<art::engine::HaldCLUT>
+art::engine::CLUTStore::getHaldClut(const Glib::ustring &filename) const
 {
     MyMutex::MyLock lock(mutex_);
-    std::shared_ptr<rtengine::HaldCLUT> result;
+    std::shared_ptr<art::engine::HaldCLUT> result;
 
     const Glib::ustring full_filename =
         !Glib::path_is_absolute(filename)
@@ -445,7 +445,7 @@ rtengine::CLUTStore::getHaldClut(const Glib::ustring &filename) const
             : filename;
 
     if (!cache.get(full_filename, result)) {
-        std::unique_ptr<rtengine::HaldCLUT> clut(new rtengine::HaldCLUT);
+        std::unique_ptr<art::engine::HaldCLUT> clut(new art::engine::HaldCLUT);
 
         if (clut->load(full_filename)) {
             result = std::move(clut);
@@ -552,7 +552,7 @@ std::string copy_to_temp(const Glib::ustring &fname)
 } // namespace
 
 OCIO::ConstProcessorRcPtr
-rtengine::CLUTStore::getOCIOLut(const Glib::ustring &filename) const
+art::engine::CLUTStore::getOCIOLut(const Glib::ustring &filename) const
 {
     MyMutex::MyLock lock(mutex_);
 
@@ -883,7 +883,7 @@ bool get_CTL_params(const Glib::ustring &filename,
 } // namespace
 
 std::pair<std::shared_ptr<Ctl::Interpreter>, std::vector<Ctl::FunctionCallPtr>>
-rtengine::CLUTStore::getCTLLut(const Glib::ustring &filename, int num_threads,
+art::engine::CLUTStore::getCTLLut(const Glib::ustring &filename, int num_threads,
                                int &chunk_size, CLUTParamDescriptorList &params,
                                Glib::ustring &colorspace, int &lut_dim) const
 {
@@ -992,7 +992,7 @@ rtengine::CLUTStore::getCTLLut(const Glib::ustring &filename, int num_threads,
 
 #endif // ART_USE_CTL
 
-void rtengine::CLUTStore::clearCache()
+void art::engine::CLUTStore::clearCache()
 {
     MyMutex::MyLock lock(mutex_);
 
@@ -1033,7 +1033,7 @@ inline float CTL_shaper_func(float a, bool inv)
 
 } // namespace
 
-rtengine::CLUTStore::CLUTStore()
+art::engine::CLUTStore::CLUTStore()
     : cache(options.clutCacheSize)
 #ifdef ART_USE_OCIO
       ,
@@ -1796,4 +1796,4 @@ OCIOInputProfile::OCIOInputProfile(const Glib::ustring &clut_filename,
 
 #endif // ART_USE_OCIO
 
-} // namespace rtengine
+}} // namespace art::engine

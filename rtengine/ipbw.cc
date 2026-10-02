@@ -26,7 +26,7 @@
 #include <array>
 #include <unordered_map>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 /** @brief Compute the B&W constants for the Black and White processing and its
  * GUI
@@ -323,7 +323,7 @@ void ImProcFunctions::blackAndWhite(Imagefloat *img)
         float s =
             pow_F(float(params->blackwhite.colorCast.getBottom()) / 100.f, 3.f);
         float h = float(params->blackwhite.colorCast.getTop()) / 180.f *
-                  rtengine::RT_PI;
+                  art::engine::RT_PI;
         float u, v;
         Color::hsl2yuv(h, s, u, v);
         img->setMode(Imagefloat::Mode::YUV, multiThread);
@@ -366,4 +366,4 @@ void ImProcFunctions::blackAndWhite(Imagefloat *img)
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

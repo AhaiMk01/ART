@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _FILETHUMBNAILBUTTONSET_
-#define _FILETHUMBNAILBUTTONSET_
+#pragma once
 
 #include <array>
 
@@ -53,5 +52,3 @@ public:
     void setColorLabel(int colorlabel);
     void setInTrash(bool inTrash);
 };
-
-#endif

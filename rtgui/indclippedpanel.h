@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _INDCLIPPEDPANEL_
-#define _INDCLIPPEDPANEL_
+#pragma once
 
 #include <gtkmm.h>
 #include <iostream>
@@ -61,5 +60,3 @@ public:
 
     bool showGrid() { return grid->get_active(); }
 };
-
-#endif

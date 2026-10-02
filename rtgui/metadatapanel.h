@@ -29,19 +29,19 @@ public:
     MetaDataPanel();
     ~MetaDataPanel() override;
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
-    void setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
+    void setDefaults(const art::engine::procparams::ProcParams *defParams) override;
 
-    void setImageData(const rtengine::FramesMetaData *id);
+    void setImageData(const art::engine::FramesMetaData *id);
     void setListener(ToolPanelListener *tpl) override;
 
-    void setProgressListener(rtengine::ProgressListener *pl);
+    void setProgressListener(art::engine::ProgressListener *pl);
     PParamsChangeListener *getPParamsChangeListener() override { return exifpanel; }
 
 private:
-    rtengine::ProcEvent EvMetaDataMode;
-    rtengine::ProcEvent EvNotes;
+    art::engine::ProcEvent EvMetaDataMode;
+    art::engine::ProcEvent EvNotes;
 
     MyComboBoxText *metadataMode;
     Gtk::Notebook *tagsNotebook;

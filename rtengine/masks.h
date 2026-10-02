@@ -28,12 +28,12 @@
 #include <unordered_map>
 #include <unordered_set>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class LinkedMaskManager {
 public:
     LinkedMaskManager();
-    void init(const rtengine::ProcParams &pparams);
+    void init(const art::engine::ProcParams &pparams);
     bool store_mask(const Glib::ustring &toolname, const Glib::ustring &name,
                     const array2D<float> *mask1, const array2D<float> *mask2,
                     bool multithread);
@@ -84,4 +84,4 @@ bool getDeltaEColor(Imagefloat *rgb, int x, int y, int offset_x, int offset_y,
                     int full_width, int full_height, double scale, float &L,
                     float &C, float &H);
 
-} // namespace rtengine
+}} // namespace art::engine

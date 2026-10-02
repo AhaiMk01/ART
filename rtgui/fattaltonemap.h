@@ -29,10 +29,10 @@ class FattalToneMapping: public ToolParamBlock,
 public:
     FattalToneMapping();
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
     void adjusterChanged(Adjuster *a, double newval) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
     void enabledChanged() override;
@@ -44,9 +44,9 @@ protected:
     Adjuster *amount;
     Gtk::CheckButton *satcontrol;
 
-    rtengine::ProcEvent EvSatControl;
+    art::engine::ProcEvent EvSatControl;
 
-    rtengine::procparams::FattalToneMappingParams initial_params;
+    art::engine::procparams::FattalToneMappingParams initial_params;
 
     void satcontrolChanged();
 };

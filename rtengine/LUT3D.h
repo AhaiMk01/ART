@@ -23,7 +23,7 @@
 #include "rt_math.h"
 #include <vector>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class LUT3D {
 public:
@@ -51,4 +51,4 @@ private:
     AlignedBuffer<float> lut_;
 };
 
-} // namespace rtengine
+}} // namespace art::engine

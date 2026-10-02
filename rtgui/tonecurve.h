@@ -63,14 +63,14 @@ protected:
     Gtk::HBox *contrast_legacy_box_;
     MyComboBoxText *basecurve_;
 
-    rtengine::ProcEvent EvHistMatching;
-    rtengine::ProcEvent EvHistMatchingBatch;
-    rtengine::ProcEvent EvSatCurve;
-    rtengine::ProcEvent EvPerceptualStrength;
-    rtengine::ProcEvent EvContrastLegacy;
-    rtengine::ProcEvent EvMode;
-    rtengine::ProcEvent EvWhitePoint;
-    rtengine::ProcEvent EvBaseCurve;
+    art::engine::ProcEvent EvHistMatching;
+    art::engine::ProcEvent EvHistMatchingBatch;
+    art::engine::ProcEvent EvSatCurve;
+    art::engine::ProcEvent EvPerceptualStrength;
+    art::engine::ProcEvent EvContrastLegacy;
+    art::engine::ProcEvent EvMode;
+    art::engine::ProcEvent EvWhitePoint;
+    art::engine::ProcEvent EvBaseCurve;
 
     // used temporarily in eventing
     std::vector<double> nextToneCurve;
@@ -84,17 +84,17 @@ protected:
     void showWhitePoint();
     void updateSatCurves(int i);
 
-    rtengine::procparams::ToneCurveParams initial_params;
+    art::engine::procparams::ToneCurveParams initial_params;
 
 public:
     ToneCurve();
     ~ToneCurve() override;
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
-    void trimValues(rtengine::procparams::ProcParams *pp) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
+    void trimValues(art::engine::procparams::ProcParams *pp) override;
     void autoOpenCurve() override;
     void setEditProvider(EditDataProvider *provider) override;
 
@@ -110,10 +110,10 @@ public:
     void expandCurve(bool isExpanded);
     bool isCurveExpanded();
     void updateCurveBackgroundHistogram(
-        const LUTu &histToneCurve, const LUTu &histLCurve,
-        const LUTu &histCCurve, const LUTu &histLCAM, const LUTu &histCCAM,
-        const LUTu &histRed, const LUTu &histGreen, const LUTu &histBlue,
-        const LUTu &histLuma, const LUTu &histLRETI);
+        const art::engine::LUTu &histToneCurve, const art::engine::LUTu &histLCurve,
+        const art::engine::LUTu &histCCurve, const art::engine::LUTu &histLCAM, const art::engine::LUTu &histCCAM,
+        const art::engine::LUTu &histRed, const art::engine::LUTu &histGreen, const art::engine::LUTu &histBlue,
+        const art::engine::LUTu &histLuma, const art::engine::LUTu &histLRETI);
 
     void histmatchingToggled();
     void autoMatchedToneCurveChanged(const std::vector<double> &curve,

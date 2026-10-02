@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _MYFLATCURVE_
-#define _MYFLATCURVE_
+#pragma once
 
 #include "cursormanager.h"
 #include "curvelistener.h"
@@ -124,7 +123,7 @@ protected:
     CursorShape motionNotify(CursorShape type, double minDistanceX,
                              double minDistanceY, int num);
     std::vector<double> get_vector(int veclen) override;
-    void get_LUT(LUTf &lut);
+    void get_LUT(art::engine::LUTf &lut);
 
 public:
     MyFlatCurve();
@@ -149,5 +148,3 @@ public:
     void setPos(double pos, int chanIdx) override;
     void stopNumericalAdjustment() override;
 };
-
-#endif

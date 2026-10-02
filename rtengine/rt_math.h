@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <limits>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 constexpr int MAXVAL = 0xffff;
 constexpr float MAXVALF = static_cast<float>(MAXVAL); // float version of MAXVAL
@@ -134,4 +134,4 @@ template <typename T> T log2lin(T x, T base)
     return (std::pow(base, x) - one) / (base - one);
 }
 
-} // namespace rtengine
+}} // namespace art::engine

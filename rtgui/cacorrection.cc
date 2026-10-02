@@ -21,15 +21,15 @@
 #include "rtimage.h"
 #include <iomanip>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 CACorrection::CACorrection()
     : FoldableToolPanel(this, "cacorrection", M("TP_CACORRECTION_LABEL"), false,
                         true, true)
 {
-    EvToolEnabled.set_action(rtengine::TRANSFORM);
-    EvToolReset.set_action(rtengine::TRANSFORM);
+    EvToolEnabled.set_action(art::engine::TRANSFORM);
+    EvToolReset.set_action(art::engine::TRANSFORM);
 
     Gtk::Image *icaredL = Gtk::manage(new RTImage("circle-red-cyan-small.svg"));
     Gtk::Image *icaredR = Gtk::manage(new RTImage("circle-cyan-red-small.svg"));
@@ -97,7 +97,7 @@ void CACorrection::adjusterChanged(Adjuster *a, double newval)
 
 void CACorrection::adjusterAutoToggled(Adjuster *a, bool newval) {}
 
-void CACorrection::trimValues(rtengine::procparams::ProcParams *pp)
+void CACorrection::trimValues(art::engine::procparams::ProcParams *pp)
 {
 
     red->trimValue(pp->cacorrection.red);

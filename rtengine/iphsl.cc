@@ -24,7 +24,7 @@
 #include "guidedfilter.h"
 #include "improcfun.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 void ImProcFunctions::hslEqualizer(Imagefloat *img)
 {
@@ -219,4 +219,4 @@ void ImProcFunctions::hslEqualizer(Imagefloat *img)
     img->normalizeFloatTo65535(multiThread);
 }
 
-} // namespace rtengine
+}} // namespace art::engine

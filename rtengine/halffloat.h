@@ -4,7 +4,7 @@
 
 #include <inttypes.h>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 inline uint16_t DNG_FloatToHalf(float f)
 {
@@ -129,4 +129,4 @@ inline uint32_t DNG_FP24ToFloat(const uint8_t *input)
     return (uint32_t)((sign << 31) | (exponent << 23) | mantissa);
 }
 
-} // namespace rtengine
+}} // namespace art::engine

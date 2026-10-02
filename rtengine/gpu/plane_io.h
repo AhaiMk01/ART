@@ -27,7 +27,7 @@
 #include <cstring>
 #include <vector>
 
-namespace rtengine {
+namespace art { namespace engine {
 namespace gpu {
 
 /* Copies into an already-allocated buffer -- use this, not uploadPlane()
@@ -94,6 +94,6 @@ inline bool downloadPlane(Context &ctx, Buffer &buf, int W, int H, float **dst,
 
 
 } // namespace gpu
-} // namespace rtengine
+}} // namespace art::engine
 
 #endif // ART_USE_VULKAN

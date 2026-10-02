@@ -20,7 +20,7 @@
 #include "rtengine.h"
 #include "stdimagesource.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 InitialImage *InitialImage::load(const Glib::ustring &fname, bool isRaw,
                                  int *errorCode, ProgressListener *pl)
@@ -45,4 +45,4 @@ InitialImage *InitialImage::load(const Glib::ustring &fname, bool isRaw,
 
     return isrc;
 }
-} // namespace rtengine
+}} // namespace art::engine

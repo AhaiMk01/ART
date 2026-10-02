@@ -24,7 +24,7 @@
 #include "curves.h"
 #include "improcfun.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 void ImProcFunctions::expcomp(Imagefloat *img,
                               const procparams::ExposureParams *expparams)
@@ -84,4 +84,4 @@ void ImProcFunctions::expcomp(Imagefloat *img,
 
 void ImProcFunctions::exposure(Imagefloat *img) { expcomp(img, nullptr); }
 
-} // namespace rtengine
+}} // namespace art::engine

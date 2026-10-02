@@ -41,12 +41,12 @@ namespace thumbimgcache {
  * height
  * image data
  ******************************************************************************/
-rtengine::IImage8 *load(const Glib::ustring &cache_fname,
-                        const rtengine::procparams::ProcParams &pparams, int h);
+art::engine::IImage8 *load(const Glib::ustring &cache_fname,
+                        const art::engine::procparams::ProcParams &pparams, int h);
 
 bool store(const Glib::ustring &cache_fname,
-           const rtengine::procparams::ProcParams &pparams,
-           rtengine::IImage8 *img);
+           const art::engine::procparams::ProcParams &pparams,
+           art::engine::IImage8 *img);
 
 } // namespace thumbimgcache
 } // namespace art

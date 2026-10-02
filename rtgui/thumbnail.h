@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _THUMBNAIL_
-#define _THUMBNAIL_
+#pragma once
 
 #include "../rtengine/rtengine.h"
 #include "../rtengine/rtthumbnail.h"
@@ -42,15 +41,15 @@ class Thumbnail: public PParamsSnapshotListener {
                             // corresponding to this thumbnail
 
     // if the thumbnail is in processed mode, this class holds its data:
-    rtengine::Thumbnail *tpp;
+    art::engine::Thumbnail *tpp;
     int tw, th; // dimensions of timgdata (it stores tpp->width and tpp->height
                 // in processed mode for simplicity)
     float imgRatio; // hack to avoid rounding error
     //        double          scale;            // portion of the sizes of the
     //        processed thumbnail image and the full scale image
 
-    // rtengine::procparams::ProcParams pparams;
-    rtengine::procparams::ProcParamsWithSnapshots pparams;
+    // art::engine::procparams::ProcParams pparams;
+    art::engine::procparams::ProcParamsWithSnapshots pparams;
 
     bool pparamsValid;
     bool needsReProcessing;
@@ -124,24 +123,24 @@ public:
     ~Thumbnail();
 
     bool hasProcParams();
-    const rtengine::procparams::ProcParams &getProcParams();
-    const rtengine::procparams::ProcParams &
+    const art::engine::procparams::ProcParams &getProcParams();
+    const art::engine::procparams::ProcParams &
     getProcParamsU(); // Unprotected version
     const std::vector<
-        std::pair<Glib::ustring, rtengine::procparams::ProcParams>> &
+        std::pair<Glib::ustring, art::engine::procparams::ProcParams>> &
     getProcParamsSnapshots();
 
     // Use this to create params on demand for update ; if flaggingMode=true,
     // the procparams is created for a file being flagged (inTrash, rank,
     // colorLabel)
-    rtengine::procparams::ProcParams *
+    art::engine::procparams::ProcParams *
     createProcParamsForUpdate(bool returnParams, bool force,
                               bool flaggingMode = false);
 
-    void setProcParams(const rtengine::procparams::PartialProfile &pp,
+    void setProcParams(const art::engine::procparams::PartialProfile &pp,
                        int whoChangedIt = -1, bool updateCacheNow = true,
                        bool resetToDefault = false);
-    void setProcParams(const rtengine::procparams::ProcParams &pp,
+    void setProcParams(const art::engine::procparams::ProcParams &pp,
                        int whoChangedIt = -1, bool updateCacheNow = true,
                        bool resetToDefault = false);
     void clearProcParams(int whoClearedIt = -1);
@@ -164,16 +163,16 @@ public:
 
     //        unsigned char*  getThumbnailImage (int &w, int &h, int fixwh=1);
     //        // fixwh = 0: fix w and calculate h, =1: fix h and calculate w
-    rtengine::IImage8 *
-    processThumbImage(const rtengine::procparams::ProcParams &pparams, int h,
+    art::engine::IImage8 *
+    processThumbImage(const art::engine::procparams::ProcParams &pparams, int h,
                       double &scale);
-    rtengine::IImage8 *
-    upgradeThumbImage(const rtengine::procparams::ProcParams &pparams, int h,
+    art::engine::IImage8 *
+    upgradeThumbImage(const art::engine::procparams::ProcParams &pparams, int h,
                       double &scale);
     void
     getThumbnailSize(int &w, int &h,
-                     const rtengine::procparams::ProcParams *pparams = nullptr);
-    void getFinalSize(const rtengine::procparams::ProcParams &pparams, int &w,
+                     const art::engine::procparams::ProcParams *pparams = nullptr);
+    void getFinalSize(const art::engine::procparams::ProcParams &pparams, int &w,
                       int &h);
     void getOriginalSize(int &w, int &h, bool consider_coarse = false);
 
@@ -212,7 +211,7 @@ public:
     int getColorLabel()
     {
         int c = rating_.color;
-        return rtengine::LIM(c, 0, 5);
+        return art::engine::LIM(c, 0, 5);
     }
     void setColorLabel(int colorlabel) { rating_.color = colorlabel; }
 
@@ -231,14 +230,12 @@ public:
 
     bool imageLoad(bool loading);
 
-    std::shared_ptr<rtengine::FramesMetaData> getMetaData();
+    std::shared_ptr<art::engine::FramesMetaData> getMetaData();
 
     static Glib::ustring getXmpSidecarPath(const Glib::ustring &path);
 
     void
     snapshotsChanged(const std::vector<
-                     std::pair<Glib::ustring, rtengine::procparams::ProcParams>>
+                     std::pair<Glib::ustring, art::engine::procparams::ProcParams>>
                          &snapshots) override;
 };
-
-#endif

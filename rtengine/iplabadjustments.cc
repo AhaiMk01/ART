@@ -27,7 +27,7 @@
 #include "mytime.h"
 #include "settings.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -364,4 +364,4 @@ void ImProcFunctions::labAdjustments(Imagefloat *rgb)
                     bcurve, histLCurve, pipetteBuffer);
 }
 
-} // namespace rtengine
+}} // namespace art::engine

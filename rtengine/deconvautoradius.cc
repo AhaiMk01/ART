@@ -26,7 +26,7 @@
 #include <omp.h>
 #endif
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -57,14 +57,14 @@ float calcRadiusBayer(const float *const *rawData, int W, int H,
                         bool clipped = false;
                         if (maxVal0 == val00) { // check for influence by
                                                 // clipped green in neighborhood
-                            if (rtengine::max(rawData[row - 1][col - 1],
+                            if (art::engine::max(rawData[row - 1][col - 1],
                                               rawData[row - 1][col + 1],
                                               val1p1) >= upperLimit) {
                                 clipped = true;
                             }
                         } else { // check for influence by clipped green in
                                  // neighborhood
-                            if (rtengine::max(rawData[row][col - 2], val00,
+                            if (art::engine::max(rawData[row][col - 2], val00,
                                               rawData[row + 2][col - 2],
                                               rawData[row + 2][col]) >=
                                 upperLimit) {
@@ -82,14 +82,14 @@ float calcRadiusBayer(const float *const *rawData, int W, int H,
                     if (UNLIKELY(maxVal1 > maxRatio * minVal)) {
                         if (maxVal1 == val00) { // check for influence by
                                                 // clipped green in neighborhood
-                            if (rtengine::max(rawData[row - 1][col - 1],
+                            if (art::engine::max(rawData[row - 1][col - 1],
                                               rawData[row - 1][col + 1],
                                               val1p1) >= upperLimit) {
                                 continue;
                             }
                         } else { // check for influence by clipped green in
                                  // neighborhood
-                            if (rtengine::max(val00, rawData[row][col + 2],
+                            if (art::engine::max(val00, rawData[row][col + 2],
                                               rawData[row + 2][col],
                                               rawData[row + 2][col + 2]) >=
                                 upperLimit) {
@@ -128,7 +128,7 @@ float calcRadiusXtrans(const float *const *rawData, int W, int H,
         for (int col = startx + 2; col < W - 4; col += 3) {
             const float valp1p1 = rawData[row + 1][col + 1];
             const bool squareClipped =
-                rtengine::max(valp1p1, rawData[row + 1][col + 2],
+                art::engine::max(valp1p1, rawData[row + 1][col + 2],
                               rawData[row + 2][col + 1],
                               rawData[row + 2][col + 2]) >= upperLimit;
             const float greenSolitary = rawData[row][col];
@@ -138,7 +138,7 @@ float calcRadiusXtrans(const float *const *rawData, int W, int H,
                 if (greenSolitary < upperLimit) {
                     const float valp1m1 = rawData[row + 1][col - 1];
                     if (valp1m1 > 1.f &&
-                        rtengine::max(rawData[row + 1][col - 2], valp1m1,
+                        art::engine::max(rawData[row + 1][col - 2], valp1m1,
                                       rawData[row + 2][col - 2],
                                       rawData[row + 1][col - 1]) < upperLimit) {
                         const float maxVal = std::max(greenSolitary, valp1m1);
@@ -175,7 +175,7 @@ float calcRadiusXtrans(const float *const *rawData, int W, int H,
                         }
                     }
                     const float greenSolitaryRight = rawData[row + 3][col + 3];
-                    if (rtengine::max(greenSolitaryRight,
+                    if (art::engine::max(greenSolitaryRight,
                                       rawData[row + 4][col + 2],
                                       rawData[row + 4][col + 4]) < upperLimit) {
                         if (greenSolitaryRight > 1.f) {
@@ -204,7 +204,7 @@ float calcRadiusXtrans(const float *const *rawData, int W, int H,
                         }
                     }
                     const float greenSolitaryLeft = rawData[row + 3][col];
-                    if (rtengine::max(greenSolitaryLeft,
+                    if (art::engine::max(greenSolitaryLeft,
                                       rawData[row + 4][col - 1],
                                       rawData[row + 4][col + 1]) < upperLimit) {
                         if (greenSolitaryLeft > 1.f) {
@@ -283,4 +283,4 @@ bool RawImageSource::getDeconvAutoRadius(float *out)
     return false;
 }
 
-} // namespace rtengine
+}} // namespace art::engine

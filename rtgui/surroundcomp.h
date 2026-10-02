@@ -61,7 +61,7 @@ public:
         const int W = pixbuf->get_width();
 
         const auto get_L = [](guint8 *rgb) -> float {
-            return rtengine::LIM(0.299f * rgb[0] + 0.587f * rgb[1] + 0.114f * rgb[2], 0.f, 255.f);
+            return art::engine::LIM(0.299f * rgb[0] + 0.587f * rgb[1] + 0.114f * rgb[2], 0.f, 255.f);
         };
 
         const auto corr = [](guint8 v, float f, float l) -> guint8 {
@@ -70,7 +70,7 @@ public:
                 auto d = res - l;
                 res = l + d / f;
             }
-            return rtengine::LIM(res, 0.f, 255.f);
+            return art::engine::LIM(res, 0.f, 255.f);
         };
         
 #ifdef _OPENMP

@@ -46,21 +46,21 @@ struct EditorPanelIdleHelper {
 };
 
 class RTWindow;
-using rtengine::array2D;
+using art::engine::array2D;
 
 class EditorPanel final: public Gtk::VBox,
                          public PParamsChangeListener,
-                         public rtengine::ProgressListener,
+                         public art::engine::ProgressListener,
                          public ThumbnailListener,
                          public HistoryBeforeAfterListener,
-                         public rtengine::HistogramListener,
+                         public art::engine::HistogramListener,
                          public HistogramPanelListener,
-                         public rtengine::SizeListener {
+                         public art::engine::SizeListener {
 public:
     explicit EditorPanel(FilePanel *filePanel = nullptr);
     ~EditorPanel() override;
 
-    void open(Thumbnail *tmb, rtengine::InitialImage *isrc);
+    void open(Thumbnail *tmb, art::engine::InitialImage *isrc);
     void setAspect();
     void on_realize() override;
     void leftPaneButtonReleased(GdkEventButton *event);
@@ -80,7 +80,7 @@ public:
     void setProgressStr(const Glib::ustring &str) override;
     void setProgressState(bool inProcessing) override;
     void error(const Glib::ustring &descr) override;
-    void pipelineTimes(const rtengine::PipelineTimes &t) override;
+    void pipelineTimes(const art::engine::PipelineTimes &t) override;
 
     void error(const Glib::ustring &title, const Glib::ustring &descr);
     void displayError(const Glib::ustring &title,
@@ -91,8 +91,8 @@ public:
                             // thread
 
     // PParamsChangeListener interface
-    void procParamsChanged(const rtengine::procparams::ProcParams *params,
-                           const rtengine::ProcEvent &ev,
+    void procParamsChanged(const art::engine::procparams::ProcParams *params,
+                           const art::engine::ProcEvent &ev,
                            const Glib::ustring &descr,
                            const ParamsEdited *paramsEdited = nullptr) override;
     void clearParamChanges() override;
@@ -102,21 +102,21 @@ public:
 
     // HistoryBeforeAfterListener
     void historyBeforeAfterChanged(
-        const rtengine::procparams::ProcParams &params) override;
+        const art::engine::procparams::ProcParams &params) override;
 
     // HistogramListener
     void histogramChanged(
-        const LUTu &histRed, const LUTu &histGreen, const LUTu &histBlue,
-        const LUTu &histLuma, const LUTu &histToneCurve, const LUTu &histLCurve,
-        const LUTu &histCCurve, const LUTu &histLCAM, const LUTu &histCCAM,
-        const LUTu &histRedRaw, const LUTu &histGreenRaw,
-        const LUTu &histBlueRaw, const LUTu &histChroma, const LUTu &histLRETI,
+        const art::engine::LUTu &histRed, const art::engine::LUTu &histGreen, const art::engine::LUTu &histBlue,
+        const art::engine::LUTu &histLuma, const art::engine::LUTu &histToneCurve, const art::engine::LUTu &histLCurve,
+        const art::engine::LUTu &histCCurve, const art::engine::LUTu &histLCAM, const art::engine::LUTu &histCCAM,
+        const art::engine::LUTu &histRedRaw, const art::engine::LUTu &histGreenRaw,
+        const art::engine::LUTu &histBlueRaw, const art::engine::LUTu &histChroma, const art::engine::LUTu &histLRETI,
         int vectorscopeScale, const array2D<int> &vectorscopeHC,
         const array2D<int> &vectorscopeHS, int waveformScale,
         const array2D<int> &waveformRed, const array2D<int> &waveformGreen,
         const array2D<int> &waveformBlue,
         const array2D<int> &waveformLuma) override;
-    void setObservable(rtengine::HistogramObservable *observable) override;
+    void setObservable(art::engine::HistogramObservable *observable) override;
     bool updateHistogram(void) const override;
     bool updateHistogramRaw(void) const override;
     bool updateVectorscopeHC(void) const override;
@@ -161,7 +161,7 @@ public:
     void setIsProcessing() { isProcessing = true; }
 
     void updateProfiles(const Glib::ustring &printerProfile,
-                        rtengine::RenderingIntent printerIntent,
+                        art::engine::RenderingIntent printerIntent,
                         bool printerBPC);
     void updateTPVScrollbar(bool hide);
     void updateHistogramPosition(int oldPosition, int newPosition);
@@ -181,16 +181,16 @@ public:
 private:
     BatchQueueEntry *createBatchQueueEntry(
         bool fast_export, bool use_batch_queue_profile,
-        const rtengine::procparams::PartialProfile *export_profile);
-    bool idle_imageSaved(ProgressConnector<int> *pc, rtengine::IImagefloat *img,
+        const art::engine::procparams::PartialProfile *export_profile);
+    bool idle_imageSaved(ProgressConnector<int> *pc, art::engine::IImagefloat *img,
                          Glib::ustring fname, SaveFormat sf,
-                         rtengine::procparams::ProcParams &pparams);
-    bool idle_saveImage(ProgressConnector<rtengine::IImagefloat *> *pc,
+                         art::engine::procparams::ProcParams &pparams);
+    bool idle_saveImage(ProgressConnector<art::engine::IImagefloat *> *pc,
                         Glib::ustring fname, SaveFormat sf,
-                        rtengine::procparams::ProcParams &pparams);
-    bool idle_sendToGimp(ProgressConnector<rtengine::IImagefloat *> *pc,
+                        art::engine::procparams::ProcParams &pparams);
+    bool idle_sendToGimp(ProgressConnector<art::engine::IImagefloat *> *pc,
                          Glib::ustring fname);
-    bool idle_sentToGimp(ProgressConnector<int> *pc, rtengine::IImagefloat *img,
+    bool idle_sentToGimp(ProgressConnector<int> *pc, art::engine::IImagefloat *img,
                          Glib::ustring filename);
     void histogramProfile_toggled();
 
@@ -207,7 +207,7 @@ private:
 
     MyProgressBar *progressLabel;
     // time of the last main-preview processing run; GUI thread only
-    rtengine::PipelineTimes lastTimes_;
+    art::engine::PipelineTimes lastTimes_;
     // the progress bar text for the idle state: "Ready", plus lastTimes_
     Glib::ustring readyText() const;
     Gtk::ToggleButton *info;
@@ -272,9 +272,9 @@ private:
 
     int selectedFrame;
 
-    rtengine::InitialImage *isrc;
-    std::shared_ptr<rtengine::StagedImageProcessor> ipc;
-    std::shared_ptr<rtengine::StagedImageProcessor>
+    art::engine::InitialImage *isrc;
+    std::shared_ptr<art::engine::StagedImageProcessor> ipc;
+    std::shared_ptr<art::engine::StagedImageProcessor>
         beforeIpc; // for the before-after view
 
     EditorPanelIdleHelper *epih;
@@ -289,7 +289,7 @@ private:
 
     IdleRegister idle_register;
 
-    rtengine::HistogramObservable *histogram_observable;
+    art::engine::HistogramObservable *histogram_observable;
     Options::ScopeType histogram_scope_type;
 
     sigc::connection autosave_conn_;

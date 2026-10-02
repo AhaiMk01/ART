@@ -24,8 +24,7 @@
  * for the volk meta-loader should the entry-point list outgrow hand
  * maintenance.
  */
-#ifndef ART_GPU_VK_API_H
-#define ART_GPU_VK_API_H
+#pragma once
 
 #define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
@@ -117,7 +116,7 @@ ART_VK_INSTANCE_FUNCS(ART_VK_DECLARE)
 ART_VK_DEVICE_FUNCS(ART_VK_DECLARE)
 #undef ART_VK_DECLARE
 
-namespace rtengine {
+namespace art { namespace engine {
 namespace gpu {
 
 /* Idempotent. `err` receives a human-readable reason on failure. */
@@ -132,6 +131,4 @@ void unloadVulkanLibrary();
 const char *vkResultName(VkResult r);
 
 } // namespace gpu
-} // namespace rtengine
-
-#endif // ART_GPU_VK_API_H
+}} // namespace art::engine

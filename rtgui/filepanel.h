@@ -70,7 +70,7 @@ public:
 
     void optionsChanged();
     bool imageLoaded(Thumbnail *thm,
-                     ProgressConnector<rtengine::InitialImage *> *);
+                     ProgressConnector<art::engine::InitialImage *> *);
 
     bool handleShortcutKey(GdkEventKey *event);
     void updateTPVScrollbar(bool hide);
@@ -97,7 +97,7 @@ private:
 
     struct pendingLoad {
         bool complete;
-        ProgressConnector<rtengine::InitialImage *> *pc;
+        ProgressConnector<art::engine::InitialImage *> *pc;
         Thumbnail *thm;
     };
     MyMutex pendingLoadMutex;

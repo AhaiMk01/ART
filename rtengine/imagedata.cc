@@ -28,16 +28,17 @@
 #include "imgiomanager.h"
 #include "metadata.h"
 #include "rt_math.h"
+
+namespace art { namespace engine {
+
 #pragma GCC diagnostic warning "-Wextra"
 #define PRINT_HDR_PS_DETECTION 0
 
-using namespace rtengine;
+using namespace art::engine;
 
-namespace rtengine {
+
 
 extern const Settings *settings;
-
-} // namespace rtengine
 
 namespace {
 
@@ -954,3 +955,6 @@ std::string FramesData::xmp_color2label(int color)
         return "";
     }
 }
+
+
+} } // namespace art::engine

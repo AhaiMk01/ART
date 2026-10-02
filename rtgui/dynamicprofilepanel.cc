@@ -95,7 +95,7 @@ DynamicProfilePanel::EditDialog::EditDialog(const Glib::ustring &title,
     show_all_children();
 }
 
-void DynamicProfilePanel::EditDialog::set_rule(const DynamicProfileRule &rule)
+void DynamicProfilePanel::EditDialog::set_rule(const art::engine::DynamicProfileRule &rule)
 {
     iso_min_->set_value(rule.iso.min);
     iso_max_->set_value(rule.iso.max);
@@ -148,9 +148,9 @@ void DynamicProfilePanel::EditDialog::set_rule(const DynamicProfileRule &rule)
     }
 }
 
-DynamicProfileRule DynamicProfilePanel::EditDialog::get_rule()
+art::engine::DynamicProfileRule DynamicProfilePanel::EditDialog::get_rule()
 {
-    DynamicProfileRule ret;
+    art::engine::DynamicProfileRule ret;
     ret.iso.min = iso_min_->get_value_as_int();
     ret.iso.max = iso_max_->get_value_as_int();
 
@@ -218,7 +218,7 @@ DynamicProfileRule DynamicProfilePanel::EditDialog::get_rule()
 
 void DynamicProfilePanel::EditDialog::set_ranges()
 {
-    DynamicProfileRule default_rule;
+    art::engine::DynamicProfileRule default_rule;
     iso_min_->set_digits(0);
     iso_max_->set_digits(0);
     iso_min_->set_increments(1, 10);
@@ -358,13 +358,13 @@ DynamicProfilePanel::DynamicProfilePanel()
 void DynamicProfilePanel::reset()
 {
     treemodel_->clear();
-    for (auto &r : ProfileStore::getInstance()->getRules()) {
+    for (auto &r : art::engine::ProfileStore::getInstance()->getRules()) {
         add_rule(r);
     }
 }
 
 void DynamicProfilePanel::update_rule(Gtk::TreeModel::Row row,
-                                      const DynamicProfileRule &rule)
+                                      const art::engine::DynamicProfileRule &rule)
 {
     row[columns_.iso] = rule.iso;
     row[columns_.fnumber] = rule.fnumber;
@@ -380,16 +380,16 @@ void DynamicProfilePanel::update_rule(Gtk::TreeModel::Row row,
     row[columns_.customdata] = rule.customdata;
 }
 
-void DynamicProfilePanel::add_rule(const DynamicProfileRule &rule)
+void DynamicProfilePanel::add_rule(const art::engine::DynamicProfileRule &rule)
 {
     auto row = *(treemodel_->append());
     update_rule(row, rule);
 }
 
-DynamicProfileRule DynamicProfilePanel::to_rule(Gtk::TreeModel::Row row,
+art::engine::DynamicProfileRule DynamicProfilePanel::to_rule(Gtk::TreeModel::Row row,
                                                 int serial)
 {
-    DynamicProfileRule ret;
+    art::engine::DynamicProfileRule ret;
     ret.serial_number = serial;
     ret.iso = row[columns_.iso];
     ret.fnumber = row[columns_.fnumber];
@@ -412,7 +412,7 @@ void DynamicProfilePanel::render_profilepath(
     auto row = *iter;
     Gtk::CellRendererText *ct = static_cast<Gtk::CellRendererText *>(cell);
     auto value = row[columns_.profilepath];
-    auto pse = ProfileStore::getInstance()->findEntryFromFullPath(value);
+    auto pse = art::engine::ProfileStore::getInstance()->findEntryFromFullPath(value);
 
     if (pse != nullptr) {
         ct->property_text() = pse->label;
@@ -424,8 +424,8 @@ void DynamicProfilePanel::render_profilepath(
 #define RENDER_RANGE_(tp, name, tostr)                                         \
     auto row = *iter;                                                          \
     Gtk::CellRendererText *ct = static_cast<Gtk::CellRendererText *>(cell);    \
-    DynamicProfileRule::Range<tp> r = row[columns_.name];                      \
-    DynamicProfileRule dflt;                                                   \
+    art::engine::DynamicProfileRule::Range<tp> r = row[columns_.name];                      \
+    art::engine::DynamicProfileRule dflt;                                                   \
     if (r.min > dflt.name.min || r.max < dflt.name.max) {                      \
         auto value = tostr(r.min) + " - " + tostr(r.max);                      \
         ct->property_text() = value;                                           \
@@ -455,7 +455,7 @@ void DynamicProfilePanel::render_fnumber(Gtk::CellRenderer *cell,
 {
     RENDER_RANGE_(double, fnumber, [](double f) {
         return std::string("f/") +
-               rtengine::FramesMetaData::apertureToString(f);
+               art::engine::FramesMetaData::apertureToString(f);
     });
 }
 
@@ -469,7 +469,7 @@ void DynamicProfilePanel::render_shutterspeed(
     Gtk::CellRenderer *cell, const Gtk::TreeModel::iterator &iter)
 {
     RENDER_RANGE_(double, shutterspeed,
-                  rtengine::FramesMetaData::shutterToString);
+                  art::engine::FramesMetaData::shutterToString);
 }
 
 void DynamicProfilePanel::render_expcomp(Gtk::CellRenderer *cell,
@@ -483,7 +483,7 @@ void DynamicProfilePanel::render_expcomp(Gtk::CellRenderer *cell,
 #define RENDER_OPTIONAL_(name)                                                 \
     auto row = *iter;                                                          \
     Gtk::CellRendererText *ct = static_cast<Gtk::CellRendererText *>(cell);    \
-    DynamicProfileRule::Optional o = row[columns_.name];                       \
+    art::engine::DynamicProfileRule::Optional o = row[columns_.name];                       \
     if (o.enabled) {                                                           \
         ct->property_text() = o.value;                                         \
     } else {                                                                   \
@@ -519,7 +519,7 @@ void DynamicProfilePanel::render_imagetype(Gtk::CellRenderer *cell,
 {
     auto row = *iter;
     Gtk::CellRendererText *ct = static_cast<Gtk::CellRendererText *>(cell);
-    DynamicProfileRule::Optional o = row[columns_.imagetype];
+    art::engine::DynamicProfileRule::Optional o = row[columns_.imagetype];
     if (o.enabled) {
         ct->property_text() =
             M(std::string("DYNPROFILEEDITOR_IMGTYPE_") + o.value.uppercase());
@@ -533,7 +533,7 @@ void DynamicProfilePanel::render_customdata(
 {
     auto row = *iter;
     Gtk::CellRendererText *ct = static_cast<Gtk::CellRendererText *>(cell);
-    DynamicProfileRule::CustomMetadata m = row[columns_.customdata];
+    art::engine::DynamicProfileRule::CustomMetadata m = row[columns_.customdata];
     if (m.enabled) {
         ct->property_text() = std::to_string(m.value.size()) + " " +
                               M("DYNPROFILEEDITOR_CUSTOMDATA_TAGS");
@@ -597,7 +597,7 @@ void DynamicProfilePanel::on_button_new()
     int status = d.run();
 
     if (status == 1) {
-        DynamicProfileRule rule = d.get_rule();
+        art::engine::DynamicProfileRule rule = d.get_rule();
         add_rule(rule);
     }
 }
@@ -623,7 +623,7 @@ void DynamicProfilePanel::on_button_edit()
 
 void DynamicProfilePanel::on_button_reset()
 {
-    auto ps = ProfileStore::getInstance();
+    auto ps = art::engine::ProfileStore::getInstance();
     auto rules = ps->getRules();
     ps->loadRules(true);
     reset();
@@ -632,16 +632,16 @@ void DynamicProfilePanel::on_button_reset()
 
 void DynamicProfilePanel::save()
 {
-    std::vector<DynamicProfileRule> rules;
+    std::vector<art::engine::DynamicProfileRule> rules;
     int serial = 1;
 
     for (auto row : treemodel_->children()) {
         rules.emplace_back(to_rule(row, serial++));
     }
 
-    ProfileStore::getInstance()->setRules(rules);
+    art::engine::ProfileStore::getInstance()->setRules(rules);
 
-    if (!ProfileStore::getInstance()->storeRules()) {
+    if (!art::engine::ProfileStore::getInstance()->storeRules()) {
         printf("Error in saving dynamic profile rules\n");
     } else if (options.rtSettings.verbose > 1) {
         printf("Saved %d dynamic profile rules\n", int(rules.size()));

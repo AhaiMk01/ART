@@ -21,7 +21,7 @@
 #include "multilangmgr.h"
 #include "rtimage.h"
 
-using namespace rtengine;
+using namespace art::engine;
 
 namespace {
 

@@ -22,16 +22,16 @@
 #include "rtimage.h"
 #include <iomanip>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 Rotate::Rotate()
     : FoldableToolPanel(this, "rotate", M("TP_ROTATE_LABEL"), false, true, true)
 {
     rlistener = nullptr;
 
-    EvToolEnabled.set_action(rtengine::TRANSFORM);
-    EvToolReset.set_action(rtengine::TRANSFORM);
+    EvToolEnabled.set_action(art::engine::TRANSFORM);
+    EvToolReset.set_action(art::engine::TRANSFORM);
 
     // TODO the action of the rotation slider is counter-intuitive
     Gtk::Image *irotateL = Gtk::manage(new RTImage("rotate-right-small.svg"));
@@ -110,7 +110,7 @@ void Rotate::selectStraightPressed()
     }
 }
 
-void Rotate::trimValues(rtengine::procparams::ProcParams *pp)
+void Rotate::trimValues(art::engine::procparams::ProcParams *pp)
 {
     degree->trimValue(pp->rotate.degree);
 }

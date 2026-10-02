@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _PROFILEPANEL_
-#define _PROFILEPANEL_
+#pragma once
 
 #include "../rtengine/rtengine.h"
 #include "guiutils.h"
@@ -32,10 +31,10 @@
 
 class ProfilePanel: public Gtk::Grid,
                     public PParamsChangeListener,
-                    public ProfileStoreListener {
+                    public art::engine::ProfileStoreListener {
 
 private:
-    rtengine::procparams::ProcParams stored_pp_;
+    art::engine::procparams::ProcParams stored_pp_;
     Glib::ustring storedValue;
     Glib::ustring lastFilename;
     Glib::ustring imagePath;
@@ -43,9 +42,9 @@ private:
     RTImage *append_mode_off_image_;
     Gtk::ToggleButton *append_mode_;
     Gtk::TreeIter currRow;
-    ProfileStoreEntry *lastSavedPSE;
-    ProfileStoreEntry *customPSE;
-    ProfileStoreEntry *defaultPSE;
+    art::engine::ProfileStoreEntry *lastSavedPSE;
+    art::engine::ProfileStoreEntry *customPSE;
+    art::engine::ProfileStoreEntry *defaultPSE;
 
     void appendModeToggled();
     bool isCustomSelected();
@@ -65,14 +64,14 @@ private:
     Gtk::Button *copy;
     Gtk::Button *paste;
     ProfileStoreComboBox *profiles;
-    rtengine::procparams::PartialProfile *custom;
-    rtengine::procparams::PartialProfile *lastsaved;
-    rtengine::procparams::PartialProfile *defprofile;
+    art::engine::procparams::PartialProfile *custom;
+    art::engine::procparams::PartialProfile *lastsaved;
+    art::engine::procparams::PartialProfile *defprofile;
     ProfileChangeListener *tpc;
     bool dontupdate;
     sigc::connection changeconn;
     static Gtk::Window *parent;
-    void changeTo(const rtengine::procparams::PartialProfile *newpp,
+    void changeTo(const art::engine::procparams::PartialProfile *newpp,
                   Glib::ustring profname);
 
 public:
@@ -88,13 +87,13 @@ public:
     void restoreValue() override;
 
     void initProfile(const Glib::ustring &profileFullPath,
-                     rtengine::procparams::ProcParams *lastSaved,
-                     const rtengine::FramesMetaData *metadata);
+                     art::engine::procparams::ProcParams *lastSaved,
+                     const art::engine::FramesMetaData *metadata);
     void setInitialFileName(const Glib::ustring &filename);
 
     // PParamsChangeListener interface
-    void procParamsChanged(const rtengine::procparams::ProcParams *params,
-                           const rtengine::ProcEvent &ev,
+    void procParamsChanged(const art::engine::procparams::ProcParams *params,
+                           const art::engine::ProcEvent &ev,
                            const Glib::ustring &descr,
                            const ParamsEdited *paramsEdited = nullptr) override;
     void clearParamChanges() override;
@@ -107,5 +106,3 @@ public:
     void selection_changed();
     void writeOptions();
 };
-
-#endif

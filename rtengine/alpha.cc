@@ -19,7 +19,7 @@
 
 #include "alpha.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 Alpha::Alpha() {}
 
@@ -94,4 +94,4 @@ unsigned char *Alpha::operator()(unsigned row) const
     return surface->get_data() + row * surface->get_width();
 }
 
-} // namespace rtengine
+}} // namespace art::engine

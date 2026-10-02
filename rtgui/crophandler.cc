@@ -35,7 +35,7 @@
 #include <omp.h>
 #endif
 
-using namespace rtengine;
+using namespace art::engine;
 
 namespace {
 
@@ -189,7 +189,7 @@ CropHandler::~CropHandler()
 
 void CropHandler::setEditSubscriber(EditSubscriber *newSubscriber)
 {
-    (static_cast<rtengine::Crop *>(crop))->setEditSubscriber(newSubscriber);
+    (static_cast<art::engine::Crop *>(crop))->setEditSubscriber(newSubscriber);
 }
 
 void CropHandler::newImage(std::shared_ptr<StagedImageProcessor> ipc_,
@@ -443,8 +443,8 @@ void CropHandler::getPosition(int &x, int &y)
 
 void CropHandler::setDetailedCrop(
     IImage8 *im, IImage8 *imtrue,
-    const rtengine::procparams::ColorManagementParams &cmp,
-    const rtengine::procparams::CropParams &cp, int ax, int ay, int aw, int ah,
+    const art::engine::procparams::ColorManagementParams &cmp,
+    const art::engine::procparams::CropParams &cp, int ax, int ay, int aw, int ah,
     int askip)
 {
     if (!enabled) {
@@ -605,7 +605,7 @@ void CropHandler::update()
                           // destroyed
             auto c = crop;
             const auto upd = [i, c]() -> void { c->fullUpdate(); };
-            rtengine::ThreadPool::add_task(rtengine::ThreadPool::Priority::HIGH,
+            art::engine::ThreadPool::add_task(art::engine::ThreadPool::Priority::HIGH,
                                            upd);
         }
     }
@@ -633,7 +633,7 @@ void CropHandler::setEnabled(bool e, bool do_update)
 
 bool CropHandler::getEnabled() { return enabled; }
 
-void CropHandler::colorPick(const rtengine::Coord &pickerPos, float &r,
+void CropHandler::colorPick(const art::engine::Coord &pickerPos, float &r,
                             float &g, float &b, float &rpreview,
                             float &gpreview, float &bpreview,
                             LockableColorPicker::Size size)
@@ -651,7 +651,7 @@ void CropHandler::colorPick(const rtengine::Coord &pickerPos, float &r,
     int ySize = (int)size;
     int pixbufW = cropPixbuftrue->get_width();
     int pixbufH = cropPixbuftrue->get_height();
-    rtengine::Coord topLeftPos(pickerPos.x - xSize / 2,
+    art::engine::Coord topLeftPos(pickerPos.x - xSize / 2,
                                pickerPos.y - ySize / 2);
 
     if (topLeftPos.x > pixbufW || topLeftPos.y > pixbufH ||
@@ -687,9 +687,9 @@ void CropHandler::colorPick(const rtengine::Coord &pickerPos, float &r,
         const guint8 *data2 = data + cropPixbuftrue->get_rowstride() * j;
         for (int i = topLeftPos.x; i < topLeftPos.x + xSize; ++i) {
             const guint8 *data3 = data2 + i * 3;
-            rtengine::Coord currPos(i, j);
-            rtengine::Coord delta = pickerPos - currPos;
-            rtengine::PolarCoord p(delta);
+            art::engine::Coord currPos(i, j);
+            art::engine::Coord delta = pickerPos - currPos;
+            art::engine::PolarCoord p(delta);
             if (p.radius <= radius) {
                 r2 += *data3;
                 g2 += *(data3 + 1);
@@ -713,9 +713,9 @@ void CropHandler::colorPick(const rtengine::Coord &pickerPos, float &r,
         const guint8 *data2 = data + cropPixbuf->get_rowstride() * j;
         for (int i = topLeftPos.x; i < topLeftPos.x + xSize; ++i) {
             const guint8 *data3 = data2 + i * 3;
-            rtengine::Coord currPos(i, j);
-            rtengine::Coord delta = pickerPos - currPos;
-            rtengine::PolarCoord p(delta);
+            art::engine::Coord currPos(i, j);
+            art::engine::Coord delta = pickerPos - currPos;
+            art::engine::PolarCoord p(delta);
             if (p.radius <= radius) {
                 r2 += *data3;
                 g2 += *(data3 + 1);
@@ -764,8 +764,8 @@ void CropHandler::compDim()
     int wwImgSpace;
     int whImgSpace;
 
-    cax = rtengine::LIM(cax, 0, fullW - 1);
-    cay = rtengine::LIM(cay, 0, fullH - 1);
+    cax = art::engine::LIM(cax, 0, fullW - 1);
+    cay = art::engine::LIM(cay, 0, fullH - 1);
 
     int ow, oh;
     getWSize(ow, oh);

@@ -996,7 +996,7 @@ void DiagonalCurveEditorSubGroup::loadPressed()
                 }
             }
 
-            rtengine::sanitizeCurve(p);
+            art::engine::sanitizeCurve(p);
 
             if (p[0] == (double)(DCT_Spline) ||
                 p[0] == (double)(DCT_CatmullRom)) {

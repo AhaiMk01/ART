@@ -26,9 +26,12 @@
 // #define BENCHMARK
 #include "StopWatch.h"
 
+namespace art { namespace engine {
+
+
 namespace {
 
-using namespace rtengine;
+using namespace art::engine;
 
 inline void vng4interpolate_row_redblue(const RawImage *ri,
                                         const array2D<float> &rawData,
@@ -66,9 +69,7 @@ inline void vng4interpolate_row_redblue(const RawImage *ri,
 }
 } // namespace
 
-namespace rtengine
 
-{
 #define fc(row, col)                                                           \
     (prefilters >> ((((row) << 1 & 14) + ((col) & 1)) << 1) & 3)
 
@@ -355,9 +356,9 @@ void RawImageSource::vng4_demosaic(const array2D<float> &rawData,
                 ip++;
 
                 const float thold =
-                    rtengine::min(gval[0], gval[1], gval[2], gval[3], gval[4],
+                    art::engine::min(gval[0], gval[1], gval[2], gval[3], gval[4],
                                   gval[5], gval[6], gval[7]) +
-                    rtengine::max(gval[0], gval[1], gval[2], gval[3], gval[4],
+                    art::engine::max(gval[0], gval[1], gval[2], gval[3], gval[4],
                                   gval[5], gval[6], gval[7]) *
                         0.5f;
 
@@ -442,4 +443,6 @@ void RawImageSource::vng4_demosaic(const array2D<float> &rawData,
         plistener->setProgress(1.0);
     }
 }
-} // namespace rtengine
+
+
+} } // namespace art::engine

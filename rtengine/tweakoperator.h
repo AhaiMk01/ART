@@ -18,7 +18,7 @@
  */
 #pragma once
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace procparams {
 
@@ -40,4 +40,4 @@ public:
     virtual void tweakParams(procparams::ProcParams &pparams) = 0;
 };
 
-} // namespace rtengine
+}} // namespace art::engine

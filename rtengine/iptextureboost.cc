@@ -30,12 +30,12 @@
 #include "rescale.h"
 #include "rt_algo.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace {
 
 void texture_boost(array2D<float> &Y,
-                   const rtengine::procparams::TextureBoostParams::Region &pp,
+                   const art::engine::procparams::TextureBoostParams::Region &pp,
                    double scale, bool multithread, bool high_detail)
 {
     float full_radius = pp.detailThreshold * 3.5f;
@@ -264,4 +264,4 @@ bool ImProcFunctions::textureBoost(Imagefloat *rgb)
     return false;
 }
 
-} // namespace rtengine
+}} // namespace art::engine

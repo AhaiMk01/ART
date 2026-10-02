@@ -16,20 +16,34 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _MYFILE_
-#define _MYFILE_
+#pragma once
 
 #include "rtengine.h"
 #include <cstdio>
 #include <cstring>
 #include <glib/gstdio.h>
+
+namespace art { namespace engine {
+
+// the IMFILE overloads below must not hide the C library versions
+using ::fopen;
+using ::fclose;
+using ::ftell;
+using ::feof;
+using ::fseek;
+using ::fgetc;
+using ::getc;
+using ::fread;
+using ::fscanf;
+using ::fgets;
+
 struct IMFILE {
     int fd;
     ssize_t pos;
     ssize_t size;
     char *data;
     bool eof;
-    rtengine::ProgressListener *plistener;
+    art::engine::ProgressListener *plistener;
     double progress_range;
     ssize_t progress_next;
     ssize_t progress_current;
@@ -40,7 +54,7 @@ struct IMFILE {
   Note: progress bar is not intended to be exact, eg if you read same data over
   and over again progress will potentially reach 100% before you're finished.
  */
-void imfile_set_plistener(IMFILE *f, rtengine::ProgressListener *plistener,
+void imfile_set_plistener(IMFILE *f, art::engine::ProgressListener *plistener,
                           double progress_range);
 void imfile_update_progress(IMFILE *f);
 
@@ -124,4 +138,5 @@ inline unsigned char *fdata(ssize_t offset, IMFILE *f)
 int fscanf(IMFILE *f, const char *s...);
 char *fgets(char *s, ssize_t n, IMFILE *f);
 
-#endif
+
+} } // namespace art::engine

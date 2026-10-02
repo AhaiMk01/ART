@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _BATCHQUEUE_
-#define _BATCHQUEUE_
+#pragma once
 
 #include <set>
 
@@ -40,13 +39,13 @@ public:
     virtual bool canStartNext() = 0;
     /** Called from the GUI thread with the pipeline time of the image that
      * was just processed. */
-    virtual void lastExportTimes(const rtengine::PipelineTimes &t) {}
+    virtual void lastExportTimes(const art::engine::PipelineTimes &t) {}
 };
 
 class FileCatalog;
 
 class BatchQueue final: public ThumbBrowserBase,
-                        public rtengine::BatchProcessingListener,
+                        public art::engine::BatchProcessingListener,
                         public LWButtonListener {
 public:
     explicit BatchQueue(FileCatalog *aFileCatalog);
@@ -83,8 +82,8 @@ public:
     void setProgressStr(const Glib::ustring &str) override;
     void setProgressState(bool inProcessing) override;
     void error(const Glib::ustring &descr) override;
-    void pipelineTimes(const rtengine::PipelineTimes &t) override;
-    rtengine::ProcessingJob *imageReady(rtengine::IImagefloat *img) override;
+    void pipelineTimes(const art::engine::PipelineTimes &t) override;
+    art::engine::ProcessingJob *imageReady(art::engine::IImagefloat *img) override;
 
     void rightClicked(ThumbBrowserEntryBase *entry) override;
     void doubleClicked(ThumbBrowserEntryBase *entry) override;
@@ -100,8 +99,8 @@ public:
 
     static int calcMaxThumbnailHeight();
 
-    void setBatchProfile(const rtengine::procparams::PartialProfile *bp);
-    const rtengine::procparams::PartialProfile *getBatchProfile() override;
+    void setBatchProfile(const art::engine::procparams::PartialProfile *bp);
+    const art::engine::procparams::PartialProfile *getBatchProfile() override;
 
 private:
     void cancelItems_(const std::vector<ThumbBrowserEntryBase *> &items)
@@ -141,9 +140,7 @@ private:
 
     IdleRegister idle_register;
 
-    const rtengine::procparams::PartialProfile *batch_profile_;
+    const art::engine::procparams::PartialProfile *batch_profile_;
 
     std::unordered_map<std::string, std::string> format2ext_;
 };
-
-#endif

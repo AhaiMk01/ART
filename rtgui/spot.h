@@ -61,7 +61,7 @@
 
 class Spot: public ToolParamBlock,
             public FoldableToolPanel,
-            public rtengine::TweakOperator,
+            public art::engine::TweakOperator,
             public EditSubscriber,
             public AdjusterListener {
 
@@ -71,7 +71,7 @@ private:
     DraggedSide draggedSide; // tells which of source or target is being dragged
     int lastObject;          // current object that is hovered
     int activeSpot;          // currently active spot, being edited
-    std::vector<rtengine::procparams::SpotEntry> spots; // list of edited spots
+    std::vector<art::engine::procparams::SpotEntry> spots; // list of edited spots
     OPIcon sourceIcon;          // to show the source location
     Circle sourceCircle;        // to show and change the Source radius
     Circle sourceMODisc;        // to change the Source position
@@ -121,7 +121,7 @@ protected:
     Adjuster *detail;
     std::vector<Adjuster *> spot_adjusters;
 
-    rtengine::procparams::SpotParams initial_params;
+    art::engine::procparams::SpotParams initial_params;
 
     void reset_adjusters();
     void on_fold(GdkEventButton *event);
@@ -131,12 +131,12 @@ public:
     Spot();
     ~Spot();
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
 
     void enabledChanged() override;
     void toolReset(bool to_initial) override;
-    void setDefaults(const rtengine::procparams::ProcParams *pp) override;
+    void setDefaults(const art::engine::procparams::ProcParams *pp) override;
 
     void setEditProvider(EditDataProvider *provider) override;
 
@@ -155,13 +155,13 @@ public:
     void switchOffEditMode() override;
 
     // TweakOperator interface
-    void tweakParams(rtengine::procparams::ProcParams &pparams) override;
+    void tweakParams(art::engine::procparams::ProcParams &pparams) override;
 
     void adjusterChanged(Adjuster *a, double newval) override;
 
-    rtengine::ProcEvent EvSpotEnabled;
-    rtengine::ProcEvent EvSpotEnabledOPA; // used to toggle-on the Spot 'On
+    art::engine::ProcEvent EvSpotEnabled;
+    art::engine::ProcEvent EvSpotEnabledOPA; // used to toggle-on the Spot 'On
                                           // Preview Adjustment' mode
-    rtengine::ProcEvent EvSpotEntry;
-    rtengine::ProcEvent EvSpotEntryOPA;
+    art::engine::ProcEvent EvSpotEntry;
+    art::engine::ProcEvent EvSpotEntryOPA;
 };

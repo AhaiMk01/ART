@@ -38,7 +38,7 @@
 #include "sleef.h"
 #include "stdimagesource.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -130,7 +130,7 @@ bool generate_area_mask(int ox, int oy, int width, int height,
 
             min_feather = std::min(a_min, b_min);
             global_min_feather =
-                rtengine::min<double>(global_min_feather, min_feather);
+                art::engine::min<double>(global_min_feather, min_feather);
 
             const auto get = [&](int x, int y) -> Coord {
                 PolarCoord p(Coord(x, y));
@@ -190,7 +190,7 @@ bool generate_area_mask(int ox, int oy, int width, int height,
             min_feather = polyFill(shape_mask, global_mask.width(),
                                    global_mask.height(), v, color);
             global_min_feather =
-                rtengine::min<double>(global_min_feather, min_feather);
+                art::engine::min<double>(global_min_feather, min_feather);
 
             radius = std::max(int(area->feather / 100.0 * min_feather), 1);
 
@@ -212,7 +212,7 @@ bool generate_area_mask(int ox, int oy, int width, int height,
                               100.;
             float color_diff = color_end - color_start;
             float half_feather =
-                area->feather * rtengine::norm2<double>(width, height) / 200.0;
+                area->feather * art::engine::norm2<double>(width, height) / 200.0;
             float feather = 2 * half_feather;
             int w = global_mask.width();
             int h = global_mask.height();
@@ -286,7 +286,7 @@ bool generate_area_mask(int ox, int oy, int width, int height,
                         *(g++) = fgcolor;
                         ++s;
                     } else {
-                        *g = rtengine::min<float>(*g + *(s++), 1.);
+                        *g = art::engine::min<float>(*g + *(s++), 1.);
                         ++g;
                     }
                 }
@@ -321,7 +321,7 @@ bool generate_area_mask(int ox, int oy, int width, int height,
                         *(g++) = bgcolor;
                         ++s;
                     } else {
-                        *g = rtengine::max<float>(*g - (1. - *(s++)), 0.);
+                        *g = art::engine::max<float>(*g - (1. - *(s++)), 0.);
                         ++g;
                     }
                 }
@@ -812,7 +812,7 @@ bool mask_postprocess(int width, int height, float scale,
                 threshold[y][x] = mask[y][x] > 1e-4f ? 1.f : fillval;
             }
         }
-        rtengine::guidedFilter(guide, mask, mask, radius, epsilon, multithread);
+        art::engine::guidedFilter(guide, mask, mask, radius, epsilon, multithread);
 #ifdef _OPENMP
 #pragma omp parallel for if (multithread)
 #endif
@@ -834,7 +834,7 @@ bool mask_postprocess(int width, int height, float scale,
 
 LinkedMaskManager::LinkedMaskManager() {}
 
-void LinkedMaskManager::init(const rtengine::ProcParams &pparams)
+void LinkedMaskManager::init(const art::engine::ProcParams &pparams)
 {
     masks_.clear();
     needed_.clear();
@@ -1174,9 +1174,9 @@ bool generateMasks(Imagefloat *rgb, const Glib::ustring &toolname,
         const float epsilon = 0.001f;
         int r2 = 10.f / scale;
         if (r2 > 0) {
-            rtengine::guidedFilter(guide, guide, guide, r2, 0.01f, multithread);
+            art::engine::guidedFilter(guide, guide, guide, r2, 0.01f, multithread);
         }
-        rtengine::guidedFilter(guide, LL, LL, radius, epsilon, multithread);
+        art::engine::guidedFilter(guide, LL, LL, radius, epsilon, multithread);
 
 #if 0
         if (W > 300) {
@@ -1308,11 +1308,11 @@ bool generateMasks(Imagefloat *rgb, const Glib::ustring &toolname,
                 int r1 = max(int(4 / scale * blur + 0.5), 1);
                 int r2 = max(int(25 / scale * blur + 0.5), 1);
                 if (abmask) {
-                    rtengine::guidedFilter(guide, (*abmask)[i], (*abmask)[i],
+                    art::engine::guidedFilter(guide, (*abmask)[i], (*abmask)[i],
                                            r1, 0.001, multithread);
                 }
                 if (Lmask) {
-                    rtengine::guidedFilter(guide, (*Lmask)[i], (*Lmask)[i], r2,
+                    art::engine::guidedFilter(guide, (*Lmask)[i], (*Lmask)[i], r2,
                                            0.0001, multithread);
                 }
             }
@@ -1664,4 +1664,4 @@ bool getDeltaEColor(Imagefloat *rgb, int x, int y, int offset_x, int offset_y,
     return true;
 }
 
-} // namespace rtengine
+}} // namespace art::engine

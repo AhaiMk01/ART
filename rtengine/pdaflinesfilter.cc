@@ -23,7 +23,7 @@
 #include "settings.h"
 #include <iostream>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -290,4 +290,4 @@ int PDAFLinesFilter::mark(array2D<float> &rawData, PixelsMap &bpMap)
     return found;
 }
 
-} // namespace rtengine
+}} // namespace art::engine

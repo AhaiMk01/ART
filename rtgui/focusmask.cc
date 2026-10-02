@@ -31,7 +31,7 @@ void addFocusMask(const unsigned char *src, unsigned char *dst, int W, int H,
                   int src_stride, int dst_stride, int src_offset,
                   int dst_offset)
 {
-    using rtengine::SQR;
+    using art::engine::SQR;
     auto pix = dst;
     auto pixWrkSpace = const_cast<unsigned char *>(src);
 

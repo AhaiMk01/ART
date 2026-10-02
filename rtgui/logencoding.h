@@ -25,22 +25,22 @@
 
 class LogEncoding: public ToolParamBlock,
                    public AdjusterListener,
-                   public rtengine::AutoLogListener,
+                   public art::engine::AutoLogListener,
                    public FoldableToolPanel {
 public:
     LogEncoding();
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
 
     void adjusterChanged(Adjuster *a, double newval) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
     void enabledChanged() override;
 
     void logEncodingChanged(
-        const rtengine::procparams::LogEncodingParams &params) override;
+        const art::engine::procparams::LogEncodingParams &params) override;
     void autocomputeToggled();
 
     void toolReset(bool to_initial) override;
@@ -58,21 +58,21 @@ private:
     Gtk::CheckButton *satcontrol;
     Adjuster *highlightCompression;
 
-    rtengine::ProcEvent EvEnabled;
-    rtengine::ProcEvent EvAuto;
-    rtengine::ProcEvent EvAutoGainOn;
-    rtengine::ProcEvent EvAutoGainOff;
-    rtengine::ProcEvent EvAutoBatch;
-    rtengine::ProcEvent EvGain;
-    rtengine::ProcEvent EvGainAuto;
-    rtengine::ProcEvent EvTargetGray;
-    rtengine::ProcEvent EvBlackEv;
-    rtengine::ProcEvent EvWhiteEv;
-    rtengine::ProcEvent EvRegularization;
-    rtengine::ProcEvent EvSatControl;
-    rtengine::ProcEvent EvHLCompression;
+    art::engine::ProcEvent EvEnabled;
+    art::engine::ProcEvent EvAuto;
+    art::engine::ProcEvent EvAutoGainOn;
+    art::engine::ProcEvent EvAutoGainOff;
+    art::engine::ProcEvent EvAutoBatch;
+    art::engine::ProcEvent EvGain;
+    art::engine::ProcEvent EvGainAuto;
+    art::engine::ProcEvent EvTargetGray;
+    art::engine::ProcEvent EvBlackEv;
+    art::engine::ProcEvent EvWhiteEv;
+    art::engine::ProcEvent EvRegularization;
+    art::engine::ProcEvent EvSatControl;
+    art::engine::ProcEvent EvHLCompression;
 
     sigc::connection autoconn;
 
-    rtengine::procparams::LogEncodingParams initial_params;
+    art::engine::procparams::LogEncodingParams initial_params;
 };

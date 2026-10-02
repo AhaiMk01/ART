@@ -40,28 +40,31 @@
 #include "iccstore.h"
 #include "rt_math.h"
 
-namespace rtengine {
+namespace art { namespace engine {
+
+
+
 extern const Settings *settings;
-}
+
 
 namespace {
-using rtengine::CLIP;
-using rtengine::Color;
-using rtengine::ColorTemp;
-using rtengine::Coord2D;
-using rtengine::findMinMaxPercentile;
-using rtengine::ICCStore;
-using rtengine::Imagefloat;
-using rtengine::ImageSource;
-using rtengine::MAXVALF;
-using rtengine::settings;
-using rtengine::TMatrix;
-using rtengine::procparams::ColorManagementParams;
-using rtengine::procparams::FilmNegativeParams;
-using rtengine::procparams::RAWParams;
-using RGB = rtengine::procparams::FilmNegativeParams::RGB;
+using art::engine::CLIP;
+using art::engine::Color;
+using art::engine::ColorTemp;
+using art::engine::Coord2D;
+using art::engine::findMinMaxPercentile;
+using art::engine::ICCStore;
+using art::engine::Imagefloat;
+using art::engine::ImageSource;
+using art::engine::MAXVALF;
+using art::engine::settings;
+using art::engine::TMatrix;
+using art::engine::procparams::ColorManagementParams;
+using art::engine::procparams::FilmNegativeParams;
+using art::engine::procparams::RAWParams;
+using RGB = art::engine::procparams::FilmNegativeParams::RGB;
 
-Coord2D translateCoord(rtengine::ImProcFunctions &ipf, int fw, int fh, int x,
+Coord2D translateCoord(art::engine::ImProcFunctions &ipf, int fw, int fh, int x,
                        int y)
 {
 
@@ -76,9 +79,9 @@ Coord2D translateCoord(rtengine::ImProcFunctions &ipf, int fw, int fh, int x,
 }
 
 void getSpotAvgMax(ImageSource *imgsrc, ColorTemp currWB,
-                   const rtengine::procparams::ProcParams &params, Coord2D p,
+                   const art::engine::procparams::ProcParams &params, Coord2D p,
                    int tr, int spotSize, RGB &avg, RGB &max,
-                   rtengine::gpu::Context *ctx)
+                   art::engine::gpu::Context *ctx)
 {
     int x1 = MAX(0, (int)p.x - spotSize / 2);
     int y1 = MAX(0, (int)p.y - spotSize / 2);
@@ -89,7 +92,7 @@ void getSpotAvgMax(ImageSource *imgsrc, ColorTemp currWB,
                y1 + spotSize / 2);
     }
 
-    rtengine::Imagefloat spotImg(spotSize, spotSize);
+    art::engine::Imagefloat spotImg(spotSize, spotSize);
     imgsrc->getImage(currWB, tr, &spotImg, pp, params.exposure, params.raw);
 
     auto avgMax = [spotSize, &spotImg](RGB &avg, RGB &max) -> void {
@@ -118,7 +121,7 @@ void getSpotAvgMax(ImageSource *imgsrc, ColorTemp currWB,
     };
 
     if (params.filmNegative.colorSpace ==
-        rtengine::FilmNegativeParams::ColorSpace::INPUT) {
+        art::engine::FilmNegativeParams::ColorSpace::INPUT) {
         avgMax(avg, max);
     } else {
         // Convert spot image to current working space
@@ -139,10 +142,10 @@ void getSpotAvgMax(ImageSource *imgsrc, ColorTemp currWB,
     }
 }
 
-void calcMedians(const rtengine::Imagefloat *input, int x1, int y1, int x2,
+void calcMedians(const art::engine::Imagefloat *input, int x1, int y1, int x2,
                  int y2, float &rmed, float &gmed, float &bmed)
 {
-    using rtengine::findMinMaxPercentile;
+    using art::engine::findMinMaxPercentile;
 
     // Channel vectors to calculate medians
     std::vector<float> rv, gv, bv;
@@ -166,7 +169,7 @@ void calcMedians(const rtengine::Imagefloat *input, int x1, int y1, int x2,
     findMinMaxPercentile(bv.data(), bv.size(), 0.5f, bmed, 0.5f, bmed, true);
 }
 
-RGB getMedians(const rtengine::Imagefloat *input, int borderPercent)
+RGB getMedians(const art::engine::Imagefloat *input, int borderPercent)
 {
     float rmed, gmed, bmed;
     // Cut 20% border from medians calculation. It will probably contain outlier
@@ -252,9 +255,9 @@ bool doProcess(Imagefloat *input, Imagefloat *output,
 
     // Apply channel exponents to reference input values, and compute suitable
     // multipliers in order to reach reference output values.
-    float rmult = refOut.r / pow_F(rtengine::max(refIn.r, 1.f), rexp);
-    float gmult = refOut.g / pow_F(rtengine::max(refIn.g, 1.f), gexp);
-    float bmult = refOut.b / pow_F(rtengine::max(refIn.b, 1.f), bexp);
+    float rmult = refOut.r / pow_F(art::engine::max(refIn.r, 1.f), rexp);
+    float gmult = refOut.g / pow_F(art::engine::max(refIn.g, 1.f), gexp);
+    float bmult = refOut.b / pow_F(art::engine::max(refIn.b, 1.f), bexp);
 
 #ifdef ART_SIMD
     const vfloat clipv = F2V(MAXVALF);
@@ -302,7 +305,7 @@ bool doProcess(Imagefloat *input, Imagefloat *output,
 
 } // namespace
 
-bool rtengine::ImProcFunctions::filmNegativeProcess(Imagefloat *input,
+bool art::engine::ImProcFunctions::filmNegativeProcess(Imagefloat *input,
                                                     Imagefloat *output,
                                                     FilmNegativeParams &fnp,
                                                     const RAWParams &rawParams,
@@ -347,9 +350,9 @@ bool rtengine::ImProcFunctions::filmNegativeProcess(Imagefloat *input,
                            bm);
 
         float rm2, gm2, bm2;
-        imgsrc->getWBMults(rtengine::ColorTemp(3500., 1., 1., "Custom"),
+        imgsrc->getWBMults(art::engine::ColorTemp(3500., 1., 1., "Custom"),
                            params->raw, scale_mul, autoGainComp, rm2, gm2, bm2);
-        float mg = rtengine::max(rm2, gm2, bm2);
+        float mg = art::engine::max(rm2, gm2, bm2);
         rm2 /= mg;
         gm2 /= mg;
         bm2 /= mg;
@@ -396,8 +399,8 @@ bool rtengine::ImProcFunctions::filmNegativeProcess(Imagefloat *input,
     return paramsUpdated;
 }
 
-void rtengine::ImProcFunctions::filmNegativeProcess(
-    rtengine::Imagefloat *input, rtengine::Imagefloat *output,
+void art::engine::ImProcFunctions::filmNegativeProcess(
+    art::engine::Imagefloat *input, art::engine::Imagefloat *output,
     const procparams::FilmNegativeParams &params)
 {
     // BENCHFUNMICRO
@@ -411,7 +414,7 @@ void rtengine::ImProcFunctions::filmNegativeProcess(
     doProcess(input, output, params, this->params->icm, refIn, refOut);
 }
 
-bool rtengine::ImProcCoordinator::getFilmNegativeSpot(int x, int y,
+bool art::engine::ImProcCoordinator::getFilmNegativeSpot(int x, int y,
                                                       const int spotSize,
                                                       RGB &refInput,
                                                       RGB &refOutput)
@@ -434,13 +437,13 @@ bool rtengine::ImProcCoordinator::getFilmNegativeSpot(int x, int y,
 
     float rmult =
         params.filmNegative.refOutput.r /
-        pow_F(rtengine::max(params.filmNegative.refInput.r, 1.f), rexp);
+        pow_F(art::engine::max(params.filmNegative.refInput.r, 1.f), rexp);
     float gmult =
         params.filmNegative.refOutput.g /
-        pow_F(rtengine::max(params.filmNegative.refInput.g, 1.f), gexp);
+        pow_F(art::engine::max(params.filmNegative.refInput.g, 1.f), gexp);
     float bmult =
         params.filmNegative.refOutput.b /
-        pow_F(rtengine::max(params.filmNegative.refInput.b, 1.f), bexp);
+        pow_F(art::engine::max(params.filmNegative.refInput.b, 1.f), bexp);
 
     refInput = avg;
 
@@ -454,7 +457,7 @@ bool rtengine::ImProcCoordinator::getFilmNegativeSpot(int x, int y,
 // ---------- >>> legacy mode >>> ---------------
 
 // For backwards compatibility with profiles saved by RT 5.7 - 5.8
-void rtengine::Thumbnail::processFilmNegative(
+void art::engine::Thumbnail::processFilmNegative(
     const procparams::ProcParams &params, const Imagefloat *baseImg,
     const int rwidth, const int rheight)
 {
@@ -556,7 +559,7 @@ void rtengine::Thumbnail::processFilmNegative(
 
 // For backwards compatibility with intermediate dev version (see
 // filmneg_stable_mults branch)
-void rtengine::Thumbnail::processFilmNegativeV2(
+void art::engine::Thumbnail::processFilmNegativeV2(
     const procparams::ProcParams &params, const Imagefloat *baseImg,
     const int rwidth, const int rheight)
 {
@@ -703,3 +706,6 @@ void rtengine::Thumbnail::processFilmNegativeV2(
 }
 
 // ----------------- <<< legacy mode <<< ------------
+
+
+} } // namespace art::engine

@@ -19,7 +19,7 @@
  */
 #pragma once
 
-namespace rtengine {
+namespace art { namespace engine {
 
 // Bradford transform between illuminants
 constexpr float d65_d50[3][3] = {{0.9555766, -0.0230393, 0.0631636},
@@ -166,4 +166,4 @@ inline void to_float_matrix(const double dm[3][3], float fm[3][3])
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

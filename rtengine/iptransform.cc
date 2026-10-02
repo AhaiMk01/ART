@@ -29,7 +29,7 @@
 #include "rt_math.h"
 #include "rtlensfun.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace {
 
@@ -96,7 +96,7 @@ template <class T1, class T2> inline T1 CLIPTOC(T1 a, T2 b, T2 c, bool &clipped)
     }
 }
 
-void encode(rtengine::Imagefloat *src, rtengine::Imagefloat *dest,
+void encode(art::engine::Imagefloat *src, art::engine::Imagefloat *dest,
             bool multiThread)
 {
     LUTf lut(65536);
@@ -126,7 +126,7 @@ void encode(rtengine::Imagefloat *src, rtengine::Imagefloat *dest,
     }
 }
 
-void decode(rtengine::Imagefloat *img, bool multiThread)
+void decode(art::engine::Imagefloat *img, bool multiThread)
 {
     LUTf lut(65536);
     for (int i = 0; i < 65536; ++i) {
@@ -157,7 +157,7 @@ void decode(rtengine::Imagefloat *img, bool multiThread)
 
 #ifdef ART_SIMD
 
-inline void interpolateTransformCubic(rtengine::Imagefloat *src, int xs, int ys,
+inline void interpolateTransformCubic(art::engine::Imagefloat *src, int xs, int ys,
                                       float Dx, float Dy, float &r, float &g,
                                       float &b)
 {
@@ -194,7 +194,7 @@ inline void interpolateTransformCubic(rtengine::Imagefloat *src, int xs, int ys,
 
 #else // ART_SIMD
 
-inline void interpolateTransformCubic(rtengine::Imagefloat *src, int xs, int ys,
+inline void interpolateTransformCubic(art::engine::Imagefloat *src, int xs, int ys,
                                       float Dx, float Dy, float &r, float &g,
                                       float &b)
 {
@@ -378,8 +378,8 @@ void get_rotation(const ProcParams *params, double &cost, double &sint)
         cost = 1.0;
         sint = 0.0;
     } else {
-        cost = cos(params->rotate.degree * rtengine::RT_PI / 180.0);
-        sint = sin(params->rotate.degree * rtengine::RT_PI / 180.0);
+        cost = cos(params->rotate.degree * art::engine::RT_PI / 180.0);
+        sint = sin(params->rotate.degree * art::engine::RT_PI / 180.0);
     }
 }
 
@@ -738,15 +738,15 @@ void calcGradientParams(int oW, int oH, const GradientParams &gradient,
     double gradient_span = gradient.feather / 100.0;
     double gradient_center_x = gradient.centerX / 200.0 + 0.5;
     double gradient_center_y = gradient.centerY / 200.0 + 0.5;
-    double gradient_angle = gradient.degree / 180.0 * rtengine::RT_PI;
+    double gradient_angle = gradient.degree / 180.0 * art::engine::RT_PI;
     // fprintf(stderr, "%f %f %f %f %f %d %d\n", gradient_stops, gradient_span,
     // gradient_center_x, gradient_center_y, gradient_angle, w, h);
 
-    // make 0.0 <= gradient_angle < 2 * rtengine::RT_PI
-    gradient_angle = fmod(gradient_angle, 2 * rtengine::RT_PI);
+    // make 0.0 <= gradient_angle < 2 * art::engine::RT_PI
+    gradient_angle = fmod(gradient_angle, 2 * art::engine::RT_PI);
 
     if (gradient_angle < 0.0) {
-        gradient_angle += 2.0 * rtengine::RT_PI;
+        gradient_angle += 2.0 * art::engine::RT_PI;
     }
 
     gp.bright_top = false;
@@ -760,26 +760,26 @@ void calcGradientParams(int oW, int oH, const GradientParams &gradient,
         // (actually we could transpose only for 90 degrees, but this way we
         // avoid division with extremely small numbers
         gp.transpose = true;
-        gradient_angle += 0.5 * rtengine::RT_PI;
+        gradient_angle += 0.5 * art::engine::RT_PI;
         double gxc = gradient_center_x;
         gradient_center_x = 1.0 - gradient_center_y;
         gradient_center_y = gxc;
     }
 
-    gradient_angle = fmod(gradient_angle, 2 * rtengine::RT_PI);
+    gradient_angle = fmod(gradient_angle, 2 * art::engine::RT_PI);
 
-    if (gradient_angle > 0.5 * rtengine::RT_PI &&
-        gradient_angle < rtengine::RT_PI) {
-        gradient_angle += rtengine::RT_PI;
+    if (gradient_angle > 0.5 * art::engine::RT_PI &&
+        gradient_angle < art::engine::RT_PI) {
+        gradient_angle += art::engine::RT_PI;
         gp.bright_top = true;
-    } else if (gradient_angle >= rtengine::RT_PI &&
-               gradient_angle < 1.5 * rtengine::RT_PI) {
-        gradient_angle -= rtengine::RT_PI;
+    } else if (gradient_angle >= art::engine::RT_PI &&
+               gradient_angle < 1.5 * art::engine::RT_PI) {
+        gradient_angle -= art::engine::RT_PI;
         gp.bright_top = true;
     }
 
     if (fabs(gradient_angle) < 0.001 ||
-        fabs(gradient_angle - 2 * rtengine::RT_PI) < 0.001) {
+        fabs(gradient_angle - 2 * art::engine::RT_PI) < 0.001) {
         gradient_angle = 0;
         gp.angle_is_zero = true;
     }
@@ -834,7 +834,7 @@ float calcGradientFactor(const struct grad_params &gp, int x, int y)
                 val = 1.f - val;
             }
 
-            val *= rtengine::RT_PI_F_2;
+            val *= art::engine::RT_PI_F_2;
 
             if (gp.scale < 1.f) {
                 val = pow3(xsinf(val));
@@ -858,7 +858,7 @@ float calcGradientFactor(const struct grad_params &gp, int x, int y)
 
             val = gp.bright_top ? 1.f - val : val;
 
-            val *= rtengine::RT_PI_F_2;
+            val *= art::engine::RT_PI_F_2;
 
             if (gp.scale < 1.f) {
                 val = pow3(xsinf(val));
@@ -1033,7 +1033,7 @@ float calcPCVignetteFactor(const pcv_params &pcv, int x, int y)
     if (dist >= dist_oe) {
         val = pcv.scale;
     } else {
-        val = rtengine::RT_PI_F_2 * (dist - dist_ie) / (dist_oe - dist_ie);
+        val = art::engine::RT_PI_F_2 * (dist - dist_ie) / (dist_oe - dist_ie);
 
         if (pcv.scale < 1.f) {
             val = pow4(xcosf(val));
@@ -1556,4 +1556,4 @@ void ImProcFunctions::creativeGradients(Imagefloat *img)
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

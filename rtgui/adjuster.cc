@@ -686,19 +686,19 @@ void Adjuster::editedToggled()
     eventPending = false;
 }
 
-void Adjuster::trimValue(double &val) { val = rtengine::LIM(val, vMin, vMax); }
+void Adjuster::trimValue(double &val) { val = art::engine::LIM(val, vMin, vMax); }
 
 void Adjuster::trimValue(int &val)
 {
 
-    val = rtengine::LIM(val, static_cast<int>(vMin), static_cast<int>(vMax));
+    val = art::engine::LIM(val, static_cast<int>(vMin), static_cast<int>(vMax));
 }
 
 void Adjuster::trimValue(float &val)
 {
 
     val =
-        rtengine::LIM(val, static_cast<float>(vMin), static_cast<float>(vMax));
+        art::engine::LIM(val, static_cast<float>(vMin), static_cast<float>(vMax));
 }
 
 inline double Adjuster::getSliderValue()

@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _FILTERPANEL_
-#define _FILTERPANEL_
+#pragma once
 
 #include "dateentry.h"
 #include "exiffiltersettings.h"
@@ -78,5 +77,3 @@ public:
     void valueChanged();
     void setEnabled(bool enabledState) { enabled->set_active(enabledState); }
 };
-
-#endif

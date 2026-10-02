@@ -29,9 +29,9 @@ class LensProfilePanel: public ToolParamBlock, public FoldableToolPanel {
 public:
     LensProfilePanel();
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
-    void setRawMeta(bool raw, const rtengine::FramesMetaData *pMeta);
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
+    void setRawMeta(bool raw, const art::engine::FramesMetaData *pMeta);
 
     void onLCPFileChanged();
     void onUseDistChanged();
@@ -42,7 +42,7 @@ public:
     void onLensfunLensChanged();
     void onCorrModeChanged(const Gtk::RadioButton *rbChanged);
 
-    void setDefaults(const rtengine::procparams::ProcParams *def) override;
+    void setDefaults(const art::engine::procparams::ProcParams *def) override;
     void toolReset(bool to_initial) override;
 
 private:
@@ -105,7 +105,7 @@ private:
     sigc::connection conUseCA;
     // bool allowFocusDep;
     bool isRaw;
-    const rtengine::FramesMetaData *metadata;
+    const art::engine::FramesMetaData *metadata;
 
     Gtk::Grid *const modesGrid;
     Gtk::Grid *const distGrid;
@@ -124,7 +124,7 @@ private:
     Gtk::CheckButton *const ckbUseVign;
     Gtk::CheckButton *const ckbUseCA;
 
-    rtengine::procparams::LensProfParams initial_params;
+    art::engine::procparams::LensProfParams initial_params;
 
     static LFDbHelper *lf;
 };

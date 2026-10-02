@@ -24,7 +24,7 @@
 #include <string>
 #include <vector>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 // code taken from
 // https://en.wikibooks.org/wiki/Algorithm_Implementation/Miscellaneous/Base64,
@@ -33,4 +33,4 @@ namespace rtengine {
 std::string base64encode(const std::vector<uint8_t> &input);
 std::vector<uint8_t> base64decode(const std::string &input);
 
-} // namespace rtengine
+}} // namespace art::engine

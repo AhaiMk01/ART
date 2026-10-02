@@ -23,8 +23,7 @@
  * Nothing here ever throws or aborts: a false/null return means "run the
  * CPU path instead."
  */
-#ifndef ART_GPU_GPU_H
-#define ART_GPU_GPU_H
+#pragma once
 
 #include "../noncopyable.h"
 
@@ -32,7 +31,7 @@
 #include <string>
 #include <vector>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class Imagefloat;
 
@@ -60,7 +59,7 @@ struct DeviceInfo {
 /* Safe to call before init(). */
 std::vector<DeviceInfo> enumerateDevices();
 
-/* Called once from rtengine::init(); opening the device itself is lazy.
+/* Called once from art::engine::init(); opening the device itself is lazy.
  * device_preference: "" or "off" disables; "auto" picks the best
  * non-software device; a decimal integer selects by index; anything else
  * matches a device-name substring case-insensitively.
@@ -183,6 +182,4 @@ bool decline(Imagefloat *img);
 } // namespace ops
 
 } // namespace gpu
-} // namespace rtengine
-
-#endif // ART_GPU_GPU_H
+}} // namespace art::engine

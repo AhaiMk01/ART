@@ -43,7 +43,7 @@ protected:
     FormatChangeListener *listener;
     Gtk::CheckButton *savesPP;
     std::vector<
-        std::pair<std::string, rtengine::ImageIOManager::SaveFormatInfo>>
+        std::pair<std::string, art::engine::ImageIOManager::SaveFormatInfo>>
         extrafmts_;
 
 public:

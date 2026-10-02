@@ -31,7 +31,7 @@
 #define CLIPD(a) ((a) > 0.0 ? ((a) < 1.0 ? (a) : 1.0) : 0.0)
 #define MAXR(a, b) ((a) > (b) ? (a) : (b))
 
-namespace rtengine {
+namespace art { namespace engine {
 
 #ifdef _DEBUG
 extern const Settings *settings;
@@ -368,7 +368,7 @@ void Ciecam02::Aab_to_rgbfloat(vfloat &r, vfloat &g, vfloat &b, vfloat A,
 void Ciecam02::calculate_abfloat(float &aa, float &bb, float h, float e,
                                  float t, float nbb, float a)
 {
-    float2 sincosval = xsincosf(h * rtengine::RT_PI_F_180);
+    float2 sincosval = xsincosf(h * art::engine::RT_PI_F_180);
     float sinh = sincosval.x;
     float cosh = sincosval.y;
     float x = (a / nbb) + 0.305f;
@@ -408,7 +408,7 @@ void Ciecam02::calculate_abfloat(float &aa, float &bb, float h, float e,
 void Ciecam02::calculate_abfloat(vfloat &aa, vfloat &bb, vfloat h, vfloat e,
                                  vfloat t, vfloat nbb, vfloat a)
 {
-    vfloat2 sincosval = xsincosf((h * F2V(rtengine::RT_PI)) / F2V(180.0f));
+    vfloat2 sincosval = xsincosf((h * F2V(art::engine::RT_PI)) / F2V(180.0f));
     vfloat sinh = sincosval.x;
     vfloat cosh = sincosval.y;
     vfloat x = (a / nbb) + F2V(0.305f);
@@ -536,7 +536,7 @@ void Ciecam02::xyz2jchqms_ciecam02float(float &J, float &C, float &h, float &Q,
     myh = xatan2f(cb, ca);
 
     if (myh < 0.0f) {
-        myh += (2.f * rtengine::RT_PI);
+        myh += (2.f * art::engine::RT_PI);
     }
 
     a = ((2.0f * rpa) + gpa + (0.05f * bpa) - 0.305f) * nbb;
@@ -557,7 +557,7 @@ void Ciecam02::xyz2jchqms_ciecam02float(float &J, float &C, float &h, float &Q,
     M = C * pfl;
     Q = (Q == 0.f ? 0.0001f : Q); // avoid division by zero
     s = 100.0f * sqrtf(M / Q);
-    h = (myh * 180.f) / (float)rtengine::RT_PI;
+    h = (myh * 180.f) / (float)art::engine::RT_PI;
 }
 #ifdef ART_SIMD
 void Ciecam02::xyz2jchqms_ciecam02float(
@@ -595,7 +595,7 @@ void Ciecam02::xyz2jchqms_ciecam02float(
     cb = F2V(0.11111111f) * (rpa + gpa - (bpa + bpa));
 
     vfloat myh = xatan2f(cb, ca);
-    vfloat temp = F2V(rtengine::RT_PI);
+    vfloat temp = F2V(art::engine::RT_PI);
     temp += temp;
     temp += myh;
     myh = vself(vmaskf_lt(myh, ZEROV), temp, myh);
@@ -615,7 +615,7 @@ void Ciecam02::xyz2jchqms_ciecam02float(
     M = C * pfl;
     Q = vmaxf(Q, F2V(0.0001f)); // avoid division by zero
     s = F2V(100.0f) * vsqrtf(M / Q);
-    h = (myh * F2V(180.f)) / F2V(rtengine::RT_PI);
+    h = (myh * F2V(180.f)) / F2V(art::engine::RT_PI);
 }
 #endif
 
@@ -668,7 +668,7 @@ void Ciecam02::xyz2jch_ciecam02float(float &J, float &C, float &h, float aw,
     myh = xatan2f(cb, ca);
 
     if (myh < 0.0f) {
-        myh += (2.f * rtengine::RT_PI);
+        myh += (2.f * art::engine::RT_PI);
     }
 
     a = ((2.0f * rpa) + gpa + (0.05f * bpa) - 0.305f) * nbb;
@@ -685,7 +685,7 @@ void Ciecam02::xyz2jch_ciecam02float(float &J, float &C, float &h, float aw,
     C = pow_F(t, 0.9f) * J * pow1;
 
     J *= J * 100.0f;
-    h = (myh * 180.f) / (float)rtengine::RT_PI;
+    h = (myh * 180.f) / (float)art::engine::RT_PI;
 }
 
 void Ciecam02::jch2xyz_ciecam02float(float &x, float &y, float &z, float J,
@@ -704,7 +704,7 @@ void Ciecam02::jch2xyz_ciecam02float(float &x, float &y, float &z, float J,
     //    gamu = 1;
     xyz_to_cat02float(rw, gw, bw, xw, yw, zw);
     e = ((961.53846f) * nc * ncb) *
-        (xcosf(h * rtengine::RT_PI_F_180 + 2.0f) + 3.8f);
+        (xcosf(h * art::engine::RT_PI_F_180 + 2.0f) + 3.8f);
 
 #ifdef ART_SIMD
     vfloat powinv1 =
@@ -759,7 +759,7 @@ void Ciecam02::jch2xyz_ciecam02float(vfloat &x, vfloat &y, vfloat &z, vfloat J,
     vfloat e, t;
     xyz_to_cat02float(rw, gw, bw, xw, yw, zw);
     e = ((F2V(961.53846f))*nc * ncb) *
-        (xcosf(((h * F2V(rtengine::RT_PI)) / F2V(180.0f)) + F2V(2.0f)) +
+        (xcosf(((h * F2V(art::engine::RT_PI)) / F2V(180.0f)) + F2V(2.0f)) +
          F2V(3.8f));
     a = pow_F(J / F2V(100.0f), reccmcz) * aw;
     t = pow_F(F2V(10.f) * C / (vsqrtf(J) * pow1), F2V(1.1111111f));
@@ -840,4 +840,4 @@ vfloat Ciecam02::inverse_nonlinear_adaptationfloat(vfloat c, vfloat fl)
 #endif
 // end CIECAM Billy Bigg
 
-} // namespace rtengine
+}} // namespace art::engine

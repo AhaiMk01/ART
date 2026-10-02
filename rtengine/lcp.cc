@@ -31,13 +31,16 @@
 
 #include "settings.h"
 
-namespace rtengine {
+namespace art { namespace engine {
+
+
+
 
 extern const Settings *settings;
 
-}
 
-class rtengine::LCPProfile::LCPPersModel {
+
+class art::engine::LCPProfile::LCPPersModel {
 public:
     LCPPersModel();
     bool hasModeData(LCPCorrectionMode mode) const;
@@ -54,7 +57,7 @@ public:
     LCPModelCommon vignette; // vignette (may be empty)
 };
 
-rtengine::LCPModelCommon::LCPModelCommon()
+art::engine::LCPModelCommon::LCPModelCommon()
     : foc_len_x(-1.0f), foc_len_y(-1.0f), img_center_x(0.5f),
       img_center_y(0.5f), param{{}}, scale_factor(1.0f), mean_error(0.0),
       bad_error(false), x0(0.0f), y0(0.0f), fx(0.0f), fy(0.0f), rfx(0.0f),
@@ -62,12 +65,12 @@ rtengine::LCPModelCommon::LCPModelCommon()
 {
 }
 
-bool rtengine::LCPModelCommon::empty() const
+bool art::engine::LCPModelCommon::empty() const
 {
     return param[0] == 0.0f && param[1] == 0.0f && param[2] == 0.0f;
 }
 
-void rtengine::LCPModelCommon::print() const
+void art::engine::LCPModelCommon::print() const
 {
     std::printf("focLen %g/%g; imgCenter %g/%g; scale %g; err %g\n", foc_len_x,
                 foc_len_y, img_center_x, img_center_y, scale_factor,
@@ -78,7 +81,7 @@ void rtengine::LCPModelCommon::print() const
 }
 
 // weighted merge two parameters
-void rtengine::LCPModelCommon::merge(const LCPModelCommon &a,
+void art::engine::LCPModelCommon::merge(const LCPModelCommon &a,
                                      const LCPModelCommon &b, float facA)
 {
     const float facB = 1.0f - facA;
@@ -104,7 +107,7 @@ void rtengine::LCPModelCommon::merge(const LCPModelCommon &a,
                     2.0f * param[0] * param[2] - 3.0f * param0Sqr * param[1];
 }
 
-void rtengine::LCPModelCommon::prepareParams(
+void art::engine::LCPModelCommon::prepareParams(
     int fullWidth, int fullHeight, float focalLength, float focalLength35mm,
     float sensorFormatFactor, bool swapXY, bool mirrorX, bool mirrorY)
 {
@@ -143,12 +146,12 @@ void rtengine::LCPModelCommon::prepareParams(
     // %g\n",fullWidth,x0,fullHeight,y0, imgYCenter);
 }
 
-rtengine::LCPProfile::LCPPersModel::LCPPersModel()
+art::engine::LCPProfile::LCPPersModel::LCPPersModel()
     : focLen(0.f), focDist(0.f), aperture(0.f)
 {
 }
 
-bool rtengine::LCPProfile::LCPPersModel::hasModeData(
+bool art::engine::LCPProfile::LCPPersModel::hasModeData(
     LCPCorrectionMode mode) const
 {
     switch (mode) {
@@ -170,7 +173,7 @@ bool rtengine::LCPProfile::LCPPersModel::hasModeData(
     return false;
 }
 
-void rtengine::LCPProfile::LCPPersModel::print() const
+void art::engine::LCPProfile::LCPPersModel::print() const
 {
     std::printf("--- PersModel focLen %g; focDist %g; aperture %g\n", focLen,
                 focDist, aperture);
@@ -200,7 +203,7 @@ void rtengine::LCPProfile::LCPPersModel::print() const
     std::printf("\n");
 }
 
-rtengine::LCPProfile::LCPProfile(const Glib::ustring &fname)
+art::engine::LCPProfile::LCPProfile(const Glib::ustring &fname)
     : isFisheye(false), sensorFormatFactor(1.f), persModelCount(0),
       inCamProfiles(false), firstLIDone(false), inPerspect(false),
       inAlternateLensID(false), inAlternateLensNames(false), lastTag{},
@@ -252,7 +255,7 @@ rtengine::LCPProfile::LCPProfile(const Glib::ustring &fname)
     filterBadFrames(LCPCorrectionMode::CA, 1.5, 50);
 }
 
-rtengine::LCPProfile::~LCPProfile()
+art::engine::LCPProfile::~LCPProfile()
 {
     delete pCurPersModel;
 
@@ -261,7 +264,7 @@ rtengine::LCPProfile::~LCPProfile()
     }
 }
 
-void rtengine::LCPProfile::calcParams(LCPCorrectionMode mode, float focalLength,
+void art::engine::LCPProfile::calcParams(LCPCorrectionMode mode, float focalLength,
                                       float focusDist, float aperture,
                                       LCPModelCommon *pCorr1,
                                       LCPModelCommon *pCorr2,
@@ -479,7 +482,7 @@ void rtengine::LCPProfile::calcParams(LCPCorrectionMode mode, float focalLength,
     }
 }
 
-void rtengine::LCPProfile::print() const
+void art::engine::LCPProfile::print() const
 {
     std::printf("=== Profile %s\n", profileName.c_str());
     std::printf("Frames: %i, RAW: %i; Fisheye: %i; Sensorformat: %f\n",
@@ -492,7 +495,7 @@ void rtengine::LCPProfile::print() const
 
 // from all frames not marked as bad already, take average and filter out frames
 // with higher deviation than this if there are enough values
-int rtengine::LCPProfile::filterBadFrames(LCPCorrectionMode mode,
+int art::engine::LCPProfile::filterBadFrames(LCPCorrectionMode mode,
                                           double maxAvgDevFac,
                                           int minFramesLeft)
 {
@@ -515,7 +518,7 @@ int rtengine::LCPProfile::filterBadFrames(LCPCorrectionMode mode,
             }
 
             case LCPCorrectionMode::CA: {
-                err += rtengine::max(aPersModel[pm]->chromRG.mean_error,
+                err += art::engine::max(aPersModel[pm]->chromRG.mean_error,
                                      aPersModel[pm]->chromG.mean_error,
                                      aPersModel[pm]->chromBG.mean_error);
                 break;
@@ -581,7 +584,7 @@ int rtengine::LCPProfile::filterBadFrames(LCPCorrectionMode mode,
     return filtered;
 }
 
-void rtengine::LCPProfile::handle_text(const std::string &text)
+void art::engine::LCPProfile::handle_text(const std::string &text)
 {
     // Check if it contains non-whitespaces (there are several calls to this for
     // one tag unfortunately)
@@ -667,7 +670,7 @@ void rtengine::LCPProfile::handle_text(const std::string &text)
     }
 }
 
-void XMLCALL rtengine::LCPProfile::XmlStartHandler(void *pLCPProfile,
+void XMLCALL art::engine::LCPProfile::XmlStartHandler(void *pLCPProfile,
                                                    const char *el,
                                                    const char **attr)
 {
@@ -772,7 +775,7 @@ void XMLCALL rtengine::LCPProfile::XmlStartHandler(void *pLCPProfile,
     }
 }
 
-void XMLCALL rtengine::LCPProfile::XmlTextHandler(void *pLCPProfile,
+void XMLCALL art::engine::LCPProfile::XmlTextHandler(void *pLCPProfile,
                                                   const XML_Char *s, int len)
 {
     LCPProfile *const pProf = static_cast<LCPProfile *>(pLCPProfile);
@@ -787,7 +790,7 @@ void XMLCALL rtengine::LCPProfile::XmlTextHandler(void *pLCPProfile,
     }
 }
 
-void XMLCALL rtengine::LCPProfile::XmlEndHandler(void *pLCPProfile,
+void XMLCALL art::engine::LCPProfile::XmlEndHandler(void *pLCPProfile,
                                                  const char *el)
 {
     LCPProfile *const pProf = static_cast<LCPProfile *>(pLCPProfile);
@@ -832,13 +835,13 @@ void XMLCALL rtengine::LCPProfile::XmlEndHandler(void *pLCPProfile,
 }
 
 // Generates as singleton
-rtengine::LCPStore *rtengine::LCPStore::getInstance()
+art::engine::LCPStore *art::engine::LCPStore::getInstance()
 {
     static LCPStore instance_;
     return &instance_;
 }
 
-bool rtengine::LCPStore::isValidLCPFileName(const Glib::ustring &filename) const
+bool art::engine::LCPStore::isValidLCPFileName(const Glib::ustring &filename) const
 {
     if (!Glib::file_test(filename, Glib::FILE_TEST_EXISTS) ||
         Glib::file_test(filename, Glib::FILE_TEST_IS_DIR)) {
@@ -849,8 +852,8 @@ bool rtengine::LCPStore::isValidLCPFileName(const Glib::ustring &filename) const
     return pos > 0 && !filename.casefold().compare(pos, 4, ".lcp");
 }
 
-std::shared_ptr<rtengine::LCPProfile>
-rtengine::LCPStore::getProfile(const Glib::ustring &filename) const
+std::shared_ptr<art::engine::LCPProfile>
+art::engine::LCPStore::getProfile(const Glib::ustring &filename) const
 {
     if (filename.length() == 0 || !isValidLCPFileName(filename)) {
         return nullptr;
@@ -870,7 +873,7 @@ rtengine::LCPStore::getProfile(const Glib::ustring &filename) const
     return res;
 }
 
-Glib::ustring rtengine::LCPStore::getDefaultCommonDirectory() const
+Glib::ustring art::engine::LCPStore::getDefaultCommonDirectory() const
 {
     Glib::ustring dir;
 
@@ -896,10 +899,10 @@ Glib::ustring rtengine::LCPStore::getDefaultCommonDirectory() const
     return dir;
 }
 
-rtengine::LCPStore::LCPStore(unsigned int _cache_size): cache(_cache_size) {}
+art::engine::LCPStore::LCPStore(unsigned int _cache_size): cache(_cache_size) {}
 
 // if !vignette then geometric and CA
-rtengine::LCPMapper::LCPMapper(const std::shared_ptr<LCPProfile> &pProf,
+art::engine::LCPMapper::LCPMapper(const std::shared_ptr<LCPProfile> &pProf,
                                float focalLength, float focalLength35mm,
                                float focusDist, float aperture, bool vignette,
                                bool useCADistP, int fullWidth, int fullHeight,
@@ -951,9 +954,9 @@ rtengine::LCPMapper::LCPMapper(const std::shared_ptr<LCPProfile> &pProf,
     isFisheye = pProf->isFisheye;
 }
 
-bool rtengine::LCPMapper::isCACorrectionAvailable() const { return enableCA; }
+bool art::engine::LCPMapper::isCACorrectionAvailable() const { return enableCA; }
 
-void rtengine::LCPMapper::correctDistortion(double &x, double &y, int cx,
+void art::engine::LCPMapper::correctDistortion(double &x, double &y, int cx,
                                             int cy, double scale) const
 {
     x += cx;
@@ -1006,7 +1009,7 @@ void rtengine::LCPMapper::correctDistortion(double &x, double &y, int cx,
     y -= cy * scale;
 }
 
-void rtengine::LCPMapper::correctCA(double &x, double &y, int cx, int cy,
+void art::engine::LCPMapper::correctCA(double &x, double &y, int cx, int cy,
                                     int channel) const
 {
     if (!enableCA) {
@@ -1068,7 +1071,7 @@ void rtengine::LCPMapper::correctCA(double &x, double &y, int cx, int cy,
     y -= cy;
 }
 
-void rtengine::LCPMapper::processVignette(int width, int height,
+void art::engine::LCPMapper::processVignette(int width, int height,
                                           float **rawData) const
 {
 #ifdef _OPENMP
@@ -1080,7 +1083,7 @@ void rtengine::LCPMapper::processVignette(int width, int height,
     }
 }
 
-void rtengine::LCPMapper::processVignetteLine(int width, int y,
+void art::engine::LCPMapper::processVignetteLine(int width, int y,
                                               float *line) const
 {
     // No need for swapXY, since vignette is in RAW and always before rotation
@@ -1123,7 +1126,7 @@ void rtengine::LCPMapper::processVignetteLine(int width, int y,
     }
 }
 
-void rtengine::LCPMapper::processVignette3Channels(int width, int height,
+void art::engine::LCPMapper::processVignette3Channels(int width, int height,
                                                    float **rawData) const
 {
 #ifdef _OPENMP
@@ -1135,7 +1138,7 @@ void rtengine::LCPMapper::processVignette3Channels(int width, int height,
     }
 }
 
-void rtengine::LCPMapper::processVignetteLine3Channels(int width, int y,
+void art::engine::LCPMapper::processVignetteLine3Channels(int width, int y,
                                                        float *line) const
 {
     // No need for swapXY, since vignette is in RAW and always before rotation
@@ -1156,3 +1159,6 @@ void rtengine::LCPMapper::processVignetteLine3Channels(int width, int y,
         }
     }
 }
+
+
+} } // namespace art::engine

@@ -33,7 +33,7 @@
 #include "options.h"
 #include "pointermotionlistener.h"
 
-using rtengine::array2D;
+using art::engine::array2D;
 class HistogramArea;
 
 struct HistogramAreaIdleHelper {
@@ -59,7 +59,7 @@ public:
 class HistogramRGBArea: public Gtk::DrawingArea,
                         public BackBuffer,
                         protected HistogramScaling,
-                        public rtengine::NonCopyable {
+                        public art::engine::NonCopyable {
 private:
     IdleRegister idle_register;
 
@@ -162,7 +162,7 @@ public:
 class HistogramArea final: public Gtk::DrawingArea,
                            public BackBuffer,
                            private HistogramScaling,
-                           public rtengine::NonCopyable {
+                           public art::engine::NonCopyable {
 public:
     typedef sigc::signal<void, double> type_signal_factor_changed;
     typedef sigc::signal<void, float> SignalBrightnessChanged;
@@ -175,8 +175,8 @@ private:
     type_signal_factor_changed sigFactorChanged;
 
 protected:
-    LUTu rhist, ghist, bhist, lhist, chist;
-    LUTu rhistRaw, ghistRaw, bhistRaw, lhistRaw; // lhistRaw is unused?
+    art::engine::LUTu rhist, ghist, bhist, lhist, chist;
+    art::engine::LUTu rhistRaw, ghistRaw, bhistRaw, lhistRaw; // lhistRaw is unused?
     int vectorscope_scale;
     array2D<int> vect_hc, vect_hs;
     std::vector<unsigned char> vect_hc_buffer, vect_hs_buffer;
@@ -225,9 +225,9 @@ public:
     bool updatePointer(int r, int g, int b, const Glib::ustring &profile = "",
                        const Glib::ustring &profileW = "");
     void
-    update(const LUTu &histRed, const LUTu &histGreen, const LUTu &histBlue,
-           const LUTu &histLuma, const LUTu &histChroma, const LUTu &histRedRaw,
-           const LUTu &histGreenRaw, const LUTu &histBlueRaw,
+    update(const art::engine::LUTu &histRed, const art::engine::LUTu &histGreen, const art::engine::LUTu &histBlue,
+           const art::engine::LUTu &histLuma, const art::engine::LUTu &histChroma, const art::engine::LUTu &histRedRaw,
+           const art::engine::LUTu &histGreenRaw, const art::engine::LUTu &histBlueRaw,
            int vectorscopeScale, const array2D<int> &vectorscopeHC,
            const array2D<int> &vectorscopeHS, int waveformScale,
            const array2D<int> &waveformRed, const array2D<int> &waveformGreen,
@@ -247,9 +247,9 @@ public:
     type_signal_factor_changed signal_factor_changed();
 
 private:
-    void drawCurve(Cairo::RefPtr<Cairo::Context> &cr, const LUTu &data,
+    void drawCurve(Cairo::RefPtr<Cairo::Context> &cr, const art::engine::LUTu &data,
                    double scale, int hsize, int vsize);
-    void drawMarks(Cairo::RefPtr<Cairo::Context> &cr, const LUTu &data,
+    void drawMarks(Cairo::RefPtr<Cairo::Context> &cr, const art::engine::LUTu &data,
                    double scale, int hsize, int &ui, int &oi);
     void drawParade(Cairo::RefPtr<Cairo::Context> &cr, int hsize, int vsize);
     void drawVectorscope(Cairo::RefPtr<Cairo::Context> &cr, int hsize,
@@ -269,7 +269,7 @@ private:
 
     void updateRaw(Cairo::RefPtr<Cairo::Context> cr);
     void updateNonRaw(Cairo::RefPtr<Cairo::Context> cr);
-    void drawRawCurve(Cairo::RefPtr<Cairo::Context> &cr, LUTu &data,
+    void drawRawCurve(Cairo::RefPtr<Cairo::Context> &cr, art::engine::LUTu &data,
                       unsigned int ub, double scale, int hsize, int vsize);
 };
 
@@ -281,7 +281,7 @@ public:
 class HistogramPanel final: public Gtk::Grid,
                             public PointerMotionListener,
                             public DrawModeListener,
-                            public rtengine::NonCopyable {
+                            public art::engine::NonCopyable {
 protected:
     Gtk::Grid *gfxGrid;
     Gtk::Grid *buttonGrid;
@@ -339,9 +339,9 @@ public:
     ~HistogramPanel() override;
 
     void histogramChanged(
-        const LUTu &histRed, const LUTu &histGreen, const LUTu &histBlue,
-        const LUTu &histLuma, const LUTu &histChroma, const LUTu &histRedRaw,
-        const LUTu &histGreenRaw, const LUTu &histBlueRaw, int vectorscopeScale,
+        const art::engine::LUTu &histRed, const art::engine::LUTu &histGreen, const art::engine::LUTu &histBlue,
+        const art::engine::LUTu &histLuma, const art::engine::LUTu &histChroma, const art::engine::LUTu &histRedRaw,
+        const art::engine::LUTu &histGreenRaw, const art::engine::LUTu &histBlueRaw, int vectorscopeScale,
         const array2D<int> &vectorscopeHC, const array2D<int> &vectorscopeHS,
         int waveformScale, const array2D<int> &waveformRed,
         const array2D<int> &waveformGreen, const array2D<int> &waveformBlue,

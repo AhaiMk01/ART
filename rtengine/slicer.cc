@@ -27,6 +27,9 @@
 #include <omp.h>
 #endif
 
+namespace art { namespace engine {
+
+
 // If no parameter set, everything = 0 -> process all the image
 Block::Block()
 {
@@ -92,7 +95,7 @@ Slicer::Slicer(unsigned int imageWidth, unsigned int imageHeight,
     // calculate the number of block
     blockNumber = (double(region.width * region.height) / (double)pixels);
     blockNumber =
-        int((rtengine::max(blockNumber, 1U) + (double)procNumber / 2.) /
+        int((art::engine::max(blockNumber, 1U) + (double)procNumber / 2.) /
             procNumber) *
         procNumber;
     vBlockNumber =
@@ -174,3 +177,6 @@ void Slicer::get_block(unsigned int numBlock, Block *block)
         block->height = temp;
     }
 }
+
+
+} } // namespace art::engine

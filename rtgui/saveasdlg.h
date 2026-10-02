@@ -49,7 +49,7 @@ public:
     void formatChanged(const Glib::ustring &format) override;
     bool keyPressed(GdkEventKey *event);
 
-    const rtengine::procparams::PartialProfile *getExportProfile();
+    const art::engine::procparams::PartialProfile *getExportProfile();
 
 private:
     Gtk::FileChooserWidget *fchooser;

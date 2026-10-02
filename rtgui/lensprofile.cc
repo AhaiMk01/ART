@@ -32,8 +32,8 @@
 #undef EXIF
 #endif
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 LensProfilePanel::LensProfilePanel()
     : FoldableToolPanel(this, "lensprof", M("TP_LENSPROFILE_LABEL"), false,
@@ -67,8 +67,8 @@ LensProfilePanel::LensProfilePanel()
       ckbUseCA(Gtk::manage((new Gtk::CheckButton(M("TP_LENSPROFILE_USE_CA")))))
 {
     EvToolEnabled.set_action(
-        rtengine::DARKFRAME); // might need to redo vignetting
-    EvToolReset.set_action(rtengine::DARKFRAME);
+        art::engine::DARKFRAME); // might need to redo vignetting
+    EvToolReset.set_action(art::engine::DARKFRAME);
 
     if (!lf) {
         lf = new LFDbHelper();
@@ -214,7 +214,7 @@ LensProfilePanel::LensProfilePanel()
                    corrLcpFileRB));
 }
 
-void LensProfilePanel::read(const rtengine::procparams::ProcParams *pp)
+void LensProfilePanel::read(const art::engine::procparams::ProcParams *pp)
 {
     disableListener();
     conUseDist.block(true);
@@ -239,7 +239,7 @@ void LensProfilePanel::read(const rtengine::procparams::ProcParams *pp)
 
     case procparams::LensProfParams::LcMode::EXIF: {
         if (metadata) {
-            if (rtengine::ExifLensCorrection::ok(metadata)) {
+            if (art::engine::ExifLensCorrection::ok(metadata)) {
                 corrExif->set_active(true);
                 corrExif->set_sensitive(true);
                 ckbUseCA->set_sensitive(true);
@@ -318,7 +318,7 @@ void LensProfilePanel::read(const rtengine::procparams::ProcParams *pp)
     conUseDist.block(false);
 }
 
-void LensProfilePanel::write(rtengine::procparams::ProcParams *pp)
+void LensProfilePanel::write(art::engine::procparams::ProcParams *pp)
 {
     if (!getEnabled()) {
         pp->lensProf.lcMode = procparams::LensProfParams::LcMode::NONE;
@@ -364,7 +364,7 @@ void LensProfilePanel::write(rtengine::procparams::ProcParams *pp)
 }
 
 void LensProfilePanel::setRawMeta(bool raw,
-                                  const rtengine::FramesMetaData *pMeta)
+                                  const art::engine::FramesMetaData *pMeta)
 {
     disableListener();
     // if ((!raw || pMeta->getFocusDist() <= 0)) {
@@ -378,7 +378,7 @@ void LensProfilePanel::setRawMeta(bool raw,
     metadata = pMeta;
 
     if (metadata) {
-        if (!rtengine::ExifLensCorrection::ok(metadata)) {
+        if (!art::engine::ExifLensCorrection::ok(metadata)) {
             corrExif->set_sensitive(false);
         } else {
             ckbUseCA->set_sensitive(true);
@@ -747,7 +747,7 @@ bool LensProfilePanel::checkLensfunCanCorrect(bool automatch)
         return false;
     }
 
-    rtengine::procparams::ProcParams lpp;
+    art::engine::procparams::ProcParams lpp;
     write(&lpp);
     const std::unique_ptr<LFModifier> mod(
         LFDatabase::getInstance()->findModifier(lpp.lensProf, metadata, 100,

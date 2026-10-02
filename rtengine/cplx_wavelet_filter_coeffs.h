@@ -21,7 +21,7 @@
 
 #include "opthelper.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 const int Daub4_offset = 2;
 
@@ -56,4 +56,4 @@ const float Daub4_anal16[2][16] ALIGNED16 = { // Daub 14
      -0.33218624f, 0.515574245f, -0.28039564f, 0.055049715f, 0.f, 0.f}};
 
 // if necessary ?? we can add D20 !!
-} // namespace rtengine
+}} // namespace art::engine

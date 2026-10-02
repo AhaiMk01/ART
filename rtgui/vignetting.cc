@@ -19,15 +19,15 @@
 #include "vignetting.h"
 #include "eventmapper.h"
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 Vignetting::Vignetting()
     : FoldableToolPanel(this, "vignetting", M("TP_VIGNETTING_LABEL"), false,
                         true, true)
 {
-    EvToolEnabled.set_action(rtengine::TRANSFORM);
-    EvToolReset.set_action(rtengine::TRANSFORM);
+    EvToolEnabled.set_action(art::engine::TRANSFORM);
+    EvToolReset.set_action(art::engine::TRANSFORM);
 
     amount =
         Gtk::manage(new Adjuster(M("TP_VIGNETTING_AMOUNT"), -100, 100, 1, 0));
@@ -114,7 +114,7 @@ void Vignetting::adjusterChanged(Adjuster *a, double newval)
 
 void Vignetting::adjusterAutoToggled(Adjuster *a, bool newval) {}
 
-void Vignetting::trimValues(rtengine::procparams::ProcParams *pp)
+void Vignetting::trimValues(art::engine::procparams::ProcParams *pp)
 {
 
     amount->trimValue(pp->vignetting.amount);

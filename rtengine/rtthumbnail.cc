@@ -43,12 +43,18 @@
 #include "StopWatch.h"
 #include "clutstore.h"
 
+// defined by the GUI (rtgui/options.cc)
+extern Options options;
+
+namespace art { namespace engine {
+
+
 namespace {
 
-void scale_colors(rtengine::RawImage *ri, float scale_mul[4], float cblack[4],
+void scale_colors(art::engine::RawImage *ri, float scale_mul[4], float cblack[4],
                   bool multiThread)
 {
-    rtengine::RawImage::ImageType image = ri->get_image();
+    art::engine::RawImage::ImageType image = ri->get_image();
     const int height = ri->get_iheight();
     const int width = ri->get_iwidth();
     const int top_margin = ri->get_topmargin();
@@ -82,8 +88,8 @@ void scale_colors(rtengine::RawImage *ri, float scale_mul[4], float cblack[4],
                 val1 -= cblack[c1];
                 val0 *= scale_mul[c0];
                 val1 *= scale_mul[c1];
-                image[row * width + col][c0] = rtengine::CLIP(val0);
-                image[row * width + col + 1][c1] = rtengine::CLIP(val1);
+                image[row * width + col][c0] = art::engine::CLIP(val0);
+                image[row * width + col + 1][c1] = art::engine::CLIP(val1);
             }
 
             if (col < width) { // in case width is odd
@@ -96,7 +102,7 @@ void scale_colors(rtengine::RawImage *ri, float scale_mul[4], float cblack[4],
                 }
                 val0 -= cblack[c0];
                 val0 *= scale_mul[c0];
-                image[row * width + col][c0] = rtengine::CLIP(val0);
+                image[row * width + col][c0] = art::engine::CLIP(val0);
             }
         }
     } else if (ri->isXtrans()) {
@@ -123,7 +129,7 @@ void scale_colors(rtengine::RawImage *ri, float scale_mul[4], float cblack[4],
                     }
                     val -= cblack[ccol];
                     val *= scale_mul[ccol];
-                    image[row * width + col + i][ccol] = rtengine::CLIP(val);
+                    image[row * width + col + i][ccol] = art::engine::CLIP(val);
                 }
             }
 
@@ -138,7 +144,7 @@ void scale_colors(rtengine::RawImage *ri, float scale_mul[4], float cblack[4],
                 }
                 val -= cblack[ccol];
                 val *= scale_mul[ccol];
-                image[row * width + col][ccol] = rtengine::CLIP(val);
+                image[row * width + col][ccol] = art::engine::CLIP(val);
             }
         }
     } else if (isFloat) {
@@ -167,7 +173,7 @@ void scale_colors(rtengine::RawImage *ri, float scale_mul[4], float cblack[4],
                 float val = image[i][j];
                 val -= cblack[j];
                 val *= scale_mul[j];
-                image[i][j] = rtengine::CLIP(val);
+                image[i][j] = art::engine::CLIP(val);
             }
         }
     }
@@ -175,9 +181,8 @@ void scale_colors(rtengine::RawImage *ri, float scale_mul[4], float cblack[4],
 
 } // namespace
 
-extern Options options;
 
-namespace rtengine {
+
 
 extern const Settings *settings;
 
@@ -395,7 +400,7 @@ Thumbnail *Thumbnail::loadFromRaw(const Glib::ustring &fname,
     int left_margin = ri->get_leftmargin();
     int top_margin = ri->get_topmargin();
 
-    rtengine::Thumbnail *tpp = new rtengine::Thumbnail;
+    art::engine::Thumbnail *tpp = new art::engine::Thumbnail;
 
     tpp->isRaw = true;
     tpp->sensorType = sensorType;
@@ -479,7 +484,7 @@ Thumbnail *Thumbnail::loadFromRaw(const Glib::ustring &fname,
     int tmpw = (width - 2) / hskip;
     int tmph = (height - 2) / vskip;
 
-    rtengine::RawImage::ImageType image = ri->get_image();
+    art::engine::RawImage::ImageType image = ri->get_image();
 
     Imagefloat *tmpImg = new Imagefloat(tmpw, tmph);
 
@@ -889,7 +894,7 @@ Thumbnail::~Thumbnail()
 // Simple processing of RAW internal JPGs
 IImage8 *Thumbnail::quickProcessImage(const procparams::ProcParams &params,
                                       int rheight,
-                                      rtengine::TypeInterpolation interp)
+                                      art::engine::TypeInterpolation interp)
 {
 
     int rwidth;
@@ -1970,7 +1975,7 @@ bool Thumbnail::writeEmbProfile(const Glib::ustring &fname)
 
 unsigned char *Thumbnail::getImage8Data()
 {
-    if (thumbImg && thumbImg->getType() == rtengine::sImage8) {
+    if (thumbImg && thumbImg->getType() == art::engine::sImage8) {
         Image8 *img8 = static_cast<Image8 *>(thumbImg);
         return img8->data;
     }
@@ -2008,7 +2013,7 @@ Thumbnail *Thumbnail::loadInfoFromRaw(const Glib::ustring &fname,
 
     int width = ri->get_width();
     int height = ri->get_height();
-    rtengine::Thumbnail *tpp = new rtengine::Thumbnail;
+    art::engine::Thumbnail *tpp = new art::engine::Thumbnail;
 
     tpp->isRaw = true;
     tpp->sensorType = sensorType;
@@ -2103,4 +2108,5 @@ Thumbnail *Thumbnail::loadInfoFromRaw(const Glib::ustring &fname,
     return tpp;
 }
 
-} // namespace rtengine
+
+} } // namespace art::engine

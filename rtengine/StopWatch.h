@@ -26,7 +26,7 @@
 #include "settings.h"
 #include <iostream>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -84,4 +84,4 @@ private:
     bool stopped;
 };
 
-} // namespace rtengine
+}} // namespace art::engine

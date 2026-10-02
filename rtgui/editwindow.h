@@ -15,8 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _EDITWINDOW_
-#define _EDITWINDOW_
+#pragma once
 
 #include "editorpanel.h"
 #include "filepanel.h"
@@ -70,5 +69,3 @@ public:
     void set_title_decorated(Glib::ustring fname);
     void on_realize() override;
 };
-
-#endif

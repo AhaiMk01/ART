@@ -26,7 +26,7 @@
 
 #include "noncopyable.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 struct badPix {
     uint16_t x;
@@ -88,4 +88,4 @@ public:
     }
 };
 
-} // namespace rtengine
+}} // namespace art::engine

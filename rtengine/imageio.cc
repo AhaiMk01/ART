@@ -45,12 +45,15 @@
 
 #include "rtjpeg.h"
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+namespace art { namespace engine {
 
-namespace rtengine {
+
+using namespace art::engine;
+using namespace art::engine::procparams;
+
+
 extern const Settings *settings;
-}
+
 
 namespace {
 
@@ -948,7 +951,7 @@ int ImageIO::loadPPMFromMemory(const char *buffer, int width, int height,
         char swapped[line_length];
 
         for (int row = 0; row < height; ++row) {
-            ::rtengine::swab(((char *)buffer) + (row * line_length), swapped,
+            ::art::engine::swab(((char *)buffer) + (row * line_length), swapped,
                              line_length);
             setScanline(row, (unsigned char *)&swapped[0], bps);
         }
@@ -1565,3 +1568,6 @@ bool ImageIO::saveMetadata(const Glib::ustring &fname) const
 
     return true;
 }
+
+
+} } // namespace art::engine

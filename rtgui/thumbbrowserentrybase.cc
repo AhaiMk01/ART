@@ -620,12 +620,12 @@ void ThumbBrowserEntryBase::drawFrame(Cairo::RefPtr<Cairo::Context> cc,
     }
 
     cc->move_to(radius, 0);
-    cc->arc(exp_width - 1 - radius, radius, radius, -rtengine::RT_PI / 2, 0);
+    cc->arc(exp_width - 1 - radius, radius, radius, -art::engine::RT_PI / 2, 0);
     cc->arc(exp_width - 1 - radius, exp_height - 1 - radius, radius, 0,
-            rtengine::RT_PI / 2);
-    cc->arc(radius, exp_height - 1 - radius, radius, rtengine::RT_PI / 2,
-            rtengine::RT_PI);
-    cc->arc(radius, radius, radius, rtengine::RT_PI, -rtengine::RT_PI / 2);
+            art::engine::RT_PI / 2);
+    cc->arc(radius, exp_height - 1 - radius, radius, art::engine::RT_PI / 2,
+            art::engine::RT_PI);
+    cc->arc(radius, radius, radius, art::engine::RT_PI, -art::engine::RT_PI / 2);
     cc->close_path();
 
     cc->set_source_rgba(bg.get_red(), bg.get_green(), bg.get_blue(),
@@ -640,14 +640,14 @@ void ThumbBrowserEntryBase::drawFrame(Cairo::RefPtr<Cairo::Context> cc,
     if (highlight) {
         cc->move_to(+2 + 0.5 + radius, +2 + 0.5);
         cc->arc(-2 + 0.5 + exp_width - 1 - radius, +2 + 0.5 + radius, radius,
-                -rtengine::RT_PI / 2, 0);
+                -art::engine::RT_PI / 2, 0);
         cc->arc(-2 + 0.5 + exp_width - 1 - radius,
                 -2 + 0.5 + exp_height - 1 - radius, radius, 0,
-                rtengine::RT_PI / 2);
+                art::engine::RT_PI / 2);
         cc->arc(+2 + 0.5 + radius, -2 + exp_height - 1 - radius, radius,
-                rtengine::RT_PI / 2, rtengine::RT_PI);
-        cc->arc(+2 + 0.5 + radius, +2 + 0.5 + radius, radius, rtengine::RT_PI,
-                -rtengine::RT_PI / 2);
+                art::engine::RT_PI / 2, art::engine::RT_PI);
+        cc->arc(+2 + 0.5 + radius, +2 + 0.5 + radius, radius, art::engine::RT_PI,
+                -art::engine::RT_PI / 2);
         cc->close_path();
         cc->set_source_rgb(fg.get_red(), fg.get_green(), fg.get_blue());
         cc->set_line_width(2.0);
@@ -752,9 +752,9 @@ bool ThumbBrowserEntryBase::inside(int x, int y) const
            y > ofsY + starty && y < ofsY + starty + exp_height;
 }
 
-rtengine::Coord2D ThumbBrowserEntryBase::getPosInImgSpace(int x, int y) const
+art::engine::Coord2D ThumbBrowserEntryBase::getPosInImgSpace(int x, int y) const
 {
-    rtengine::Coord2D coord(-1., -1.);
+    art::engine::Coord2D coord(-1., -1.);
 
     if (!preview.empty()) {
         x -= ofsX + startx;

@@ -32,7 +32,7 @@
 #include <condition_variable>
 #include <mutex>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 using namespace procparams;
 
@@ -45,7 +45,7 @@ class Crop;
  * The ImProcCoordinator handle an sized down image representation of the full
  * image, that is used when paning and in the Navigator object.
  *
- * Each ImProcCoordinator handles an rtengine::Crop list, which process images
+ * Each ImProcCoordinator handles an art::engine::Crop list, which process images
  * too with their own pipeline, but using this class' LUT and other precomputed
  * parameters. The main preview area is displaying a non framed Crop object,
  * while detail windows are framed Crop objects.
@@ -357,4 +357,4 @@ public:
                              FilmNegativeParams::RGB &refOutput);
 };
 
-} // namespace rtengine
+}} // namespace art::engine

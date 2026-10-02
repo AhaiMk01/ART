@@ -39,7 +39,7 @@ const std::array<std::pair<const char *, SaveFormat>, 7> sf_templates = {
 
 SaveFormatPanel::SaveFormatPanel(): listener(nullptr)
 {
-    extrafmts_ = rtengine::ImageIOManager::getInstance()->getSaveFormats();
+    extrafmts_ = art::engine::ImageIOManager::getInstance()->getSaveFormats();
 
     // ---------------------  FILE FORMAT SELECTOR
     Gtk::Grid *hb1 = Gtk::manage(new Gtk::Grid());

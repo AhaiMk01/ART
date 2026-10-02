@@ -29,7 +29,7 @@
 #include "rt_algo.h"
 #include "sleef.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -265,7 +265,7 @@ void log_encode(Imagefloat *rgb, const ProcParams *params, float scale,
             const float radius =
                 max(max(full_width, W), max(full_height, H)) / 30.f;
             const float epsilon = 0.005f;
-            rtengine::guidedFilter(Y2, Y, Y, radius, epsilon, multithread);
+            art::engine::guidedFilter(Y2, Y, Y, radius, epsilon, multithread);
         }
         const float blend = LIM01(float(params->logenc.regularization) / 100.f);
 
@@ -407,4 +407,4 @@ void ImProcFunctions::logEncoding(Imagefloat *rgb)
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

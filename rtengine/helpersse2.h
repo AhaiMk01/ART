@@ -31,6 +31,8 @@
 
 #include <stdint.h>
 
+namespace art { namespace engine {
+
 typedef __m128d vdouble;
 typedef __m128i vint;
 typedef __m128i vmask;
@@ -435,3 +437,5 @@ static INLINE vdouble2 abs_d(vdouble2 x)
         (__m128d)_mm_xor_pd(_mm_and_pd(_mm_set_pd(-0.0, -0.0), x.x), x.x),
         (__m128d)_mm_xor_pd(_mm_and_pd(_mm_set_pd(-0.0, -0.0), x.x), x.y));
 }
+
+} } // namespace art::engine

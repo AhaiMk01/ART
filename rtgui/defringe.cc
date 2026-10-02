@@ -21,14 +21,14 @@
 #include <cmath>
 #include <iomanip>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 Defringe::Defringe()
     : FoldableToolPanel(this, "defringe", M("TP_DEFRINGE_LABEL"), false, true,
                         true)
 {
-    EvToolReset.set_action(rtengine::DETAIL);
+    EvToolReset.set_action(art::engine::DETAIL);
 
     std::vector<GradientMilestone> bottomMilestones;
     float R, G, B;

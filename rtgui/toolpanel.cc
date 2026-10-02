@@ -20,7 +20,7 @@
 #include "guiutils.h"
 #include "toolpanelcoord.h"
 
-using namespace rtengine::procparams;
+using namespace art::engine::procparams;
 
 ToolVBox::ToolVBox()
 {

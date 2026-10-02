@@ -201,7 +201,7 @@ void FileBrowserEntry::customBackBufferUpdate(Cairo::RefPtr<Cairo::Context> c)
             drawCrop(c, prex, prey, prew, preh, 0, 0, cur_scale, cropParams,
                      true, false);
         } else {
-            rtengine::procparams::CropParams cparams = cropParams;
+            art::engine::procparams::CropParams cparams = cropParams;
             cparams.guide = "Frame";
             if (cparams.enabled &&
                 !thumbnail->isQuick()) { // Quick thumb have arbitrary sizes, so
@@ -244,8 +244,8 @@ void FileBrowserEntry::procParamsChanged(Thumbnail *thm, int whoChangedIt)
 }
 
 void FileBrowserEntry::updateImage(
-    rtengine::IImage8 *img, double scale,
-    const rtengine::procparams::CropParams &cropParams)
+    art::engine::IImage8 *img, double scale,
+    const art::engine::procparams::CropParams &cropParams)
 {
     if (!feih) {
         return;
@@ -275,8 +275,8 @@ void FileBrowserEntry::updateImage(
 }
 
 void FileBrowserEntry::_updateImage(
-    rtengine::IImage8 *img, double s,
-    const rtengine::procparams::CropParams &cropParams)
+    art::engine::IImage8 *img, double s,
+    const art::engine::procparams::CropParams &cropParams)
 {
     MYWRITERLOCK(l, lockRW);
 
@@ -342,7 +342,7 @@ bool FileBrowserEntry::motionNotify(int x, int y)
 
     if (options.thumbnail_inspector_hover /*&& selected*/ && inspector &&
         inspector->isActive() && !parent->isInTabMode()) {
-        const rtengine::Coord2D coord(getPosInImgSpace(x, y));
+        const art::engine::Coord2D coord(getPosInImgSpace(x, y));
 
         if (coord.x != -1.) {
             if (!wasInside) {
@@ -612,7 +612,7 @@ void FileBrowserEntry::drawStraightenGuide(Cairo::RefPtr<Cairo::Context> cr)
                      sqrt(double((press_x - action_x) * (press_x - action_x) +
                                  (press_y - action_y) * (press_y - action_y)));
         double sol1, sol2;
-        double pi = rtengine::RT_PI;
+        double pi = art::engine::RT_PI;
 
         if (press_y > action_y) {
             sol1 = acos(arg) * 180 / pi;

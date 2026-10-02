@@ -29,7 +29,7 @@
 #include "../rtgui/multilangmgr.h"
 #include "StopWatch.h"
 
-using namespace rtengine;
+using namespace art::engine;
 
 void RawImageSource::bayer_bilinear_demosaic(const float *const *blend,
                                              const array2D<float> &rawData,

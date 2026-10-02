@@ -26,7 +26,7 @@
 #include "rtengine.h"
 #include "sleef.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace {
 
@@ -392,9 +392,9 @@ void Color::lab2lch01(float L, float a, float b, float &l, float &c, float &h)
     c = sqrtf(a * a + b * b) / 100.f;
     h = xatan2f(b, a);
     if (h < 0.f) {
-        h += 2.f * rtengine::RT_PI_F;
+        h += 2.f * art::engine::RT_PI_F;
     }
-    h /= (2.f * rtengine::RT_PI_F);
+    h /= (2.f * art::engine::RT_PI_F);
 }
 
 void Color::rgb2hsl(float r, float g, float b, float &h, float &s, float &l)
@@ -2083,7 +2083,7 @@ void Color::AllMunsellLch(float Lprov1, float HH, float Chprov1, float CC,
             Chprov1 = 139.f; // limits of LUTf
         }
 
-        Chprov1 = rtengine::max(Chprov1, 6.f);
+        Chprov1 = art::engine::max(Chprov1, 6.f);
 
         for (int zo = 1; zo <= 4; zo++) {
             if (HH > huelimit[2 * zo - 2] && HH < huelimit[2 * zo - 1]) {
@@ -2215,8 +2215,8 @@ void Color::gamutLchonly(float HH, float &Lprov1, float &Chprov1, float &R,
             }
 
             inGamut = false;
-        } else if (!isHLEnabled && rtengine::max(R, G, B) > ClipLevel &&
-                   rtengine::min(R, G, B) <= ClipLevel) {
+        } else if (!isHLEnabled && art::engine::max(R, G, B) > ClipLevel &&
+                   art::engine::min(R, G, B) <= ClipLevel) {
 
             // if "highlight reconstruction" is enabled or the point is
             // completely white (clipped, no color), don't control Gamut
@@ -2363,8 +2363,8 @@ void Color::gamutLchonly(float HH, float2 sincosval, float &Lprov1,
             }
 
             inGamut = false;
-        } else if (!isHLEnabled && rtengine::max(R, G, B) > ClipLevel &&
-                   rtengine::min(R, G, B) <= ClipLevel) {
+        } else if (!isHLEnabled && art::engine::max(R, G, B) > ClipLevel &&
+                   art::engine::min(R, G, B) <= ClipLevel) {
 
             // if "highlight reconstruction" is enabled or the point is
             // completely white (clipped, no color), don't control Gamut
@@ -2436,9 +2436,9 @@ void Color::gamutLchonly(float HH, float2 sincosval, float &Lprov1,
 
         // gamut control before saturation to put Lab values in future gamut,
         // but not RGB
-        if (rtengine::min(R, G, B) < 0.f) {
+        if (art::engine::min(R, G, B) < 0.f) {
 
-            Lprov1 = rtengine::max(Lprov1, 0.1f);
+            Lprov1 = art::engine::max(Lprov1, 0.1f);
 
             // gamut for L with ultra blue : we can improve the algorithm ...
             // thinner, and other color ???
@@ -2486,8 +2486,8 @@ void Color::gamutLchonly(float HH, float2 sincosval, float &Lprov1,
             }
 
             inGamut = false;
-        } else if (!isHLEnabled && rtengine::max(R, G, B) > ClipLevel &&
-                   rtengine::min(R, G, B) <= ClipLevel) {
+        } else if (!isHLEnabled && art::engine::max(R, G, B) > ClipLevel &&
+                   art::engine::min(R, G, B) <= ClipLevel) {
 
             // if "highlight reconstruction" is enabled or the point is
             // completely white (clipped, no color), don't control Gamut
@@ -2506,7 +2506,7 @@ void Color::gamutLchonly(float HH, float2 sincosval, float &Lprov1,
         }
     } while (!inGamut);
 
-    saturation = 1.f - (rtengine::min(R, G, B) / rtengine::max(R, G, B));
+    saturation = 1.f - (art::engine::min(R, G, B) / art::engine::max(R, G, B));
     // end first gamut control
 }
 
@@ -2567,8 +2567,8 @@ void Color::gamutLchonly(float2 sincosval, float &Lprov1, float &Chprov1,
             }
 
             inGamut = false;
-        } else if (!isHLEnabled && rtengine::max(R, G, B) > ClipLevel &&
-                   rtengine::min(R, G, B) <= ClipLevel) {
+        } else if (!isHLEnabled && art::engine::max(R, G, B) > ClipLevel &&
+                   art::engine::min(R, G, B) <= ClipLevel) {
 
             // if "highlight reconstruction" is enabled or the point is
             // completely white (clipped, no color), don't control Gamut
@@ -7333,4 +7333,4 @@ float Color::eval_ACEScct_curve(float x, bool forward)
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

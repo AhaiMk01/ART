@@ -21,8 +21,7 @@
 // A class representing a 16 bit rgb image with separate planes and 16 byte
 // aligned data
 //
-#ifndef _IMAGEFLOAT_
-#define _IMAGEFLOAT_
+#pragma once
 
 #include "gpu/residency.h"
 #include "imageio.h"
@@ -31,7 +30,7 @@
 
 #include <memory>
 
-namespace rtengine {
+namespace art { namespace engine {
 using namespace procparams;
 
 class Image8;
@@ -174,5 +173,4 @@ private:
 #endif
 };
 
-} // namespace rtengine
-#endif
+}} // namespace art::engine

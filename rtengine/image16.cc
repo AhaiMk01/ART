@@ -28,9 +28,9 @@ void getScanline8(const uint16_t *red, const uint16_t *green,
                   const uint16_t *blue, int width, unsigned char *buffer)
 {
     for (int i = 0, ix = 0; i < width; i++) {
-        buffer[ix++] = rtengine::uint16ToUint8Rounded(red[i]);
-        buffer[ix++] = rtengine::uint16ToUint8Rounded(green[i]);
-        buffer[ix++] = rtengine::uint16ToUint8Rounded(blue[i]);
+        buffer[ix++] = art::engine::uint16ToUint8Rounded(red[i]);
+        buffer[ix++] = art::engine::uint16ToUint8Rounded(green[i]);
+        buffer[ix++] = art::engine::uint16ToUint8Rounded(blue[i]);
     }
 }
 
@@ -46,7 +46,7 @@ void getScanline16(const uint16_t *red, const uint16_t *green,
 
 } // namespace
 
-using namespace rtengine;
+using namespace art::engine;
 
 Image16::Image16() {}
 

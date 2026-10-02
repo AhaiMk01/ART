@@ -23,7 +23,7 @@
 #include "rawimage.h"
 #include "utils.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -507,4 +507,4 @@ RawImage *FFManager::searchFlatField(const Glib::ustring filename)
 // Global variable
 FFManager ffm;
 
-} // namespace rtengine
+}} // namespace art::engine

@@ -40,7 +40,7 @@
 #include "settings.h"
 #include "subprocess.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -703,4 +703,4 @@ std::vector<std::string> get_env()
 }
 
 } // namespace subprocess
-} // namespace rtengine
+}} // namespace art::engine

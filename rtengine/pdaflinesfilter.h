@@ -23,7 +23,7 @@
 #include "rawimagesource.h"
 #include <vector>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class PDAFLinesFilter {
 public:
@@ -47,4 +47,4 @@ private:
     RawImageSource::GreenEqulibrateThreshold *gthresh_;
 };
 
-} // namespace rtengine
+}} // namespace art::engine

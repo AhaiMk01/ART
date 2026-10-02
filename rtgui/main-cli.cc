@@ -76,11 +76,11 @@ namespace {
 
 bool fast_export = false;
 
-typedef std::unique_ptr<rtengine::procparams::PartialProfile> PartialProfile;
+typedef std::unique_ptr<art::engine::procparams::PartialProfile> PartialProfile;
 
 bool check_partial_profile(const PartialProfile &pp)
 {
-    rtengine::procparams::ProcParams params;
+    art::engine::procparams::ProcParams params;
     return pp->applyTo(params);
 }
 
@@ -98,22 +98,22 @@ int processLineParams(int argc, char **argv);
 
 std::pair<bool, int> dontLoadCache(int argc, char **argv);
 
-namespace rtengine {
+namespace art { namespace engine {
 extern const Settings *settings;
-}
+}}
 
 int check_lut(int argc, char **argv)
 {
     Gio::init();
     options.rtSettings.verbose = 1;
-    rtengine::settings = &options.rtSettings;
+    art::engine::settings = &options.rtSettings;
 
     if (argc == 3) {
         Glib::ustring fn = argv[2];
         if (!Glib::path_is_absolute(fn)) {
             fn = Glib::build_filename(Glib::get_current_dir(), fn);
         }
-        rtengine::CLUTApplication lut(fn);
+        art::engine::CLUTApplication lut(fn);
         if (!lut) {
             std::cout << "Invalid LUT file: " << argv[2] << std::endl;
             return 1;
@@ -321,7 +321,7 @@ std::pair<bool, int> dontLoadCache(int argc, char **argv)
     return std::make_pair(quick, verbose);
 }
 
-class ConsoleProgressListener: public rtengine::ProgressListener {
+class ConsoleProgressListener: public art::engine::ProgressListener {
 public:
     ConsoleProgressListener(int num_steps): num_steps_(num_steps), percent_(0)
     {
@@ -337,7 +337,7 @@ public:
     {
         MyMutex::MyLock l(mutex_);
         int pct = (p * 100) / num_steps_;
-        std::cout << "\n" << rtengine::LIM(percent_ + pct, 0, 99) << std::endl;
+        std::cout << "\n" << art::engine::LIM(percent_ + pct, 0, 99) << std::endl;
     }
 
     void setProgressStr(const Glib::ustring &str) {}
@@ -448,7 +448,7 @@ int processLineParams(int argc, char **argv)
                     }
 
                     PartialProfile currentParams(
-                        new rtengine::procparams::FilePartialProfile(
+                        new art::engine::procparams::FilePartialProfile(
                             nullptr, fname, false));
 
                     if (check_partial_profile(currentParams)) {
@@ -758,7 +758,7 @@ int processLineParams(int argc, char **argv)
     }
 
     std::unordered_map<std::string, Glib::ustring> output_ext;
-    for (auto &p : rtengine::ImageIOManager::getInstance()->getSaveFormats()) {
+    for (auto &p : art::engine::ImageIOManager::getInstance()->getSaveFormats()) {
         output_ext[p.first] = p.second.extension;
     }
     output_ext["jpg"] = "jpg";
@@ -768,12 +768,12 @@ int processLineParams(int argc, char **argv)
     if (useDefault) {
         Glib::ustring profPath = options.findProfilePath(options.defProfRaw);
         if (profPath == Options::DEFPROFILE_INTERNAL) {
-            rawParams.reset(new rtengine::procparams::FullPartialProfile());
+            rawParams.reset(new art::engine::procparams::FullPartialProfile());
         } else {
             Glib::ustring fname = Glib::build_filename(
                 profPath, Glib::path_get_basename(options.defProfRaw) +
                               paramFileExtension);
-            rawParams.reset(new rtengine::procparams::FilePartialProfile(
+            rawParams.reset(new art::engine::procparams::FilePartialProfile(
                 nullptr, fname, false));
         }
 
@@ -787,12 +787,12 @@ int processLineParams(int argc, char **argv)
 
         profPath = options.findProfilePath(options.defProfImg);
         if (profPath == Options::DEFPROFILE_INTERNAL) {
-            imgParams.reset(new rtengine::procparams::FullPartialProfile());
+            imgParams.reset(new art::engine::procparams::FullPartialProfile());
         } else {
             auto fname = Glib::build_filename(
                 profPath, Glib::path_get_basename(options.defProfImg) +
                               paramFileExtension);
-            imgParams.reset(new rtengine::procparams::FilePartialProfile(
+            imgParams.reset(new art::engine::procparams::FilePartialProfile(
                 nullptr, fname, false));
         }
 
@@ -806,7 +806,7 @@ int processLineParams(int argc, char **argv)
     }
 
     ConsoleProgressListener cpl(inputFiles.size() + 1);
-    rtengine::ProgressListener *pl = progress ? &cpl : nullptr;
+    art::engine::ProgressListener *pl = progress ? &cpl : nullptr;
 
     if (progress) {
         const auto monitor = [&]() -> void {
@@ -823,7 +823,7 @@ int processLineParams(int argc, char **argv)
 
         // Has to be reinstanciated at each profile to have a ProcParams object
         // with default values
-        rtengine::procparams::ProcParams currentParams;
+        art::engine::procparams::ProcParams currentParams;
 
         Glib::ustring inputFile = inputFiles[iFile];
         // cpl.info(Glib::ustring::compose("Output is %1-bit %2.", bits,
@@ -835,8 +835,8 @@ int processLineParams(int argc, char **argv)
             cpl.info(Glib::ustring::compose("Processing: %1", inputFile));
         }
 
-        rtengine::InitialImage *ii = nullptr;
-        rtengine::ProcessingJob *job = nullptr;
+        art::engine::InitialImage *ii = nullptr;
+        art::engine::ProcessingJob *job = nullptr;
         int errorCode;
         bool isRaw = false;
 
@@ -891,12 +891,12 @@ int processLineParams(int argc, char **argv)
 
         if (ext == "jpg" || ext == "jpeg" || ext == "tif" || ext == "tiff" ||
             ext == "png" ||
-            rtengine::ImageIOManager::getInstance()->canLoad(ext)) {
+            art::engine::ImageIOManager::getInstance()->canLoad(ext)) {
             isRaw = false;
         }
 
         ii =
-            rtengine::InitialImage::load(inputFile, isRaw, &errorCode, nullptr);
+            art::engine::InitialImage::load(inputFile, isRaw, &errorCode, nullptr);
 
         if (!ii) {
             errors++;
@@ -908,7 +908,7 @@ int processLineParams(int argc, char **argv)
         if (useDefault) {
             if (isRaw) {
                 if (options.defProfRaw == Options::DEFPROFILE_DYNAMIC) {
-                    rawParams = ProfileStore::getInstance()->loadDynamicProfile(
+                    rawParams = art::engine::ProfileStore::getInstance()->loadDynamicProfile(
                         ii->getMetaData());
                 }
 
@@ -916,7 +916,7 @@ int processLineParams(int argc, char **argv)
                 rawParams->applyTo(currentParams);
             } else {
                 if (options.defProfImg == Options::DEFPROFILE_DYNAMIC) {
-                    imgParams = ProfileStore::getInstance()->loadDynamicProfile(
+                    imgParams = art::engine::ProfileStore::getInstance()->loadDynamicProfile(
                         ii->getMetaData());
                 }
 
@@ -968,7 +968,7 @@ int processLineParams(int argc, char **argv)
         }
 
         auto p =
-            rtengine::ImageIOManager::getInstance()->getSaveProfile(outputType);
+            art::engine::ImageIOManager::getInstance()->getSaveProfile(outputType);
         if (p) {
             p->applyTo(currentParams);
         }
@@ -984,14 +984,14 @@ int processLineParams(int argc, char **argv)
         }
 
         // Process image
-        rtengine::IImagefloat *resultImage =
-            rtengine::processImage(job, errorCode, pl);
+        art::engine::IImagefloat *resultImage =
+            art::engine::processImage(job, errorCode, pl);
 
         if (!resultImage) {
             errors++;
             cpl.error(
                 Glib::ustring::compose("failure in processing: %1", inputFile));
-            rtengine::ProcessingJob::destroy(job);
+            art::engine::ProcessingJob::destroy(job);
             continue;
         }
 
@@ -1005,7 +1005,7 @@ int processLineParams(int argc, char **argv)
         } else if (outputType == "png") {
             errorCode = resultImage->saveAsPNG(outputFile, bits);
         } else {
-            errorCode = rtengine::ImageIOManager::getInstance()->save(
+            errorCode = art::engine::ImageIOManager::getInstance()->save(
                             resultImage, outputType, outputFile, nullptr)
                             ? 0
                             : 1;

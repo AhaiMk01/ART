@@ -32,7 +32,7 @@ struct ControlLine {
     std::shared_ptr<OPIcon> icon;
     std::shared_ptr<OPIcon> icon_h, icon_v;
     std::unique_ptr<Circle> begin, end;
-    rtengine::ControlLine::Type type;
+    art::engine::ControlLine::Type type;
 
     ~ControlLine();
 };
@@ -42,7 +42,7 @@ class ControlLineManager: public EditSubscriber {
 protected:
     /** Hidden object for capturing mouse events. */
     std::unique_ptr<EditRectangle> canvas_area;
-    rtengine::Coord drag_delta;
+    art::engine::Coord drag_delta;
     std::vector<std::unique_ptr<ControlLine>> control_lines;
     CursorShape cursor;
     bool draw_mode;
@@ -54,8 +54,8 @@ protected:
     int selected_object;
 
     void
-    addLine(rtengine::Coord begin, rtengine::Coord end,
-            rtengine::ControlLine::Type type = rtengine::ControlLine::VERTICAL);
+    addLine(art::engine::Coord begin, art::engine::Coord end,
+            art::engine::ControlLine::Type type = art::engine::ControlLine::VERTICAL);
     /**
      * Set the line type of the line containing the object according to the
      * line's angle.
@@ -90,13 +90,13 @@ public:
     void setDrawMode(bool draw);
     void setEdited(bool edited);
     void setEditProvider(EditDataProvider *provider);
-    void setLines(const std::vector<rtengine::ControlLine> &lines);
+    void setLines(const std::vector<art::engine::ControlLine> &lines);
     /** Returns the number of lines. */
     size_t size(void) const;
     /**
      * Allocates a new array and populates it with copies of the control lines.
      */
-    void toControlLines(std::vector<rtengine::ControlLine> &converted) const;
+    void toControlLines(std::vector<art::engine::ControlLine> &converted) const;
 
     // EditSubscriber overrides
     bool button1Pressed(int modifierKey) override;

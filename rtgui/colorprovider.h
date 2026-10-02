@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _COLORPROVIDER_
-#define _COLORPROVIDER_
+#pragma once
 
 #include <gtkmm.h>
 
@@ -71,5 +70,3 @@ public:
                                enum ColorCaller::ElemType elemType,
                                int callerId, ColorCaller *caller) {};
 };
-
-#endif

@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _DEFRINGE_H_
-#define _DEFRINGE_H_
+#pragma once
 
 #include "adjuster.h"
 #include "colorprovider.h"
@@ -42,15 +41,15 @@ protected:
     Adjuster *threshold;
     bool edges;
 
-    rtengine::procparams::DefringeParams initial_params;
+    art::engine::procparams::DefringeParams initial_params;
 
 public:
     Defringe();
     ~Defringe() override;
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
     void autoOpenCurve() override;
     void curveChanged() override;
 
@@ -63,5 +62,3 @@ public:
 
     void toolReset(bool to_initial) override;
 };
-
-#endif

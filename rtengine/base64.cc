@@ -21,7 +21,7 @@
 #include "base64.h"
 #include <stdexcept>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 // code taken from
 // https://en.wikibooks.org/wiki/Algorithm_Implementation/Miscellaneous/Base64,
@@ -132,4 +132,4 @@ std::vector<uint8_t> base64decode(const std::string &input)
     return decodedBytes;
 }
 
-} // namespace rtengine
+}} // namespace art::engine

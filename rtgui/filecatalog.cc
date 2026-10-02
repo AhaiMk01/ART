@@ -891,8 +891,8 @@ private:
                  bool reverse) const
     {
         try {
-            // rtengine::FramesData ma(a);
-            // rtengine::FramesData mb(b);
+            // art::engine::FramesData ma(a);
+            // art::engine::FramesData mb(b);
             // auto ta = ma.getDateTimeAsTS();
             // auto tb = mb.getDateTimeAsTS();
             auto ta = get_date(a);
@@ -1489,7 +1489,7 @@ void FileCatalog::developRequested(const std::vector<FileBrowserEntry *> &tbe,
             if (!th->hasProcParams()) {
                 th->createProcParamsForUpdate(false, false, true);
             }
-            rtengine::procparams::ProcParams params = th->getProcParams();
+            art::engine::procparams::ProcParams params = th->getProcParams();
 
             auto pjob = create_processing_job(
                 fbe->filename, th->getType() == FT_Raw, params, fastmode);

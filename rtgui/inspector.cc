@@ -41,7 +41,7 @@ class InspectorBuffer {
 public:
     BackBuffer imgBuffer;
     Glib::ustring imgPath;
-    std::array<LUTu, 3> histogram;
+    std::array<art::engine::LUTu, 3> histogram;
 
     explicit InspectorBuffer(const Glib::ustring &imgagePath, int width = -1,
                              int height = -1);
@@ -66,7 +66,7 @@ InspectorBuffer::InspectorBuffer(const Glib::ustring &imagePath, int width,
         const auto load =
             [&]() -> Cairo::RefPtr<Cairo::ImageSurface>
             {
-                rtengine::PreviewImage pi(imagePath, ext, width, height,
+                art::engine::PreviewImage pi(imagePath, ext, width, height,
                                           options.thumbnail_inspector_enable_cms,
                                           options.thumbnail_inspector_show_histogram);
                 Cairo::RefPtr<Cairo::ImageSurface> imageSurface = pi.getImage();
@@ -75,9 +75,9 @@ InspectorBuffer::InspectorBuffer(const Glib::ustring &imagePath, int width,
             };
         
         auto imageSurface = load();
-        if (!imageSurface && options.rtSettings.thumbnail_inspector_mode == rtengine::Settings::ThumbnailInspectorMode::JPEG) {
-            rtengine::TempVarSetter<rtengine::Settings::ThumbnailInspectorMode> setraw(options.rtSettings.thumbnail_inspector_mode, rtengine::Settings::ThumbnailInspectorMode::RAW);
-            rtengine::TempVarSetter<rtengine::Settings::ThumbnailInspectorRawCurve> setfilmcurve(options.rtSettings.thumbnail_inspector_raw_curve, rtengine::Settings::ThumbnailInspectorRawCurve::FILM);
+        if (!imageSurface && options.rtSettings.thumbnail_inspector_mode == art::engine::Settings::ThumbnailInspectorMode::JPEG) {
+            art::engine::TempVarSetter<art::engine::Settings::ThumbnailInspectorMode> setraw(options.rtSettings.thumbnail_inspector_mode, art::engine::Settings::ThumbnailInspectorMode::RAW);
+            art::engine::TempVarSetter<art::engine::Settings::ThumbnailInspectorRawCurve> setfilmcurve(options.rtSettings.thumbnail_inspector_raw_curve, art::engine::Settings::ThumbnailInspectorRawCurve::FILM);
             imageSurface = load();
         }
 
@@ -147,16 +147,16 @@ bool InspectorArea::on_draw(const ::Cairo::RefPtr<Cairo::Context> &cr)
         int scale = getImageDisplayScale();
 
         // compute the displayed area
-        rtengine::Coord availableSize;
-        rtengine::Coord topLeft;
-        // rtengine::Coord displayedSize;
-        rtengine::Coord dest(0, 0);
+        art::engine::Coord availableSize;
+        art::engine::Coord topLeft;
+        // art::engine::Coord displayedSize;
+        art::engine::Coord dest(0, 0);
         availableSize.x = win->get_width();
         availableSize.y = win->get_height();
         int imW = cur_image_->imgBuffer.getWidth() / scale;
         int imH = cur_image_->imgBuffer.getHeight() / scale;
 
-        rtengine::Coord center(center_.x * imW, center_.y * imH);
+        art::engine::Coord center(center_.x * imW, center_.y * imH);
 
         if (imW < availableSize.x) {
             // center the image in the available space along X
@@ -166,9 +166,9 @@ bool InspectorArea::on_draw(const ::Cairo::RefPtr<Cairo::Context> &cr)
             // partial image display
             // double clamp
             topLeft.x = center.x + availableSize.x / 2;
-            topLeft.x = rtengine::min<int>(topLeft.x, imW);
+            topLeft.x = art::engine::min<int>(topLeft.x, imW);
             topLeft.x -= availableSize.x;
-            topLeft.x = rtengine::max<int>(topLeft.x, 0);
+            topLeft.x = art::engine::max<int>(topLeft.x, 0);
         }
 
         if (imH < availableSize.y) {
@@ -179,9 +179,9 @@ bool InspectorArea::on_draw(const ::Cairo::RefPtr<Cairo::Context> &cr)
             // partial image display
             // double clamp
             topLeft.y = center.y + availableSize.y / 2;
-            topLeft.y = rtengine::min<int>(topLeft.y, imH);
+            topLeft.y = art::engine::min<int>(topLeft.y, imH);
             topLeft.y -= availableSize.y;
-            topLeft.y = rtengine::max<int>(topLeft.y, 0);
+            topLeft.y = art::engine::max<int>(topLeft.y, 0);
         }
 
         // printf("center: %d, %d   (img: %d, %d)  (availableSize: %d, %d)
@@ -189,8 +189,8 @@ bool InspectorArea::on_draw(const ::Cairo::RefPtr<Cairo::Context> &cr)
         // availableSize.y, topLeft.x, topLeft.y);
 
         // define the destination area
-        auto dw = rtengine::min<int>(availableSize.x - dest.x, imW);
-        auto dh = rtengine::min<int>(availableSize.y - dest.y, imH);
+        auto dw = art::engine::min<int>(availableSize.x - dest.x, imW);
+        auto dh = art::engine::min<int>(availableSize.y - dest.y, imH);
         cur_image_->imgBuffer.setDrawRectangle(win, dest.x, dest.y, dw, dh,
                                                false);
         cur_image_->imgBuffer.setSrcOffset(topLeft.x, topLeft.y);
@@ -274,14 +274,14 @@ bool InspectorArea::on_draw(const ::Cairo::RefPtr<Cairo::Context> &cr)
     return true;
 }
 
-void InspectorArea::mouseMove(rtengine::Coord2D pos, int transform)
+void InspectorArea::mouseMove(art::engine::Coord2D pos, int transform)
 {
     if (!active_) {
         return;
     }
 
     if (cur_image_) {
-        center_.set(rtengine::LIM01(pos.x), rtengine::LIM01(pos.y));
+        center_.set(art::engine::LIM01(pos.x), art::engine::LIM01(pos.y));
     } else {
         center_.set(0, 0);
     }
@@ -290,7 +290,7 @@ void InspectorArea::mouseMove(rtengine::Coord2D pos, int transform)
 }
 
 void InspectorArea::switchImage(const Glib::ustring &fullPath, bool recenter,
-                                rtengine::Coord2D newcenter, int w, int h)
+                                art::engine::Coord2D newcenter, int w, int h)
 {
     if (!active_) {
         return;
@@ -321,7 +321,7 @@ int InspectorArea::getImageDisplayScale()
 }
     
 
-bool InspectorArea::doSwitchImage(bool recenter, rtengine::Coord2D newcenter,
+bool InspectorArea::doSwitchImage(bool recenter, art::engine::Coord2D newcenter,
                                   int w, int h)
 {
     Glib::ustring fullPath = next_image_path_;
@@ -334,8 +334,8 @@ bool InspectorArea::doSwitchImage(bool recenter, rtengine::Coord2D newcenter,
 
     if (cur_image_ && recenter) {
         if (newcenter.x >= 0 && newcenter.y >= 0) {
-            center_.set(rtengine::LIM01(newcenter.x),
-                        rtengine::LIM01(newcenter.y));
+            center_.set(art::engine::LIM01(newcenter.x),
+                        art::engine::LIM01(newcenter.y));
         } else {
             center_.set(0.5, 0.5);
         }
@@ -514,7 +514,7 @@ void InspectorArea::updateHistogram()
         return;
     }
 
-    LUTu dummy_lut(1);
+    art::engine::LUTu dummy_lut(1);
     array2D<int> dummy_arr;
     hist_bb_.update(dummy_lut, dummy_lut, dummy_lut, dummy_lut, dummy_lut,
                     cur_image_->histogram[0], cur_image_->histogram[1],
@@ -537,7 +537,7 @@ bool InspectorArea::onMouseMove(GdkEventMotion *evt)
             constexpr double gain = 4.0;
             double dx = (center_.x * w) - (evt->x - prev_point_.x) * gain;
             double dy = (center_.y * h) - (evt->y - prev_point_.y) * gain;
-            sig_moved_.emit(rtengine::Coord2D(dx / w, dy / h));
+            sig_moved_.emit(art::engine::Coord2D(dx / w, dy / h));
         }
         prev_point_.set(evt->x, evt->y);
     }
@@ -560,7 +560,7 @@ bool InspectorArea::onMousePress(GdkEventButton *evt)
                 int oy = h / 2 - hh / 2;
                 double x = (evt->x + ox) / w;
                 double y = (evt->y + oy) / h;
-                sig_pressed_.emit(rtengine::Coord2D(x, y));
+                sig_pressed_.emit(art::engine::Coord2D(x, y));
             }
         }
     } else {
@@ -627,16 +627,16 @@ Inspector::Inspector(FileCatalog *filecatalog)
         });
 }
 
-void Inspector::mouseMove(rtengine::Coord2D pos, int transform)
+void Inspector::mouseMove(art::engine::Coord2D pos, int transform)
 {
     for (size_t i = 0; i < num_active_; ++i) {
         ins_[i].mouseMove(pos, transform);
     }
 }
 
-void Inspector::on_moved(rtengine::Coord2D pos) { mouseMove(pos, 0); }
+void Inspector::on_moved(art::engine::Coord2D pos) { mouseMove(pos, 0); }
 
-void Inspector::on_pressed(rtengine::Coord2D pos)
+void Inspector::on_pressed(art::engine::Coord2D pos)
 {
     if (options.thumbnail_inspector_zoom_fit) {
         temp_zoom_11_ = true;
@@ -819,22 +819,22 @@ Gtk::HBox *Inspector::get_toolbar()
         sigc::mem_fun(*this, &Inspector::focus_mask_toggled));
 
     bool use_jpg = options.rtSettings.thumbnail_inspector_mode ==
-                   rtengine::Settings::ThumbnailInspectorMode::JPEG;
+                   art::engine::Settings::ThumbnailInspectorMode::JPEG;
     jpg_->set_active(use_jpg);
     rawlinear_->set_active(
         !use_jpg && options.rtSettings.thumbnail_inspector_raw_curve ==
-                        rtengine::Settings::ThumbnailInspectorRawCurve::LINEAR);
+                        art::engine::Settings::ThumbnailInspectorRawCurve::LINEAR);
     rawfilm_->set_active(
         !use_jpg && options.rtSettings.thumbnail_inspector_raw_curve ==
-                        rtengine::Settings::ThumbnailInspectorRawCurve::FILM);
+                        art::engine::Settings::ThumbnailInspectorRawCurve::FILM);
     rawshadow_->set_active(
         !use_jpg &&
         options.rtSettings.thumbnail_inspector_raw_curve ==
-            rtengine::Settings::ThumbnailInspectorRawCurve::SHADOW_BOOST);
+            art::engine::Settings::ThumbnailInspectorRawCurve::SHADOW_BOOST);
     rawclip_->set_active(
         !use_jpg &&
         options.rtSettings.thumbnail_inspector_raw_curve ==
-            rtengine::Settings::ThumbnailInspectorRawCurve::RAW_CLIPPING);
+            art::engine::Settings::ThumbnailInspectorRawCurve::RAW_CLIPPING);
 
     zoomfit_->set_active(options.thumbnail_inspector_zoom_fit);
     zoom11_->set_active(!options.thumbnail_inspector_zoom_fit);
@@ -883,7 +883,7 @@ void Inspector::info_toggled()
 
 Glib::ustring Inspector::get_info_text(size_t i)
 {
-    rtengine::FramesData meta(cur_image_[i]);
+    art::engine::FramesData meta(cur_image_[i]);
 
     Glib::ustring infoString;
     Glib::ustring expcomp;
@@ -955,27 +955,27 @@ void Inspector::mode_toggled(Gtk::ToggleButton *b)
 
         if (jpg_->get_active()) {
             options.rtSettings.thumbnail_inspector_mode =
-                rtengine::Settings::ThumbnailInspectorMode::JPEG;
+                art::engine::Settings::ThumbnailInspectorMode::JPEG;
         } else if (rawlinear_->get_active()) {
             options.rtSettings.thumbnail_inspector_mode =
-                rtengine::Settings::ThumbnailInspectorMode::RAW;
+                art::engine::Settings::ThumbnailInspectorMode::RAW;
             options.rtSettings.thumbnail_inspector_raw_curve =
-                rtengine::Settings::ThumbnailInspectorRawCurve::LINEAR;
+                art::engine::Settings::ThumbnailInspectorRawCurve::LINEAR;
         } else if (rawfilm_->get_active()) {
             options.rtSettings.thumbnail_inspector_mode =
-                rtengine::Settings::ThumbnailInspectorMode::RAW;
+                art::engine::Settings::ThumbnailInspectorMode::RAW;
             options.rtSettings.thumbnail_inspector_raw_curve =
-                rtengine::Settings::ThumbnailInspectorRawCurve::FILM;
+                art::engine::Settings::ThumbnailInspectorRawCurve::FILM;
         } else if (rawshadow_->get_active()) {
             options.rtSettings.thumbnail_inspector_mode =
-                rtengine::Settings::ThumbnailInspectorMode::RAW;
+                art::engine::Settings::ThumbnailInspectorMode::RAW;
             options.rtSettings.thumbnail_inspector_raw_curve =
-                rtengine::Settings::ThumbnailInspectorRawCurve::SHADOW_BOOST;
+                art::engine::Settings::ThumbnailInspectorRawCurve::SHADOW_BOOST;
         } else if (rawclip_->get_active()) {
             options.rtSettings.thumbnail_inspector_mode =
-                rtengine::Settings::ThumbnailInspectorMode::RAW;
+                art::engine::Settings::ThumbnailInspectorMode::RAW;
             options.rtSettings.thumbnail_inspector_raw_curve =
-                rtengine::Settings::ThumbnailInspectorRawCurve::RAW_CLIPPING;
+                art::engine::Settings::ThumbnailInspectorRawCurve::RAW_CLIPPING;
         }
 
         for (size_t i = 0; i < num_active_; ++i) {
@@ -987,7 +987,7 @@ void Inspector::mode_toggled(Gtk::ToggleButton *b)
 
 void Inspector::zoom_toggled(Gtk::ToggleButton *b) { do_toggle_zoom(b); }
 
-void Inspector::do_toggle_zoom(Gtk::ToggleButton *b, rtengine::Coord2D pos)
+void Inspector::do_toggle_zoom(Gtk::ToggleButton *b, art::engine::Coord2D pos)
 {
     ConnectionBlocker blockf(zoomfitconn_);
     ConnectionBlocker block1(zoom11conn_);
@@ -1227,10 +1227,10 @@ void Inspector::popover(const ThumbBrowserEntryBase *entry)
     int topw, toph;
     top.get_size(topw, toph);
 
-    rtengine::TempVarSetter<bool> setzoomfit(options.thumbnail_inspector_zoom_fit, true);
-    rtengine::TempVarSetter<bool> setnohist(options.thumbnail_inspector_show_histogram, false);
-    rtengine::TempVarSetter<rtengine::Settings::ThumbnailInspectorMode> setmode(options.rtSettings.thumbnail_inspector_mode, rtengine::Settings::ThumbnailInspectorMode::JPEG);
-    rtengine::TempVarSetter<rtengine::Settings::ThumbnailInspectorRawCurve> setcurve(options.rtSettings.thumbnail_inspector_raw_curve);
+    art::engine::TempVarSetter<bool> setzoomfit(options.thumbnail_inspector_zoom_fit, true);
+    art::engine::TempVarSetter<bool> setnohist(options.thumbnail_inspector_show_histogram, false);
+    art::engine::TempVarSetter<art::engine::Settings::ThumbnailInspectorMode> setmode(options.rtSettings.thumbnail_inspector_mode, art::engine::Settings::ThumbnailInspectorMode::JPEG);
+    art::engine::TempVarSetter<art::engine::Settings::ThumbnailInspectorRawCurve> setcurve(options.rtSettings.thumbnail_inspector_raw_curve);
 
     int bb = std::min(toph, topw) * (float(options.quick_inspect_popup_size_percent)/100.f);
     int tw, th;
@@ -1246,7 +1246,7 @@ void Inspector::popover(const ThumbBrowserEntryBase *entry)
     InspectorArea a;
     a.setActive(true);
     a.setInfoText("");
-    a.switchImage(entry->filename, false, rtengine::Coord2D(-1, -1), aw, ah);
+    a.switchImage(entry->filename, false, art::engine::Coord2D(-1, -1), aw, ah);
     a.set_size_request(aw, ah);
     p.add(a);
 
@@ -1260,28 +1260,28 @@ void Inspector::popover(const ThumbBrowserEntryBase *entry)
             auto &mode = options.rtSettings.thumbnail_inspector_mode;
             auto &curve = options.rtSettings.thumbnail_inspector_raw_curve;
 
-            mode = rtengine::Settings::ThumbnailInspectorMode::RAW;
+            mode = art::engine::Settings::ThumbnailInspectorMode::RAW;
 
             switch (m) {
             case Inspector::DisplayMode::JPG:
-                mode = rtengine::Settings::ThumbnailInspectorMode::JPEG;
+                mode = art::engine::Settings::ThumbnailInspectorMode::JPEG;
                 break;
             case Inspector::DisplayMode::RAW_LINEAR:
-                curve = rtengine::Settings::ThumbnailInspectorRawCurve::LINEAR;
+                curve = art::engine::Settings::ThumbnailInspectorRawCurve::LINEAR;
                 break;
             case Inspector::DisplayMode::RAW_FILM_CURVE:
-                curve = rtengine::Settings::ThumbnailInspectorRawCurve::FILM;
+                curve = art::engine::Settings::ThumbnailInspectorRawCurve::FILM;
                 break;
             case Inspector::DisplayMode::RAW_SHADOW_BOOST:
-                curve = rtengine::Settings::ThumbnailInspectorRawCurve::SHADOW_BOOST;
+                curve = art::engine::Settings::ThumbnailInspectorRawCurve::SHADOW_BOOST;
                 break;
             case Inspector::DisplayMode::RAW_CLIP_WARNING:
-                curve = rtengine::Settings::ThumbnailInspectorRawCurve::RAW_CLIPPING;
+                curve = art::engine::Settings::ThumbnailInspectorRawCurve::RAW_CLIPPING;
                 break;
             }
 
             a.flushBuffers();
-            a.switchImage(entry->filename, false, rtengine::Coord2D(-1, -1), aw, ah);
+            a.switchImage(entry->filename, false, art::engine::Coord2D(-1, -1), aw, ah);
             a.queue_draw();
             
             return true;
@@ -1316,18 +1316,18 @@ void Inspector::popover(const ThumbBrowserEntryBase *entry)
     bool zoomfit = true;
 
     const auto toggle_zoom =
-        [&](rtengine::Coord2D pos)
+        [&](art::engine::Coord2D pos)
         {
             zoomfit = !zoomfit;
-            rtengine::TempVarSetter<bool> setzoomfit(options.thumbnail_inspector_zoom_fit, zoomfit);
+            art::engine::TempVarSetter<bool> setzoomfit(options.thumbnail_inspector_zoom_fit, zoomfit);
             a.flushBuffers();
             a.switchImage(entry->filename, true, pos, aw, ah);
             a.queue_draw();
         };
     
-    a.signal_pressed().connect([&](rtengine::Coord2D pos) { toggle_zoom(pos); });
-    a.signal_released().connect([&]() { toggle_zoom(rtengine::Coord2D(-1, -1)); });
-    a.signal_moved().connect([&](rtengine::Coord2D pos) { a.mouseMove(pos, 0); });
+    a.signal_pressed().connect([&](art::engine::Coord2D pos) { toggle_zoom(pos); });
+    a.signal_released().connect([&]() { toggle_zoom(art::engine::Coord2D(-1, -1)); });
+    a.signal_moved().connect([&](art::engine::Coord2D pos) { a.mouseMove(pos, 0); });
 
     p.show_all_children();
     p.set_modal(true);

@@ -28,7 +28,7 @@
 #include <cstddef>
 #include <memory>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 template <typename T> class wavelet_level {
 
@@ -897,4 +897,4 @@ void wavelet_level<T>::reconstruct_level(E *tmpLo, E *tmpHi, E *src, E *dst,
     }
 }
 #endif
-} // namespace rtengine
+}} // namespace art::engine

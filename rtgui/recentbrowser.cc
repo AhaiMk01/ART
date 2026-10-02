@@ -21,7 +21,7 @@
 #include "options.h"
 #include "session.h"
 
-using namespace rtengine;
+using namespace art::engine;
 
 RecentBrowser::RecentBrowser()
 {

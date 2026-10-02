@@ -22,14 +22,14 @@
 #include <cmath>
 #include <iomanip>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 ImpulseDenoise::ImpulseDenoise()
     : FoldableToolPanel(this, "impulsedenoise", M("TP_IMPULSEDENOISE_LABEL"),
                         false, true, true)
 {
-    EvToolReset.set_action(rtengine::DETAIL);
+    EvToolReset.set_action(art::engine::DETAIL);
 
     thresh =
         Gtk::manage(new Adjuster(M("TP_IMPULSEDENOISE_THRESH"), 0, 100, 1, 50));
@@ -88,7 +88,7 @@ void ImpulseDenoise::enabledChanged()
     }
 }
 
-void ImpulseDenoise::trimValues(rtengine::procparams::ProcParams *pp)
+void ImpulseDenoise::trimValues(art::engine::procparams::ProcParams *pp)
 {
 
     thresh->trimValue(pp->impulseDenoise.thresh);

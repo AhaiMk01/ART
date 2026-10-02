@@ -20,8 +20,8 @@
 #include "eventmapper.h"
 #include <cmath>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 PrSharpening::PrSharpening()
     : FoldableToolPanel(this, "prsharpening", M("TP_PRSHARPENING_LABEL"), false,
@@ -29,8 +29,8 @@ PrSharpening::PrSharpening()
 {
     auto m = ProcEventMapper::getInstance();
     EvPrShrContrast =
-        m->newEvent(rtengine::M_LUMINANCE, "HISTORY_MSG_PRSHARPEN_CONTRAST");
-    EvToolReset.set_action(rtengine::M_LUMINANCE);
+        m->newEvent(art::engine::M_LUMINANCE, "HISTORY_MSG_PRSHARPEN_CONTRAST");
+    EvToolReset.set_action(art::engine::M_LUMINANCE);
 
     std::vector<GradientMilestone> milestones;
     milestones.push_back(GradientMilestone(0.0, 0.0, 0.0, 0.0));
@@ -388,7 +388,7 @@ void PrSharpening::adjusterChanged2(ThresholdAdjuster *a, int newBottomL,
 {
 }
 
-void PrSharpening::trimValues(rtengine::procparams::ProcParams *pp)
+void PrSharpening::trimValues(art::engine::procparams::ProcParams *pp)
 {
     contrast->trimValue(pp->prsharpening.contrast);
     radius->trimValue(pp->prsharpening.radius);

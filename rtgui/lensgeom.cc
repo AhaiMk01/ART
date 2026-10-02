@@ -20,8 +20,8 @@
 #include "guiutils.h"
 #include "rtimage.h"
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 GeometryPanel::GeometryPanel()
     : FoldableToolPanel(this, "lensgeom", M("TP_GEOM_LABEL")),

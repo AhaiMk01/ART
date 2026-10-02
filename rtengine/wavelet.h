@@ -37,7 +37,7 @@
 #include "gpu/vk_pass.h"
 #endif // ART_USE_VULKAN
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class wavelet_decomposition: public NonCopyable {
 public:
@@ -357,4 +357,4 @@ bool waveletMadExact(Context &ctx, Pass &pass, BufferPool &pool,
 } // namespace gpu
 #endif // ART_USE_VULKAN
 
-} // namespace rtengine
+}} // namespace art::engine

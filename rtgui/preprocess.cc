@@ -21,15 +21,15 @@
 #include "guiutils.h"
 #include <sstream>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 PreProcess::PreProcess()
     : FoldableToolPanel(this, "preprocess", M("TP_PREPROCESS_LABEL"), false,
                         true, true)
 {
-    EvToolEnabled.set_action(rtengine::DARKFRAME);
-    EvToolReset.set_action(rtengine::DARKFRAME);
+    EvToolEnabled.set_action(art::engine::DARKFRAME);
+    EvToolReset.set_action(art::engine::DARKFRAME);
 
     Gtk::HBox *hotdeadPixel = Gtk::manage(new Gtk::HBox());
     hotdeadPixel->set_spacing(4);
@@ -62,7 +62,7 @@ PreProcess::PreProcess()
         sigc::mem_fun(*this, &PreProcess::deadPixelChanged), true);
 }
 
-void PreProcess::read(const rtengine::procparams::ProcParams *pp)
+void PreProcess::read(const art::engine::procparams::ProcParams *pp)
 {
     disableListener();
     hpixelconn.block(true);
@@ -80,7 +80,7 @@ void PreProcess::read(const rtengine::procparams::ProcParams *pp)
     enableListener();
 }
 
-void PreProcess::write(rtengine::procparams::ProcParams *pp)
+void PreProcess::write(art::engine::procparams::ProcParams *pp)
 {
     pp->raw.enable_hotdeadpix = getEnabled();
     pp->raw.hotPixelFilter = hotPixel->get_active();

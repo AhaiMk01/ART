@@ -39,7 +39,7 @@ output_message(j_common_ptr cinfo)
 
 GLOBAL(struct jpeg_error_mgr *)
 rt_jpeg_std_error(rt_jpeg_error_mgr *err, const char *filename,
-                  rtengine::ProgressListener *pl)
+                  art::engine::ProgressListener *pl)
 {
     jpeg_std_error(&(err->pub));
     err->pub.error_exit = error_exit;

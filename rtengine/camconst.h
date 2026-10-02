@@ -8,7 +8,7 @@
 #include <glibmm.h>
 #include <map>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class CameraConst {
 private:
@@ -74,4 +74,4 @@ public:
     CameraConst *get(const char make[], const char model[]);
 };
 
-} // namespace rtengine
+}} // namespace art::engine

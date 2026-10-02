@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _BILATERAL2_
-#define _BILATERAL2_
+#pragma once
 
 #include <cmath>
 #include <cstdio>
@@ -33,7 +32,7 @@
 #include <omp.h>
 #endif
 
-using namespace rtengine;
+using namespace art::engine;
 
 // This seems ugly, but way faster than any other solutions I tried
 #define ELEM(a, b)                                                             \
@@ -845,5 +844,3 @@ void bilateral(T **src, T **dst, int W, int H, int sigmar, double sigmas,
 }
 #undef BINBIT
 #undef TRANSBIT
-
-#endif

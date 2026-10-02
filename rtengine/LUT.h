@@ -56,8 +56,7 @@
  *          LUTuc stands for LUT<unsigned char>
  */
 
-#ifndef LUT_H_
-#define LUT_H_
+#pragma once
 
 #include <cassert>
 #include <cstdint>
@@ -71,6 +70,9 @@
 #include "noncopyable.h"
 #include "opthelper.h"
 #include "rt_math.h"
+
+namespace art { namespace engine {
+
 
 // Bit representations of flags
 enum {
@@ -307,7 +309,7 @@ public:
     // use with integer indices
     T &operator[](int index) const
     {
-        return data[rtengine::LIM<int>(index, 0, upperBound)];
+        return data[art::engine::LIM<int>(index, 0, upperBound)];
     }
 
 #ifdef ART_SIMD
@@ -692,4 +694,5 @@ public:
     }
 };
 
-#endif /* LUT_H_ */
+
+} } // namespace art::engine

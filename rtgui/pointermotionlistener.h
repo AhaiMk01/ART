@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _POINTERMOTIONLISTENER_
-#define _POINTERMOTIONLISTENER_
+#pragma once
 
 class PointerMotionListener {
 protected:
@@ -55,5 +54,3 @@ public:
     sigc::signal<void> signal_cycle_rgb() { return sig_cycle_rgb; }
     sigc::signal<void> signal_cycle_lch() { return sig_cycle_lch; }
 };
-
-#endif

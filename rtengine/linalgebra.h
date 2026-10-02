@@ -20,7 +20,7 @@
 #pragma once
 #include <cmath>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 template <class T> class Vec3 {
 public:
@@ -255,4 +255,4 @@ template <class T> Vec3<T> operator*(const Vec3<T> &a, T v)
     return Vec3<T>(a[0] * v, a[1] * v, a[2] * v);
 }
 
-} // namespace rtengine
+}} // namespace art::engine

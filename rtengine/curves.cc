@@ -42,7 +42,7 @@
 #undef CLIPD
 #define CLIPD(a) ((a) > 0.0f ? ((a) < 1.0f ? (a) : 1.0f) : 0.0f)
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace curves {
 
@@ -1109,4 +1109,4 @@ void NeutralToneCurve::BatchApply(const size_t start, const size_t end,
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

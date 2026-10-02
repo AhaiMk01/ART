@@ -27,10 +27,10 @@ class ExifPanel:
     public Gtk::VBox, public ToolPanel, public PParamsChangeListener {
 
 private:
-    const rtengine::FramesMetaData *idata;
-    rtengine::procparams::ExifPairs changeList;
-    rtengine::procparams::ExifPairs defChangeList;
-    rtengine::procparams::ExifPairs override_list_;
+    const art::engine::FramesMetaData *idata;
+    art::engine::procparams::ExifPairs changeList;
+    art::engine::procparams::ExifPairs defChangeList;
+    art::engine::procparams::ExifPairs override_list_;
 
     class ExifColumns: public Gtk::TreeModelColumnRecord {
     public:
@@ -91,7 +91,7 @@ private:
     std::unordered_set<std::string> initial_active_keys_;
     std::unordered_set<std::string> cur_active_keys_;
 
-    rtengine::ProgressListener *pl_;
+    art::engine::ProgressListener *pl_;
 
     void addTag(const std::string &key,
                 const std::pair<Glib::ustring, Glib::ustring> &label,
@@ -129,12 +129,12 @@ public:
     ExifPanel();
     ~ExifPanel() override;
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
 
-    void setImageData(const rtengine::FramesMetaData *id);
+    void setImageData(const art::engine::FramesMetaData *id);
 
     void exifSelectionChanged();
     // void row_activated (const Gtk::TreeModel::Path& path,
@@ -142,11 +142,11 @@ public:
 
     void notifyListener();
 
-    void setProgressListener(rtengine::ProgressListener *pl);
+    void setProgressListener(art::engine::ProgressListener *pl);
 
 //    PParamsChangeListener *getPParamsChangeListener() override { return this; }
-    void procParamsChanged(const rtengine::procparams::ProcParams *params,
-                           const rtengine::ProcEvent &ev,
+    void procParamsChanged(const art::engine::procparams::ProcParams *params,
+                           const art::engine::ProcEvent &ev,
                            const Glib::ustring &descr,
                            const ParamsEdited *paramsEdited=nullptr) override;
     void clearParamChanges() override {}

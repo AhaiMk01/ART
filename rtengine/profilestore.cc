@@ -22,8 +22,8 @@
 #include "../rtgui/options.h"
 #include "dynamicprofile.h"
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 ProfileStore::ProfileStore()
     : storeState(STORESTATE_NOTINITIALIZED), internalDefaultProfile(nullptr),
@@ -149,8 +149,8 @@ void ProfileStore::_parseProfiles()
     // exist (they have survived to clearFileList and clearProfileList)
     if (!internalDefaultEntry) {
         assert(!internalDefaultProfile);
-        internalDefaultProfile = new rtengine::procparams::FullPartialProfile(
-            rtengine::procparams::ProcParams());
+        internalDefaultProfile = new art::engine::procparams::FullPartialProfile(
+            art::engine::procparams::ProcParams());
         internalDefaultEntry = new ProfileStoreEntry(
             Glib::ustring("(") + M("PROFILEPANEL_PINTERNAL") +
                 Glib::ustring(")"),
@@ -251,7 +251,7 @@ bool ProfileStore::parseDir(Glib::ustring &realPath, Glib::ustring &virtualPath,
                     Glib::ustring name = currDir.substr(0, lastdot);
 
                     // create the partial profile
-                    rtengine::procparams::ProcParams pp;
+                    art::engine::procparams::ProcParams pp;
                     int res = pp.load(pl_, fname);
 
                     if (!res && pp.ppVersion >= 220) {
@@ -451,7 +451,7 @@ void ProfileStore::releaseFileList() { parseMutex.unlock(); }
  * it will add it with default internal values, so this method never fails
  */
 // bool ProfileStore::applyDefaultProcParams(bool isRaw,
-// rtengine::procparams::ProcParams &pp)
+// art::engine::procparams::ProcParams &pp)
 // {
 //     return applyProfile(isRaw ? options.defProfRaw : options.defProfImg, pp);
 // }

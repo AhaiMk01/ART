@@ -35,7 +35,7 @@ private:
     void regionGet(int idx);
     void regionShow(int idx);
 
-    std::vector<rtengine::procparams::LocalContrastParams::Region> regionData;
+    std::vector<art::engine::procparams::LocalContrastParams::Region> regionData;
 
     friend class LocalContrastMasksContentProvider;
     std::unique_ptr<MasksContentProvider> masks_content_provider_;
@@ -46,34 +46,34 @@ private:
     CurveEditorGroup *cg;
     FlatCurveEditor *curve;
 
-    rtengine::ProcEvent EvLocalContrastEnabled;
-    rtengine::ProcEvent EvLocalContrastContrast;
-    rtengine::ProcEvent EvLocalContrastCurve;
+    art::engine::ProcEvent EvLocalContrastEnabled;
+    art::engine::ProcEvent EvLocalContrastContrast;
+    art::engine::ProcEvent EvLocalContrastCurve;
 
-    rtengine::ProcEvent EvList;
-    rtengine::ProcEvent EvParametricMask;
-    rtengine::ProcEvent EvHueMask;
-    rtengine::ProcEvent EvChromaticityMask;
-    rtengine::ProcEvent EvLightnessMask;
-    rtengine::ProcEvent EvMaskBlur;
-    rtengine::ProcEvent EvShowMask;
-    rtengine::ProcEvent EvAreaMask;
-    rtengine::ProcEvent EvDeltaEMask;
-    rtengine::ProcEvent EvContrastThresholdMask;
-    rtengine::ProcEvent EvDrawnMask;
-    rtengine::ProcEvent EvMaskPostprocess;
-    rtengine::ProcEvent EvLinkedMask;
-    rtengine::ProcEvent EvExternalMask;
+    art::engine::ProcEvent EvList;
+    art::engine::ProcEvent EvParametricMask;
+    art::engine::ProcEvent EvHueMask;
+    art::engine::ProcEvent EvChromaticityMask;
+    art::engine::ProcEvent EvLightnessMask;
+    art::engine::ProcEvent EvMaskBlur;
+    art::engine::ProcEvent EvShowMask;
+    art::engine::ProcEvent EvAreaMask;
+    art::engine::ProcEvent EvDeltaEMask;
+    art::engine::ProcEvent EvContrastThresholdMask;
+    art::engine::ProcEvent EvDrawnMask;
+    art::engine::ProcEvent EvMaskPostprocess;
+    art::engine::ProcEvent EvLinkedMask;
+    art::engine::ProcEvent EvExternalMask;
 
-    rtengine::procparams::LocalContrastParams initial_params;
+    art::engine::procparams::LocalContrastParams initial_params;
 
 public:
     LocalContrast();
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
     void adjusterChanged(Adjuster *a, double newval) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
     void enabledChanged() override;
@@ -83,8 +83,8 @@ public:
     void setEditProvider(EditDataProvider *provider) override;
 
     PParamsChangeListener *getPParamsChangeListener() override { return this; }
-    void procParamsChanged(const rtengine::procparams::ProcParams *params,
-                           const rtengine::ProcEvent &ev,
+    void procParamsChanged(const art::engine::procparams::ProcParams *params,
+                           const art::engine::ProcEvent &ev,
                            const Glib::ustring &descr,
                            const ParamsEdited *paramsEdited = nullptr) override;
     void clearParamChanges() override {}

@@ -25,6 +25,9 @@
 #include "rawimagesource.h"
 #include "rt_math.h"
 
+namespace art { namespace engine {
+
+
 namespace {
 unsigned fc(const unsigned int cfa[2][2], int r, int c)
 {
@@ -32,7 +35,7 @@ unsigned fc(const unsigned int cfa[2][2], int r, int c)
 }
 } // namespace
 
-namespace rtengine {
+
 
 /*
  * RATIO CORRECTED DEMOSAICING
@@ -547,4 +550,5 @@ void RawImageSource::rcd_demosaic()
     border_interpolate2(W, H, 9, rawData, red, green, blue);
 }
 
-} // namespace rtengine
+
+} } // namespace art::engine

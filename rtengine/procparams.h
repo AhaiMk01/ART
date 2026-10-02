@@ -36,7 +36,7 @@
 
 class ParamsEdited;
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class ProgressListener;
 
@@ -1763,4 +1763,4 @@ private:
 };
 
 } // namespace procparams
-} // namespace rtengine
+}} // namespace art::engine

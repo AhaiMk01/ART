@@ -33,7 +33,7 @@
 #define SAT(a, b, c)                                                           \
     ((float)max(a, b, c) - (float)min(a, b, c)) / (float)max(a, b, c)
 
-namespace rtengine {
+namespace art { namespace engine {
 
 typedef std::array<double, 7> LMCSToneCurveParams;
 
@@ -1107,18 +1107,18 @@ public:
     static inline T interpolatePolarHue_PI (T h1, T h2, U balance) {
         if (h1==h2)
             return h1;
-        if ((h1 > h2) && (h1-h2 > T(rtengine::RT_PI))){
-            h1 -= T(2*rtengine::RT_PI);
+        if ((h1 > h2) && (h1-h2 > T(art::engine::RT_PI))){
+            h1 -= T(2*art::engine::RT_PI);
             T value = h1 + T(balance) * (h2-h1);
-            if (value < T(-rtengine::RT_PI))
-                value += T(2*rtengine::RT_PI);
+            if (value < T(-art::engine::RT_PI))
+                value += T(2*art::engine::RT_PI);
             return value;
         }
-        else if (h2-h1 > T(rtengine::RT_PI)) {
-            h2 -= T(2*rtengine::RT_PI);
+        else if (h2-h1 > T(art::engine::RT_PI)) {
+            h2 -= T(2*art::engine::RT_PI);
             T value = h1 + T(balance) * (h2-h1);
             if (value < T(0))
-                value += T(2*rtengine::RT_PI);
+                value += T(2*art::engine::RT_PI);
             return value;
         }
         else
@@ -1147,23 +1147,23 @@ public:
             f = 1.f - f;
         }
 
-        if (d < T(-rtengine::RT_PI) || d < T(0) ||
-            d > T(rtengine::RT_PI)) { // there was an inversion here !! d >
-                                      // T(rtengine::RT_PI)
-            h1 += T(2 * rtengine::RT_PI);
+        if (d < T(-art::engine::RT_PI) || d < T(0) ||
+            d > T(art::engine::RT_PI)) { // there was an inversion here !! d >
+                                      // T(art::engine::RT_PI)
+            h1 += T(2 * art::engine::RT_PI);
             h = h1 + f * (h2 - h1);
-            h = std::fmod(h, 2 * rtengine::RT_PI);
+            h = std::fmod(h, 2 * art::engine::RT_PI);
         } else {
             h = h1 + f * d;
         }
 
         // not strictly necessary..but in case of
-        if (h < T(-rtengine::RT_PI)) {
-            h = T(2 * rtengine::RT_PI) - h;
+        if (h < T(-art::engine::RT_PI)) {
+            h = T(2 * art::engine::RT_PI) - h;
         }
 
-        if (h > T(rtengine::RT_PI)) {
-            h = h - T(2 * rtengine::RT_PI);
+        if (h > T(art::engine::RT_PI)) {
+            h = h - T(2 * art::engine::RT_PI);
         }
 
         return h;
@@ -1193,7 +1193,7 @@ public:
 
         if (d < T(0) || d < T(0.5) ||
             d > T(1.)) { // there was an inversion here !! d >
-                         // T(rtengine::RT_PI)
+                         // T(art::engine::RT_PI)
             h1 += T(1.);
             h = h1 + f * (h2 - h1);
             h = std::fmod(h, 1.);
@@ -2104,4 +2104,4 @@ public:
     }
 };
 
-} // namespace rtengine
+}} // namespace art::engine

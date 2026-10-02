@@ -32,7 +32,7 @@
 class LibRaw;
 #endif // ART_USE_LIBRAW
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class Image8;
 
@@ -232,4 +232,4 @@ protected:
     void set_black_from_masked_areas();
 };
 
-} // namespace rtengine
+}} // namespace art::engine

@@ -31,7 +31,10 @@
 #include <omp.h>
 #endif
 
-using namespace rtengine;
+namespace art { namespace engine {
+
+
+using namespace art::engine;
 
 namespace {
 
@@ -401,7 +404,7 @@ void hphd_green(const RawImage *ri, const array2D<float> &rawData,
 
 } // namespace
 
-namespace rtengine {
+
 
 void RawImageSource::hphd_demosaic()
 {
@@ -480,4 +483,5 @@ void RawImageSource::hphd_demosaic()
     }
 }
 
-} // namespace rtengine
+
+} } // namespace art::engine

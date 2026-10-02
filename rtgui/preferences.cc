@@ -47,7 +47,7 @@ namespace {
 std::vector<int> get_theme_color(Gtk::ColorButton *c)
 {
     const auto getcol = [](double v) -> int {
-        return rtengine::LIM(v * 255, 0., 255.);
+        return art::engine::LIM(v * 255, 0., 255.);
     };
 
     Gdk::RGBA col = c->get_rgba();
@@ -127,7 +127,7 @@ Preferences::Preferences(RTWindow *rtwindow)
 #endif
     nb->set_current_page(0);
 
-    ProfileStore::getInstance()->addListener(this);
+    art::engine::ProfileStore::getInstance()->addListener(this);
 
     show_all_children();
     fillPreferences();
@@ -136,7 +136,7 @@ Preferences::Preferences(RTWindow *rtwindow)
 Preferences::~Preferences()
 {
 
-    ProfileStore::getInstance()->removeListener(this);
+    art::engine::ProfileStore::getInstance()->removeListener(this);
     get_size(options.preferencesWidth, options.preferencesHeight);
 }
 
@@ -178,8 +178,8 @@ Gtk::Widget *Preferences::getImageProcessingPanel()
     Gtk::Label *drlab = Gtk::manage(
         new Gtk::Label(M("PREFERENCES_FORRAW") + ":", Gtk::ALIGN_START));
     rprofiles = Gtk::manage(new ProfileStoreComboBox());
-    const ProfileStoreEntry *dynpse =
-        ProfileStore::getInstance()->getInternalDynamicPSE();
+    const art::engine::ProfileStoreEntry *dynpse =
+        art::engine::ProfileStore::getInstance()->getInternalDynamicPSE();
     rprofiles->addRow(dynpse);
     setExpandAlignProperties(rprofiles, true, false, Gtk::ALIGN_FILL,
                              Gtk::ALIGN_CENTER);
@@ -476,8 +476,8 @@ Gtk::Widget *Preferences::getPerformancePanel()
         Gtk::PACK_SHRINK);
     gpuDevice_ = Gtk::manage(new Gtk::ComboBoxText());
     gpuDevice_->append("auto", M("PREFERENCES_GPU_DEVICE_AUTO"));
-    const std::vector<rtengine::gpu::DeviceInfo> gpuDevices =
-        rtengine::gpu::enumerateDevices();
+    const std::vector<art::engine::gpu::DeviceInfo> gpuDevices =
+        art::engine::gpu::enumerateDevices();
     for (const auto &dev : gpuDevices) {
         gpuDevice_->append(std::to_string(dev.index), dev.name);
     }
@@ -780,8 +780,8 @@ Gtk::Widget *Preferences::getColorManPanel()
     monitorIccDir->signal_selection_changed().connect(
         sigc::mem_fun(this, &Preferences::iccDirChanged));
 
-    if (rtengine::Settings::color_mgmt_mode ==
-        rtengine::Settings::ColorManagementMode::APPLICATION) {
+    if (art::engine::Settings::color_mgmt_mode ==
+        art::engine::Settings::ColorManagementMode::APPLICATION) {
         vbColorMan->pack_start(*iccdgrid, Gtk::PACK_SHRINK);
     }
 
@@ -808,13 +808,13 @@ Gtk::Widget *Preferences::getColorManPanel()
     setExpandAlignProperties(milabel, false, false, Gtk::ALIGN_START,
                              Gtk::ALIGN_CENTER);
 
-    if (rtengine::Settings::color_mgmt_mode ==
-        rtengine::Settings::ColorManagementMode::APPLICATION) {
+    if (art::engine::Settings::color_mgmt_mode ==
+        art::engine::Settings::ColorManagementMode::APPLICATION) {
         monProfile->append(M("PREFERENCES_PROFILE_NONE"));
         monProfile->set_active(0);
 
         const std::vector<Glib::ustring> profiles =
-            rtengine::ICCStore::getInstance()->getProfilesFromDir(
+            art::engine::ICCStore::getInstance()->getProfilesFromDir(
                 options.rtSettings.monitorIccDirectory);
 
         for (const auto &profile : profiles) {
@@ -845,13 +845,13 @@ Gtk::Widget *Preferences::getColorManPanel()
 
     int row = 0;
     gmonitor->attach(*mplabel, 0, row, 1, 1);
-    if (rtengine::Settings::color_mgmt_mode !=
-        rtengine::Settings::ColorManagementMode::APPLICATION) {
+    if (art::engine::Settings::color_mgmt_mode !=
+        art::engine::Settings::ColorManagementMode::APPLICATION) {
         for (int j = 0; j < 3; ++j) {
-            auto p = rtengine::ICCStore::getInstance()->getStdMonitorProfile(
-                rtengine::Settings::StdMonitorProfile(j));
+            auto p = art::engine::ICCStore::getInstance()->getStdMonitorProfile(
+                art::engine::Settings::StdMonitorProfile(j));
             if (p) {
-                auto lbl = rtengine::ICCStore::getProfileTag(
+                auto lbl = art::engine::ICCStore::getProfileTag(
                     p, cmsSigProfileDescriptionTag);
                 if (lbl.size() > 9 &&
                     lbl.substr(lbl.size() - 9) == " (ICC V4)") {
@@ -860,8 +860,8 @@ Gtk::Widget *Preferences::getColorManPanel()
                 monProfile->append(lbl);
             }
         }
-        if (rtengine::Settings::color_mgmt_mode ==
-            rtengine::Settings::ColorManagementMode::OS_SRGB) {
+        if (art::engine::Settings::color_mgmt_mode ==
+            art::engine::Settings::ColorManagementMode::OS_SRGB) {
             Gtk::Label *oswarn = Gtk::manage(new Gtk::Label(
                 M("PREFERENCES_MONPROFILE_WARN_SRGB"), Gtk::ALIGN_START));
             setExpandAlignProperties(oswarn, false, false, Gtk::ALIGN_CENTER,
@@ -934,8 +934,8 @@ Gtk::Widget *Preferences::getColorManPanel()
     // prtProfile->set_active (0);
 
     // const std::vector<Glib::ustring> prtprofiles =
-    // rtengine::ICCStore::getInstance ()->getProfiles
-    // (rtengine::ICCStore::ProfileType::PRINTER);
+    // art::engine::ICCStore::getInstance ()->getProfiles
+    // (art::engine::ICCStore::ProfileType::PRINTER);
 
     // for (const auto &prtprofile : prtprofiles) {
     //     prtProfile->append (prtprofile);
@@ -2137,7 +2137,7 @@ void Preferences::storePreferences()
     // moptions.navGuideBrush[3] = navGuideColorCB->get_alpha() / 65535.0;
 
     const auto getcol = [](double v) -> int {
-        return rtengine::LIM(v * 255, 0., 255.);
+        return art::engine::LIM(v * 255, 0., 255.);
     };
 
     Gdk::RGBA bg_col = theme_bg_color->get_rgba();
@@ -2228,22 +2228,22 @@ void Preferences::storePreferences()
     switch (prtIntent->get_active_row_number()) {
     default:
     case 0:
-        moptions.rtSettings.printerIntent = rtengine::RI_PERCEPTUAL;
+        moptions.rtSettings.printerIntent = art::engine::RI_PERCEPTUAL;
         break;
 
     case 1:
-        moptions.rtSettings.printerIntent = rtengine::RI_RELATIVE;
+        moptions.rtSettings.printerIntent = art::engine::RI_RELATIVE;
         break;
 
     case 2:
-        moptions.rtSettings.printerIntent = rtengine::RI_ABSOLUTE;
+        moptions.rtSettings.printerIntent = art::engine::RI_ABSOLUTE;
         break;
     }
 
     moptions.rtSettings.printerBPC = prtBPC->get_active();
 
-    if (rtengine::Settings::color_mgmt_mode ==
-        rtengine::Settings::ColorManagementMode::APPLICATION) {
+    if (art::engine::Settings::color_mgmt_mode ==
+        art::engine::Settings::ColorManagementMode::APPLICATION) {
         if (!monProfile->get_active_row_number()) {
             moptions.rtSettings.monitorProfile = "";
         } else {
@@ -2253,25 +2253,25 @@ void Preferences::storePreferences()
         switch (monIntent->get_active_row_number()) {
         default:
         case 0:
-            moptions.rtSettings.monitorIntent = rtengine::RI_PERCEPTUAL;
+            moptions.rtSettings.monitorIntent = art::engine::RI_PERCEPTUAL;
             break;
 
         case 1:
-            moptions.rtSettings.monitorIntent = rtengine::RI_RELATIVE;
+            moptions.rtSettings.monitorIntent = art::engine::RI_RELATIVE;
             break;
 
         case 2:
-            moptions.rtSettings.monitorIntent = rtengine::RI_ABSOLUTE;
+            moptions.rtSettings.monitorIntent = art::engine::RI_ABSOLUTE;
             break;
         }
 
         moptions.rtSettings.monitorBPC = monBPC->get_active();
         moptions.rtSettings.autoMonitorProfile = cbAutoMonProfile->get_active();
-    } else if (rtengine::Settings::color_mgmt_mode ==
-               rtengine::Settings::ColorManagementMode::
+    } else if (art::engine::Settings::color_mgmt_mode ==
+               art::engine::Settings::ColorManagementMode::
                    OS_STD_MONITOR_PROFILE) {
         moptions.rtSettings.os_monitor_profile =
-            rtengine::Settings::StdMonitorProfile(
+            art::engine::Settings::StdMonitorProfile(
                 monProfile->get_active_row_number());
     }
 
@@ -2380,9 +2380,9 @@ void Preferences::storePreferences()
         thumbRatingMode->get_active()
             ? Options::ThumbnailRatingMode::XMP
             : Options::ThumbnailRatingMode::PROCPARAMS;
-    moptions.rtSettings.metadata_xmp_sync = rtengine::Settings::MetadataXmpSync(
+    moptions.rtSettings.metadata_xmp_sync = art::engine::Settings::MetadataXmpSync(
         metadataSyncCombo->get_active_row_number());
-    moptions.rtSettings.xmp_sidecar_style = rtengine::Settings::XmpSidecarStyle(
+    moptions.rtSettings.xmp_sidecar_style = art::engine::Settings::XmpSidecarStyle(
         xmpSidecarCombo->get_active_row_number());
     moptions.rtSettings.exiftool_path = exiftoolPath->get_text();
     moptions.show_exiftool_makernotes = show_exiftool_makernotes->get_active();
@@ -2438,37 +2438,37 @@ void Preferences::fillPreferences()
 
     switch (moptions.rtSettings.printerIntent) {
     default:
-    case rtengine::RI_PERCEPTUAL:
+    case art::engine::RI_PERCEPTUAL:
         prtIntent->set_active(0);
         break;
 
-    case rtengine::RI_RELATIVE:
+    case art::engine::RI_RELATIVE:
         prtIntent->set_active(1);
         break;
 
-    case rtengine::RI_ABSOLUTE:
+    case art::engine::RI_ABSOLUTE:
         prtIntent->set_active(2);
         break;
     }
 
     prtBPC->set_active(moptions.rtSettings.printerBPC);
 
-    if (rtengine::Settings::color_mgmt_mode ==
-        rtengine::Settings::ColorManagementMode::APPLICATION) {
+    if (art::engine::Settings::color_mgmt_mode ==
+        art::engine::Settings::ColorManagementMode::APPLICATION) {
         setActiveTextOrIndex(*monProfile, moptions.rtSettings.monitorProfile,
                              0);
 
         switch (moptions.rtSettings.monitorIntent) {
         default:
-        case rtengine::RI_PERCEPTUAL:
+        case art::engine::RI_PERCEPTUAL:
             monIntent->set_active(0);
             break;
 
-        case rtengine::RI_RELATIVE:
+        case art::engine::RI_RELATIVE:
             monIntent->set_active(1);
             break;
 
-        case rtengine::RI_ABSOLUTE:
+        case art::engine::RI_ABSOLUTE:
             monIntent->set_active(2);
             break;
         }
@@ -2879,7 +2879,7 @@ void Preferences::themeChanged()
     // RTImage::cleanup(true);
     options.svg_color = options.svg_dark_color;
     if (theme_color_visible) {
-        options.svg_color = rtengine::get_html_color(
+        options.svg_color = art::engine::get_html_color(
             moptions.theme_fg_color[0], moptions.theme_fg_color[1],
             moptions.theme_fg_color[2]);
         if (options.rtSettings.verbose > 1) {
@@ -2897,13 +2897,13 @@ void Preferences::forRAWComboChanged()
         return;
     }
 
-    const ProfileStoreEntry *selectedEntry = rprofiles->getSelectedEntry();
+    const art::engine::ProfileStoreEntry *selectedEntry = rprofiles->getSelectedEntry();
 
     if (!selectedEntry) {
         return;
     }
 
-    if (selectedEntry->type == PSET_FOLDER) {
+    if (selectedEntry->type == art::engine::PSET_FOLDER) {
         rpconn.block(true);
         rprofiles->set_active(currRawRow);
         rpconn.block(false);
@@ -2920,13 +2920,13 @@ void Preferences::forImageComboChanged()
         return;
     }
 
-    const ProfileStoreEntry *selectedEntry = iprofiles->getSelectedEntry();
+    const art::engine::ProfileStoreEntry *selectedEntry = iprofiles->getSelectedEntry();
 
     if (!selectedEntry) {
         return;
     }
 
-    if (selectedEntry->type == PSET_FOLDER) {
+    if (selectedEntry->type == art::engine::PSET_FOLDER) {
         ipconn.block(true);
         iprofiles->set_active(currImgRow);
         ipconn.block(false);
@@ -2953,7 +2953,7 @@ void Preferences::bundledProfilesChanged()
     options.useBundledProfiles = useBundledProfiles->get_active();
 
     // rescan the file's tree
-    ProfileStore::getInstance()
+    art::engine::ProfileStore::getInstance()
         ->parseProfiles(); // This will call Preferences::updateProfileList in
                            // return
 
@@ -2967,7 +2967,7 @@ void Preferences::bundledProfilesChanged()
 void Preferences::iccDirChanged()
 {
     const auto currentSelection = monProfile->get_active_text();
-    const auto profiles = rtengine::ICCStore::getInstance()->getProfilesFromDir(
+    const auto profiles = art::engine::ICCStore::getInstance()->getProfilesFromDir(
         monitorIccDir->get_filename());
 
     monProfile->remove_all();
@@ -2993,8 +2993,8 @@ void Preferences::updateProfileList()
 {
     rprofiles->updateProfileList();
     iprofiles->updateProfileList();
-    const ProfileStoreEntry *dynpse =
-        ProfileStore::getInstance()->getInternalDynamicPSE();
+    const art::engine::ProfileStoreEntry *dynpse =
+        art::engine::ProfileStore::getInstance()->getInternalDynamicPSE();
     rprofiles->addRow(dynpse);
     iprofiles->addRow(dynpse);
 }
@@ -3062,7 +3062,7 @@ void Preferences::switchThemeTo(const Glib::ustring &newTheme,
         auto bg = get_theme_color(opts->theme_bg_color);
         auto fg = get_theme_color(opts->theme_fg_color);
         auto hl = get_theme_color(opts->theme_hl_color);
-        auto lum = rtengine::Color::rgbLuminance(bg[0] / 255.0, bg[1] / 255.0,
+        auto lum = art::engine::Color::rgbLuminance(bg[0] / 255.0, bg[1] / 255.0,
                                                  bg[2] / 255.0);
         float factor = 0.1;
         if (lum < 0.2) {
@@ -3269,8 +3269,8 @@ void Preferences::darkFrameChanged()
 {
     // Glib::ustring s(darkFrameDir->get_filename());
     Glib::ustring s(darkFrameDir->get_current_folder());
-    // if( s.compare( rtengine::dfm.getPathname()) !=0 ){
-    rtengine::dfm.init(s);
+    // if( s.compare( art::engine::dfm.getPathname()) !=0 ){
+    art::engine::dfm.init(s);
     updateDFinfos();
     //}
 }
@@ -3279,8 +3279,8 @@ void Preferences::flatFieldChanged()
 {
     // Glib::ustring s(flatFieldDir->get_filename());
     Glib::ustring s(flatFieldDir->get_current_folder());
-    // if( s.compare( rtengine::ffm.getPathname()) !=0 ){
-    rtengine::ffm.init(s);
+    // if( s.compare( art::engine::ffm.getPathname()) !=0 ){
+    art::engine::ffm.init(s);
     updateFFinfos();
     //}
 }
@@ -3288,7 +3288,7 @@ void Preferences::flatFieldChanged()
 void Preferences::updateDFinfos()
 {
     int t1, t2;
-    rtengine::dfm.getStat(t1, t2);
+    art::engine::dfm.getStat(t1, t2);
     Glib::ustring s = Glib::ustring::compose(
         "%1: %2 %3, %4 %5", M("PREFERENCES_DARKFRAMEFOUND"), t1,
         M("PREFERENCES_DARKFRAMESHOTS"), t2,
@@ -3299,7 +3299,7 @@ void Preferences::updateDFinfos()
 void Preferences::updateFFinfos()
 {
     int t1, t2;
-    rtengine::ffm.getStat(t1, t2);
+    art::engine::ffm.getStat(t1, t2);
     Glib::ustring s = Glib::ustring::compose(
         "%1: %2 %3, %4 %5", M("PREFERENCES_FLATFIELDFOUND"), t1,
         M("PREFERENCES_FLATFIELDSHOTS"), t2,

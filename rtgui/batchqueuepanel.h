@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _BATCHQUEUEPANEL_
-#define _BATCHQUEUEPANEL_
+#pragma once
 
 #include <atomic>
 
@@ -80,7 +79,7 @@ public:
     void queueSizeChanged(int qsize, bool queueRunning, bool queueError,
                           const Glib::ustring &queueErrorMessage) override;
     bool canStartNext() override;
-    void lastExportTimes(const rtengine::PipelineTimes &t) override;
+    void lastExportTimes(const art::engine::PipelineTimes &t) override;
 
     void refreshProfiles();
 
@@ -99,6 +98,5 @@ private:
                                          // / 1: horizontal / 2: vertical
     void applyBatchProfileToggled();
 
-    rtengine::procparams::MultiPartialProfile bqprof_;
+    art::engine::procparams::MultiPartialProfile bqprof_;
 };
-#endif

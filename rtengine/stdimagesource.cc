@@ -31,7 +31,7 @@
 
 #undef THREAD_PRIORITY_NORMAL
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -573,4 +573,4 @@ void StdImageSource::wbCamera2Mul(double &rm, double &gm, double &bm)
     bm = 1.0 / bm;
 }
 
-} // namespace rtengine
+}} // namespace art::engine

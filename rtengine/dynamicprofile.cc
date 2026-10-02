@@ -23,8 +23,8 @@
 #include <glibmm/regex.h>
 #include <stdlib.h>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 namespace {
 
@@ -69,7 +69,7 @@ bool DynamicProfileRule::CustomMetadata::operator()(const Glib::ustring &filenam
     }
 
     try {
-        rtengine::Exiv2Metadata meta(filename);
+        art::engine::Exiv2Metadata meta(filename);
         std::unordered_map<std::string, std::string> mn;
         bool mn_loaded = false;
         meta.load();
@@ -126,7 +126,7 @@ bool DynamicProfileRule::operator<(const DynamicProfileRule &other) const
     return serial_number < other.serial_number;
 }
 
-bool DynamicProfileRule::matches(const rtengine::FramesMetaData *im) const
+bool DynamicProfileRule::matches(const art::engine::FramesMetaData *im) const
 {
     return (iso(im->getISOSpeed()) && fnumber(im->getFNumber()) &&
             focallen(im->getFocalLen()) &&

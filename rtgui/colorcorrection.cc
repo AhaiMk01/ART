@@ -26,8 +26,8 @@
 #include <map>
 #include <unordered_map>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 namespace {
 
@@ -45,7 +45,7 @@ void get_builtin_luts()
             Glib::build_filename(options.user_config_dir, "ctlscripts"),
             Glib::build_filename(options.ART_base_dir, "ctlscripts")};
 
-        std::map<rtengine::CLUTStore::CLUTName, Glib::ustring> order;
+        std::map<art::engine::CLUTStore::CLUTName, Glib::ustring> order;
 
         for (auto &dir : dirs) {
             try {
@@ -143,7 +143,7 @@ public:
     {
         parent_->data.insert(
             parent_->data.begin() + idx,
-            rtengine::procparams::ColorCorrectionParams::Region());
+            art::engine::procparams::ColorCorrectionParams::Region());
         return true;
     }
 
@@ -195,7 +195,7 @@ public:
     {
         auto &r = parent_->data[row];
         switch (r.mode) {
-        case rtengine::procparams::ColorCorrectionParams::Mode::RGB: {
+        case art::engine::procparams::ColorCorrectionParams::Mode::RGB: {
             const auto lbl =
                 [](const std::array<double, 3> &v) -> Glib::ustring {
                 return Glib::ustring::compose("{%1,%2,%3}", v[0], v[1], v[2]);
@@ -205,7 +205,7 @@ public:
                 lbl(r.offset), lbl(r.power), lbl(r.pivot), r.inSaturation,
                 r.outSaturation, lbl(r.compression));
         } break;
-        case rtengine::procparams::ColorCorrectionParams::Mode::HSL: {
+        case art::engine::procparams::ColorCorrectionParams::Mode::HSL: {
             const auto lbl =
                 [](const std::array<double, 3> &v) -> Glib::ustring {
                 return Glib::ustring::compose("{s=%1,o=%2,p=%3}", v[0], v[1],
@@ -216,14 +216,14 @@ public:
                 lbl(r.sat), lbl(r.factor), r.inSaturation, r.outSaturation,
                 r.hueshift, r.hsl_gamma);
         } break;
-        case rtengine::procparams::ColorCorrectionParams::Mode::LUT:
+        case art::engine::procparams::ColorCorrectionParams::Mode::LUT:
             if (builtin_lut_to_idx.find(r.lutFilename) !=
                 builtin_lut_to_idx.end()) {
-                return rtengine::CLUTStore::getClutDisplayName(r.lutFilename);
+                return art::engine::CLUTStore::getClutDisplayName(r.lutFilename);
             } else {
                 return Glib::ustring::compose(
                     "LUT %1",
-                    rtengine::CLUTStore::getClutDisplayName(r.lutFilename));
+                    art::engine::CLUTStore::getClutDisplayName(r.lutFilename));
             }
             break;
         default: {
@@ -232,7 +232,7 @@ public:
             };
             Glib::ustring cx, cy;
             if (r.mode ==
-                rtengine::procparams::ColorCorrectionParams::Mode::YUV) {
+                art::engine::procparams::ColorCorrectionParams::Mode::YUV) {
                 cx = Glib::ustring::compose("x=%1", round_ab(r.a));
                 cy = Glib::ustring::compose("y=%1", round_ab(r.b));
             } else {
@@ -484,7 +484,7 @@ ColorCorrection::ColorCorrection()
                         false, true, true)
 {
     auto m = ProcEventMapper::getInstance();
-    auto EVENT = rtengine::LUMINANCECURVE | rtengine::M_LUMACURVE;
+    auto EVENT = art::engine::LUMINANCECURVE | art::engine::M_LUMACURVE;
     EvEnabled = m->newEvent(EVENT, "HISTORY_MSG_COLORCORRECTION_ENABLED");
     EvColorWheel = m->newEvent(EVENT, "HISTORY_MSG_COLORCORRECTION_AB");
     EvInSaturation =
@@ -850,8 +850,8 @@ void ColorCorrection::read(const ProcParams *pp)
     auto m = pp->colorcorrection.masks;
     if (data.empty()) {
         data.emplace_back(
-            rtengine::procparams::ColorCorrectionParams::Region());
-        m.emplace_back(rtengine::procparams::Mask());
+            art::engine::procparams::ColorCorrectionParams::Region());
+        m.emplace_back(art::engine::procparams::Mask());
     }
     masks_->setMasks(m, pp->colorcorrection.selectedRegion,
                      pp->colorcorrection.showMask >= 0 &&
@@ -913,7 +913,7 @@ void ColorCorrection::setDefaults(const ProcParams *defParams)
 
 void ColorCorrection::adjusterChanged(Adjuster *a, double newval)
 {
-    rtengine::ProcEvent evt;
+    art::engine::ProcEvent evt;
     Glib::ustring msg = a->getTextValue();
     if (a == inSaturation) {
         evt = EvInSaturation;
@@ -1031,8 +1031,8 @@ void ColorCorrection::setEditProvider(EditDataProvider *provider)
 }
 
 void ColorCorrection::procParamsChanged(
-    const rtengine::procparams::ProcParams *params,
-    const rtengine::ProcEvent &ev, const Glib::ustring &descr,
+    const art::engine::procparams::ProcParams *params,
+    const art::engine::ProcEvent &ev, const Glib::ustring &descr,
     const ParamsEdited *paramsEdited)
 {
     masks_->updateLinkedMaskList(params);
@@ -1052,20 +1052,20 @@ void ColorCorrection::regionGet(int idx)
     auto &r = data[idx];
     switch (mode->get_active_row_number()) {
     case 0:
-        r.mode = rtengine::procparams::ColorCorrectionParams::Mode::YUV;
+        r.mode = art::engine::procparams::ColorCorrectionParams::Mode::YUV;
         break;
     case 1:
-        r.mode = rtengine::procparams::ColorCorrectionParams::Mode::JZAZBZ;
+        r.mode = art::engine::procparams::ColorCorrectionParams::Mode::JZAZBZ;
         break;
     case 2:
-        r.mode = rtengine::procparams::ColorCorrectionParams::Mode::RGB;
+        r.mode = art::engine::procparams::ColorCorrectionParams::Mode::RGB;
         break;
     case 3:
-        r.mode = rtengine::procparams::ColorCorrectionParams::Mode::HSL;
+        r.mode = art::engine::procparams::ColorCorrectionParams::Mode::HSL;
         break;
     case 4:
     default:
-        r.mode = rtengine::procparams::ColorCorrectionParams::Mode::LUT;
+        r.mode = art::engine::procparams::ColorCorrectionParams::Mode::LUT;
         break;
     }
     r.inSaturation = inSaturation->getValue();
@@ -1075,7 +1075,7 @@ void ColorCorrection::regionGet(int idx)
     // double top, bot;
     // hueshift->getValue(bot, top);
     // r.hueshift = top;
-    if (r.mode != rtengine::procparams::ColorCorrectionParams::Mode::RGB) {
+    if (r.mode != art::engine::procparams::ColorCorrectionParams::Mode::RGB) {
         wheel->getParams(r.a, r.b, r.abscale);
         for (int c = 0; c < 3; ++c) {
             r.slope[c] = slope->getValue();
@@ -1141,20 +1141,20 @@ void ColorCorrection::regionShow(int idx)
     // modeChanged();
     lut_filename->set_filename(Glib::filename_from_utf8(r.lutFilename));
     lut_params->setParams(
-        rtengine::CLUTApplication::get_param_descriptors(r.lutFilename));
+        art::engine::CLUTApplication::get_param_descriptors(r.lutFilename));
     lut_params->setValue(r.lut_params);
 
     switch (r.mode) {
-    case rtengine::procparams::ColorCorrectionParams::Mode::RGB:
+    case art::engine::procparams::ColorCorrectionParams::Mode::RGB:
         mode->set_active(2);
         break;
-    case rtengine::procparams::ColorCorrectionParams::Mode::JZAZBZ:
+    case art::engine::procparams::ColorCorrectionParams::Mode::JZAZBZ:
         mode->set_active(1);
         break;
-    case rtengine::procparams::ColorCorrectionParams::Mode::HSL:
+    case art::engine::procparams::ColorCorrectionParams::Mode::HSL:
         mode->set_active(3);
         break;
-    case rtengine::procparams::ColorCorrectionParams::Mode::LUT: {
+    case art::engine::procparams::ColorCorrectionParams::Mode::LUT: {
         auto it = builtin_lut_to_idx.find(r.lutFilename);
         if (it != builtin_lut_to_idx.end()) {
             mode->set_active(it->second);
@@ -1203,7 +1203,7 @@ void ColorCorrection::modeChanged()
             if (lut_filename->get_filename() != fn) {
                 lut_filename->set_filename(fn);
                 lut_params->setParams(
-                    rtengine::CLUTApplication::get_param_descriptors(fn));
+                    art::engine::CLUTApplication::get_param_descriptors(fn));
                 lut_params->setValue({});
             }
         }
@@ -1474,7 +1474,7 @@ void ColorCorrection::lutChanged()
         bool lut_is_builtin =
             builtin_lut_to_idx.find(fn) != builtin_lut_to_idx.end();
         lut_params->setParams(
-            rtengine::CLUTApplication::get_param_descriptors(fn));
+            art::engine::CLUTApplication::get_param_descriptors(fn));
         lut_params->setValue({});
 
         if (lut_is_builtin) {

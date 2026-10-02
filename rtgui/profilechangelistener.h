@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _PROFILECHANGELISTENER_
-#define _PROFILECHANGELISTENER_
+#pragma once
 
 #include <glibmm/ustring.h>
 
@@ -28,12 +27,10 @@ class ProfileChangeListener {
 public:
     virtual ~ProfileChangeListener() = default;
     virtual void
-    profileChange(const rtengine::procparams::PartialProfile *nparams,
-                  const rtengine::ProcEvent &event, const Glib::ustring &descr,
+    profileChange(const art::engine::procparams::PartialProfile *nparams,
+                  const art::engine::ProcEvent &event, const Glib::ustring &descr,
                   const ParamsEdited *paramsEdited = nullptr,
                   bool fromLastSaved = false) = 0;
     virtual void
-    setDefaults(const rtengine::procparams::ProcParams *defparams) = 0;
+    setDefaults(const art::engine::procparams::ProcParams *defparams) = 0;
 };
-
-#endif

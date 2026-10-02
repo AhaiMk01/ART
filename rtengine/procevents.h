@@ -17,10 +17,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef __PROCEVENT__
-#define __PROCEVENT__
+#pragma once
 
-namespace rtengine {
+namespace art { namespace engine {
 
 // Aligned so the first entry starts on line 30
 enum ProcEventCode {
@@ -561,5 +560,4 @@ inline bool operator!=(ProcEventCode a, ProcEvent b)
     return int(a) != int(b);
 }
 
-} // namespace rtengine
-#endif
+}} // namespace art::engine

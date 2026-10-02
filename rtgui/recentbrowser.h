@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _RECENTBROWSER_
-#define _RECENTBROWSER_
+#pragma once
 
 #include "guiutils.h"
 #include "multilangmgr.h"
@@ -47,5 +46,3 @@ RecentBrowser::setDirSelector(const RecentBrowser::DirSelectionSlot &selectDir)
 {
     this->selectDir = selectDir;
 }
-
-#endif

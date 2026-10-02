@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _THRESHOLDSELECTOR_
-#define _THRESHOLDSELECTOR_
+#pragma once
 
 #include "../rtengine/procparams.h"
 #include "coloredbar.h"
@@ -158,7 +157,7 @@ public:
 
     double shapePositionValue(ThreshCursorId cursorId);
     template <typename T>
-    void setDefaults(const rtengine::procparams::Threshold<T> &t)
+    void setDefaults(const art::engine::procparams::Threshold<T> &t)
     {
         defPos[TS_BOTTOMLEFT] =
             double(t.getBottomLeft()); // should we use shapeValue() ?
@@ -173,7 +172,7 @@ public:
     void setDefaults(double bottomLeft, double topLeft, double bottomRight,
                      double topRight);
     template <typename T>
-    void setPositions(const rtengine::procparams::Threshold<T> &tValues)
+    void setPositions(const art::engine::procparams::Threshold<T> &tValues)
     {
         positions[TS_BOTTOMLEFT] = static_cast<double>(tValues.getBottomLeft());
         positions[TS_TOPLEFT] = static_cast<double>(tValues.getTopLeft());
@@ -191,17 +190,17 @@ public:
     void setPositions(double bottomLeft, double topLeft, double bottomRight,
                       double topRight);
 
-    template <typename T> rtengine::procparams::Threshold<T> getPositions()
+    template <typename T> art::engine::procparams::Threshold<T> getPositions()
     {
         if (doubleThresh) {
-            rtengine::procparams::Threshold<T> rThresh(
+            art::engine::procparams::Threshold<T> rThresh(
                 static_cast<T>(shapePositionValue(TS_BOTTOMLEFT)),
                 static_cast<T>(shapePositionValue(TS_TOPLEFT)),
                 static_cast<T>(shapePositionValue(TS_BOTTOMRIGHT)),
                 static_cast<T>(shapePositionValue(TS_TOPRIGHT)), initalEq1);
             return rThresh;
         } else {
-            rtengine::procparams::Threshold<T> rThresh(
+            art::engine::procparams::Threshold<T> rThresh(
                 static_cast<T>(shapePositionValue(TS_BOTTOMLEFT)),
                 static_cast<T>(shapePositionValue(TS_TOPLEFT)), initalEq1);
             return rThresh;
@@ -270,5 +269,3 @@ inline void ThresholdSelector::getPositions<Glib::ustring>(
         Glib::ustring::format(std::fixed, std::setprecision(precisionTop),
                               shapePositionValue(TS_TOPRIGHT));
 }
-
-#endif

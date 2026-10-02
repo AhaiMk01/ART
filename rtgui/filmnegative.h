@@ -30,16 +30,16 @@
 #include "../rtengine/colortemp.h"
 
 namespace {
-using RGB = rtengine::procparams::FilmNegativeParams::RGB;
-using ColorSpace = rtengine::procparams::FilmNegativeParams::ColorSpace;
-using BackCompat = rtengine::procparams::FilmNegativeParams::BackCompat;
+using RGB = art::engine::procparams::FilmNegativeParams::RGB;
+using ColorSpace = art::engine::procparams::FilmNegativeParams::ColorSpace;
+using BackCompat = art::engine::procparams::FilmNegativeParams::BackCompat;
 } // namespace
 
 class FilmNegProvider {
 public:
     virtual ~FilmNegProvider() = default;
 
-    virtual bool getFilmNegativeSpot(rtengine::Coord spot, int spotSize,
+    virtual bool getFilmNegativeSpot(art::engine::Coord spot, int spotSize,
                                      RGB &refInput, RGB &refOutput) = 0;
 };
 
@@ -47,15 +47,15 @@ class FilmNegative final: public ToolParamBlock,
                           public AdjusterListener,
                           public FoldableToolPanel,
                           public EditSubscriber,
-                          public rtengine::FilmNegListener {
+                          public art::engine::FilmNegListener {
 public:
     FilmNegative();
     ~FilmNegative() override;
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
     void toolReset(bool to_initial) override;
 
     void adjusterChanged(Adjuster *a, double newval) override;
@@ -86,15 +86,15 @@ private:
 
     // ColorTemp value corresponding to neutral RGB multipliers (1,1,1). Should
     // be around 6500K.
-    const rtengine::ColorTemp NEUTRAL_TEMP;
+    const art::engine::ColorTemp NEUTRAL_TEMP;
 
-    const rtengine::ProcEvent evFilmNegativeExponents;
-    const rtengine::ProcEvent evFilmNegativeEnabled;
-    const rtengine::ProcEvent evFilmNegativeRefSpot;
-    const rtengine::ProcEvent evFilmNegativeBalance;
-    const rtengine::ProcEvent evFilmNegativeColorSpace;
+    const art::engine::ProcEvent evFilmNegativeExponents;
+    const art::engine::ProcEvent evFilmNegativeEnabled;
+    const art::engine::ProcEvent evFilmNegativeRefSpot;
+    const art::engine::ProcEvent evFilmNegativeBalance;
+    const art::engine::ProcEvent evFilmNegativeColorSpace;
 
-    std::vector<rtengine::Coord> refSpotCoords;
+    std::vector<art::engine::Coord> refSpotCoords;
 
     RGB refInputValues;
     bool paramsUpgraded;
@@ -134,5 +134,5 @@ private:
 
     IdleRegister idle_register;
 
-    rtengine::procparams::FilmNegativeParams initial_params;
+    art::engine::procparams::FilmNegativeParams initial_params;
 };

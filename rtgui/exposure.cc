@@ -24,18 +24,18 @@
 #include <iomanip>
 #include <sigc++/slot.h>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 Exposure::Exposure()
     : FoldableToolPanel(this, "exposure", M("TP_EXPOSURE_LABEL"), false, true,
                         true)
 {
     auto m = ProcEventMapper::getInstance();
-    EvToolEnabled.set_action(rtengine::DARKFRAME);
-    EvToolReset.set_action(rtengine::DARKFRAME);
-    EvBlack = m->newEvent(rtengine::AUTOEXP, "HISTORY_MSG_EXPOSURE_BLACK");
-    EvHRBlur = m->newEvent(rtengine::DARKFRAME, "HISTORY_MSG_EXPOSURE_HRBLUR");
+    EvToolEnabled.set_action(art::engine::DARKFRAME);
+    EvToolReset.set_action(art::engine::DARKFRAME);
+    EvBlack = m->newEvent(art::engine::AUTOEXP, "HISTORY_MSG_EXPOSURE_BLACK");
+    EvHRBlur = m->newEvent(art::engine::DARKFRAME, "HISTORY_MSG_EXPOSURE_HRBLUR");
 
     //-------------- Highlight Reconstruction -----------------
     hrmode = Gtk::manage(new MyComboBoxText());
@@ -149,7 +149,7 @@ void Exposure::adjusterChanged(Adjuster *a, double newval)
 
 void Exposure::adjusterAutoToggled(Adjuster *a, bool newval) {}
 
-void Exposure::trimValues(rtengine::procparams::ProcParams *pp)
+void Exposure::trimValues(art::engine::procparams::ProcParams *pp)
 {
     expcomp->trimValue(pp->exposure.expcomp);
     black->trimValue(pp->exposure.black);

@@ -34,19 +34,19 @@ private:
     Adjuster *saturation;
     Adjuster *vibrance;
 
-    rtengine::ProcEvent EvVibrance;
+    art::engine::ProcEvent EvVibrance;
 
-    rtengine::procparams::SaturationParams initial_params;
+    art::engine::procparams::SaturationParams initial_params;
 
 public:
     Saturation();
     ~Saturation() override;
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
-    void trimValues(rtengine::procparams::ProcParams *pp) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
+    void trimValues(art::engine::procparams::ProcParams *pp) override;
 
     void adjusterChanged(Adjuster *a, double newval) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;

@@ -285,7 +285,7 @@ public:
                                                // extensions (lowercase)
     std::vector<int> tpOpen;
     bool autoSaveTpOpen;
-    rtengine::Settings rtSettings;
+    art::engine::Settings rtSettings;
 
     std::vector<Glib::ustring> favoriteDirs;
     bool internalThumbIfUntouched;

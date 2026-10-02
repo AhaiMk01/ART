@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef __IMAGEDATA_H__
-#define __IMAGEDATA_H__
+#pragma once
 
 #include "gainmap.h"
 #include "metadata.h"
@@ -30,7 +29,7 @@
 #include <memory>
 #include <string>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class FramesData: public FramesMetaData {
 private:
@@ -109,5 +108,4 @@ public:
     static std::string xmp_color2label(int color);
 };
 
-} // namespace rtengine
-#endif
+}} // namespace art::engine

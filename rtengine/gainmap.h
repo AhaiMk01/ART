@@ -24,7 +24,7 @@
 #include <vector>
 #include <string>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 struct GainMap {
     uint32_t top;
@@ -50,4 +50,4 @@ struct GainMap {
     static std::vector<GainMap> read(const std::vector<uint8_t> &buf);
 };
 
-} // namespace rtengine
+}} // namespace art::engine

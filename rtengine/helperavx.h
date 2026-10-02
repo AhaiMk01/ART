@@ -26,6 +26,8 @@
 #endif
 #include <stdint.h>
 
+namespace art { namespace engine {
+
 typedef __m256d vdouble;
 typedef __m128i vint;
 typedef __m256i vmask;
@@ -464,3 +466,5 @@ static INLINE vdouble2 abs_d(vdouble2 x)
         (__m256d)_mm256_xor_pd(
             _mm256_and_pd(_mm256_set_pd(-0.0, -0.0, -0.0, -0.0), x.x), x.y));
 }
+
+} } // namespace art::engine

@@ -41,6 +41,9 @@
 #define BENCHMARK
 #include "StopWatch.h"
 
+namespace art { namespace engine {
+
+
 namespace {
 
 float calcBlendFactor(float val, float threshold)
@@ -84,7 +87,7 @@ float tileAverage(float **data, size_t tileY, size_t tileX, size_t tilesize)
 #ifdef ART_SIMD
     avg += vhadd(avgv);
 #endif
-    return avg / rtengine::SQR(tilesize);
+    return avg / art::engine::SQR(tilesize);
 }
 
 float tileVariance(float **data, size_t tileY, size_t tileX, size_t tilesize,
@@ -104,13 +107,13 @@ float tileVariance(float **data, size_t tileY, size_t tileX, size_t tilesize,
         }
 #endif
         for (; x < tileX + tilesize; ++x) {
-            var += rtengine::SQR(data[y][x] - avg);
+            var += art::engine::SQR(data[y][x] - avg);
         }
     }
 #ifdef ART_SIMD
     var += vhadd(varv);
 #endif
-    return var / (rtengine::SQR(tilesize) * avg);
+    return var / (art::engine::SQR(tilesize) * avg);
 }
 
 float calcContrastThreshold(float **luminance, int tileY, int tileX,
@@ -145,17 +148,17 @@ float calcContrastThreshold(float **luminance, int tileY, int tileX,
 
             float contrast =
                 sqrtf(
-                    rtengine::SQR(luminance[j][i + 1] - luminance[j][i - 1]) +
-                    rtengine::SQR(luminance[j + 1][i] - luminance[j - 1][i]) +
-                    rtengine::SQR(luminance[j][i + 2] - luminance[j][i - 2]) +
-                    rtengine::SQR(luminance[j + 2][i] - luminance[j - 2][i])) *
+                    art::engine::SQR(luminance[j][i + 1] - luminance[j][i - 1]) +
+                    art::engine::SQR(luminance[j + 1][i] - luminance[j - 1][i]) +
+                    art::engine::SQR(luminance[j][i + 2] - luminance[j][i - 2]) +
+                    art::engine::SQR(luminance[j + 2][i] - luminance[j - 2][i])) *
                 scale;
 
             blend[j - tileY - 2][i - tileX - 2] = contrast;
         }
     }
 
-    const float limit = rtengine::SQR(tilesize - 4) / 100.f;
+    const float limit = art::engine::SQR(tilesize - 4) / 100.f;
 
     int c;
     for (c = 1; c < 100; ++c) {
@@ -190,7 +193,7 @@ float calcContrastThreshold(float **luminance, int tileY, int tileX,
 
 } // namespace
 
-namespace rtengine {
+
 
 extern MyMutex *fftwMutex;
 
@@ -319,7 +322,7 @@ void findMinMaxPercentile(const float *data, size_t size, float minPrct,
     // go back to original range
     minOut /= scale;
     minOut += minVal;
-    minOut = rtengine::LIM(minOut, minVal, maxVal);
+    minOut = art::engine::LIM(minOut, minVal, maxVal);
 
     // find (maxPrct*size) smallest value
     const float threshmax = maxPrct * size;
@@ -338,7 +341,7 @@ void findMinMaxPercentile(const float *data, size_t size, float minPrct,
     // go back to original range
     maxOut /= scale;
     maxOut += minVal;
-    maxOut = rtengine::LIM(maxOut, minVal, maxVal);
+    maxOut = art::engine::LIM(maxOut, minVal, maxVal);
 }
 
 void buildBlendMask(float **luminance, float **blend, int W, int H,
@@ -509,13 +512,13 @@ void buildBlendMask(float **luminance, float **blend, int W, int H,
 #endif
                 for (; i < W - 2; ++i) {
 
-                    float contrast = sqrtf(rtengine::SQR(luminance[j][i + 1] -
+                    float contrast = sqrtf(art::engine::SQR(luminance[j][i + 1] -
                                                          luminance[j][i - 1]) +
-                                           rtengine::SQR(luminance[j + 1][i] -
+                                           art::engine::SQR(luminance[j + 1][i] -
                                                          luminance[j - 1][i]) +
-                                           rtengine::SQR(luminance[j][i + 2] -
+                                           art::engine::SQR(luminance[j][i + 2] -
                                                          luminance[j][i - 2]) +
-                                           rtengine::SQR(luminance[j + 2][i] -
+                                           art::engine::SQR(luminance[j + 2][i] -
                                                          luminance[j - 2][i])) *
                                      scale;
 
@@ -705,12 +708,12 @@ float polyFill(float **buffer, int width, int height,
         }
     }
 
-    float ret = rtengine::min<int>(xEnd - xStart, yEnd - yStart);
+    float ret = art::engine::min<int>(xEnd - xStart, yEnd - yStart);
 
-    xStart = rtengine::LIM<int>(xStart, 0., width - 1);
-    xEnd = rtengine::LIM<int>(xEnd, xStart, width - 1);
-    yStart = rtengine::LIM<int>(yStart, 0., height - 1);
-    yEnd = rtengine::LIM<int>(yEnd, yStart, height - 1);
+    xStart = art::engine::LIM<int>(xStart, 0., width - 1);
+    xEnd = art::engine::LIM<int>(xEnd, xStart, width - 1);
+    yStart = art::engine::LIM<int>(yStart, 0., height - 1);
+    yEnd = art::engine::LIM<int>(yEnd, yStart, height - 1);
 
     std::vector<int> nodeX;
 
@@ -754,7 +757,7 @@ float polyFill(float **buffer, int width, int height,
         }
     }
 
-    return ret; // float(rtengine::min<int>(xEnd - xStart, yEnd - yStart));
+    return ret; // float(art::engine::min<int>(xEnd - xStart, yEnd - yStart));
 }
 
 namespace {
@@ -1644,4 +1647,5 @@ void inpaint(Imagefloat *img, const array2D<float> &mask, float threshold,
     }
 }
 
-} // namespace rtengine
+
+} } // namespace art::engine

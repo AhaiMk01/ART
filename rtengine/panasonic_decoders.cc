@@ -18,6 +18,9 @@
 #include "dcraw.h"
 #include <iostream>
 
+namespace art { namespace engine {
+
+
 // Code adapted from libraw
 /* -*- C++ -*-
  * Copyright 2019 LibRaw LLC (info@libraw.org)
@@ -305,3 +308,6 @@ void DCraw::panasonicC7_load_raw()
     free(iobuf);
     tiff_bps = RT_pana_info.bpp;
 }
+
+
+} } // namespace art::engine

@@ -21,12 +21,12 @@
 #include "eventmapper.h"
 #include "rtimage.h"
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 namespace {
 
-void controlLinesToValues(const std::vector<rtengine::ControlLine> &lines,
+void controlLinesToValues(const std::vector<art::engine::ControlLine> &lines,
                           std::vector<int> &values)
 {
     values.clear();
@@ -34,10 +34,10 @@ void controlLinesToValues(const std::vector<rtengine::ControlLine> &lines,
     for (auto &&line : lines) {
         int type = -1;
         switch (line.type) {
-        case rtengine::ControlLine::VERTICAL:
+        case art::engine::ControlLine::VERTICAL:
             type = 0;
             break;
-        case rtengine::ControlLine::HORIZONTAL:
+        case art::engine::ControlLine::HORIZONTAL:
             type = 1;
             break;
         }
@@ -50,20 +50,20 @@ void controlLinesToValues(const std::vector<rtengine::ControlLine> &lines,
     }
 }
 
-std::vector<rtengine::ControlLine>
+std::vector<art::engine::ControlLine>
 valuesToControlLines(const std::vector<int> &values)
 {
     auto line_count = values.size() / 5;
-    std::vector<rtengine::ControlLine> lines(line_count);
+    std::vector<art::engine::ControlLine> lines(line_count);
 
     auto values_iter = values.begin();
     for (auto &&line : lines) {
         switch (*(values_iter++)) {
         case 0:
-            line.type = rtengine::ControlLine::VERTICAL;
+            line.type = art::engine::ControlLine::VERTICAL;
             break;
         case 1:
-            line.type = rtengine::ControlLine::HORIZONTAL;
+            line.type = art::engine::ControlLine::HORIZONTAL;
             break;
         }
 
@@ -104,15 +104,15 @@ PerspCorrection::PerspCorrection()
     : FoldableToolPanel(this, "perspective", M("TP_PERSPECTIVE_LABEL"), false,
                         true, true)
 {
-    EvToolEnabled.set_action(rtengine::TRANSFORM);
-    EvToolReset.set_action(rtengine::TRANSFORM);
+    EvToolEnabled.set_action(art::engine::TRANSFORM);
+    EvToolReset.set_action(art::engine::TRANSFORM);
 
     auto m = ProcEventMapper::getInstance();
     EvPerspCorrLens =
-        m->newEvent(rtengine::TRANSFORM, "HISTORY_MSG_PERSPECTIVE_LENS");
+        m->newEvent(art::engine::TRANSFORM, "HISTORY_MSG_PERSPECTIVE_LENS");
     EvPerspControlLines =
-        m->newEvent(rtengine::M_VOID, "HISTORY_MSG_PERSPECTIVE_CTRL_LINE");
-    EvPerspRender = m->newAnonEvent(rtengine::TRANSFORM);
+        m->newEvent(art::engine::M_VOID, "HISTORY_MSG_PERSPECTIVE_CTRL_LINE");
+    EvPerspRender = m->newAnonEvent(art::engine::TRANSFORM);
 
     lgl = nullptr;
     panel_listener = nullptr;
@@ -292,7 +292,7 @@ void PerspCorrection::write(ProcParams *pp)
     pp->perspective.flength = flength->getValue();
     pp->perspective.cropfactor = cropfactor->getValue();
     pp->perspective.aspect = aspect->getValue();
-    std::vector<rtengine::ControlLine> control_lines;
+    std::vector<art::engine::ControlLine> control_lines;
     lines->toControlLines(control_lines);
     controlLinesToValues(control_lines, pp->perspective.control_lines);
 }
@@ -336,7 +336,7 @@ void PerspCorrection::adjusterChanged(Adjuster *a, double newval)
 
 void PerspCorrection::adjusterAutoToggled(Adjuster *a, bool newval) {}
 
-void PerspCorrection::trimValues(rtengine::procparams::ProcParams *pp)
+void PerspCorrection::trimValues(art::engine::procparams::ProcParams *pp)
 {
     horiz->trimValue(pp->perspective.horizontal);
     vert->trimValue(pp->perspective.vertical);
@@ -385,7 +385,7 @@ void PerspCorrection::applyControlLines()
         return;
     }
 
-    std::vector<rtengine::ControlLine> control_lines;
+    std::vector<art::engine::ControlLine> control_lines;
     int h_count = 0, v_count = 0;
     double a = angle->getValue();
     double h = horiz->getValue();
@@ -395,9 +395,9 @@ void PerspCorrection::applyControlLines()
     lines->toControlLines(control_lines);
 
     for (unsigned int i = 0; i < lines->size(); i++) {
-        if (control_lines[i].type == rtengine::ControlLine::HORIZONTAL) {
+        if (control_lines[i].type == art::engine::ControlLine::HORIZONTAL) {
             h_count++;
-        } else if (control_lines[i].type == rtengine::ControlLine::VERTICAL) {
+        } else if (control_lines[i].type == art::engine::ControlLine::VERTICAL) {
             v_count++;
         }
     }
@@ -415,7 +415,7 @@ void PerspCorrection::applyControlLines()
     adjusterChanged(nullptr, 0);
 }
 
-void PerspCorrection::do_set_metadata(const rtengine::FramesMetaData *meta)
+void PerspCorrection::do_set_metadata(const art::engine::FramesMetaData *meta)
 {
     metadata = meta;
     if (metadata) {
@@ -433,7 +433,7 @@ void PerspCorrection::do_set_metadata(const rtengine::FramesMetaData *meta)
     }
 }
 
-void PerspCorrection::setRawMeta(bool raw, const rtengine::FramesMetaData *meta)
+void PerspCorrection::setRawMeta(bool raw, const art::engine::FramesMetaData *meta)
 {
     disableListener();
     do_set_metadata(meta);

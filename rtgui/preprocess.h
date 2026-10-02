@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _PREPROCESS_H_
-#define _PREPROCESS_H_
+#pragma once
 
 #include <gtkmm.h>
 // #include "adjuster.h"
@@ -39,21 +38,19 @@ protected:
     sigc::connection dpixelconn;
     Adjuster *hdThreshold;
 
-    rtengine::procparams::RAWParams initial_params;
+    art::engine::procparams::RAWParams initial_params;
 
 public:
     PreProcess();
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
 
     void hotPixelChanged();
     void deadPixelChanged();
     void adjusterChanged(Adjuster *a, double newval) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
 
-    void setDefaults(const rtengine::procparams::ProcParams *def) override;
+    void setDefaults(const art::engine::procparams::ProcParams *def) override;
     void toolReset(bool to_initial) override;
 };
-
-#endif

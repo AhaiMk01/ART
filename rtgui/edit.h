@@ -227,7 +227,7 @@ public:
     // return true if the buffer has been allocated
     bool bufferCreated();
 
-    int getObjectID(const rtengine::Coord &location);
+    int getObjectID(const art::engine::Coord &location);
 };
 
 /** @brief Coordinate system where the widgets will be drawn
@@ -444,14 +444,14 @@ public:
 
 class Circle: public Geometry {
 public:
-    rtengine::Coord center;
+    art::engine::Coord center;
     int radius;
     bool filled;
     bool radiusInImageSpace; /// If true, the radius depend on the image scale;
                              /// if false, it is a fixed 'screen' size
 
     Circle();
-    Circle(rtengine::Coord &center, int radius, bool filled = false,
+    Circle(art::engine::Coord &center, int radius, bool filled = false,
            bool radiusInImageSpace = false);
     Circle(int centerX, int centerY, int radius, bool filled = false,
            bool radiusInImageSpace = false);
@@ -469,11 +469,11 @@ public:
 
 class Line: public Geometry {
 public:
-    rtengine::Coord begin;
-    rtengine::Coord end;
+    art::engine::Coord begin;
+    art::engine::Coord end;
 
     Line();
-    Line(rtengine::Coord &begin, rtengine::Coord &end);
+    Line(art::engine::Coord &begin, art::engine::Coord &end);
     Line(int beginX, int beginY, int endX, int endY);
 
     void drawOuterGeometry(Cairo::RefPtr<Cairo::Context> &cr,
@@ -489,7 +489,7 @@ public:
 
 class PolyLine: public Geometry {
 public:
-    std::vector<rtengine::CoordD> points;
+    std::vector<art::engine::CoordD> points;
     bool filled;
     bool closed;
 
@@ -508,16 +508,16 @@ public:
 
 class Rectangle: public Geometry {
 public:
-    rtengine::Coord topLeft;
-    rtengine::Coord bottomRight;
+    art::engine::Coord topLeft;
+    art::engine::Coord bottomRight;
     bool filled;
 
     Rectangle();
 
     void setXYWH(int left, int top, int width, int height);
     void setXYXY(int left, int top, int right, int bottom);
-    void setXYWH(rtengine::Coord topLeft, rtengine::Coord widthHeight);
-    void setXYXY(rtengine::Coord topLeft, rtengine::Coord bottomRight);
+    void setXYWH(art::engine::Coord topLeft, art::engine::Coord widthHeight);
+    void setXYXY(art::engine::Coord topLeft, art::engine::Coord bottomRight);
     void drawOuterGeometry(Cairo::RefPtr<Cairo::Context> &cr,
                            ObjectMOBuffer *objectBuffer,
                            EditCoordSystem &coordSystem) override;
@@ -548,13 +548,13 @@ private:
                      Cairo::RefPtr<Cairo::Context> &cr, unsigned short id,
                      ObjectMOBuffer *objectBuffer,
                      EditCoordSystem &coordSystem);
-    void drivenPointToRectangle(const rtengine::Coord &pos,
-                                rtengine::Coord &topLeft,
-                                rtengine::Coord &bottomRight, int W, int H);
+    void drivenPointToRectangle(const art::engine::Coord &pos,
+                                art::engine::Coord &topLeft,
+                                art::engine::Coord &bottomRight, int W, int H);
 
 public:
     DrivenPoint drivenPoint;
-    rtengine::Coord position;
+    art::engine::Coord position;
 
     OPIcon(const Cairo::RefPtr<RTSurface> &normal,
            const Cairo::RefPtr<RTSurface> &active,
@@ -803,15 +803,15 @@ public:
                          /// bufferType==BT_SINGLEPLANE_FLOAT, #2 & #3 will be
                          /// set to 0
 
-    rtengine::Coord posScreen;   /// Location of the mouse button press, in
+    art::engine::Coord posScreen;   /// Location of the mouse button press, in
                                  /// preview image space
-    rtengine::Coord posImage;    /// Location of the mouse button press, in the
+    art::engine::Coord posImage;    /// Location of the mouse button press, in the
                                  /// full image space
-    rtengine::Coord deltaScreen; /// Delta relative to posScreen
-    rtengine::Coord deltaImage;  /// Delta relative to posImage
-    rtengine::Coord deltaPrevScreen; /// Delta relative to the previous mouse
+    art::engine::Coord deltaScreen; /// Delta relative to posScreen
+    art::engine::Coord deltaImage;  /// Delta relative to posImage
+    art::engine::Coord deltaPrevScreen; /// Delta relative to the previous mouse
                                      /// location, in preview image space
-    rtengine::Coord deltaPrevImage;  /// Delta relative to the previous mouse
+    art::engine::Coord deltaPrevImage;  /// Delta relative to the previous mouse
                                      /// location, in the full image space
 
     EditDataProvider();
@@ -1077,7 +1077,7 @@ inline PolyLine::PolyLine(): filled(false), closed(true) {}
 
 inline Line::Line(): begin(10, 10), end(100, 100) {}
 
-inline Circle::Circle(rtengine::Coord &center, int radius, bool filled,
+inline Circle::Circle(art::engine::Coord &center, int radius, bool filled,
                       bool radiusInImageSpace)
     : center(center), radius(radius), filled(filled),
       radiusInImageSpace(radiusInImageSpace)
@@ -1091,7 +1091,7 @@ inline Circle::Circle(int centerX, int centerY, int radius, bool filled,
 {
 }
 
-inline Line::Line(rtengine::Coord &begin, rtengine::Coord &end)
+inline Line::Line(art::engine::Coord &begin, art::engine::Coord &end)
     : begin(begin), end(end)
 {
 }

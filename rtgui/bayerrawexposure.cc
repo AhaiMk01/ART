@@ -20,15 +20,15 @@
 #include "../rtengine/refreshmap.h"
 #include "guiutils.h"
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 BayerRAWExposure::BayerRAWExposure()
     : FoldableToolPanel(this, "bayerrawexposure",
                         M("TP_EXPOS_BLACKPOINT_LABEL"), false, true, true)
 {
-    EvToolEnabled.set_action(rtengine::DARKFRAME);
-    EvToolReset.set_action(rtengine::DARKFRAME);
+    EvToolEnabled.set_action(art::engine::DARKFRAME);
+    EvToolReset.set_action(art::engine::DARKFRAME);
 
     PexBlack1 = Gtk::manage(new Adjuster(M("TP_RAWEXPOS_BLACK_1"), -2048, 2048,
                                          1, 0)); // black level
@@ -83,7 +83,7 @@ BayerRAWExposure::BayerRAWExposure()
     PexBlack3->setLogScale(100, 0);
 }
 
-void BayerRAWExposure::read(const rtengine::procparams::ProcParams *pp)
+void BayerRAWExposure::read(const art::engine::procparams::ProcParams *pp)
 {
     disableListener();
 
@@ -104,7 +104,7 @@ void BayerRAWExposure::read(const rtengine::procparams::ProcParams *pp)
     enableListener();
 }
 
-void BayerRAWExposure::write(rtengine::procparams::ProcParams *pp)
+void BayerRAWExposure::write(art::engine::procparams::ProcParams *pp)
 {
     pp->raw.bayersensor.enable_black = getEnabled();
     pp->raw.bayersensor.black0 = PexBlack0->getValue(); // black
@@ -171,7 +171,7 @@ void BayerRAWExposure::checkBoxToggled(CheckBox *c, CheckValue newval)
 }
 
 void BayerRAWExposure::setDefaults(
-    const rtengine::procparams::ProcParams *defParams)
+    const art::engine::procparams::ProcParams *defParams)
 {
     PexBlack0->setDefault(defParams->raw.bayersensor.black0);
     PexBlack1->setDefault(defParams->raw.bayersensor.black1);
@@ -181,7 +181,7 @@ void BayerRAWExposure::setDefaults(
     initial_params = defParams->raw.bayersensor;
 }
 
-void BayerRAWExposure::trimValues(rtengine::procparams::ProcParams *pp)
+void BayerRAWExposure::trimValues(art::engine::procparams::ProcParams *pp)
 {
 
     PexBlack0->trimValue(pp->raw.bayersensor.black0);

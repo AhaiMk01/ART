@@ -21,14 +21,14 @@
 #include "guiutils.h"
 #include <sstream>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 XTransRAWExposure::XTransRAWExposure()
     : FoldableToolPanel(this, "xtransrawexposure",
                         M("TP_EXPOS_BLACKPOINT_LABEL"), false, true)
 {
-    EvToolEnabled.set_action(rtengine::DARKFRAME);
+    EvToolEnabled.set_action(art::engine::DARKFRAME);
 
     PexBlackRed = Gtk::manage(new Adjuster(M("TP_RAWEXPOS_BLACK_RED"), -2048,
                                            2048, 1, 0)); // black level
@@ -67,7 +67,7 @@ XTransRAWExposure::XTransRAWExposure()
     PexBlackBlue->setLogScale(100, 0);
 }
 
-void XTransRAWExposure::read(const rtengine::procparams::ProcParams *pp)
+void XTransRAWExposure::read(const art::engine::procparams::ProcParams *pp)
 {
     disableListener();
 
@@ -80,7 +80,7 @@ void XTransRAWExposure::read(const rtengine::procparams::ProcParams *pp)
     enableListener();
 }
 
-void XTransRAWExposure::write(rtengine::procparams::ProcParams *pp)
+void XTransRAWExposure::write(art::engine::procparams::ProcParams *pp)
 {
     pp->raw.xtranssensor.enable_black = getEnabled();
     pp->raw.xtranssensor.blackred = PexBlackRed->getValue();     // black
@@ -106,14 +106,14 @@ void XTransRAWExposure::adjusterChanged(Adjuster *a, double newval)
 void XTransRAWExposure::adjusterAutoToggled(Adjuster *a, bool newval) {}
 
 void XTransRAWExposure::setDefaults(
-    const rtengine::procparams::ProcParams *defParams)
+    const art::engine::procparams::ProcParams *defParams)
 {
     PexBlackRed->setDefault(defParams->raw.xtranssensor.blackred);
     PexBlackGreen->setDefault(defParams->raw.xtranssensor.blackgreen);
     PexBlackBlue->setDefault(defParams->raw.xtranssensor.blackblue);
 }
 
-void XTransRAWExposure::trimValues(rtengine::procparams::ProcParams *pp)
+void XTransRAWExposure::trimValues(art::engine::procparams::ProcParams *pp)
 {
 
     PexBlackRed->trimValue(pp->raw.xtranssensor.blackred);

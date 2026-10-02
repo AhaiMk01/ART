@@ -19,7 +19,7 @@
 
 #include "pipettebuffer.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 PipetteBuffer::PipetteBuffer(::EditDataProvider *dataProvider)
     : dataProvider(dataProvider), imgFloatBuffer(nullptr), LabBuffer(nullptr),
@@ -167,4 +167,4 @@ void PipetteBuffer::getPipetteData(float *v, int x, int y, int squareSize)
     v[0] = v[1] = v[2] = -1.f;
 }
 
-} // namespace rtengine
+}} // namespace art::engine

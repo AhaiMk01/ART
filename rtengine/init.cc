@@ -46,7 +46,7 @@
 #include <omp.h>
 #endif
 
-namespace rtengine {
+namespace art { namespace engine {
 
 std::unique_ptr<ThreadPool> ThreadPool::instance_;
 
@@ -227,4 +227,4 @@ Settings::Settings()
 Settings::ColorManagementMode
     Settings::color_mgmt_mode(Settings::ColorManagementMode::APPLICATION);
 
-} // namespace rtengine
+}} // namespace art::engine

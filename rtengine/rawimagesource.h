@@ -29,7 +29,7 @@
 #include <iostream>
 #define HR_SCALE 2
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class CLUTApplication;
 
@@ -369,4 +369,4 @@ public:
                     float &rm, float &gm, float &bm) const override;
 };
 
-} // namespace rtengine
+}} // namespace art::engine

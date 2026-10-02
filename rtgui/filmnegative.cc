@@ -52,9 +52,9 @@ Adjuster *createLevelAdjuster(AdjusterListener *listener,
                               const Glib::ustring &label)
 {
     //    Adjuster* const adj = Gtk::manage(new Adjuster(label, 1.0,
-    //    65535.0, 1.0, rtengine::MAXVALF / 24.));
+    //    65535.0, 1.0, art::engine::MAXVALF / 24.));
     Adjuster *const adj = Gtk::manage(new Adjuster(
-        label, 0.0, 10.0, 0.01, toAdjuster(rtengine::MAXVALF / 24.)));
+        label, 0.0, 10.0, 0.01, toAdjuster(art::engine::MAXVALF / 24.)));
     adj->setAdjusterListener(listener);
     //    adj->setLogScale(6, 1000.0, true);
 
@@ -99,7 +99,7 @@ RGB getFilmNegativeExponents(
     const RGB &ref1,
     const RGB &ref2) // , const RGB &clearValsOut, const RGB &denseValsOut)
 {
-    //    using rtengine::settings;
+    //    using art::engine::settings;
 
     RGB clearVals = ref1;
     RGB denseVals = ref2;
@@ -153,7 +153,7 @@ RGB getFilmNegativeExponents(
     // }
 
     // // Re-adjust color balance based on dense spot values and new exponents
-    // calcBalance(rtengine::max(static_cast<float>(params->filmNegative.refInput.g),
+    // calcBalance(art::engine::max(static_cast<float>(params->filmNegative.refInput.g),
     // 1.f),
     //     -newExps[0], -newExps[1], -newExps[2],
     //     denseVals[0], denseVals[1], denseVals[2],
@@ -164,12 +164,12 @@ RGB getFilmNegativeExponents(
 
 void temp2rgb(double outLev, double temp, double green, RGB &refOut)
 {
-    rtengine::ColorTemp ct = rtengine::ColorTemp(temp, green, 1., "Custom");
+    art::engine::ColorTemp ct = art::engine::ColorTemp(temp, green, 1., "Custom");
 
     double rm, gm, bm;
     ct.getMultipliers(rm, gm, bm);
 
-    double maxGain = rtengine::max(rm, gm, bm);
+    double maxGain = art::engine::max(rm, gm, bm);
 
     refOut.r = (rm / maxGain) * outLev;
     refOut.g = (gm / maxGain) * outLev;
@@ -178,9 +178,9 @@ void temp2rgb(double outLev, double temp, double green, RGB &refOut)
 
 void rgb2temp(const RGB &refOut, double &outLev, double &temp, double &green)
 {
-    double maxVal = rtengine::max(refOut.r, refOut.g, refOut.b);
+    double maxVal = art::engine::max(refOut.r, refOut.g, refOut.b);
 
-    rtengine::ColorTemp ct = rtengine::ColorTemp(
+    art::engine::ColorTemp ct = art::engine::ColorTemp(
         refOut.r / maxVal, refOut.g / maxVal, refOut.b / maxVal, 1.);
 
     outLev = maxVal;
@@ -230,17 +230,17 @@ FilmNegative::FilmNegative()
     : FoldableToolPanel(this, "filmnegative", M("TP_FILMNEGATIVE_LABEL"), false,
                         true, true),
       EditSubscriber(ET_OBJECTS),
-      NEUTRAL_TEMP(rtengine::ColorTemp(1., 1., 1., 1.)),
+      NEUTRAL_TEMP(art::engine::ColorTemp(1., 1., 1., 1.)),
       evFilmNegativeExponents(ProcEventMapper::getInstance()->newEvent(
-          rtengine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_VALUES")),
+          art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_VALUES")),
       evFilmNegativeEnabled(ProcEventMapper::getInstance()->newEvent(
-          rtengine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_ENABLED")),
+          art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_ENABLED")),
       evFilmNegativeRefSpot(ProcEventMapper::getInstance()->newEvent(
-          rtengine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_REF_SPOT")),
+          art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_REF_SPOT")),
       evFilmNegativeBalance(ProcEventMapper::getInstance()->newEvent(
-          rtengine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_BALANCE")),
+          art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_BALANCE")),
       evFilmNegativeColorSpace(ProcEventMapper::getInstance()->newEvent(
-          rtengine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_COLORSPACE")),
+          art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_COLORSPACE")),
       refInputValues({0.f, 0.f, 0.f}), paramsUpgraded(false),
       refLuminance({{0.f, 0.f, 0.f}, 0.f}), fnp(nullptr),
       colorSpace(Gtk::manage(new MyComboBoxText())),
@@ -268,7 +268,7 @@ FilmNegative::FilmNegative()
           this, M("TP_FILMNEGATIVE_BLUEBALANCE"), -3.0, 3.0, 0.0,
           "circle-blue-small.svg", "circle-yellow-small.svg")) // blue balance
 {
-    EvToolReset.set_action(rtengine::ALLNORAW);
+    EvToolReset.set_action(art::engine::ALLNORAW);
 
     setExpandAlignProperties(spotButton, true, false, Gtk::ALIGN_FILL,
                              Gtk::ALIGN_CENTER);
@@ -377,7 +377,7 @@ void FilmNegative::writeOutputSliders(const RGB &refOut)
     greenBalance->setValue(std::log2(NEUTRAL_TEMP.getGreen() / green));
 }
 
-void FilmNegative::read(const rtengine::procparams::ProcParams *pp)
+void FilmNegative::read(const art::engine::procparams::ProcParams *pp)
 {
     disableListener();
 
@@ -401,7 +401,7 @@ void FilmNegative::read(const rtengine::procparams::ProcParams *pp)
     csGrid->set_visible(
         !(pp->filmNegative.backCompat == BackCompat::CURRENT &&
           pp->filmNegative.colorSpace ==
-              rtengine::procparams::FilmNegativeParams::ColorSpace::WORKING));
+              art::engine::procparams::FilmNegativeParams::ColorSpace::WORKING));
 
     if (pp->filmNegative.backCompat == BackCompat::CURRENT) {
         outputLevel->show();
@@ -416,7 +416,7 @@ void FilmNegative::read(const rtengine::procparams::ProcParams *pp)
     // If reference output values are not set in params, set the default output
     // chosen for median estimation: gray 1/24th of max
     if (pp->filmNegative.refOutput.r <= 0) {
-        float gray = rtengine::MAXVALF / 24.f;
+        float gray = art::engine::MAXVALF / 24.f;
         writeOutputSliders({gray, gray, gray});
     } else {
         writeOutputSliders(pp->filmNegative.refOutput);
@@ -425,10 +425,10 @@ void FilmNegative::read(const rtengine::procparams::ProcParams *pp)
     enableListener();
 }
 
-void FilmNegative::write(rtengine::procparams::ProcParams *pp)
+void FilmNegative::write(art::engine::procparams::ProcParams *pp)
 {
     pp->filmNegative.colorSpace =
-        rtengine::procparams::FilmNegativeParams::ColorSpace(
+        art::engine::procparams::FilmNegativeParams::ColorSpace(
             colorSpace->get_active_row_number());
 
     pp->filmNegative.redRatio = redRatio->getValue();
@@ -447,7 +447,7 @@ void FilmNegative::write(rtengine::procparams::ProcParams *pp)
 }
 
 void FilmNegative::setDefaults(
-    const rtengine::procparams::ProcParams *defParams)
+    const art::engine::procparams::ProcParams *defParams)
 {
     redRatio->setValue(defParams->filmNegative.redRatio);
     greenExp->setValue(defParams->filmNegative.greenExp);
@@ -455,7 +455,7 @@ void FilmNegative::setDefaults(
 
     initial_params = defParams->filmNegative;
 
-    float gray = rtengine::MAXVALF / 24.f;
+    float gray = art::engine::MAXVALF / 24.f;
     writeOutputSliders({gray, gray, gray});
 }
 
@@ -603,7 +603,7 @@ bool FilmNegative::button1Pressed(int modifierKey)
                 readOutputSliders(out);
                 refLuminance.input = refInputValues;
                 refLuminance.lum =
-                    rtengine::Color::rgbLuminance(out.r, out.g, out.b);
+                    art::engine::Color::rgbLuminance(out.r, out.g, out.b);
             }
 
             RGB refOut;
@@ -611,22 +611,22 @@ bool FilmNegative::button1Pressed(int modifierKey)
                                      refOut);
             // Output luminance of the sampled spot
             float spotLum =
-                rtengine::Color::rgbLuminance(refOut.r, refOut.g, refOut.b);
+                art::engine::Color::rgbLuminance(refOut.r, refOut.g, refOut.b);
             float rexp = -(greenExp->getValue() * redRatio->getValue());
             float gexp = -greenExp->getValue();
             float bexp = -(greenExp->getValue() * blueRatio->getValue());
 
             RGB mult = {
-                spotLum / pow_F(rtengine::max(refInputValues.r, 1.f), rexp),
-                spotLum / pow_F(rtengine::max(refInputValues.g, 1.f), gexp),
-                spotLum / pow_F(rtengine::max(refInputValues.b, 1.f), bexp)};
+                spotLum / pow_F(art::engine::max(refInputValues.r, 1.f), rexp),
+                spotLum / pow_F(art::engine::max(refInputValues.g, 1.f), gexp),
+                spotLum / pow_F(art::engine::max(refInputValues.b, 1.f), bexp)};
 
             // Calculate the new luminance of the initial luminance reference
             // spot, by applying current multipliers
-            float newRefLum = rtengine::Color::rgbLuminance(
-                mult.r * pow_F(rtengine::max(refLuminance.input.r, 1.f), rexp),
-                mult.g * pow_F(rtengine::max(refLuminance.input.g, 1.f), gexp),
-                mult.b * pow_F(rtengine::max(refLuminance.input.b, 1.f), bexp));
+            float newRefLum = art::engine::Color::rgbLuminance(
+                mult.r * pow_F(art::engine::max(refLuminance.input.r, 1.f), rexp),
+                mult.g * pow_F(art::engine::max(refLuminance.input.g, 1.f), gexp),
+                mult.b * pow_F(art::engine::max(refLuminance.input.b, 1.f), bexp));
 
             // Choose a suitable gray value for the sampled spot, so that
             // luminance of the initial reference spot is preserved.
@@ -725,7 +725,7 @@ void FilmNegative::refSpotToggled()
 
 void FilmNegative::toolReset(bool to_initial)
 {
-    rtengine::procparams::ProcParams pp;
+    art::engine::procparams::ProcParams pp;
     if (to_initial) {
         pp.filmNegative = initial_params;
     }

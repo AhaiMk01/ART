@@ -50,11 +50,11 @@
 #undef CLIPD
 #define CLIPD(a) ((a) > 0.0f ? ((a) < 1.0f ? (a) : 1.0f) : 0.0f)
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace {
 
-void rotateLine(const float *const line, rtengine::PlanarPtr<float> &channel,
+void rotateLine(const float *const line, art::engine::PlanarPtr<float> &channel,
                 const int tran, const int i, const int w, const int h)
 {
     switch (tran & TR_ROT) {
@@ -89,7 +89,7 @@ void rotateLine(const float *const line, rtengine::PlanarPtr<float> &channel,
 
 void transLineStandard(const float *const red, const float *const green,
                        const float *const blue, const int i,
-                       rtengine::Imagefloat *const image, const int tran,
+                       art::engine::Imagefloat *const image, const int tran,
                        const int imwidth, const int imheight)
 {
     // conventional CCD coarse rotation
@@ -100,7 +100,7 @@ void transLineStandard(const float *const red, const float *const green,
 
 void transLineFuji(const float *const red, const float *const green,
                    const float *const blue, const int i,
-                   rtengine::Imagefloat *const image, const int tran,
+                   art::engine::Imagefloat *const image, const int tran,
                    const int imheight, const int fw)
 {
 
@@ -177,7 +177,7 @@ void transLineFuji(const float *const red, const float *const green,
 
 void transLineD1x(const float *const red, const float *const green,
                   const float *const blue, const int i,
-                  rtengine::Imagefloat *const image, const int tran,
+                  art::engine::Imagefloat *const image, const int tran,
                   const int imwidth, const int imheight, const bool oddHeight,
                   const bool clip)
 {
@@ -262,11 +262,11 @@ void transLineD1x(const float *const red, const float *const green,
 
                 if (clip) {
                     image->r(row, col) =
-                        MIN(image->r(row, col), rtengine::MAXVALF);
+                        MIN(image->r(row, col), art::engine::MAXVALF);
                     image->g(row, col) =
-                        MIN(image->g(row, col), rtengine::MAXVALF);
+                        MIN(image->g(row, col), art::engine::MAXVALF);
                     image->b(row, col) =
-                        MIN(image->b(row, col), rtengine::MAXVALF);
+                        MIN(image->b(row, col), art::engine::MAXVALF);
                 }
             }
         }
@@ -340,9 +340,9 @@ void transLineD1x(const float *const red, const float *const green,
                                             image->b(j, col + 1)));
 
                 if (clip) {
-                    image->r(j, col) = MIN(image->r(j, col), rtengine::MAXVALF);
-                    image->g(j, col) = MIN(image->g(j, col), rtengine::MAXVALF);
-                    image->b(j, col) = MIN(image->b(j, col), rtengine::MAXVALF);
+                    image->r(j, col) = MIN(image->r(j, col), art::engine::MAXVALF);
+                    image->g(j, col) = MIN(image->g(j, col), art::engine::MAXVALF);
+                    image->b(j, col) = MIN(image->b(j, col), art::engine::MAXVALF);
                 }
             }
         }
@@ -385,11 +385,11 @@ void transLineD1x(const float *const red, const float *const green,
 
                 if (clip) {
                     image->r(row, 2 * i - 3) =
-                        MIN(image->r(row, 2 * i - 3), rtengine::MAXVALF);
+                        MIN(image->r(row, 2 * i - 3), art::engine::MAXVALF);
                     image->g(row, 2 * i - 3) =
-                        MIN(image->g(row, 2 * i - 3), rtengine::MAXVALF);
+                        MIN(image->g(row, 2 * i - 3), art::engine::MAXVALF);
                     image->b(row, 2 * i - 3) =
-                        MIN(image->b(row, 2 * i - 3), rtengine::MAXVALF);
+                        MIN(image->b(row, 2 * i - 3), art::engine::MAXVALF);
                 }
 
                 image->r(row, 2 * i) = red[j];
@@ -415,11 +415,11 @@ void transLineD1x(const float *const red, const float *const green,
 
                 if (clip) {
                     image->r(j, 2 * i - 1) =
-                        MIN(image->r(j, 2 * i - 1), rtengine::MAXVALF);
+                        MIN(image->r(j, 2 * i - 1), art::engine::MAXVALF);
                     image->g(j, 2 * i - 1) =
-                        MIN(image->g(j, 2 * i - 1), rtengine::MAXVALF);
+                        MIN(image->g(j, 2 * i - 1), art::engine::MAXVALF);
                     image->b(j, 2 * i - 1) =
-                        MIN(image->b(j, 2 * i - 1), rtengine::MAXVALF);
+                        MIN(image->b(j, 2 * i - 1), art::engine::MAXVALF);
                 }
 
                 image->r(row, 2 * i + 1) =
@@ -472,11 +472,11 @@ void transLineD1x(const float *const red, const float *const green,
 
                 if (clip) {
                     image->r(2 * i - 3, j) =
-                        MIN(image->r(2 * i - 3, j), rtengine::MAXVALF);
+                        MIN(image->r(2 * i - 3, j), art::engine::MAXVALF);
                     image->g(2 * i - 3, j) =
-                        MIN(image->g(2 * i - 3, j), rtengine::MAXVALF);
+                        MIN(image->g(2 * i - 3, j), art::engine::MAXVALF);
                     image->b(2 * i - 3, j) =
-                        MIN(image->b(2 * i - 3, j), rtengine::MAXVALF);
+                        MIN(image->b(2 * i - 3, j), art::engine::MAXVALF);
                 }
             }
         }
@@ -498,11 +498,11 @@ void transLineD1x(const float *const red, const float *const green,
 
                 if (clip) {
                     image->r(2 * i - 1, j) =
-                        MIN(image->r(2 * i - 1, j), rtengine::MAXVALF);
+                        MIN(image->r(2 * i - 1, j), art::engine::MAXVALF);
                     image->g(2 * i - 1, j) =
-                        MIN(image->g(2 * i - 1, j), rtengine::MAXVALF);
+                        MIN(image->g(2 * i - 1, j), art::engine::MAXVALF);
                     image->b(2 * i - 1, j) =
-                        MIN(image->b(2 * i - 1, j), rtengine::MAXVALF);
+                        MIN(image->b(2 * i - 1, j), art::engine::MAXVALF);
                 }
 
                 image->r(2 * i + 1, j) = (red[j] + image->r(2 * i - 1, j)) / 2;
@@ -4442,7 +4442,7 @@ void RawImageSource::getRAWHistogram (LUTu & histRedRaw, LUTu & histGreenRaw, LU
     histGreenRaw.clear();
     histBlueRaw.clear();
 
-    const float maxWhite = rtengine::max(c_white[0], c_white[1], c_white[2], c_white[3]);
+    const float maxWhite = art::engine::max(c_white[0], c_white[1], c_white[2], c_white[3]);
     const float scale = maxWhite <= 1.f ? 65535.f : 1.f; // special case for float raw images in [0.0;1.0] range
     const float multScale = maxWhite <= 1.f ? 1.f / 255.f : 255.f;
     const float mult[4] = { multScale / (c_white[0] - cblacksom[0]),
@@ -4632,7 +4632,7 @@ void RawImageSource::getRAWHistogram(LUTu &histRedRaw, LUTu &histGreenRaw,
     histBlueRaw.clear();
 
     const float maxWhite =
-        rtengine::max(c_white[0], c_white[1], c_white[2], c_white[3]);
+        art::engine::max(c_white[0], c_white[1], c_white[2], c_white[3]);
 
     if (maxWhite <= 1.f) {
         histsize[0] = histsize[1] = histsize[2] = 65536;
@@ -5569,4 +5569,4 @@ void RawImageSource::getWBMults(const ColorTemp &ctemp, const RAWParams &raw,
     autoGainComp = camInitialGain / initialGain;
 }
 
-} // namespace rtengine
+}} // namespace art::engine

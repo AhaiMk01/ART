@@ -33,7 +33,7 @@
 #include "masks.h"
 #include "sleef.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 bool ImProcFunctions::colorCorrection(Imagefloat *rgb)
 {
@@ -882,4 +882,4 @@ bool ImProcFunctions::colorCorrection(Imagefloat *rgb)
     return false;
 }
 
-} // namespace rtengine
+}} // namespace art::engine

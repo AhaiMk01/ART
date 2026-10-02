@@ -126,7 +126,7 @@ void setExpandAlignProperties(Gtk::Widget *widget, bool hExpand, bool vExpand,
     widget->set_valign(vAlign);
 }
 
-Glib::ustring formatPipelineTimes(const rtengine::PipelineTimes &t)
+Glib::ustring formatPipelineTimes(const art::engine::PipelineTimes &t)
 {
     auto fmt = [](double ms) -> Glib::ustring {
         return ms < 1000.0 ? Glib::ustring::format(std::fixed,
@@ -189,9 +189,9 @@ void thumbInterp(const unsigned char *src, int sw, int sh, unsigned char *dst,
 {
 
     if (options.thumbInterp == 0) {
-        rtengine::nearestInterp(src, sw, sh, dst, dw, dh);
+        art::engine::nearestInterp(src, sw, sh, dst, dw, dh);
     } else if (options.thumbInterp == 1) {
-        rtengine::bilinearInterp(src, sw, sh, dst, dw, dh);
+        art::engine::bilinearInterp(src, sw, sh, dst, dw, dh);
     }
 }
 
@@ -224,7 +224,7 @@ void writeFailed(Gtk::Window &parent, const std::string &filename)
 void drawCrop(Glib::RefPtr<Gtk::StyleContext> style,
               Cairo::RefPtr<Cairo::Context> cr, int imx, int imy, int imw,
               int imh, int startx, int starty, double scale,
-              const rtengine::procparams::CropParams &cparams, bool drawGuide,
+              const art::engine::procparams::CropParams &cparams, bool drawGuide,
               bool useBgColor, bool fullImageVisible)
 {
 
@@ -522,7 +522,7 @@ void drawCrop(Glib::RefPtr<Gtk::StyleContext> style,
 
 void drawCrop(Cairo::RefPtr<Cairo::Context> cr, int imx, int imy, int imw,
               int imh, int startx, int starty, double scale,
-              const rtengine::procparams::CropParams &cparams, bool drawGuide,
+              const art::engine::procparams::CropParams &cparams, bool drawGuide,
               bool useBgColor, bool fullImageVisible)
 {
     Glib::RefPtr<Gtk::StyleContext> style(nullptr);
@@ -1081,14 +1081,14 @@ bool MyScrolledWindow::on_scroll_event(GdkEventScroll *event)
 
         if (event->direction == GDK_SCROLL_DOWN) {
             const double value2 =
-                rtengine::min<double>(value + step, upperBound);
+                art::engine::min<double>(value + step, upperBound);
 
             if (value2 != value) {
                 scroll->set_value(value2);
             }
         } else if (event->direction == GDK_SCROLL_UP) {
             const double value2 =
-                rtengine::max<double>(value - step, lowerBound);
+                art::engine::max<double>(value - step, lowerBound);
 
             if (value2 != value) {
                 scroll->set_value(value2);
@@ -1100,7 +1100,7 @@ bool MyScrolledWindow::on_scroll_event(GdkEventScroll *event)
             const auto incr = event->delta_y * step;
 #endif // __APPLE__
             const double value2 =
-                rtengine::LIM<double>(value + incr, lowerBound, upperBound);
+                art::engine::LIM<double>(value + incr, lowerBound, upperBound);
 
             if (value2 != value) {
                 scroll->set_value(value2);
@@ -1164,22 +1164,22 @@ bool MyScrolledToolbar::on_scroll_event(GdkEventScroll *event)
         //                (int)event->type, event->send_event);
 
         if (event->direction == GDK_SCROLL_DOWN) {
-            value2 = rtengine::min<double>(value + step, upper);
+            value2 = art::engine::min<double>(value + step, upper);
             if (value2 != value) {
                 scroll->set_value(value2);
             }
         } else if (event->direction == GDK_SCROLL_UP) {
-            value2 = rtengine::max<double>(value - step, lower);
+            value2 = art::engine::max<double>(value - step, lower);
             if (value2 != value) {
                 scroll->set_value(value2);
             }
         } else if (event->direction == GDK_SCROLL_SMOOTH) {
             if (event->delta_x) { // if the user use a pad, it can scroll
                                   // horizontally
-                value2 = rtengine::LIM<double>(
+                value2 = art::engine::LIM<double>(
                     value + (event->delta_x > 0 ? 30 : -30), lower, upper);
             } else if (event->delta_y) {
-                value2 = rtengine::LIM<double>(
+                value2 = art::engine::LIM<double>(
                     value + (event->delta_y > 0 ? 30 : -30), lower, upper);
             }
             if (value2 != value) {
@@ -1202,8 +1202,8 @@ void MyScrolledToolbar::get_preferred_height_vfunc(int &minimumHeight,
     for (auto child : childs) {
         if (child->is_visible()) {
             child->get_preferred_height(currMinHeight, currNatHeight);
-            minimumHeight = rtengine::max(currMinHeight, minimumHeight);
-            naturalHeight = rtengine::max(currNatHeight, naturalHeight);
+            minimumHeight = art::engine::max(currMinHeight, minimumHeight);
+            naturalHeight = art::engine::max(currNatHeight, naturalHeight);
         }
     }
 }
@@ -1242,8 +1242,8 @@ void MyComboBoxText::setPreferredWidth(int minimum_width, int natural_width)
         naturalWidth = minimumWidth = minimum_width;
     } else if (minimum_width == -1) {
         naturalWidth = natural_width;
-        minimumWidth = rtengine::max(naturalWidth / 2, 20);
-        minimumWidth = rtengine::min(naturalWidth, minimumWidth);
+        minimumWidth = art::engine::max(naturalWidth / 2, 20);
+        minimumWidth = art::engine::min(naturalWidth, minimumWidth);
     } else {
         naturalWidth = natural_width;
         minimumWidth = minimum_width;
@@ -1253,14 +1253,14 @@ void MyComboBoxText::setPreferredWidth(int minimum_width, int natural_width)
 void MyComboBoxText::get_preferred_width_vfunc(int &minimum_width,
                                                int &natural_width) const
 {
-    natural_width = rtengine::max(naturalWidth, 10 * 1);
-    minimum_width = rtengine::max(minimumWidth, 10 * 1);
+    natural_width = art::engine::max(naturalWidth, 10 * 1);
+    minimum_width = art::engine::max(minimumWidth, 10 * 1);
 }
 void MyComboBoxText::get_preferred_width_for_height_vfunc(
     int height, int &minimum_width, int &natural_width) const
 {
-    natural_width = rtengine::max(naturalWidth, 10 * 1);
-    minimum_width = rtengine::max(minimumWidth, 10 * 1);
+    natural_width = art::engine::max(naturalWidth, 10 * 1);
+    minimum_width = art::engine::max(minimumWidth, 10 * 1);
 }
 
 MyComboBox::MyComboBox()
@@ -1289,8 +1289,8 @@ void MyComboBox::setPreferredWidth(int minimum_width, int natural_width)
         naturalWidth = minimumWidth = minimum_width;
     } else if (minimum_width == -1) {
         naturalWidth = natural_width;
-        minimumWidth = rtengine::max(naturalWidth / 2, 20);
-        minimumWidth = rtengine::min(naturalWidth, minimumWidth);
+        minimumWidth = art::engine::max(naturalWidth / 2, 20);
+        minimumWidth = art::engine::min(naturalWidth, minimumWidth);
     } else {
         naturalWidth = natural_width;
         minimumWidth = minimum_width;
@@ -1300,15 +1300,15 @@ void MyComboBox::setPreferredWidth(int minimum_width, int natural_width)
 void MyComboBox::get_preferred_width_vfunc(int &minimum_width,
                                            int &natural_width) const
 {
-    natural_width = rtengine::max(naturalWidth, 10 * 1);
-    minimum_width = rtengine::max(minimumWidth, 10 * 1);
+    natural_width = art::engine::max(naturalWidth, 10 * 1);
+    minimum_width = art::engine::max(minimumWidth, 10 * 1);
 }
 void MyComboBox::get_preferred_width_for_height_vfunc(int height,
                                                       int &minimum_width,
                                                       int &natural_width) const
 {
-    natural_width = rtengine::max(naturalWidth, 10 * 1);
-    minimum_width = rtengine::max(minimumWidth, 10 * 1);
+    natural_width = art::engine::max(naturalWidth, 10 * 1);
+    minimum_width = art::engine::max(minimumWidth, 10 * 1);
 }
 
 MySpinButton::MySpinButton()
@@ -1626,21 +1626,21 @@ const RTImage *MyImageMenuItem::getImage() const { return image; }
 const Gtk::Label *MyImageMenuItem::getLabel() const { return label; }
 
 MyProgressBar::MyProgressBar(int width)
-    : w(rtengine::max(width, 10 * 1))
+    : w(art::engine::max(width, 10 * 1))
 {
 }
 MyProgressBar::MyProgressBar(): w(200 * 1) {}
 
 void MyProgressBar::setPreferredWidth(int width)
 {
-    w = rtengine::max(width, 10 * 1);
+    w = art::engine::max(width, 10 * 1);
 }
 
 void MyProgressBar::get_preferred_width_vfunc(int &minimum_width,
                                               int &natural_width) const
 {
-    minimum_width = rtengine::max(w / 2, 50 * 1);
-    natural_width = rtengine::max(w, 50 * 1);
+    minimum_width = art::engine::max(w / 2, 50 * 1);
+    natural_width = art::engine::max(w, 50 * 1);
 }
 
 void MyProgressBar::get_preferred_width_for_height_vfunc(
@@ -1673,7 +1673,7 @@ void BackBuffer::setSrcOffset(int x, int y)
     offset.set(x, y);
 }
 
-void BackBuffer::setSrcOffset(const rtengine::Coord &newOffset)
+void BackBuffer::setSrcOffset(const art::engine::Coord &newOffset)
 {
     // values will be clamped when used...
     offset = newOffset;
@@ -1685,7 +1685,7 @@ void BackBuffer::getSrcOffset(int &x, int &y)
     offset.get(x, y);
 }
 
-void BackBuffer::getSrcOffset(rtengine::Coord &offset)
+void BackBuffer::getSrcOffset(art::engine::Coord &offset)
 {
     // values will be clamped when used...
     offset = this->offset;
@@ -1816,7 +1816,7 @@ void BackBuffer::copyRGBCharData(const unsigned char *srcData, int srcX,
             g = *(src++);
             b = *(src++);
 
-            rtengine::poke255_uc(dst, r, g, b);
+            art::engine::poke255_uc(dst, r, g, b);
         }
     }
 
@@ -1836,8 +1836,8 @@ void BackBuffer::copySurface(Glib::RefPtr<Gdk::Window> window,
         Cairo::RefPtr<Cairo::Surface> destSurface = crSrc->get_target();
 
         // compute the source offset
-        int offsetX = rtengine::LIM<int>(offset.x, 0, surface->get_width());
-        int offsetY = rtengine::LIM<int>(offset.y, 0, surface->get_height());
+        int offsetX = art::engine::LIM<int>(offset.x, 0, surface->get_width());
+        int offsetY = art::engine::LIM<int>(offset.y, 0, surface->get_height());
 
         // now copy the off-screen Surface to the destination Surface
         Cairo::RefPtr<Cairo::Context> crDest =
@@ -1884,8 +1884,8 @@ void BackBuffer::copySurface(BackBuffer *destBackBuffer,
         }
 
         // compute the source offset
-        int offsetX = rtengine::LIM<int>(offset.x, 0, surface->get_width());
-        int offsetY = rtengine::LIM<int>(offset.y, 0, surface->get_height());
+        int offsetX = art::engine::LIM<int>(offset.x, 0, surface->get_width());
+        int offsetY = art::engine::LIM<int>(offset.y, 0, surface->get_height());
 
         // now copy the off-screen Surface to the destination Surface
         Cairo::RefPtr<Cairo::Context> crDest =
@@ -1925,8 +1925,8 @@ void BackBuffer::copySurface(Cairo::RefPtr<Cairo::ImageSurface> destSurface,
 {
     if (surface && destSurface) {
         // compute the source offset
-        int offsetX = rtengine::LIM<int>(offset.x, 0, surface->get_width());
-        int offsetY = rtengine::LIM<int>(offset.y, 0, surface->get_height());
+        int offsetX = art::engine::LIM<int>(offset.x, 0, surface->get_width());
+        int offsetY = art::engine::LIM<int>(offset.y, 0, surface->get_height());
 
         // now copy the off-screen Surface to the destination Surface
         Cairo::RefPtr<Cairo::Context> crDest =
@@ -1966,8 +1966,8 @@ void BackBuffer::copySurface(Cairo::RefPtr<Cairo::Context> crDest,
 {
     if (surface && crDest) {
         // compute the source offset
-        int offsetX = rtengine::LIM<int>(offset.x, 0, surface->get_width());
-        int offsetY = rtengine::LIM<int>(offset.y, 0, surface->get_height());
+        int offsetX = art::engine::LIM<int>(offset.x, 0, surface->get_width());
+        int offsetY = art::engine::LIM<int>(offset.y, 0, surface->get_height());
 
         // now copy the off-screen Surface to the destination Surface
         // int srcSurfW = surface->get_width();
@@ -2019,12 +2019,12 @@ public:
     {
         ok_ = false;
         cmsHPROFILE monitor =
-            rtengine::ICCStore::getInstance()->getActiveMonitorProfile();
+            art::engine::ICCStore::getInstance()->getActiveMonitorProfile();
         if (monitor) {
-            rtengine::Mat33<float> m, mi;
-            if (rtengine::ICCStore::getProfileMatrix(monitor, m) &&
-                rtengine::inverse(m, mi)) {
-                m_ = rtengine::dot_product(mi, rtengine::xyz_sRGB);
+            art::engine::Mat33<float> m, mi;
+            if (art::engine::ICCStore::getProfileMatrix(monitor, m) &&
+                art::engine::inverse(m, mi)) {
+                m_ = art::engine::dot_product(mi, art::engine::xyz_sRGB);
                 ok_ = true;
             }
         }
@@ -2037,9 +2037,9 @@ public:
             float gg = g / 255.f;
             float bb = b / 255.f;
             (*this)(rr, gg, bb);
-            r = rtengine::LIM(rr * 255.f, 0.f, 255.f);
-            g = rtengine::LIM(gg * 255.f, 0.f, 255.f);
-            b = rtengine::LIM(bb * 255.f, 0.f, 255.f);
+            r = art::engine::LIM(rr * 255.f, 0.f, 255.f);
+            g = art::engine::LIM(gg * 255.f, 0.f, 255.f);
+            b = art::engine::LIM(bb * 255.f, 0.f, 255.f);
         }
     }
 
@@ -2049,7 +2049,7 @@ public:
             v_[0] = gam(r);
             v_[1] = gam(g);
             v_[2] = gam(b);
-            v_ = rtengine::dot_product(m_, v_);
+            v_ = art::engine::dot_product(m_, v_);
             r = igam(v_[0]);
             g = igam(v_[1]);
             b = igam(v_[2]);
@@ -2072,19 +2072,19 @@ public:
 private:
     float gam(float x)
     {
-        x = rtengine::LIM01(x);
-        return rtengine::Color::igammatab_srgb1[x * 65535.f];
+        x = art::engine::LIM01(x);
+        return art::engine::Color::igammatab_srgb1[x * 65535.f];
     }
 
     float igam(float x)
     {
-        x = rtengine::LIM01(x);
-        return rtengine::Color::gammatab_srgb1[x * 65535.f];
+        x = art::engine::LIM01(x);
+        return art::engine::Color::gammatab_srgb1[x * 65535.f];
     }
 
     bool ok_;
-    rtengine::Mat33<float> m_;
-    rtengine::Vec3<float> v_;
+    art::engine::Mat33<float> m_;
+    art::engine::Vec3<float> v_;
 };
 
 GUIColorConversion guiconv;
@@ -2100,8 +2100,8 @@ void getGUIColor(double &r, double &g, double &b) { guiconv(r, g, b); }
 bool getSystemDefaultMonitorProfile(GdkWindow *rootwin, Glib::ustring &defprof,
                                     Glib::ustring &defprofname)
 {
-    if (rtengine::Settings::color_mgmt_mode ==
-        rtengine::Settings::ColorManagementMode::APPLICATION) {
+    if (art::engine::Settings::color_mgmt_mode ==
+        art::engine::Settings::ColorManagementMode::APPLICATION) {
 #ifdef WIN32
         HDC hDC = GetDC(nullptr);
 
@@ -2190,8 +2190,8 @@ void initGUIColorManagement()
 {
     Glib::ustring defprof;
     Glib::ustring defprofname;
-    if (rtengine::Settings::color_mgmt_mode ==
-        rtengine::Settings::ColorManagementMode::APPLICATION) {
+    if (art::engine::Settings::color_mgmt_mode ==
+        art::engine::Settings::ColorManagementMode::APPLICATION) {
         GdkWindow *rootwin =
             gdk_screen_get_root_window(gdk_screen_get_default());
         if (options.rtSettings.autoMonitorProfile) {
@@ -2203,12 +2203,12 @@ void initGUIColorManagement()
         } else {
             defprof = defprofname = options.rtSettings.monitorProfile;
         }
-        rtengine::ICCStore::getInstance()->setDefaultMonitorProfileName(
+        art::engine::ICCStore::getInstance()->setDefaultMonitorProfileName(
             defprof);
     } else {
-        auto p = rtengine::ICCStore::getInstance()->getActiveMonitorProfile();
+        auto p = art::engine::ICCStore::getInstance()->getActiveMonitorProfile();
         if (p) {
-            defprof = rtengine::ICCStore::getProfileTag(
+            defprof = art::engine::ICCStore::getProfileTag(
                 p, cmsSigProfileDescriptionTag);
             int n = defprof.size() - 9;
             if (n > 0 && defprof.substr(n) == " (ICC V4)") {

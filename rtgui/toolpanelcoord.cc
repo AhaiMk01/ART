@@ -28,7 +28,7 @@
 #include "multilangmgr.h"
 #include "options.h"
 
-using namespace rtengine::procparams;
+using namespace art::engine::procparams;
 
 namespace {
 
@@ -452,7 +452,7 @@ void ToolPanelCoordinator::imageTypeChanged(bool isRaw, bool isBayer,
     }
 }
 
-void ToolPanelCoordinator::setTweakOperator(rtengine::TweakOperator *tOperator)
+void ToolPanelCoordinator::setTweakOperator(art::engine::TweakOperator *tOperator)
 {
     if (ipc && tOperator) {
         ipc->setTweakOperator(tOperator);
@@ -460,14 +460,14 @@ void ToolPanelCoordinator::setTweakOperator(rtengine::TweakOperator *tOperator)
 }
 
 void ToolPanelCoordinator::unsetTweakOperator(
-    rtengine::TweakOperator *tOperator)
+    art::engine::TweakOperator *tOperator)
 {
     if (ipc && tOperator) {
         ipc->unsetTweakOperator(tOperator);
     }
 }
 
-void ToolPanelCoordinator::refreshPreview(const rtengine::ProcEvent &event)
+void ToolPanelCoordinator::refreshPreview(const art::engine::ProcEvent &event)
 {
     if (!ipc) {
         return;
@@ -481,14 +481,14 @@ void ToolPanelCoordinator::refreshPreview(const rtengine::ProcEvent &event)
     ipc->endUpdateParams(event); // starts the IPC processing
 }
 
-void ToolPanelCoordinator::panelChanged(const rtengine::ProcEvent &event,
+void ToolPanelCoordinator::panelChanged(const art::engine::ProcEvent &event,
                                         const Glib::ustring &descr)
 {
     if (!ipc) {
         return;
     }
 
-    int changeFlags = rtengine::RefreshMapper::getInstance()->getAction(event);
+    int changeFlags = art::engine::RefreshMapper::getInstance()->getAction(event);
 
     ProcParams *params = ipc->beginUpdateParams();
 
@@ -497,11 +497,11 @@ void ToolPanelCoordinator::panelChanged(const rtengine::ProcEvent &event,
     }
 
     // Compensate rotation on flip
-    if (event == rtengine::EvCTHFlip || event == rtengine::EvCTVFlip) {
+    if (event == art::engine::EvCTHFlip || event == art::engine::EvCTVFlip) {
         if (fabs(params->rotate.degree) > 0.001) {
             params->rotate.degree *= -1;
-            changeFlags |= rtengine::RefreshMapper::getInstance()->getAction(
-                rtengine::EvROTDegree);
+            changeFlags |= art::engine::RefreshMapper::getInstance()->getAction(
+                art::engine::EvROTDegree);
             rotate->read(params);
         }
     }
@@ -517,9 +517,9 @@ void ToolPanelCoordinator::panelChanged(const rtengine::ProcEvent &event,
     }
 
     // Update "on preview" geometry
-    if (event == rtengine::EvPhotoLoaded ||
-        event == rtengine::EvProfileChanged ||
-        event == rtengine::EvHistoryBrowsed || event == rtengine::EvCTRotate) {
+    if (event == art::engine::EvPhotoLoaded ||
+        event == art::engine::EvProfileChanged ||
+        event == art::engine::EvHistoryBrowsed || event == art::engine::EvCTRotate) {
         // updating the "on preview" geometry
         int fw, fh;
         ipc->getInitialImage()->getImageSource()->getFullSize(fw, fh, tr);
@@ -534,20 +534,20 @@ void ToolPanelCoordinator::panelChanged(const rtengine::ProcEvent &event,
     }
 
     // some transformations make the crop change for convenience
-    if (event == rtengine::EvCTHFlip) {
+    if (event == art::engine::EvCTHFlip) {
         crop->hFlipCrop();
         crop->write(params);
-    } else if (event == rtengine::EvCTVFlip) {
+    } else if (event == art::engine::EvCTVFlip) {
         crop->vFlipCrop();
         crop->write(params);
-    } else if (event == rtengine::EvCTRotate) {
+    } else if (event == art::engine::EvCTRotate) {
         crop->rotateCrop(params->coarse.rotate, params->coarse.hflip,
                          params->coarse.vflip);
         crop->write(params);
         resize->update(params->crop.enabled, params->crop.w, params->crop.h,
                        ipc->getFullWidth(), ipc->getFullHeight());
         resize->write(params);
-    } else if (event == rtengine::EvCrop) {
+    } else if (event == art::engine::EvCrop) {
         resize->update(params->crop.enabled, params->crop.w, params->crop.h);
         resize->write(params);
     }
@@ -562,7 +562,7 @@ void ToolPanelCoordinator::panelChanged(const rtengine::ProcEvent &event,
 }
 
 void ToolPanelCoordinator::profileChange(const PartialProfile *nparams,
-                                         const rtengine::ProcEvent &event,
+                                         const art::engine::ProcEvent &event,
                                          const Glib::ustring &descr,
                                          const ParamsEdited *paramsEdited,
                                          bool fromLastSave)
@@ -578,7 +578,7 @@ void ToolPanelCoordinator::profileChange(const PartialProfile *nparams,
     ProcParams mergedParams(*params);
 
     // Reset IPTC values when switching procparams from the History
-    if (event == rtengine::EvHistoryBrowsed) {
+    if (event == art::engine::EvHistoryBrowsed) {
         mergedParams.metadata.iptc.clear();
         mergedParams.metadata.exif.clear();
     }
@@ -590,9 +590,9 @@ void ToolPanelCoordinator::profileChange(const PartialProfile *nparams,
     // RAW rerendering if not necessary
     bool filterRawRefresh = false;
 
-    if (event != rtengine::EvPhotoLoaded) {
+    if (event != art::engine::EvPhotoLoaded) {
         // ParamsEdited pe (true);
-        // std::vector<rtengine::procparams::ProcParams> lParams (2);
+        // std::vector<art::engine::procparams::ProcParams> lParams (2);
         // lParams[0] = *params;
         // lParams[1] = *mergedParams;
         // pe.initFrom (lParams);
@@ -625,15 +625,15 @@ void ToolPanelCoordinator::profileChange(const PartialProfile *nparams,
     for (auto toolPanel : toolPanels) {
         toolPanel->read(params);
 
-        if (event == rtengine::EvPhotoLoaded ||
-            event == rtengine::EvProfileChanged) {
+        if (event == art::engine::EvPhotoLoaded ||
+            event == art::engine::EvProfileChanged) {
             toolPanel->autoOpenCurve();
         }
     }
 
-    if (event == rtengine::EvPhotoLoaded ||
-        event == rtengine::EvProfileChanged ||
-        event == rtengine::EvHistoryBrowsed || event == rtengine::EvCTRotate) {
+    if (event == art::engine::EvPhotoLoaded ||
+        event == art::engine::EvProfileChanged ||
+        event == art::engine::EvHistoryBrowsed || event == art::engine::EvCTRotate) {
         // updating the "on preview" geometry
         gradient->updateGeometry(
             params->gradient.centerX, params->gradient.centerY,
@@ -648,13 +648,13 @@ void ToolPanelCoordinator::profileChange(const PartialProfile *nparams,
     // start the IPC processing
     if (filterRawRefresh) {
         ipc->endUpdateParams(
-            rtengine::RefreshMapper::getInstance()->getAction(event) &
-            rtengine::ALLNORAW);
+            art::engine::RefreshMapper::getInstance()->getAction(event) &
+            art::engine::ALLNORAW);
     } else {
         ipc->endUpdateParams(event);
     }
 
-    hasChanged = event != rtengine::EvProfileChangeNotification;
+    hasChanged = event != art::engine::EvProfileChangeNotification;
 
     for (auto paramcListener : paramcListeners) {
         paramcListener->procParamsChanged(params, event, descr);
@@ -672,7 +672,7 @@ void ToolPanelCoordinator::setDefaults(const ProcParams *defparams)
 
 CropGUIListener *ToolPanelCoordinator::getCropGUIListener() { return crop; }
 
-void ToolPanelCoordinator::initImage(rtengine::StagedImageProcessor *ipc_,
+void ToolPanelCoordinator::initImage(art::engine::StagedImageProcessor *ipc_,
                                      bool raw)
 {
 
@@ -682,7 +682,7 @@ void ToolPanelCoordinator::initImage(rtengine::StagedImageProcessor *ipc_,
     toneCurve->enableListener();
 
     if (ipc) {
-        const rtengine::FramesMetaData *pMetaData =
+        const art::engine::FramesMetaData *pMetaData =
             ipc->getInitialImage()->getMetaData();
         metadata->setImageData(pMetaData);
 
@@ -707,7 +707,7 @@ void ToolPanelCoordinator::initImage(rtengine::StagedImageProcessor *ipc_,
         textureBoost->setExternalMaskPath(dn);
         smoothing->setExternalMaskPath(dn);
 
-        icm->setRawMeta(raw, (const rtengine::FramesData *)pMetaData);
+        icm->setRawMeta(raw, (const art::engine::FramesData *)pMetaData);
         lensProf->setRawMeta(raw, pMetaData);
         perspective->setRawMeta(raw, pMetaData);
     }
@@ -796,7 +796,7 @@ void ToolPanelCoordinator::spotWBselected(int x, int y, Thumbnail *thm)
     int hh = ipc->getFullHeight();
 
     if (x - rect > 0 && y - rect > 0 && x + rect < ww && y + rect < hh) {
-        rtengine::ColorTemp ctemp;
+        art::engine::ColorTemp ctemp;
         ipc->getSpotWB(x, y, rect, ctemp);
         whitebalance->setWB(ctemp);
     }
@@ -809,7 +809,7 @@ void ToolPanelCoordinator::sharpMaskSelected(bool sharpMask)
     }
     ipc->beginUpdateParams();
     ipc->setSharpMask(sharpMask);
-    ipc->endUpdateParams(rtengine::EvShrEnabled);
+    ipc->endUpdateParams(art::engine::EvShrEnabled);
 }
 
 int ToolPanelCoordinator::getSpotWBRectSize() const
@@ -864,13 +864,13 @@ void ToolPanelCoordinator::autoCropRequested()
     crop->cropManipReady(x1, y1, w, h);
 }
 
-rtengine::RawImage *ToolPanelCoordinator::getDF()
+art::engine::RawImage *ToolPanelCoordinator::getDF()
 {
     if (!ipc) {
         return nullptr;
     }
 
-    const rtengine::FramesMetaData *imd = ipc->getInitialImage()->getMetaData();
+    const art::engine::FramesMetaData *imd = ipc->getInitialImage()->getMetaData();
 
     if (imd) {
         int iso = imd->getISOSpeed();
@@ -879,20 +879,20 @@ rtengine::RawImage *ToolPanelCoordinator::getDF()
         std::string model(imd->getModel());
         time_t timestamp = imd->getDateTimeAsTS();
 
-        return rtengine::dfm.searchDarkFrame(maker, model, iso, shutter,
+        return art::engine::dfm.searchDarkFrame(maker, model, iso, shutter,
                                              timestamp);
     }
 
     return nullptr;
 }
 
-rtengine::RawImage *ToolPanelCoordinator::getFF()
+art::engine::RawImage *ToolPanelCoordinator::getFF()
 {
     if (!ipc) {
         return nullptr;
     }
 
-    const rtengine::FramesMetaData *imd = ipc->getInitialImage()->getMetaData();
+    const art::engine::FramesMetaData *imd = ipc->getInitialImage()->getMetaData();
 
     if (imd) {
         // int iso = imd->getISOSpeed();              temporarilly removed
@@ -905,7 +905,7 @@ rtengine::RawImage *ToolPanelCoordinator::getFF()
         std::string lens(imd->getLens());
         time_t timestamp = imd->getDateTimeAsTS();
 
-        return rtengine::ffm.searchFlatField(maker, model, lens, focallength,
+        return art::engine::ffm.searchFlatField(maker, model, lens, focallength,
                                              aperture, timestamp);
     }
 
@@ -924,7 +924,7 @@ Glib::ustring ToolPanelCoordinator::GetCurrentImageFilePath()
 bool ToolPanelCoordinator::hasEmbeddedFF()
 {
     if (ipc) {
-        const rtengine::FramesMetaData *imd =
+        const art::engine::FramesMetaData *imd =
             ipc->getInitialImage()->getMetaData();
 
         if (imd) {
@@ -951,12 +951,12 @@ double ToolPanelCoordinator::autoDistorRequested()
         return 0.0;
     }
 
-    return rtengine::ImProcFunctions::getAutoDistor(
+    return art::engine::ImProcFunctions::getAutoDistor(
         ipc->getInitialImage()->getFileName(), 400);
 }
 
 void ToolPanelCoordinator::updateTransformPreviewRequested(
-    rtengine::ProcEvent event, bool render_perspective)
+    art::engine::ProcEvent event, bool render_perspective)
 {
     if (!ipc) {
         return;
@@ -1024,10 +1024,10 @@ void ToolPanelCoordinator::saveInputICCReference(const Glib::ustring &fname,
 }
 
 void ToolPanelCoordinator::updateCurveBackgroundHistogram(
-    const LUTu &histToneCurve, const LUTu &histLCurve, const LUTu &histCCurve,
-    const LUTu &histLCAM, const LUTu &histCCAM, const LUTu &histRed,
-    const LUTu &histGreen, const LUTu &histBlue, const LUTu &histLuma,
-    const LUTu &histLRETI)
+    const art::engine::LUTu &histToneCurve, const art::engine::LUTu &histLCurve, const art::engine::LUTu &histCCurve,
+    const art::engine::LUTu &histLCAM, const art::engine::LUTu &histCCAM, const art::engine::LUTu &histRed,
+    const art::engine::LUTu &histGreen, const art::engine::LUTu &histBlue, const art::engine::LUTu &histLuma,
+    const art::engine::LUTu &histLRETI)
 {
     toneCurve->updateCurveBackgroundHistogram(
         histToneCurve, histLCurve, histCCurve, histLCAM, histCCAM, histRed,
@@ -1228,7 +1228,7 @@ void ToolPanelCoordinator::setEditProvider(EditDataProvider *provider, bool recu
 
 void ToolPanelCoordinator::autoPerspectiveRequested(
     bool horiz, bool vert, double &angle, double &horizontal, double &vertical,
-    double &shear, const std::vector<rtengine::ControlLine> *lines)
+    double &shear, const std::vector<art::engine::ControlLine> *lines)
 {
     angle = 0;
     horizontal = 0;
@@ -1239,25 +1239,25 @@ void ToolPanelCoordinator::autoPerspectiveRequested(
         return;
     }
 
-    rtengine::ImageSource *src =
-        dynamic_cast<rtengine::ImageSource *>(ipc->getInitialImage());
+    art::engine::ImageSource *src =
+        dynamic_cast<art::engine::ImageSource *>(ipc->getInitialImage());
     if (!src) {
         return;
     }
 
-    rtengine::procparams::ProcParams params;
+    art::engine::procparams::ProcParams params;
     ipc->getParams(&params);
 
-    rtengine::PerspectiveCorrection::Direction dir;
+    art::engine::PerspectiveCorrection::Direction dir;
     if (horiz && vert) {
-        dir = rtengine::PerspectiveCorrection::BOTH;
+        dir = art::engine::PerspectiveCorrection::BOTH;
     } else if (horiz) {
-        dir = rtengine::PerspectiveCorrection::HORIZONTAL;
+        dir = art::engine::PerspectiveCorrection::HORIZONTAL;
     } else {
-        dir = rtengine::PerspectiveCorrection::VERTICAL;
+        dir = art::engine::PerspectiveCorrection::VERTICAL;
     }
 
-    auto res = rtengine::PerspectiveCorrection::autocompute(
+    auto res = art::engine::PerspectiveCorrection::autocompute(
         src, dir, &params, src->getMetaData(), lines);
     angle = res.angle;
     horizontal = res.horizontal;
@@ -1287,7 +1287,7 @@ void ToolPanelCoordinator::setAreaDrawListener(AreaDrawListener *listener)
     textureBoost->setAreaDrawListener(listener);
 }
 
-bool ToolPanelCoordinator::getDeltaELCH(EditUniqueID id, rtengine::Coord pos,
+bool ToolPanelCoordinator::getDeltaELCH(EditUniqueID id, art::engine::Coord pos,
                                         float &L, float &C, float &H)
 {
     if (ipc) {
@@ -1297,7 +1297,7 @@ bool ToolPanelCoordinator::getDeltaELCH(EditUniqueID id, rtengine::Coord pos,
     return false;
 }
 
-void ToolPanelCoordinator::setProgressListener(rtengine::ProgressListener *pl)
+void ToolPanelCoordinator::setProgressListener(art::engine::ProgressListener *pl)
 {
     metadata->setProgressListener(pl);
 }
@@ -1323,11 +1323,11 @@ void ToolPanelCoordinator::setToolShortcutManager(ToolShortcutManager *mgr)
         ->setToolShortcutManager(mgr);
 }
 
-bool ToolPanelCoordinator::getFilmNegativeSpot(rtengine::Coord spot,
+bool ToolPanelCoordinator::getFilmNegativeSpot(art::engine::Coord spot,
                                                int spotSize, RGB &refInput,
                                                RGB &refOutput)
 {
     return ipc &&
-           static_cast<rtengine::ImProcCoordinator *>(ipc)->getFilmNegativeSpot(
+           static_cast<art::engine::ImProcCoordinator *>(ipc)->getFilmNegativeSpot(
                spot.x, spot.y, spotSize, refInput, refOutput);
 }

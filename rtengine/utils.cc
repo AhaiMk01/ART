@@ -33,7 +33,10 @@
 #include <windows.h>
 #endif
 
-namespace rtengine {
+namespace art { namespace engine {
+
+
+
 
 void poke255_uc(unsigned char *&dest, unsigned char r, unsigned char g,
                 unsigned char b)
@@ -342,8 +345,6 @@ std::string get_html_color(int r, int g, int b)
     return out.str();
 }
 
-} // namespace rtengine
-
 #if __SIZEOF_WCHAR_T__ == 4
 Glib::ustring utf32_to_utf8(wchar_t *UTF32Buffer, size_t sizeOfUTF32Buffer)
 {
@@ -361,3 +362,6 @@ Glib::ustring utf32_to_utf8(wchar_t *UTF32Buffer, size_t sizeOfUTF32Buffer)
     return modelDesc;
 }
 #endif
+
+
+} } // namespace art::engine

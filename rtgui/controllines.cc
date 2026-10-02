@@ -24,7 +24,7 @@
 
 #include "../rtengine/perspectivecorrection.h"
 
-using namespace rtengine;
+using namespace art::engine;
 
 ::ControlLine::~ControlLine() = default;
 
@@ -149,12 +149,12 @@ bool ControlLineManager::pick1(bool picked)
     ::ControlLine &line =
         *control_lines[(object_id - 1) / ::ControlLine::OBJ_COUNT];
 
-    if (line.type == rtengine::ControlLine::HORIZONTAL) {
+    if (line.type == art::engine::ControlLine::HORIZONTAL) {
         line.icon = line.icon_v;
-        line.type = rtengine::ControlLine::VERTICAL;
-    } else if (line.type == rtengine::ControlLine::VERTICAL) {
+        line.type = art::engine::ControlLine::VERTICAL;
+    } else if (line.type == art::engine::ControlLine::VERTICAL) {
         line.icon = line.icon_h;
-        line.type = rtengine::ControlLine::HORIZONTAL;
+        line.type = art::engine::ControlLine::HORIZONTAL;
     }
 
     visibleGeometry[object_id - 1] = line.icon.get();
@@ -305,7 +305,7 @@ void ControlLineManager::setEditProvider(EditDataProvider *provider)
 }
 
 void ControlLineManager::setLines(
-    const std::vector<rtengine::ControlLine> &lines)
+    const std::vector<art::engine::ControlLine> &lines)
 {
     removeAll();
 
@@ -317,7 +317,7 @@ void ControlLineManager::setLines(
 }
 
 void ControlLineManager::addLine(Coord begin, Coord end,
-                                 rtengine::ControlLine::Type type)
+                                 art::engine::ControlLine::Type type)
 {
     constexpr int line_width = 2;
     constexpr int handle_radius = 6;
@@ -362,7 +362,7 @@ void ControlLineManager::addLine(Coord begin, Coord end,
     control_line->icon_h = icon_h;
     control_line->icon_v = icon_v;
 
-    if (type == rtengine::ControlLine::HORIZONTAL) {
+    if (type == art::engine::ControlLine::HORIZONTAL) {
         control_line->icon = icon_h;
     } else {
         control_line->icon = icon_v;
@@ -400,14 +400,14 @@ void ControlLineManager::autoSetLineType(int object_id)
         dy = -dy;
     }
 
-    rtengine::ControlLine::Type type;
+    art::engine::ControlLine::Type type;
     std::shared_ptr<OPIcon> icon;
 
     if (dx > dy) { // More horizontal than vertical.
-        type = rtengine::ControlLine::HORIZONTAL;
+        type = art::engine::ControlLine::HORIZONTAL;
         icon = line.icon_h;
     } else {
-        type = rtengine::ControlLine::VERTICAL;
+        type = art::engine::ControlLine::VERTICAL;
         icon = line.icon_v;
     }
 
@@ -452,7 +452,7 @@ void ControlLineManager::removeLine(size_t line_id)
 }
 
 void ControlLineManager::toControlLines(
-    std::vector<rtengine::ControlLine> &converted) const
+    std::vector<art::engine::ControlLine> &converted) const
 {
     converted.clear();
     converted.resize(control_lines.size());

@@ -25,7 +25,7 @@
 #include <cstddef>
 #include <vector>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class Imagefloat;
 
@@ -78,4 +78,4 @@ void inpaint(Imagefloat *img, const array2D<float> &mask, float threshold,
 int find_fast_fftw_dim(int dim);
 int find_fast_dct_dim(int dim);
 
-} // namespace rtengine
+}} // namespace art::engine

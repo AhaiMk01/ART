@@ -22,24 +22,24 @@
 #include <cmath>
 #include <iomanip>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 LogEncoding::LogEncoding()
     : FoldableToolPanel(this, "log", M("TP_LOGENC_LABEL"), false, true, true)
 {
     auto m = ProcEventMapper::getInstance();
-    const auto EVENT = rtengine::LUMINANCECURVE;
-    EvEnabled = m->newEvent(rtengine::RGBCURVE | rtengine::M_AUTOEXP,
+    const auto EVENT = art::engine::LUMINANCECURVE;
+    EvEnabled = m->newEvent(art::engine::RGBCURVE | art::engine::M_AUTOEXP,
                             "HISTORY_MSG_LOGENC_ENABLED");
-    EvAuto = m->newEvent(rtengine::AUTOEXP, "HISTORY_MSG_LOGENC_AUTO");
+    EvAuto = m->newEvent(art::engine::AUTOEXP, "HISTORY_MSG_LOGENC_AUTO");
     EvAutoGainOn =
-        m->newEvent(rtengine::AUTOEXP, "HISTORY_MSG_LOGENC_AUTOGAIN");
+        m->newEvent(art::engine::AUTOEXP, "HISTORY_MSG_LOGENC_AUTOGAIN");
     EvAutoGainOff =
-        m->newEvent(rtengine::M_VOID, "HISTORY_MSG_LOGENC_AUTOGAIN");
-    EvAutoBatch = m->newEvent(rtengine::M_VOID, "HISTORY_MSG_LOGENC_AUTO");
+        m->newEvent(art::engine::M_VOID, "HISTORY_MSG_LOGENC_AUTOGAIN");
+    EvAutoBatch = m->newEvent(art::engine::M_VOID, "HISTORY_MSG_LOGENC_AUTO");
     EvGain = m->newEvent(EVENT, "HISTORY_MSG_LOGENC_GAIN");
-    EvGainAuto = m->newEvent(rtengine::AUTOEXP, "HISTORY_MSG_LOGENC_GAIN");
+    EvGainAuto = m->newEvent(art::engine::AUTOEXP, "HISTORY_MSG_LOGENC_GAIN");
     EvTargetGray = m->newEvent(EVENT, "HISTORY_MSG_LOGENC_TARGET_GRAY");
     EvBlackEv = m->newEvent(EVENT, "HISTORY_MSG_LOGENC_BLACK_EV");
     EvWhiteEv = m->newEvent(EVENT, "HISTORY_MSG_LOGENC_WHITE_EV");

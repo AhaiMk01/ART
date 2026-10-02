@@ -19,8 +19,8 @@
 #include "coarsepanel.h"
 #include "rtimage.h"
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 CoarsePanel::CoarsePanel(): ToolPanel(), oldhflip(false), oldvflip(false)
 {

@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _DARKFRAME_H_
-#define _DARKFRAME_H_
+#pragma once
 
 #include "../rtengine/rawimage.h"
 #include "guiutils.h"
@@ -28,7 +27,7 @@
 
 class DFProvider {
 public:
-    virtual rtengine::RawImage *getDF() = 0;
+    virtual art::engine::RawImage *getDF() = 0;
     virtual Glib::ustring GetCurrentImageFilePath() = 0;
     // add other info here
 };
@@ -49,21 +48,19 @@ protected:
     bool b_filter_asCurrent;
     bool israw;
 
-    rtengine::procparams::RAWParams initial_params;
+    art::engine::procparams::RAWParams initial_params;
 
 public:
     DarkFrame();
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
 
     void darkFrameChanged();
     void darkFrameReset();
     void dfAutoChanged();
     void setDFProvider(DFProvider *p) { dfp = p; }
 
-    void setDefaults(const rtengine::procparams::ProcParams *def) override;
+    void setDefaults(const art::engine::procparams::ProcParams *def) override;
     void toolReset(bool to_initial) override;
 };
-
-#endif

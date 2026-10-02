@@ -26,7 +26,7 @@
 
 #include <fstream>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace {
 
@@ -380,7 +380,7 @@ float expand_range(float whitept, float x)
     }
 
     float f = (pow_F(whitept, x) - 1) / (whitept - 1);
-    float g = rtengine::intp(SQR(x) * x, f * whitept, x);
+    float g = art::engine::intp(SQR(x) * x, f * whitept, x);
     return g;
 }
 
@@ -777,4 +777,4 @@ void ImProcFunctions::toneCurve(Imagefloat *img)
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

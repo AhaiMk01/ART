@@ -9,8 +9,8 @@
 #include "eventmapper.h"
 #include "options.h"
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 namespace {
 
@@ -59,11 +59,11 @@ FilmSimulation::FilmSimulation()
     : FoldableToolPanel(this, "filmsimulation", M("TP_FILMSIMULATION_LABEL"),
                         false, true, true)
 {
-    EvToolEnabled.set_action(rtengine::RGBCURVE);
+    EvToolEnabled.set_action(art::engine::RGBCURVE);
     EvAfterToneCurve = ProcEventMapper::getInstance()->newEvent(
-        rtengine::RGBCURVE, "HISTORY_MSG_FILMSIMULATION_AFTER_TONE_CURVE");
+        art::engine::RGBCURVE, "HISTORY_MSG_FILMSIMULATION_AFTER_TONE_CURVE");
     EvClutParams = ProcEventMapper::getInstance()->newEvent(
-        rtengine::RGBCURVE, "HISTORY_MSG_FILMSIMULATION_CLUT_PARAMS");
+        art::engine::RGBCURVE, "HISTORY_MSG_FILMSIMULATION_CLUT_PARAMS");
 
     m_clutComboBox = Gtk::manage(
         new ClutComboBox({Glib::build_filename(options.ART_base_dir, "luts"),
@@ -110,7 +110,7 @@ void FilmSimulation::onClutSelected()
 {
     auto info = m_clutComboBox->getSelectedClut();
     lut_params_->setParams(
-        rtengine::CLUTApplication::get_param_descriptors(info.first));
+        art::engine::CLUTApplication::get_param_descriptors(info.first));
     lut_params_->setValue({});
 
     if (listener && getEnabled()) {
@@ -152,7 +152,7 @@ void FilmSimulation::adjusterChanged(Adjuster *a, double newval)
 
 void FilmSimulation::adjusterAutoToggled(Adjuster *a, bool newval) {}
 
-void FilmSimulation::read(const rtengine::procparams::ProcParams *pp)
+void FilmSimulation::read(const art::engine::procparams::ProcParams *pp)
 {
     // copypasted from lensprofile.cc & sharpening.cc
     disableListener();
@@ -183,7 +183,7 @@ void FilmSimulation::read(const rtengine::procparams::ProcParams *pp)
     after_tone_curve_box_->set_visible(after_tone_curve_->get_active());
 
     lut_params_->setParams(
-        rtengine::CLUTApplication::get_param_descriptors(fname));
+        art::engine::CLUTApplication::get_param_descriptors(fname));
     lut_params_->setValue(pp->filmSimulation.lut_params);
 
     updateDisable(false);
@@ -195,7 +195,7 @@ void FilmSimulation::updateDisable(bool value)
     m_clutComboBoxConn.block(value);
 }
 
-void FilmSimulation::write(rtengine::procparams::ProcParams *pp)
+void FilmSimulation::write(art::engine::procparams::ProcParams *pp)
 {
     pp->filmSimulation.enabled = getEnabled();
     const Glib::ustring clutFName = m_clutComboBox->getSelectedClut().first;
@@ -211,7 +211,7 @@ void FilmSimulation::write(rtengine::procparams::ProcParams *pp)
     pp->filmSimulation.lut_params = lut_params_->getValue();
 }
 
-void FilmSimulation::trimValues(rtengine::procparams::ProcParams *pp)
+void FilmSimulation::trimValues(art::engine::procparams::ProcParams *pp)
 {
     m_strength->trimValue(pp->filmSimulation.strength);
 }

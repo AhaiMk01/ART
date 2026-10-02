@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _PIPETTEBUFFER_H_
-#define _PIPETTEBUFFER_H_
+#pragma once
 
 #include "../rtgui/edit.h"
 #include "array2D.h"
@@ -26,7 +25,7 @@
 #include "imagefloat.h"
 #include "labimage.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 /// @brief Structure that contains information about and pointers to the Edit
 /// buffer
@@ -80,6 +79,4 @@ public:
     void getPipetteData(float *v, int x, int y, int squareSize);
 };
 
-} // namespace rtengine
-
-#endif
+}} // namespace art::engine

@@ -26,8 +26,8 @@
 #include "rtimage.h"
 #include <iomanip>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 namespace {
 
@@ -118,12 +118,12 @@ Spot::Spot()
     rect->datum = Geometry::IMAGE;
 
     auto m = ProcEventMapper::getInstance();
-    EvSpotEnabled = m->newEvent(rtengine::ALLNORAW, "TP_SPOT_LABEL");
-    EvSpotEnabledOPA = m->newAnonEvent(rtengine::SPOTADJUST);
-    EvSpotEntry = m->newEvent(rtengine::SPOTADJUST, "HISTORY_MSG_SPOT_ENTRY");
+    EvSpotEnabled = m->newEvent(art::engine::ALLNORAW, "TP_SPOT_LABEL");
+    EvSpotEnabledOPA = m->newAnonEvent(art::engine::SPOTADJUST);
+    EvSpotEntry = m->newEvent(art::engine::SPOTADJUST, "HISTORY_MSG_SPOT_ENTRY");
     EvSpotEntryOPA =
-        m->newEvent(rtengine::SPOTADJUST, "HISTORY_MSG_SPOT_ENTRY");
-    EvToolReset.set_action(rtengine::SPOTADJUST);
+        m->newEvent(art::engine::SPOTADJUST, "HISTORY_MSG_SPOT_ENTRY");
+    EvToolReset.set_action(art::engine::SPOTADJUST);
 
     spot_frame = Gtk::manage(new Gtk::Frame(M("TP_SPOT_CUR_SPOT_LABEL")));
     Gtk::VBox *vb = Gtk::manage(new Gtk::VBox());
@@ -528,7 +528,7 @@ void Spot::deleteSelectedEntry()
 {
     // delete the activeSpot
     if (activeSpot > -1) {
-        std::vector<rtengine::procparams::SpotEntry>::iterator i =
+        std::vector<art::engine::procparams::SpotEntry>::iterator i =
             spots.begin();
 
         for (int j = 0; j < activeSpot; ++j) {
@@ -762,7 +762,7 @@ bool Spot::drag1(int modifierKey)
     if (loGeom == &sourceMODisc) {
         // printf("sourceMODisc / deltaPrevImage = %d / %d\n",
         // editProvider->deltaPrevImage.x, editProvider->deltaPrevImage.y);
-        rtengine::Coord currPos = spots.at(activeSpot).sourcePos;
+        art::engine::Coord currPos = spots.at(activeSpot).sourcePos;
         spots.at(activeSpot).sourcePos += editProvider->deltaPrevImage;
         spots.at(activeSpot).sourcePos.clip(imW, imH);
 
@@ -775,7 +775,7 @@ bool Spot::drag1(int modifierKey)
     } else if (loGeom == &targetMODisc || lastObject >= STATIC_MO_OBJ_NBR) {
         // printf("targetMODisc / deltaPrevImage = %d / %d\n",
         // editProvider->deltaPrevImage.x, editProvider->deltaPrevImage.y);
-        rtengine::Coord currPos = spots.at(activeSpot).targetPos;
+        art::engine::Coord currPos = spots.at(activeSpot).targetPos;
         spots.at(activeSpot).targetPos += editProvider->deltaPrevImage;
         spots.at(activeSpot).targetPos.clip(imW, imH);
 
@@ -786,9 +786,9 @@ bool Spot::drag1(int modifierKey)
         // printf("sourceCircle / deltaPrevImage = %d / %d\n",
         // editProvider->deltaImage.x, editProvider->deltaImage.y);
         int lastRadius = spots.at(activeSpot).radius;
-        rtengine::Coord currPos =
+        art::engine::Coord currPos =
             editProvider->posImage + editProvider->deltaImage;
-        rtengine::PolarCoord currPolar(currPos -
+        art::engine::PolarCoord currPolar(currPos -
                                        spots.at(activeSpot).sourcePos);
         spots.at(activeSpot).radius =
             LIM<int>(int(currPolar.radius), SpotParams::minRadius,
@@ -801,9 +801,9 @@ bool Spot::drag1(int modifierKey)
         // printf("targetCircle / deltaPrevImage = %d / %d\n",
         // editProvider->deltaImage.x, editProvider->deltaImage.y);
         int lastRadius = spots.at(activeSpot).radius;
-        rtengine::Coord currPos =
+        art::engine::Coord currPos =
             editProvider->posImage + editProvider->deltaImage;
-        rtengine::PolarCoord currPolar(currPos -
+        art::engine::PolarCoord currPolar(currPos -
                                        spots.at(activeSpot).targetPos);
         spots.at(activeSpot).radius =
             LIM<int>(int(currPolar.radius), SpotParams::minRadius,
@@ -816,9 +816,9 @@ bool Spot::drag1(int modifierKey)
         // printf("sourceFeatherCircle / deltaPrevImage = %d / %d\n",
         // editProvider->deltaImage.x, editProvider->deltaImage.y);
         float currFeather = spots.at(activeSpot).feather;
-        rtengine::Coord currPos =
+        art::engine::Coord currPos =
             editProvider->posImage + editProvider->deltaImage;
-        rtengine::PolarCoord currPolar(currPos -
+        art::engine::PolarCoord currPolar(currPos -
                                        spots.at(activeSpot).sourcePos);
         spots.at(activeSpot).feather = LIM01<float>(
             (currPolar.radius - double(spots.at(activeSpot).radius)) /
@@ -831,9 +831,9 @@ bool Spot::drag1(int modifierKey)
         // printf("targetFeatherCircle / deltaPrevImage = %d / %d\n",
         // editProvider->deltaImage.x, editProvider->deltaImage.y);
         float currFeather = spots.at(activeSpot).feather;
-        rtengine::Coord currPos =
+        art::engine::Coord currPos =
             editProvider->posImage + editProvider->deltaImage;
-        rtengine::PolarCoord currPolar(currPos -
+        art::engine::PolarCoord currPolar(currPos -
                                        spots.at(activeSpot).targetPos);
         spots.at(activeSpot).feather = LIM01<float>(
             (currPolar.radius - double(spots.at(activeSpot).radius)) /
@@ -862,7 +862,7 @@ bool Spot::drag3(int modifierKey)
     Geometry *loGeom = EditSubscriber::mouseOverGeometry.at(lastObject);
 
     if (loGeom == &sourceMODisc) {
-        rtengine::Coord currPos = spots.at(activeSpot).sourcePos;
+        art::engine::Coord currPos = spots.at(activeSpot).sourcePos;
         spots.at(activeSpot).sourcePos += editProvider->deltaPrevImage;
         spots.at(activeSpot).sourcePos.clip(imW, imH);
 

@@ -30,7 +30,7 @@
 #include <iostream>
 #endif
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace {
 
@@ -41,7 +41,7 @@ inline float Lanc(float x, float a)
     } else if (x * x > a * a) {
         return 0.0f;
     } else {
-        x = static_cast<float>(rtengine::RT_PI) * x;
+        x = static_cast<float>(art::engine::RT_PI) * x;
         return a * xsinf(x) * xsinf(x / a) / (x * x);
     }
 }
@@ -309,4 +309,4 @@ void ImProcFunctions::resize(Imagefloat *src, Imagefloat *dst, float dScale)
 #endif
 }
 
-} // namespace rtengine
+}} // namespace art::engine

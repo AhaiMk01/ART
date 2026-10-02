@@ -23,7 +23,7 @@
 #include "improcfun.h"
 #include "rt_math.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace {
 
@@ -82,4 +82,4 @@ void ImProcFunctions::saturationVibrance(Imagefloat *rgb)
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

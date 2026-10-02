@@ -16,8 +16,10 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _SLICER_
-#define _SLICER_
+#pragma once
+
+namespace art { namespace engine {
+
 
 // The image is divided in blocks even on single processor machine, mainly to
 // decrease memory consumption maximum number of pixel per block
@@ -62,4 +64,5 @@ public:
     void get_block(unsigned int blockId, Block *block);
 };
 
-#endif
+
+} } // namespace art::engine

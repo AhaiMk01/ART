@@ -28,7 +28,7 @@
 #include "rawimagesource.h"
 #include "rescale.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -218,4 +218,4 @@ void RawImageSource::apply_gain_map(unsigned short black[4],
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

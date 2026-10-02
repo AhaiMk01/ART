@@ -22,7 +22,7 @@
 #include "linalgebra.h"
 #include "opthelper.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 LUT3D::initializer::~initializer() {}
 
@@ -283,4 +283,4 @@ inline void LUT3D::apply_tetra(float &r, float &g, float &b)
     b = out[2];
 }
 
-} // namespace rtengine
+}} // namespace art::engine

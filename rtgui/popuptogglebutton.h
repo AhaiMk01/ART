@@ -18,8 +18,7 @@
  *
  *  Class created by Jean-Christophe FRISCH, aka 'Hombre'
  */
-#ifndef _POPUPTOGGLEBUTTON_
-#define _POPUPTOGGLEBUTTON_
+#pragma once
 
 #include "popupcommon.h"
 #include <gtkmm/togglebutton.h>
@@ -31,5 +30,3 @@ public:
     void show();
     void set_tooltip_text(const Glib::ustring &text);
 };
-
-#endif

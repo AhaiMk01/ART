@@ -22,7 +22,7 @@
 #include "metadata.h"
 #include "rawimage.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 bool RawImage::has_gain_map(std::vector<uint8_t> *out_buf) const
 {
@@ -72,4 +72,4 @@ bool RawImage::has_gain_map(std::vector<uint8_t> *out_buf) const
 #endif // ART_USE_LIBRAW
 }
 
-} // namespace rtengine
+}} // namespace art::engine

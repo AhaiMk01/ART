@@ -22,7 +22,7 @@
 #include "curves.h"
 #include "improcfun.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace {
 
@@ -150,4 +150,4 @@ void ImProcFunctions::rgbCurves(Imagefloat *img)
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

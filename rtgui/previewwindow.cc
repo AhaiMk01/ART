@@ -95,7 +95,7 @@ void PreviewWindow::updatePreviewImage()
             cc->fill();
 
             if (previewHandler->getCropParams().enabled) {
-                rtengine::CropParams cparams = previewHandler->getCropParams();
+                art::engine::CropParams cparams = previewHandler->getCropParams();
                 cparams.guide = "Frame";
                 drawCrop(cc, imgX, imgY, imgW, imgH, 0, 0, zoom, cparams, true,
                          false);

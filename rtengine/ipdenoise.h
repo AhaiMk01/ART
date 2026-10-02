@@ -30,7 +30,7 @@
 #include "gpu/vk_pass.h"
 #endif // ART_USE_VULKAN
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace denoise {
 
@@ -444,4 +444,4 @@ using gpu::PassSeq;
 } // namespace gpu
 #endif // ART_USE_VULKAN
 
-} // namespace rtengine
+}} // namespace art::engine

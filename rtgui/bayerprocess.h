@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _BAYERPROCESS_H_
-#define _BAYERPROCESS_H_
+#pragma once
 
 #include "adjuster.h"
 #include "checkbox.h"
@@ -30,8 +29,8 @@ class BayerProcess: public ToolParamBlock,
                     public AdjusterListener,
                     public CheckBoxListener,
                     public FoldableToolPanel,
-                    public rtengine::FrameCountListener,
-                    public rtengine::AutoContrastListener {
+                    public art::engine::FrameCountListener,
+                    public art::engine::AutoContrastListener {
 
 protected:
     MyComboBoxText *method;
@@ -67,22 +66,22 @@ protected:
     bool lastAutoContrast;
     IdleRegister idle_register;
 
-    rtengine::ProcEvent EvDemosaicBorder;
-    rtengine::ProcEvent EvDemosaicAutoContrast;
-    rtengine::ProcEvent EvDemosaicContrast;
-    rtengine::ProcEvent EvDemosaicPixelshiftDemosaicMethod;
+    art::engine::ProcEvent EvDemosaicBorder;
+    art::engine::ProcEvent EvDemosaicAutoContrast;
+    art::engine::ProcEvent EvDemosaicContrast;
+    art::engine::ProcEvent EvDemosaicPixelshiftDemosaicMethod;
 
-    rtengine::procparams::RAWParams::BayerSensor initial_params;
+    art::engine::procparams::RAWParams::BayerSensor initial_params;
 
 public:
     BayerProcess();
     ~BayerProcess() override;
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
-    void trimValues(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
+    void trimValues(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
 
     void methodChanged();
     void imageNumberChanged();
@@ -96,5 +95,3 @@ public:
 
     void toolReset(bool to_initial) override;
 };
-
-#endif

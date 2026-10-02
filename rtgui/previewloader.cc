@@ -36,7 +36,7 @@
 // #define DEBUG(format,args...) printf("PreviewLoader::%s: " format "\n",
 // __FUNCTION__, ## args)
 
-class PreviewLoader::Impl: public rtengine::NonCopyable {
+class PreviewLoader::Impl: public art::engine::NonCopyable {
 public:
     struct Job {
         Job(int dir_id, const Glib::ustring &dir_entry,
@@ -155,8 +155,8 @@ void PreviewLoader::add(int dir_id, const Glib::ustring &dir_entry,
 
         // queue a run request
         DEBUG("adding run request %s", dir_entry.c_str());
-        rtengine::ThreadPool::add_task(
-            rtengine::ThreadPool::Priority::LOWEST,
+        art::engine::ThreadPool::add_task(
+            art::engine::ThreadPool::Priority::LOWEST,
             sigc::mem_fun(*impl_, &PreviewLoader::Impl::processNextJob));
     }
 }

@@ -21,7 +21,7 @@
 
 #include "procparams.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 /** This structure holds the global parameters used by the RT engine. */
 class Settings {
@@ -109,4 +109,4 @@ public:
     int imgio_raw_cache_size;
 };
 
-} // namespace rtengine
+}} // namespace art::engine

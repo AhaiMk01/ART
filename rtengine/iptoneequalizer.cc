@@ -47,7 +47,7 @@
 // #define BENCHMARK
 #include "StopWatch.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace {
 
@@ -117,7 +117,7 @@ void tone_eq(array2D<float> &R, array2D<float> &G, array2D<float> &B,
     int radius = float(detail) / scale + 0.5f;
     float epsilon = 0.01f + 0.002f * max(detail - 3, 0);
     if (radius > 0) {
-        rtengine::guidedFilterLog(10.f, Y, radius, epsilon, multithread);
+        art::engine::guidedFilterLog(10.f, Y, radius, epsilon, multithread);
     }
 
     if (pp.regularization > 1) {
@@ -139,11 +139,11 @@ void tone_eq(array2D<float> &R, array2D<float> &G, array2D<float> &B,
         }
         radius = 350.f / scale;
         epsilon = base_epsilon;
-        rtengine::guidedFilter(Y2, Y, Y, radius, epsilon, multithread);
+        art::engine::guidedFilter(Y2, Y, Y, radius, epsilon, multithread);
 
         int reg = 5 - std::min(pp.regularization, 4);
         if (reg > 1) {
-            rtengine::guidedFilter(Y2, Y, Y, radius * (reg - 1), epsilon / 100,
+            art::engine::guidedFilter(Y2, Y, Y, radius * (reg - 1), epsilon / 100,
                                    multithread);
         }
     }
@@ -354,4 +354,4 @@ bool ImProcFunctions::toneEqualizer(Imagefloat *rgb)
     return show_color_map;
 }
 
-} // namespace rtengine
+}} // namespace art::engine

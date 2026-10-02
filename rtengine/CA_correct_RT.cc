@@ -31,6 +31,9 @@
 #include "rtengine.h"
 #include "settings.h"
 
+namespace art { namespace engine {
+
+
 namespace {
 unsigned fc(const unsigned int cfa[2][2], int r, int c)
 {
@@ -118,11 +121,11 @@ bool LinEqSolve(int nDim, double *pfMatr, double *pfVect, double *pfSolution)
 // end of linear equation solver
 } // namespace
 
-namespace rtengine {
-extern const Settings *settings;
-}
 
-using namespace rtengine;
+extern const Settings *settings;
+
+
+using namespace art::engine;
 
 float *RawImageSource::CA_correct_RT(bool autoCA, size_t autoIterations,
                                      double cared, double cablue,
@@ -2007,7 +2010,7 @@ float *RawImageSource::CA_correct_RT(bool autoCA, size_t autoIterations,
                             (rawData[i + cb][j + cb] <= 1.f ||
                              (*oldraw)[i][j / 2] <= 1.f)
                                 ? 1.f
-                                : rtengine::LIM((*oldraw)[i][j / 2] /
+                                : art::engine::LIM((*oldraw)[i][j / 2] /
                                                     rawData[i + cb][j + cb],
                                                 0.5f, 2.f);
                     }
@@ -2094,3 +2097,6 @@ float *RawImageSource::CA_correct_RT(bool autoCA, size_t autoIterations,
     }
     return buffer;
 }
+
+
+} } // namespace art::engine

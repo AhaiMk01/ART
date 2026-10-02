@@ -295,10 +295,10 @@ FileSelectionListener::Result FilePanel::fileSelected(Thumbnail *thm)
     }
     pendingLoadMutex.unlock();
 
-    ProgressConnector<rtengine::InitialImage *> *ld =
-        new ProgressConnector<rtengine::InitialImage *>();
+    ProgressConnector<art::engine::InitialImage *> *ld =
+        new ProgressConnector<art::engine::InitialImage *>();
     ld->startFunc(
-        sigc::bind(sigc::ptr_fun(&rtengine::InitialImage::load),
+        sigc::bind(sigc::ptr_fun(&art::engine::InitialImage::load),
                    thm->getFileName(), thm->getType() == FT_Raw, &error,
                    parent->getProgressListener()),
         sigc::bind(sigc::mem_fun(*this, &FilePanel::imageLoaded), thm, ld));
@@ -315,7 +315,7 @@ bool FilePanel::addBatchQueueJobs(const std::vector<BatchQueueEntry *> &entries)
 }
 
 bool FilePanel::imageLoaded(Thumbnail *thm,
-                            ProgressConnector<rtengine::InitialImage *> *pc)
+                            ProgressConnector<art::engine::InitialImage *> *pc)
 {
 
     pendingLoadMutex.lock();

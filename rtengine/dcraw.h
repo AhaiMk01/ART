@@ -17,11 +17,13 @@
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DCRAW_H
-#define DCRAW_H
+#pragma once
 
 #include "myfile.h"
 #include <csetjmp>
+
+namespace art { namespace engine {
+
 
 class DCraw {
 public:
@@ -684,4 +686,5 @@ protected:
     //-----------------------------------------------------------------------------
 };
 
-#endif // DCRAW_H
+
+} } // namespace art::engine

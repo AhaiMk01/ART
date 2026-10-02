@@ -125,14 +125,14 @@ void ImageArea::on_resized(Gtk::Allocation &req)
     }
 }
 
-std::shared_ptr<rtengine::StagedImageProcessor>
+std::shared_ptr<art::engine::StagedImageProcessor>
 ImageArea::getImProcCoordinator() const
 {
     return ipc;
 }
 
 void ImageArea::setImProcCoordinator(
-    std::shared_ptr<rtengine::StagedImageProcessor> ipc_)
+    std::shared_ptr<art::engine::StagedImageProcessor> ipc_)
 {
     if (!ipc_) {
         focusGrabber = nullptr;
@@ -275,11 +275,11 @@ bool ImageArea::on_motion_notify_event(GdkEventMotion *event)
 
     auto device =
         gdk_event_get_source_device(reinterpret_cast<GdkEvent *>(event));
-    double pressure = rtengine::RT_NAN;
+    double pressure = art::engine::RT_NAN;
     if (device && event->axes) {
         if (!gdk_device_get_axis(device, event->axes, GDK_AXIS_PRESSURE,
                                  &pressure)) {
-            pressure = rtengine::RT_NAN;
+            pressure = art::engine::RT_NAN;
         }
     }
 
@@ -316,11 +316,11 @@ bool ImageArea::on_button_press_event(GdkEventButton *event)
 
     auto device =
         gdk_event_get_source_device(reinterpret_cast<GdkEvent *>(event));
-    double pressure = rtengine::RT_NAN;
+    double pressure = art::engine::RT_NAN;
     if (device && event->axes) {
         if (!gdk_device_get_axis(device, event->axes, GDK_AXIS_PRESSURE,
                                  &pressure)) {
-            pressure = rtengine::RT_NAN;
+            pressure = art::engine::RT_NAN;
         }
     }
 
@@ -575,7 +575,7 @@ void ImageArea::addCropWindow()
     mainCropWindow->setObservedCropWin(cropWins.front());
 
     if (!ipc->getHighQualComputed()) {
-        ipc->startProcessing(rtengine::M_HIGHQUAL);
+        ipc->startProcessing(art::engine::M_HIGHQUAL);
         ipc->setHighQualComputed();
     }
 }

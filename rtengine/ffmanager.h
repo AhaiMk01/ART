@@ -23,7 +23,7 @@
 #include <map>
 #include <string>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class ffInfo {
 public:
@@ -101,4 +101,4 @@ protected:
 
 extern FFManager ffm;
 
-} // namespace rtengine
+}} // namespace art::engine

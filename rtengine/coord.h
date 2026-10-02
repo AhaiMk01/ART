@@ -20,7 +20,7 @@
 
 #pragma once
 
-namespace rtengine {
+namespace art { namespace engine {
 
 struct Coord;
 struct CoordD;
@@ -402,4 +402,4 @@ inline const PolarCoord operator*(const double lhs, const PolarCoord &rhs)
     return PolarCoord(rhs) *= lhs;
 }
 
-} // namespace rtengine
+}} // namespace art::engine

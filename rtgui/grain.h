@@ -29,10 +29,10 @@ class FilmGrain: public ToolParamBlock,
 public:
     FilmGrain();
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
     void adjusterChanged(Adjuster *a, double newval) override;
     void enabledChanged() override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override {}
@@ -45,10 +45,10 @@ private:
     Adjuster *iso;
     Adjuster *strength;
 
-    rtengine::ProcEvent EvEnabled;
-    rtengine::ProcEvent EvISO;
-    rtengine::ProcEvent EvStrength;
-    rtengine::ProcEvent EvColor;
+    art::engine::ProcEvent EvEnabled;
+    art::engine::ProcEvent EvISO;
+    art::engine::ProcEvent EvStrength;
+    art::engine::ProcEvent EvColor;
 
-    rtengine::procparams::GrainParams initial_params;
+    art::engine::procparams::GrainParams initial_params;
 };

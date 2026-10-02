@@ -29,8 +29,8 @@
 class Clipboard {
 private:
     bool _hasIPTC;
-    rtengine::procparams::IPTCPairs iptc;
-    std::unique_ptr<rtengine::procparams::ProcParams> pparams;
+    art::engine::procparams::IPTCPairs iptc;
+    std::unique_ptr<art::engine::procparams::ProcParams> pparams;
     ParamsEdited pedited;
     bool has_pparams_;
     bool has_pedited_;
@@ -38,34 +38,34 @@ private:
     FlatCurveType hasFlatCurveDataType;
     std::vector<double> diagonalCurve;
     std::vector<double> flatCurve;
-    rtengine::procparams::AreaMask areaMask;
-    rtengine::procparams::DrawnMask drawnMask;
-    rtengine::procparams::Mask mask;
+    art::engine::procparams::AreaMask areaMask;
+    art::engine::procparams::DrawnMask drawnMask;
+    art::engine::procparams::Mask mask;
 
 public:
-    void setIPTC(const rtengine::procparams::IPTCPairs &iptcc)
+    void setIPTC(const art::engine::procparams::IPTCPairs &iptcc)
     {
         iptc = iptcc;
         _hasIPTC = true;
     }
 
-    const rtengine::procparams::IPTCPairs &getIPTC() { return iptc; }
+    const art::engine::procparams::IPTCPairs &getIPTC() { return iptc; }
 
     bool hasIPTC() { return _hasIPTC; }
 
-    void setProcParams(const rtengine::procparams::ProcParams &pp)
+    void setProcParams(const art::engine::procparams::ProcParams &pp)
     {
         if (!pparams) {
-            pparams.reset(new rtengine::procparams::ProcParams());
+            pparams.reset(new art::engine::procparams::ProcParams());
         }
         *pparams = pp;
         has_pparams_ = true;
     }
 
-    const rtengine::procparams::ProcParams &getProcParams()
+    const art::engine::procparams::ProcParams &getProcParams()
     {
         if (!pparams) {
-            pparams.reset(new rtengine::procparams::ProcParams());
+            pparams.reset(new art::engine::procparams::ProcParams());
         }
         return *pparams;
     }
@@ -111,25 +111,25 @@ public:
 
     bool hasDrawnMask() { return !drawnMask.isTrivial(); }
 
-    const rtengine::procparams::AreaMask &getAreaMask() { return areaMask; }
+    const art::engine::procparams::AreaMask &getAreaMask() { return areaMask; }
 
-    const rtengine::procparams::DrawnMask &getDrawnMask() { return drawnMask; }
+    const art::engine::procparams::DrawnMask &getDrawnMask() { return drawnMask; }
 
-    void setAreaMask(const rtengine::procparams::AreaMask &am)
+    void setAreaMask(const art::engine::procparams::AreaMask &am)
     {
         areaMask = am;
     }
 
-    void setDrawnMask(const rtengine::procparams::DrawnMask &dm)
+    void setDrawnMask(const art::engine::procparams::DrawnMask &dm)
     {
         drawnMask = dm;
     }
 
-    bool hasMask() const { return mask != rtengine::procparams::Mask(); }
+    bool hasMask() const { return mask != art::engine::procparams::Mask(); }
 
-    const rtengine::procparams::Mask &getMask() { return mask; }
+    const art::engine::procparams::Mask &getMask() { return mask; }
 
-    void setMask(const rtengine::procparams::Mask &m) { mask = m; }
+    void setMask(const art::engine::procparams::Mask &m) { mask = m; }
 
     Clipboard();
     ~Clipboard();

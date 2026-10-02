@@ -32,7 +32,7 @@
 // #include "StopWatch.h"
 #include <iostream>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -711,4 +711,4 @@ void RawImageSource::getAutoMatchedToneCurve(const ColorManagementParams &cp,
     histMatchingParams = cp;
 }
 
-} // namespace rtengine
+}} // namespace art::engine

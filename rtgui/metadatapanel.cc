@@ -22,15 +22,15 @@
 #include "../rtengine/procparams.h"
 #include "eventmapper.h"
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 MetaDataPanel::MetaDataPanel()
 {
     EvMetaDataMode = ProcEventMapper::getInstance()->newEvent(
-        rtengine::M_VOID, "HISTORY_MSG_METADATA_MODE");
+        art::engine::M_VOID, "HISTORY_MSG_METADATA_MODE");
     EvNotes = ProcEventMapper::getInstance()->newEvent(
-        rtengine::M_VOID, "HISTORY_MSG_METADATA_NOTES");
+        art::engine::M_VOID, "HISTORY_MSG_METADATA_NOTES");
 
     Gtk::HBox *box = Gtk::manage(new Gtk::HBox());
     box->pack_start(*Gtk::manage(new Gtk::Label(M("TP_METADATA_MODE") + ": ")),
@@ -83,7 +83,7 @@ MetaDataPanel::~MetaDataPanel()
     delete exifpanel;
 }
 
-void MetaDataPanel::read(const rtengine::procparams::ProcParams *pp)
+void MetaDataPanel::read(const art::engine::procparams::ProcParams *pp)
 {
     disableListener();
     metadataMode->set_active(int(pp->metadata.mode));
@@ -95,7 +95,7 @@ void MetaDataPanel::read(const rtengine::procparams::ProcParams *pp)
     enableListener();
 }
 
-void MetaDataPanel::write(rtengine::procparams::ProcParams *pp)
+void MetaDataPanel::write(art::engine::procparams::ProcParams *pp)
 {
     pp->metadata.mode = static_cast<MetaDataParams::Mode>(
         min(metadataMode->get_active_row_number(), 2));
@@ -106,13 +106,13 @@ void MetaDataPanel::write(rtengine::procparams::ProcParams *pp)
 }
 
 void MetaDataPanel::setDefaults(
-    const rtengine::procparams::ProcParams *defParams)
+    const art::engine::procparams::ProcParams *defParams)
 {
     exifpanel->setDefaults(defParams);
     iptcpanel->setDefaults(defParams);
 }
 
-void MetaDataPanel::setImageData(const rtengine::FramesMetaData *id)
+void MetaDataPanel::setImageData(const art::engine::FramesMetaData *id)
 {
     exifpanel->setImageData(id);
     iptcpanel->setImageData(id);
@@ -132,7 +132,7 @@ void MetaDataPanel::metaDataModeChanged()
     }
 }
 
-void MetaDataPanel::setProgressListener(rtengine::ProgressListener *pl)
+void MetaDataPanel::setProgressListener(art::engine::ProgressListener *pl)
 {
     exifpanel->setProgressListener(pl);
 }

@@ -26,7 +26,7 @@
 #include "rt_math.h"
 #include "sleef.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 // LSMME demosaicing algorithm
 // L. Zhang and X. Wu,
@@ -946,4 +946,4 @@ void RawImageSource::refinement(int PassCount)
 #undef CLIPV
 #endif
 
-} // namespace rtengine
+}} // namespace art::engine

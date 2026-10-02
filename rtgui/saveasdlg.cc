@@ -84,7 +84,7 @@ SaveAsDialog::SaveAsDialog(const Glib::ustring &initialDir, Gtk::Window *parent)
     filters_["tif"] = filter_tif;
     filters_["png"] = filter_png;
 
-    for (auto &p : rtengine::ImageIOManager::getInstance()->getSaveFormats()) {
+    for (auto &p : art::engine::ImageIOManager::getInstance()->getSaveFormats()) {
         auto f = Gtk::FileFilter::create();
         f->set_name(p.second.label);
         Glib::ustring e = p.second.extension;
@@ -281,13 +281,13 @@ namespace {
 bool has_good_extension(const Glib::ustring &fmt, const Glib::ustring &fname)
 {
     if (fmt == "jpg") {
-        return rtengine::hasJpegExtension(fname);
+        return art::engine::hasJpegExtension(fname);
     } else if (fmt == "tif") {
-        return rtengine::hasTiffExtension(fname);
+        return art::engine::hasTiffExtension(fname);
     } else if (fmt == "png") {
-        return rtengine::hasPngExtension(fname);
+        return art::engine::hasPngExtension(fname);
     } else {
-        return rtengine::getFileExtension(fname).lowercase() == fmt;
+        return art::engine::getFileExtension(fname).lowercase() == fmt;
     }
 }
 
@@ -368,17 +368,17 @@ void SaveAsDialog::fixExtension(const Glib::ustring &name)
     if (format == "jpg") {
         fchooser->set_filter(filters_["jpg"]);
         sanitize_suffix([](const Glib::ustring &filename) {
-            return rtengine::hasJpegExtension(filename);
+            return art::engine::hasJpegExtension(filename);
         });
     } else if (format.find("png") == 0) {
         fchooser->set_filter(filters_["png"]);
         sanitize_suffix([](const Glib::ustring &filename) {
-            return rtengine::hasPngExtension(filename);
+            return art::engine::hasPngExtension(filename);
         });
     } else if (format.find("tif") == 0) {
         fchooser->set_filter(filters_["tif"]);
         sanitize_suffix([](const Glib::ustring &filename) {
-            return rtengine::hasTiffExtension(filename);
+            return art::engine::hasTiffExtension(filename);
         });
     } else {
         auto it = filters_.find(format);
@@ -386,7 +386,7 @@ void SaveAsDialog::fixExtension(const Glib::ustring &name)
             fchooser->set_filter(it->second);
         }
         sanitize_suffix([=](const Glib::ustring &filename) {
-            return rtengine::getFileExtension(filename).lowercase() == ext;
+            return art::engine::getFileExtension(filename).lowercase() == ext;
         });
     }
 }
@@ -424,12 +424,12 @@ bool SaveAsDialog::keyPressed(GdkEventKey *event)
     return false;
 }
 
-const rtengine::procparams::PartialProfile *SaveAsDialog::getExportProfile()
+const art::engine::procparams::PartialProfile *SaveAsDialog::getExportProfile()
 {
     if (apply_export_profile_->get_active()) {
         auto entry = profiles_cb_->getSelectedEntry();
         if (entry) {
-            return ProfileStore::getInstance()->getProfile(entry);
+            return art::engine::ProfileStore::getInstance()->getProfile(entry);
         }
     }
     return nullptr;

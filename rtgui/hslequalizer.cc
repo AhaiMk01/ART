@@ -22,8 +22,8 @@
 #include "../rtengine/iccmatrices.h"
 #include "eventmapper.h"
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -50,8 +50,8 @@ HSLEqualizer::HSLEqualizer()
 {
     auto m = ProcEventMapper::getInstance();
     EvHSLSmoothing =
-        m->newEvent(rtengine::RGBCURVE, "HISTORY_MSG_HSL_SMOOTHING");
-    EvToolReset.set_action(rtengine::RGBCURVE);
+        m->newEvent(art::engine::RGBCURVE, "HISTORY_MSG_HSL_SMOOTHING");
+    EvToolReset.set_action(art::engine::RGBCURVE);
 
     std::vector<GradientMilestone> bottomMilestones;
     for (int i = 0; i < 7; i++) {

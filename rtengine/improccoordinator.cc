@@ -36,15 +36,15 @@
 #include <omp.h>
 #endif
 
-namespace rtengine {
+namespace art { namespace engine {
 
-using rtengine::procparams::WBParams;
+using art::engine::procparams::WBParams;
 
 namespace {
 
 constexpr int VECTORSCOPE_SIZE = 128;
 
-using rtengine::Coord2D;
+using art::engine::Coord2D;
 
 } // namespace
 
@@ -1233,7 +1233,7 @@ void ImProcCoordinator::getCamWB(ColorTemp &out)
     if (imgsrc) {
         out = imgsrc->getWB();
     } else {
-        out = rtengine::ColorTemp();
+        out = art::engine::ColorTemp();
     }
 }
 
@@ -1502,8 +1502,8 @@ void ImProcCoordinator::startProcessing()
             set_updater_running(true);
             // updaterThreadStart.unlock();
 
-            rtengine::ThreadPool::add_task(
-                rtengine::ThreadPool::Priority::HIGHEST,
+            art::engine::ThreadPool::add_task(
+                art::engine::ThreadPool::Priority::HIGHEST,
                 sigc::mem_fun(*this, &ImProcCoordinator::process));
         }
     }
@@ -1802,4 +1802,4 @@ bool ImProcCoordinator::is_mask_image() const
     return false;
 }
 
-} // namespace rtengine
+}} // namespace art::engine

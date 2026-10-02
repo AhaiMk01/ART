@@ -106,11 +106,11 @@ void LockableColorPicker::updateBackBuffer()
         layout[0][1]->get_pixel_size(w01, h01);
         layout[1][1]->get_pixel_size(w11, h11);
         layout[2][1]->get_pixel_size(w21, h21);
-        int maxWCol0 = rtengine::max(w00, w10, w20);
-        int maxWCol1 = rtengine::max(w01, w11, w21);
-        int maxHRow0 = rtengine::max(h00, h01);
-        int maxHRow1 = rtengine::max(h10, h11);
-        int maxHRow2 = rtengine::max(h20, h21);
+        int maxWCol0 = art::engine::max(w00, w10, w20);
+        int maxWCol1 = art::engine::max(w01, w11, w21);
+        int maxHRow0 = art::engine::max(h00, h01);
+        int maxHRow1 = art::engine::max(h10, h11);
+        int maxHRow2 = art::engine::max(h20, h21);
 
         // -------------------- setting some key constants ---------------------
         constexpr int textPadding = 3;
@@ -118,7 +118,7 @@ void LockableColorPicker::updateBackBuffer()
         const int textHeight = maxHRow0 + maxHRow1 + maxHRow2 + 2 * textPadding;
         // ---------------------------------------------------------------------
 
-        newW = rtengine::max<int>((int)size + 2 * circlePadding,
+        newW = art::engine::max<int>((int)size + 2 * circlePadding,
                                   textWidth + 2 * textPadding);
         newH = (int)size + 2 * circlePadding + textHeight + 2 * textPadding;
 
@@ -142,18 +142,18 @@ void LockableColorPicker::updateBackBuffer()
         // black background of the whole color picker
         bbcr->set_line_width(0.);
         bbcr->set_source_rgba(0., 0., 0., opacity);
-        bbcr->arc_negative(center, center, center, 0., (double)rtengine::RT_PI);
+        bbcr->arc_negative(center, center, center, 0., (double)art::engine::RT_PI);
         bbcr->line_to(0, 2. * center + textHeight);
         bbcr->arc_negative(2. * textPadding, 2. * center + textHeight,
-                           2. * textPadding, (double)rtengine::RT_PI,
-                           (double)rtengine::RT_PI / 2.);
+                           2. * textPadding, (double)art::engine::RT_PI,
+                           (double)art::engine::RT_PI / 2.);
         bbcr->line_to(textWidth, 2. * center + textHeight + 2. * textPadding);
         bbcr->arc_negative(textWidth, 2. * center + textHeight,
-                           2. * textPadding, (double)rtengine::RT_PI / 2., 0.);
+                           2. * textPadding, (double)art::engine::RT_PI / 2., 0.);
         bbcr->line_to(textWidth + 2. * textPadding,
                       2. * center + 2. * textPadding);
         bbcr->arc_negative(textWidth, 2. * center + 2. * textPadding,
-                           2. * textPadding, 0., (double)rtengine::RT_PI * 1.5);
+                           2. * textPadding, 0., (double)art::engine::RT_PI * 1.5);
         bbcr->line_to(2. * center, 2. * center);
         bbcr->close_path();
         bbcr->set_line_join(Cairo::LINE_JOIN_BEVEL);
@@ -162,14 +162,14 @@ void LockableColorPicker::updateBackBuffer()
 
         // light grey circle around the color mark
         bbcr->arc(center, center, center - circlePadding / 2., 0.,
-                  2. * (double)rtengine::RT_PI);
+                  2. * (double)art::engine::RT_PI);
         bbcr->set_source_rgb(0.75, 0.75, 0.75);
         bbcr->set_line_width(circlePadding - 2.);
         bbcr->stroke();
 
         // spot disc with picked color
         bbcr->arc(center, center, center - circlePadding, 0.,
-                  2. * (double)rtengine::RT_PI);
+                  2. * (double)art::engine::RT_PI);
         bbcr->set_source_rgb(rpreview, gpreview,
                              bpreview); // <- set the picker color here
         bbcr->set_line_width(0.);
@@ -258,7 +258,7 @@ void LockableColorPicker::updateBackBuffer()
 
         // light grey circle around the color mark
         bbcr->arc(center, center, center - circlePadding / 2., 0.,
-                  2. * (double)rtengine::RT_PI);
+                  2. * (double)art::engine::RT_PI);
         bbcr->set_source_rgba(0., 0., 0., opacity);
         bbcr->set_line_width(circlePadding);
         bbcr->stroke_preserve();
@@ -288,7 +288,7 @@ void LockableColorPicker::draw(Cairo::RefPtr<Cairo::Context> &cr)
     copySurface(cr);
 }
 
-void LockableColorPicker::setPosition(const rtengine::Coord &newPos)
+void LockableColorPicker::setPosition(const art::engine::Coord &newPos)
 {
     // we're not checking bounds here, this will be done at rendering time
     position = newPos;
@@ -310,21 +310,21 @@ void LockableColorPicker::setRGB(const float R, const float G, const float B,
     gpreview = previewG;
     bpreview = previewB;
 
-    rtengine::Color::rgb2lab01(*outputProfile, *workingProfile, r, g, b, L, a,
+    art::engine::Color::rgb2lab01(*outputProfile, *workingProfile, r, g, b, L, a,
                                bb, options.rtSettings.HistogramWorking);
-    rtengine::Color::lab2lch01(L, a, bb, l, c, h);
+    art::engine::Color::lab2lch01(L, a, bb, l, c, h);
 
     if (validity != Validity::OUTSIDE) {
         setDirty(true);
     }
 }
 
-void LockableColorPicker::getImagePosition(rtengine::Coord &imgPos)
+void LockableColorPicker::getImagePosition(art::engine::Coord &imgPos)
 {
     imgPos = position;
 }
 
-void LockableColorPicker::getScreenPosition(rtengine::Coord &screenPos)
+void LockableColorPicker::getScreenPosition(art::engine::Coord &screenPos)
 {
     if (cropWindow) {
         cropWindow->imageCoordToScreen(position.x, position.y, screenPos.x,
@@ -337,14 +337,14 @@ bool LockableColorPicker::isOver(int x, int y)
     if (!cropWindow) {
         return false;
     }
-    rtengine::Coord pickerScreenPos;
+    art::engine::Coord pickerScreenPos;
     cropWindow->imageCoordToScreen(position.x, position.y, pickerScreenPos.x,
                                    pickerScreenPos.y);
 
-    rtengine::Coord mousePos(x, y);
-    rtengine::Coord wh(getWidth(), getHeight());
-    rtengine::Coord tl(pickerScreenPos - anchorOffset);
-    rtengine::Coord br(tl + wh);
+    art::engine::Coord mousePos(x, y);
+    art::engine::Coord wh(getWidth(), getHeight());
+    art::engine::Coord tl(pickerScreenPos - anchorOffset);
+    art::engine::Coord br(tl + wh);
     return mousePos >= tl && mousePos <= br;
 }
 
@@ -370,7 +370,7 @@ void LockableColorPicker::rollDisplayedValues()
 {
     if (displayedValues < ColorPickerType::LAB) {
         displayedValues =
-            (ColorPickerType)(rtengine::toUnderlying(displayedValues) + 1);
+            (ColorPickerType)(art::engine::toUnderlying(displayedValues) + 1);
     } else {
         displayedValues = ColorPickerType::RGB;
     }
@@ -380,7 +380,7 @@ void LockableColorPicker::rollDisplayedValues()
 bool LockableColorPicker::incSize()
 {
     if (size < Size::S30) {
-        size = (Size)(rtengine::toUnderlying(size) + 5);
+        size = (Size)(art::engine::toUnderlying(size) + 5);
         setDirty(true);
         return true;
     }
@@ -390,7 +390,7 @@ bool LockableColorPicker::incSize()
 bool LockableColorPicker::decSize()
 {
     if (size > Size::S5) {
-        size = (Size)(rtengine::toUnderlying(size) - 5);
+        size = (Size)(art::engine::toUnderlying(size) - 5);
         setDirty(true);
         return true;
     }

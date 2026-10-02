@@ -29,7 +29,7 @@
 #include "procevents.h"
 #include "rtengine.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 using namespace procparams;
 
@@ -111,4 +111,4 @@ public:
     int getLeftBorder();
     int getUpperBorder();
 };
-} // namespace rtengine
+}} // namespace art::engine

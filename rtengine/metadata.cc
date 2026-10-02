@@ -35,7 +35,7 @@
 #include "settings.h"
 #include "subprocess.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -1022,7 +1022,7 @@ Exiv2::ExifData Exiv2Metadata::getOutputExifData() const
 }
 
 void Exiv2Metadata::setOutputRating(
-    const rtengine::procparams::ProcParams &pparams, bool from_xmp_sidecar)
+    const art::engine::procparams::ProcParams &pparams, bool from_xmp_sidecar)
 {
     if (from_xmp_sidecar) {
         auto xmp = getXmpSidecar(src_);
@@ -1044,4 +1044,4 @@ long exiv2_to_long(const Exiv2::Metadatum &d)
 #endif
 }
 
-} // namespace rtengine
+}} // namespace art::engine

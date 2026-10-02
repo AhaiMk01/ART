@@ -19,6 +19,9 @@
 #include "dcraw.h"
 #include <iostream>
 
+namespace art { namespace engine {
+
+
 #if defined __GNUC__ && !defined __clang__ // silence warning
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"
@@ -3307,3 +3310,6 @@ int DCraw::crxParseImageHeader(uchar *cmp1TagData, int nTrack)
 #if defined __GNUC__ && !defined __clang__ // silence warning
 #pragma GCC diagnostic pop
 #endif
+
+
+} } // namespace art::engine

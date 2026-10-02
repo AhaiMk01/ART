@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _BATCHQUEUEENTRY_
-#define _BATCHQUEUEENTRY_
+#pragma once
 
 #include "../rtengine/rtengine.h"
 #include "bqentryupdater.h"
@@ -45,8 +44,8 @@ public:
     static std::shared_ptr<RTSurface> savedAsIcon;
     static std::shared_ptr<RTSurface> fastExportIcon;
 
-    rtengine::ProcessingJob *job;
-    rtengine::procparams::ProcParams params;
+    art::engine::ProcessingJob *job;
+    art::engine::procparams::ProcParams params;
     Glib::ustring savedParamsFile;
     double progress;
     Glib::ustring outFileName;
@@ -56,8 +55,8 @@ public:
     bool fast_pipeline;
     bool use_batch_profile;
 
-    BatchQueueEntry(rtengine::ProcessingJob *job,
-                    const rtengine::procparams::ProcParams &pparams,
+    BatchQueueEntry(art::engine::ProcessingJob *job,
+                    const art::engine::procparams::ProcParams &pparams,
                     Glib::ustring fname, int prevw, int prevh,
                     Thumbnail *thm = nullptr);
     ~BatchQueueEntry() override;
@@ -81,5 +80,3 @@ public:
                      guint8 *newOPreview) override;
     void _updateImage(guint8 *img, int w, int h); // inside gtk thread
 };
-
-#endif

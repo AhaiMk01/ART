@@ -15,8 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef ART_GPU_VK_CONTEXT_H
-#define ART_GPU_VK_CONTEXT_H
+#pragma once
 
 #include "gpu.h"
 #include "vk_api.h"
@@ -27,7 +26,7 @@
 #include <memory>
 #include <vector>
 
-namespace rtengine {
+namespace art { namespace engine {
 namespace gpu {
 
 /* Everything downstream code may branch on; populated once at device
@@ -316,6 +315,4 @@ bool copyBufferToBuffer(Context &ctx, const Buffer &src, size_t src_offset,
                         Buffer &dst, size_t dst_offset, size_t bytes);
 
 } // namespace gpu
-} // namespace rtengine
-
-#endif // ART_GPU_VK_CONTEXT_H
+}} // namespace art::engine

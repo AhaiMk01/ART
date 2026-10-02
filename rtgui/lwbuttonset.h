@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _LWBUTTONSET_
-#define _LWBUTTONSET_
+#pragma once
 
 #include "lwbutton.h"
 #include <gtkmm.h>
@@ -50,5 +49,3 @@ public:
     void setButtonListener(LWButtonListener *bl);
     void redraw(Cairo::RefPtr<Cairo::Context> context);
 };
-
-#endif

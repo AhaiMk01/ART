@@ -31,7 +31,7 @@
 #include "rawimagesource.h"
 #include "rt_math.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 void RawImageSource::green_equilibrate_global(array2D<float> &rawData)
 {
@@ -283,4 +283,4 @@ void RawImageSource::green_equilibrate(const GreenEqulibrateThreshold &thresh,
         }
     }
 }
-} // namespace rtengine
+}} // namespace art::engine

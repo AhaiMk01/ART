@@ -55,9 +55,9 @@
 #include "../rtgui/threadutils.h"
 #include "settings.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 extern const Settings *settings;
-}
+}}
 
 #define _(msg) (msg)
 #define dt_control_log(msg)                                                    \
@@ -66,7 +66,7 @@ extern const Settings *settings;
         fflush(stdout);                                                        \
     }
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace {
 
@@ -485,4 +485,4 @@ void PerspectiveCorrection::autocrop(
     h = (p.cb - p.ct) * ch;
 }
 
-} // namespace rtengine
+}} // namespace art::engine

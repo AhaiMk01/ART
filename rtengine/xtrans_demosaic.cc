@@ -29,7 +29,7 @@
 #include "rt_math.h"
 #include "rtengine.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 const float xyz_rgb[3][3] = { // XYZ from RGB
     {0.412453, 0.357580, 0.180423},
     {0.212671, 0.715160, 0.072169},
@@ -1344,4 +1344,4 @@ void RawImageSource::fast_xtrans_interpolate_blend(
 #undef fcol
 #undef isgreen
 
-} // namespace rtengine
+}} // namespace art::engine

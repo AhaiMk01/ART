@@ -34,7 +34,7 @@ ART_VK_INSTANCE_FUNCS(ART_VK_DEFINE)
 ART_VK_DEVICE_FUNCS(ART_VK_DEFINE)
 #undef ART_VK_DEFINE
 
-namespace rtengine {
+namespace art { namespace engine {
 namespace gpu {
 
 namespace {
@@ -205,4 +205,4 @@ const char *vkResultName(VkResult r)
 }
 
 } // namespace gpu
-} // namespace rtengine
+}} // namespace art::engine

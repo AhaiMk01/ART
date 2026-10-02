@@ -38,8 +38,8 @@ struct WBPreset {
 class WBProvider {
 public:
     virtual ~WBProvider() {}
-    virtual void getAutoWB(rtengine::ColorTemp &out, double equal) {}
-    virtual void getCamWB(rtengine::ColorTemp &out) {}
+    virtual void getAutoWB(art::engine::ColorTemp &out, double equal) {}
+    virtual void getCamWB(art::engine::ColorTemp &out) {}
     virtual void spotWBRequested(int size) {}
 
     virtual std::vector<WBPreset> getWBPresets() const

@@ -23,16 +23,16 @@
 #include "rtimage.h"
 #include <sstream>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 DarkFrame::DarkFrame()
     : FoldableToolPanel(this, "darkframe", M("TP_DARKFRAME_LABEL"), false, true,
                         true),
       dfChanged(false), lastDFauto(false), dfp(nullptr), israw(true)
 {
-    EvToolEnabled.set_action(rtengine::DARKFRAME);
-    EvToolReset.set_action(rtengine::DARKFRAME);
+    EvToolEnabled.set_action(art::engine::DARKFRAME);
+    EvToolReset.set_action(art::engine::DARKFRAME);
 
     hbdf = Gtk::manage(new Gtk::HBox());
     hbdf->set_spacing(4);
@@ -87,7 +87,7 @@ DarkFrame::DarkFrame()
     }
 }
 
-void DarkFrame::read(const rtengine::procparams::ProcParams *pp)
+void DarkFrame::read(const art::engine::procparams::ProcParams *pp)
 {
     disableListener();
     dfautoconn.block(true);
@@ -108,7 +108,7 @@ void DarkFrame::read(const rtengine::procparams::ProcParams *pp)
 
     if (pp->raw.df_autoselect && dfp) {
         // retrieve the auto-selected df filename
-        rtengine::RawImage *img = dfp->getDF();
+        art::engine::RawImage *img = dfp->getDF();
 
         if (img) {
             dfInfo->set_text(Glib::ustring::compose(
@@ -171,7 +171,7 @@ void DarkFrame::read(const rtengine::procparams::ProcParams *pp)
     }
 }
 
-void DarkFrame::write(rtengine::procparams::ProcParams *pp)
+void DarkFrame::write(art::engine::procparams::ProcParams *pp)
 {
     pp->raw.enable_darkframe = getEnabled();
     pp->raw.dark_frame = darkFrameFile->get_filename();
@@ -185,7 +185,7 @@ void DarkFrame::dfAutoChanged()
 {
     if (dfAuto->get_active() && dfp) {
         // retrieve the auto-selected df filename
-        rtengine::RawImage *img = dfp->getDF();
+        art::engine::RawImage *img = dfp->getDF();
 
         if (img) {
             dfInfo->set_text(Glib::ustring::compose(

@@ -29,10 +29,10 @@ protected:
     double draggedPointOldAngle;
     double draggedPointAdjusterAngle;
     double draggedFeatherOffset;
-    rtengine::Coord draggedCenter;
+    art::engine::Coord draggedCenter;
     sigc::connection editConn;
 
-    rtengine::procparams::GradientParams initial_params;
+    art::engine::procparams::GradientParams initial_params;
 
     void editToggled();
 
@@ -40,14 +40,14 @@ public:
     Gradient();
     ~Gradient() override;
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
     void adjusterChanged(Adjuster *a, double newval) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
     void enabledChanged() override;
-    void trimValues(rtengine::procparams::ProcParams *pp) override;
+    void trimValues(art::engine::procparams::ProcParams *pp) override;
     void updateGeometry(const int centerX, const int centerY,
                         const double feather, const double degree,
                         const int fullWidth = -1, const int fullHeight = -1);

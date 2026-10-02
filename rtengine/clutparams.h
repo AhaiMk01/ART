@@ -26,7 +26,7 @@
 #include <string>
 #include <vector>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 enum class CLUTParamType {
     PT_INT,
@@ -71,4 +71,4 @@ private:
     std::map<std::string, CLUTParamValueMap> presets_map_;
 };
 
-} // namespace rtengine
+}} // namespace art::engine

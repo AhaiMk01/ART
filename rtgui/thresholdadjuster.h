@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _THRESHOLDADJUSTER_H_
-#define _THRESHOLDADJUSTER_H_
+#pragma once
 
 #include "editedstate.h"
 #include "guiutils.h"
@@ -117,7 +116,7 @@ public:
     void setBgCurveProvider(ThresholdCurveProvider *provider);
     ThresholdSelector *getThresholdSelector() { return &tSelector; };
 
-    template <typename T> rtengine::procparams::Threshold<T> getValue()
+    template <typename T> art::engine::procparams::Threshold<T> getValue()
     {
         return tSelector.getPositions<T>();
     }
@@ -131,7 +130,7 @@ public:
     void getValue(Glib::ustring &bottomLeft, Glib::ustring &topLeft,
                   Glib::ustring &bottomRight, Glib::ustring &topRight);
     template <class T>
-    void setValue(const rtengine::procparams::Threshold<T> &tValues)
+    void setValue(const art::engine::procparams::Threshold<T> &tValues)
     {
         tSelector.setPositions<T>(tValues);
     }
@@ -140,7 +139,7 @@ public:
                   double topRight);
     void setEnabled(bool enabled);
     template <typename T>
-    void setDefault(const rtengine::procparams::Threshold<T> &tresh)
+    void setDefault(const art::engine::procparams::Threshold<T> &tresh)
     {
         tSelector.setDefaults<T>(tresh);
     }
@@ -178,5 +177,3 @@ public:
     // contain markups
     void set_tooltip_text(const Glib::ustring &text);
 };
-
-#endif

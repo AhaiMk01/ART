@@ -17,12 +17,11 @@
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef RAWIMAGESOURCE_I_H_INCLUDED
-#define RAWIMAGESOURCE_I_H_INCLUDED
+#pragma once
 
 #include "rawimagesource.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 inline void RawImageSource::convert_row_to_YIQ(const float *const r,
                                                const float *const g,
@@ -210,6 +209,4 @@ inline void RawImageSource::interpolate_row_rb_mul_pp(
     }
 }
 
-} // namespace rtengine
-
-#endif
+}} // namespace art::engine

@@ -22,13 +22,12 @@
  * C++11 and Vulkan-free so imagefloat.h can include it; degrades to no-ops
  * when the backend is compiled out.
  */
-#ifndef ART_GPU_RESIDENCY_H
-#define ART_GPU_RESIDENCY_H
+#pragma once
 
 #include <cstddef>
 #include "../noncopyable.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class Imagefloat;
 
@@ -111,6 +110,4 @@ public:
 };
 
 
-} // namespace rtengine
-
-#endif // ART_GPU_RESIDENCY_H
+}} // namespace art::engine

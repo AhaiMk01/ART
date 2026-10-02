@@ -16,10 +16,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _IMAGEFORMAT_
-#define _IMAGEFORMAT_
+#pragma once
 
-namespace rtengine {
+namespace art { namespace engine {
 
 // NB: Update the associated strings in languages files when updating the
 // following enum
@@ -51,6 +50,4 @@ typedef enum SensorType {
     // ST_FUJI_EXR
 } eSensorType;
 
-} // namespace rtengine
-
-#endif
+}} // namespace art::engine

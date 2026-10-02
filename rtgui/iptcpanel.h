@@ -27,12 +27,12 @@ class IPTCPanel: public Gtk::VBox, public ToolPanel {
 public:
     IPTCPanel();
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
 
-    void setImageData(const rtengine::FramesMetaData *id);
+    void setImageData(const art::engine::FramesMetaData *id);
 
     void notifyListener();
 
@@ -50,9 +50,9 @@ private:
     void applyChangeList();
     void updateChangeList();
 
-    rtengine::procparams::IPTCPairs changeList;
-    rtengine::procparams::IPTCPairs defChangeList;
-    rtengine::procparams::IPTCPairs embeddedData;
+    art::engine::procparams::IPTCPairs changeList;
+    art::engine::procparams::IPTCPairs defChangeList;
+    art::engine::procparams::IPTCPairs embeddedData;
     bool changelist_valid_;
 
     Gtk::TextView *captionView;

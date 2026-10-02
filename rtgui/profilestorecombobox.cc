@@ -24,10 +24,10 @@
 #include "options.h"
 #include "toolpanel.h"
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
-ProfileStoreLabel::ProfileStoreLabel(const ProfileStoreEntry *entry)
+ProfileStoreLabel::ProfileStoreLabel(const art::engine::ProfileStoreEntry *entry)
     : Gtk::Label(entry->label), entry(entry)
 {
     set_alignment(0, 0.5);
@@ -47,7 +47,7 @@ Glib::ustring ProfileStoreComboBox::getCurrentLabel()
     Gtk::TreeModel::iterator currRow = get_active();
 
     if (currRow) {
-        const ProfileStoreEntry *currEntry =
+        const art::engine::ProfileStoreEntry *currEntry =
             (*currRow)[methodColumns.profileStoreEntry];
         return currEntry->label;
     }
@@ -55,7 +55,7 @@ Glib::ustring ProfileStoreComboBox::getCurrentLabel()
     return currLabel;
 }
 
-const ProfileStoreEntry *ProfileStoreComboBox::getSelectedEntry()
+const art::engine::ProfileStoreEntry *ProfileStoreComboBox::getSelectedEntry()
 {
     Gtk::TreeModel::iterator currRow_ = get_active();
     Gtk::TreeModel::Row currRow = *currRow_;
@@ -70,14 +70,14 @@ const ProfileStoreEntry *ProfileStoreComboBox::getSelectedEntry()
 /** @brief Recursive method to update the combobox entries */
 void ProfileStoreComboBox::refreshProfileList_(
     Gtk::TreeModel::Row *parentRow, int parentFolderId, bool initial,
-    const std::vector<const ProfileStoreEntry *> *entryList)
+    const std::vector<const art::engine::ProfileStoreEntry *> *entryList)
 {
     for (auto entry : *entryList) {
         if (entry->parentFolderId ==
             parentFolderId) { // filtering the entry of the same folder
-            if (entry->type == PSET_FOLDER) {
+            if (entry->type == art::engine::PSET_FOLDER) {
                 Glib::ustring folderPath(
-                    ProfileStore::getInstance()->getPathFromId(
+                    art::engine::ProfileStore::getInstance()->getPathFromId(
                         entry->folderId));
 
                 if (options.useBundledProfiles ||
@@ -124,11 +124,11 @@ void ProfileStoreComboBox::refreshProfileList_(
         }
     }
 }
-/** @brief Get the ProfileStore's entry list and recreate the combobox entries.
- * If you want to update the ProfileStore list itself (rescan the dir tree), use
+/** @brief Get the art::engine::ProfileStore's entry list and recreate the combobox entries.
+ * If you want to update the art::engine::ProfileStore list itself (rescan the dir tree), use
  * the "ProfileStore::parseProfiles" method instead
  *
- * This method has to be called by the ProfileStoreListener having a
+ * This method has to be called by the art::engine::ProfileStoreListener having a
  * ProfileStoreComboBox.
  */
 void ProfileStoreComboBox::updateProfileList()
@@ -142,8 +142,8 @@ void ProfileStoreComboBox::updateProfileList()
     set_model(refTreeModel);
 
     // this will lock the profilestore's entry list too
-    const std::vector<const ProfileStoreEntry *> *entryList =
-        ProfileStore::getInstance()->getFileList();
+    const std::vector<const art::engine::ProfileStoreEntry *> *entryList =
+        art::engine::ProfileStore::getInstance()->getFileList();
 
     // profileStore.dumpFolderList();
     refreshProfileList_(NULL, entryList->at(0)->parentFolderId, true,
@@ -151,11 +151,11 @@ void ProfileStoreComboBox::updateProfileList()
 
     if (entryList->at(0)->parentFolderId != 0) {
         // special case for the Internal default entry
-        addRow(ProfileStore::getInstance()->getInternalDefaultPSE());
+        addRow(art::engine::ProfileStore::getInstance()->getInternalDefaultPSE());
     }
 
     // releasing the profilestore's entry list mutex
-    ProfileStore::getInstance()->releaseFileList();
+    art::engine::ProfileStore::getInstance()->releaseFileList();
 
     pack_start(methodColumns.label, false);
 
@@ -167,7 +167,7 @@ void ProfileStoreComboBox::updateProfileList()
 
 Gtk::TreeIter
 ProfileStoreComboBox::findRowFromEntry_(Gtk::TreeModel::Children childs,
-                                        const ProfileStoreEntry *pse)
+                                        const art::engine::ProfileStoreEntry *pse)
 {
     Gtk::TreeModel::Row row;
     Gtk::TreeIter rowInSubLevel;
@@ -176,9 +176,9 @@ ProfileStoreComboBox::findRowFromEntry_(Gtk::TreeModel::Children childs,
          iter != childs.end(); ++iter) {
         row = *iter;
         // Hombre: is there a smarter way of knowing if this row has childs?
-        const ProfileStoreEntry *pse_ = row[methodColumns.profileStoreEntry];
+        const art::engine::ProfileStoreEntry *pse_ = row[methodColumns.profileStoreEntry];
 
-        if (pse_->type == PSET_FOLDER) {
+        if (pse_->type == art::engine::PSET_FOLDER) {
             rowInSubLevel = findRowFromEntry_(iter->children(), pse);
 
             if (rowInSubLevel) {
@@ -195,7 +195,7 @@ ProfileStoreComboBox::findRowFromEntry_(Gtk::TreeModel::Children childs,
 }
 
 Gtk::TreeIter
-ProfileStoreComboBox::findRowFromEntry(const ProfileStoreEntry *pse)
+ProfileStoreComboBox::findRowFromEntry(const art::engine::ProfileStoreEntry *pse)
 {
     Gtk::TreeModel::Children childs = refTreeModel->children();
 
@@ -217,9 +217,9 @@ Gtk::TreeIter ProfileStoreComboBox::findRowFromFullPath_(
          iter != childs.end(); ++iter) {
         row = *iter;
         // Hombre: is there a smarter way of knowing if this row has childs?
-        const ProfileStoreEntry *pse = row[methodColumns.profileStoreEntry];
+        const art::engine::ProfileStoreEntry *pse = row[methodColumns.profileStoreEntry];
 
-        if (pse->type == PSET_FOLDER) {
+        if (pse->type == art::engine::PSET_FOLDER) {
             rowInSubLevel =
                 findRowFromFullPath_(iter->children(), parentFolderId, name);
 
@@ -240,7 +240,7 @@ Gtk::TreeIter ProfileStoreComboBox::findRowFromFullPath_(
 Gtk::TreeIter ProfileStoreComboBox::findRowFromFullPath(Glib::ustring path)
 {
     Gtk::TreeIter row;
-    ProfileStore *profileStore = ProfileStore::getInstance();
+    art::engine::ProfileStore *profileStore = art::engine::ProfileStore::getInstance();
 
     if (path.empty()) {
         return row;
@@ -286,7 +286,7 @@ Glib::ustring ProfileStoreComboBox::getFullPathFromActiveRow()
 {
     Glib::ustring path;
     Gtk::TreeModel::iterator currRowI = get_active();
-    ProfileStore *profileStore = ProfileStore::getInstance();
+    art::engine::ProfileStore *profileStore = art::engine::ProfileStore::getInstance();
 
     if (!currRowI) {
         return path;
@@ -296,7 +296,7 @@ Glib::ustring ProfileStoreComboBox::getFullPathFromActiveRow()
 
     if (currRow) {
 
-        const ProfileStoreEntry *currEntry =
+        const art::engine::ProfileStoreEntry *currEntry =
             currRow[methodColumns.profileStoreEntry];
 
         if (!currEntry) {
@@ -333,7 +333,7 @@ bool ProfileStoreComboBox::setActiveRowFromFullPath(Glib::ustring path)
     return false;
 }
 
-bool ProfileStoreComboBox::setActiveRowFromEntry(const ProfileStoreEntry *pse)
+bool ProfileStoreComboBox::setActiveRowFromEntry(const art::engine::ProfileStoreEntry *pse)
 {
     if (pse) {
         Gtk::TreeIter row = findRowFromEntry(pse);
@@ -350,7 +350,7 @@ bool ProfileStoreComboBox::setActiveRowFromEntry(const ProfileStoreEntry *pse)
 bool ProfileStoreComboBox::setInternalEntry()
 {
     return setActiveRowFromEntry(
-        ProfileStore::getInstance()->getInternalDefaultPSE());
+        art::engine::ProfileStore::getInstance()->getInternalDefaultPSE());
 }
 
 /** @brief Get the row from the first level of the tree that match the provided
@@ -366,7 +366,7 @@ Gtk::TreeIter ProfileStoreComboBox::getRowFromLabel(Glib::ustring name)
         for (Gtk::TreeModel::Children::iterator iter = childs.begin();
              iter != childs.end(); ++iter) {
             currRow = *iter;
-            const ProfileStoreEntry *pse =
+            const art::engine::ProfileStoreEntry *pse =
                 currRow[methodColumns.profileStoreEntry];
 
             if (pse->label == name) {
@@ -382,7 +382,7 @@ Gtk::TreeIter ProfileStoreComboBox::getRowFromLabel(Glib::ustring name)
 
 /** @brief Add a new row to the first level of the tree */
 Gtk::TreeIter
-ProfileStoreComboBox::addRow(const ProfileStoreEntry *profileStoreEntry)
+ProfileStoreComboBox::addRow(const art::engine::ProfileStoreEntry *profileStoreEntry)
 {
     Gtk::TreeIter newEntry = refTreeModel->append();
     Gtk::TreeModel::Row row = *newEntry;
@@ -392,7 +392,7 @@ ProfileStoreComboBox::addRow(const ProfileStoreEntry *profileStoreEntry)
 }
 
 /** @brief Delete a row from the first level of the tree */
-void ProfileStoreComboBox::deleteRow(const ProfileStoreEntry *profileStoreEntry)
+void ProfileStoreComboBox::deleteRow(const art::engine::ProfileStoreEntry *profileStoreEntry)
 {
     Gtk::TreeIter entry = findRowFromEntry(profileStoreEntry);
     if (entry) {

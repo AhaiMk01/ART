@@ -29,7 +29,7 @@
 class FFProvider {
 public:
     virtual ~FFProvider() {}
-    virtual rtengine::RawImage *getFF() = 0;
+    virtual art::engine::RawImage *getFF() = 0;
     virtual bool hasEmbeddedFF() = 0;
     virtual Glib::ustring GetCurrentImageFilePath() = 0;
     // add other info here
@@ -38,7 +38,7 @@ public:
 class FlatField: public ToolParamBlock,
                  public AdjusterListener,
                  public FoldableToolPanel,
-                 public rtengine::FlatFieldAutoClipListener {
+                 public art::engine::FlatFieldAutoClipListener {
 
 protected:
     MyFileChooserButton *flatFieldFile;
@@ -64,19 +64,19 @@ protected:
 
     IdleRegister idle_register;
 
-    rtengine::procparams::RAWParams initial_params;
+    art::engine::procparams::RAWParams initial_params;
 
-    rtengine::ProcEvent EvEmbedded;
+    art::engine::ProcEvent EvEmbedded;
 
 public:
     FlatField();
     ~FlatField() override;
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
-    void trimValues(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
+    void trimValues(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
 
     void adjusterChanged(Adjuster *a, double newval) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;

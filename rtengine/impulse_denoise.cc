@@ -26,7 +26,7 @@
 #include "sleef.h"
 #include <cstddef>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace {
 
@@ -193,4 +193,4 @@ void ImProcFunctions::impulsedenoise(Imagefloat *rgb)
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

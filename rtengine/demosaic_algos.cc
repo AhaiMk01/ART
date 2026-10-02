@@ -35,7 +35,7 @@
 #include <omp.h>
 #endif
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const Settings *settings;
 
@@ -2715,4 +2715,4 @@ void RawImageSource::dcb_demosaic(int iterations, bool dcb_enhance)
 #undef TILEBORDER
 #undef TILESIZE
 #undef CACHESIZE
-} // namespace rtengine
+}} // namespace art::engine

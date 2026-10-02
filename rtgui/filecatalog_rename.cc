@@ -36,8 +36,8 @@
 
 namespace {
 
-using rtengine::Exiv2Metadata;
-using rtengine::FramesMetaData;
+using art::engine::Exiv2Metadata;
+using art::engine::FramesMetaData;
 
 class FastMetadata: public FramesMetaData {
 public:
@@ -87,13 +87,13 @@ public:
     bool getHDR() const override { return f()->getHDR(); }
     std::string getImageType() const override { return f()->getImageType(); }
     std::string getSoftware() const override { return f()->getSoftware(); }
-    rtengine::IIOSampleFormat getSampleFormat() const override
+    art::engine::IIOSampleFormat getSampleFormat() const override
     {
         return f()->getSampleFormat();
     }
     int getRating() const override { return f()->getRating(); }
     int getColorLabel() const override { return f()->getColorLabel(); }
-    std::vector<rtengine::GainMap> getGainMaps() const override
+    std::vector<art::engine::GainMap> getGainMaps() const override
     {
         return f()->getGainMaps();
     }

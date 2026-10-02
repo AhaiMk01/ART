@@ -15,8 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef ART_GPU_VK_PASS_H
-#define ART_GPU_VK_PASS_H
+#pragma once
 
 #include "vk_context.h"
 #include "vk_pipeline.h"
@@ -26,7 +25,7 @@
 #include <utility>
 #include <vector>
 
-namespace rtengine {
+namespace art { namespace engine {
 namespace gpu {
 
 // One command buffer, many dispatches, one submission; see
@@ -183,6 +182,4 @@ private:
 };
 
 } // namespace gpu
-} // namespace rtengine
-
-#endif // ART_GPU_VK_PASS_H
+}} // namespace art::engine

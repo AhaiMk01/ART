@@ -16,10 +16,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef __COORD2D__
-#define __COORD2D__
+#pragma once
 
-namespace rtengine {
+namespace art { namespace engine {
 
 class Coord2D {
 
@@ -33,5 +32,4 @@ public:
         y = y_;
     }
 };
-} // namespace rtengine
-#endif
+}} // namespace art::engine

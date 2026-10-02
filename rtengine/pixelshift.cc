@@ -29,7 +29,7 @@
 // #define BENCHMARK
 #include "StopWatch.h"
 
-using namespace rtengine;
+using namespace art::engine;
 
 namespace {
 
@@ -51,7 +51,7 @@ float nonGreenDiffCross(float right, float left, float top, float bottom,
                         float centre, float clippedVal, float stddevFactor,
                         float eperIso, float nreadIso, float prnu)
 {
-    if (rtengine::max(right, left, top, bottom, centre) > clippedVal) {
+    if (art::engine::max(right, left, top, bottom, centre) > clippedVal) {
         return 0.f;
     }
 
@@ -300,7 +300,7 @@ void calcFrameBrightnessFactor(unsigned int frame, uint32_t datalen,
 
         const float weight = (count - datalen / 2.f) / (*histo[i])[median - 1];
         medians[i] =
-            rtengine::intp(weight, (float)(median - 2), (float)(median - 1));
+            art::engine::intp(weight, (float)(median - 2), (float)(median - 1));
     }
 
     for (int i = 0; i < 4; ++i) {

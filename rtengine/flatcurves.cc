@@ -20,7 +20,7 @@
 #include <cmath>
 #include <vector>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 FlatCurve::FlatCurve(const std::vector<double> &p, bool isPeriodic, int poly_pn)
     : kind(FCT_Empty), leftTangent(nullptr), rightTangent(nullptr),
@@ -403,4 +403,4 @@ void FlatCurve::getVal(const std::vector<double> &t,
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

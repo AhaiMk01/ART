@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _COORDINATEADJUSTER_
-#define _COORDINATEADJUSTER_
+#pragma once
 
 #include <gtkmm.h>
 
@@ -165,5 +164,3 @@ public:
     /// to edit the values)
     void stopNumericalAdjustment();
 };
-
-#endif

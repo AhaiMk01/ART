@@ -19,8 +19,8 @@
 #include "toneequalizer.h"
 #include "eventmapper.h"
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 ToneEqualizer::ToneEqualizer()
     : FoldableToolPanel(this, "toneequalizer", M("TP_TONE_EQUALIZER_LABEL"),
@@ -28,16 +28,16 @@ ToneEqualizer::ToneEqualizer()
 {
     auto m = ProcEventMapper::getInstance();
     EvEnabled =
-        m->newEvent(rtengine::RGBCURVE, "HISTORY_MSG_TONE_EQUALIZER_ENABLED");
+        m->newEvent(art::engine::RGBCURVE, "HISTORY_MSG_TONE_EQUALIZER_ENABLED");
     EvBands =
-        m->newEvent(rtengine::RGBCURVE, "HISTORY_MSG_TONE_EQUALIZER_BANDS");
-    EvRegularization = m->newEvent(rtengine::RGBCURVE,
+        m->newEvent(art::engine::RGBCURVE, "HISTORY_MSG_TONE_EQUALIZER_BANDS");
+    EvRegularization = m->newEvent(art::engine::RGBCURVE,
                                    "HISTORY_MSG_TONE_EQUALIZER_REGULARIZATION");
-    EvColormap = m->newEvent(rtengine::RGBCURVE,
+    EvColormap = m->newEvent(art::engine::RGBCURVE,
                              "HISTORY_MSG_TONE_EQUALIZER_SHOW_COLOR_MAP");
     EvPivot =
-        m->newEvent(rtengine::RGBCURVE, "HISTORY_MSG_TONE_EQUALIZER_PIVOT");
-    EvToolReset.set_action(rtengine::RGBCURVE);
+        m->newEvent(art::engine::RGBCURVE, "HISTORY_MSG_TONE_EQUALIZER_PIVOT");
+    EvToolReset.set_action(art::engine::RGBCURVE);
 
     std::array<const char *, 5> images = {"purple", "blue", "gray", "yellow",
                                           "red"};
@@ -156,7 +156,7 @@ void ToneEqualizer::colormapToggled()
     }
 }
 
-void ToneEqualizer::trimValues(rtengine::procparams::ProcParams *pp)
+void ToneEqualizer::trimValues(art::engine::procparams::ProcParams *pp)
 {
     for (size_t i = 0; i < bands.size(); ++i) {
         bands[i]->trimValue(pp->toneEqualizer.bands[i]);

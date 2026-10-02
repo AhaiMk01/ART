@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _ROTATE_H_
-#define _ROTATE_H_
+#pragma once
 
 #include "adjuster.h"
 #include "lensgeomlistener.h"
@@ -34,24 +33,22 @@ protected:
     Gtk::Button *selectStraight;
     LensGeomListener *rlistener;
 
-    rtengine::procparams::RotateParams initial_params;
+    art::engine::procparams::RotateParams initial_params;
 
 public:
     Rotate();
 
-    void read(const rtengine::procparams::ProcParams *pp) override;
-    void write(rtengine::procparams::ProcParams *pp) override;
+    void read(const art::engine::procparams::ProcParams *pp) override;
+    void write(art::engine::procparams::ProcParams *pp) override;
     void
-    setDefaults(const rtengine::procparams::ProcParams *defParams) override;
+    setDefaults(const art::engine::procparams::ProcParams *defParams) override;
     void straighten(double deg);
 
     void adjusterChanged(Adjuster *a, double newval) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
-    void trimValues(rtengine::procparams::ProcParams *pp) override;
+    void trimValues(art::engine::procparams::ProcParams *pp) override;
     void selectStraightPressed();
     void setLensGeomListener(LensGeomListener *l) { rlistener = l; }
 
     void toolReset(bool to_initial) override;
 };
-
-#endif

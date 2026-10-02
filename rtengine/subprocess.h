@@ -26,7 +26,7 @@
 #include <sstream>
 #include <string>
 
-namespace rtengine {
+namespace art { namespace engine {
 namespace subprocess {
 
 class error: public std::exception {
@@ -90,4 +90,4 @@ std::unique_ptr<SubprocessInfo> popen(const Glib::ustring &workdir,
                                       bool pipe_out);
 
 } // namespace subprocess
-} // namespace rtengine
+}} // namespace art::engine

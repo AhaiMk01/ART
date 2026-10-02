@@ -21,23 +21,23 @@
 #include "guiutils.h"
 #include "rtimage.h"
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 
 RAWCACorr::RAWCACorr()
     : FoldableToolPanel(this, "rawcacorrection", M("TP_RAWCACORR_LABEL"), false,
                         true, true)
 {
-    EvToolEnabled.set_action(rtengine::DARKFRAME);
-    EvToolReset.set_action(rtengine::DARKFRAME);
+    EvToolEnabled.set_action(art::engine::DARKFRAME);
+    EvToolReset.set_action(art::engine::DARKFRAME);
 
     auto m = ProcEventMapper::getInstance();
     EvPreProcessCAAutoiterations =
-        m->newEvent(rtengine::DARKFRAME, "HISTORY_MSG_RAWCACORR_AUTOIT");
+        m->newEvent(art::engine::DARKFRAME, "HISTORY_MSG_RAWCACORR_AUTOIT");
     EvPreProcessCAColourshift =
-        m->newEvent(rtengine::DARKFRAME, "HISTORY_MSG_RAWCACORR_COLORSHIFT");
+        m->newEvent(art::engine::DARKFRAME, "HISTORY_MSG_RAWCACORR_COLORSHIFT");
     EvPreProcessCAColourshiftHistory =
-        m->newEvent(rtengine::M_VOID, "HISTORY_MSG_RAWCACORR_COLORSHIFT");
+        m->newEvent(art::engine::M_VOID, "HISTORY_MSG_RAWCACORR_COLORSHIFT");
 
     Gtk::Image *icaredL = Gtk::manage(new RTImage("circle-red-cyan-small.svg"));
     Gtk::Image *icaredR = Gtk::manage(new RTImage("circle-cyan-red-small.svg"));
@@ -91,7 +91,7 @@ RAWCACorr::RAWCACorr()
     pack_start(*caAvoidcolourshift, Gtk::PACK_SHRINK, 4);
 }
 
-void RAWCACorr::read(const rtengine::procparams::ProcParams *pp)
+void RAWCACorr::read(const art::engine::procparams::ProcParams *pp)
 {
     disableListener();
 
@@ -109,7 +109,7 @@ void RAWCACorr::read(const rtengine::procparams::ProcParams *pp)
     enableListener();
 }
 
-void RAWCACorr::write(rtengine::procparams::ProcParams *pp)
+void RAWCACorr::write(art::engine::procparams::ProcParams *pp)
 {
     pp->raw.enable_ca = getEnabled();
     pp->raw.ca_autocorrect = caAutocorrect->getLastActive();
@@ -163,7 +163,7 @@ void RAWCACorr::checkBoxToggled(CheckBox *c, CheckValue newval)
     }
 }
 
-void RAWCACorr::setDefaults(const rtengine::procparams::ProcParams *defParams)
+void RAWCACorr::setDefaults(const art::engine::procparams::ProcParams *defParams)
 {
     caAutoiterations->setDefault(defParams->raw.caautoiterations);
     caRed->setDefault(defParams->raw.cared);
@@ -172,7 +172,7 @@ void RAWCACorr::setDefaults(const rtengine::procparams::ProcParams *defParams)
     initial_params = defParams->raw;
 }
 
-void RAWCACorr::trimValues(rtengine::procparams::ProcParams *pp)
+void RAWCACorr::trimValues(art::engine::procparams::ProcParams *pp)
 {
 
     caAutoiterations->trimValue(pp->raw.caautoiterations);

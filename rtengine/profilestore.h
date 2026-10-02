@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _PROFILESTORE_
-#define _PROFILESTORE_
+#pragma once
 
 #include <glibmm.h>
 #include <map>
@@ -26,6 +25,9 @@
 #include "dynamicprofile.h"
 #include "noncopyable.h"
 #include "rtengine.h"
+
+namespace art { namespace engine {
+
 
 // forward decl
 class DynamicProfileRule;
@@ -101,7 +103,7 @@ public:
  * This store can be queried by the GUI to display a Tree of the profiles
  * available in the user's and system's profile directory and subdirectories.
  */
-class ProfileStore: public rtengine::NonCopyable, public DynamicProfileRules {
+class ProfileStore: public art::engine::NonCopyable, public DynamicProfileRules {
 
     typedef enum {
         STORESTATE_NOTINITIALIZED,
@@ -125,7 +127,7 @@ private:
 
     MyMutex parseMutex;
     StoreState storeState;
-    rtengine::procparams::PartialProfile *internalDefaultProfile;
+    art::engine::procparams::PartialProfile *internalDefaultProfile;
     ProfileStoreEntry *internalDefaultEntry;
     ProfileStoreEntry *internalDynamicEntry;
 
@@ -141,7 +143,7 @@ private:
 
     /** List of PartialProfiles from the indexed files */
     std::map<const ProfileStoreEntry *,
-             rtengine::procparams::FilePartialProfile>
+             art::engine::procparams::FilePartialProfile>
         partProfiles;
 
     /** List of the client of this store */
@@ -151,7 +153,7 @@ private:
      * request */
     bool loadAll;
 
-    rtengine::ProgressListener *pl_;
+    art::engine::ProgressListener *pl_;
 
     /** @brief Method to recursively parse a profile folder with a level depth
      * arbitrarily limited to 3
@@ -193,16 +195,16 @@ public:
     void parseProfiles();
     int findFolderId(const Glib::ustring &path);
     const ProfileStoreEntry *findEntryFromFullPath(Glib::ustring path);
-    const rtengine::procparams::PartialProfile *getProfile(Glib::ustring path);
-    const rtengine::procparams::PartialProfile *
+    const art::engine::procparams::PartialProfile *getProfile(Glib::ustring path);
+    const art::engine::procparams::PartialProfile *
     getProfile(const ProfileStoreEntry *entry);
     const std::vector<const ProfileStoreEntry *> *getFileList();
     void releaseFileList();
-    // const rtengine::procparams::ProcParams*      getDefaultProcParams (bool
+    // const art::engine::procparams::ProcParams*      getDefaultProcParams (bool
     // isRaw);
-    const rtengine::procparams::PartialProfile *
+    const art::engine::procparams::PartialProfile *
     getDefaultPartialProfile(bool isRaw);
-    // bool applyDefaultProcParams(bool isRaw, rtengine::procparams::ProcParams
+    // bool applyDefaultProcParams(bool isRaw, art::engine::procparams::ProcParams
     // &pp);
     Glib::ustring getPathFromId(int folderId);
     const ProfileStoreEntry *getInternalDefaultPSE()
@@ -218,12 +220,13 @@ public:
     void addListener(ProfileStoreListener *listener);
     void removeListener(ProfileStoreListener *listener);
 
-    std::unique_ptr<rtengine::procparams::PartialProfile>
-    loadDynamicProfile(const rtengine::FramesMetaData *im);
+    std::unique_ptr<art::engine::procparams::PartialProfile>
+    loadDynamicProfile(const art::engine::FramesMetaData *im);
 
     void dumpFolderList();
 
-    void setProgressListener(rtengine::ProgressListener *pl) { pl_ = pl; }
+    void setProgressListener(art::engine::ProgressListener *pl) { pl_ = pl; }
 };
 
-#endif
+
+} } // namespace art::engine

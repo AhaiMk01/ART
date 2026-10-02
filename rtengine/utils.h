@@ -22,7 +22,7 @@
 #include <glibmm/ustring.h>
 #include <type_traits>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 // Update a point of a Cairo::Surface by accessing the raw data
 void poke255_uc(unsigned char *&dest, unsigned char r, unsigned char g,
@@ -87,8 +87,8 @@ private:
     T oldval_;
 };
 
-} // namespace rtengine
-
 #if __SIZEOF_WCHAR_T__ == 4
 Glib::ustring utf32_to_utf8(wchar_t *UTF32Buffer, size_t sizeOfUTF32Buffer);
 #endif
+
+}} // namespace art::engine

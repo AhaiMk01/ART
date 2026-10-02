@@ -32,7 +32,7 @@
 #include "imagefloat.h"
 #include "opthelper.h"
 
-namespace rtengine {
+namespace art { namespace engine {
 
 enum class LCPCorrectionMode { VIGNETTE, DISTORTION, CA };
 
@@ -190,4 +190,4 @@ private:
     void processVignetteLine3Channels(int width, int y, float *line) const;
 };
 
-} // namespace rtengine
+}} // namespace art::engine

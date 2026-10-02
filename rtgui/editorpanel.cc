@@ -37,7 +37,7 @@
 #include "rtwindow.h"
 #include "soundman.h"
 
-using namespace rtengine::procparams;
+using namespace art::engine::procparams;
 using ScopeType = Options::ScopeType;
 
 namespace {
@@ -68,18 +68,18 @@ private:
     sigc::connection surround_conn_;
     Glib::ustring defprof;
 
-    std::shared_ptr<rtengine::StagedImageProcessor> &processor;
+    std::shared_ptr<art::engine::StagedImageProcessor> &processor;
     EditorPanel *parent;
 
 private:
     void prepareProfileBox()
     {
-        if (rtengine::Settings::color_mgmt_mode ==
-            rtengine::Settings::ColorManagementMode::APPLICATION) {
+        if (art::engine::Settings::color_mgmt_mode ==
+            art::engine::Settings::ColorManagementMode::APPLICATION) {
             const std::vector<Glib::ustring> profiles =
-                rtengine::ICCStore::getInstance()->getProfilesFromDir(
+                art::engine::ICCStore::getInstance()->getProfilesFromDir(
                     options.rtSettings.monitorIccDirectory);
-            //        rtengine::ICCStore::getInstance()->setDefaultMonitorProfileName(rtengine::ICCStore::getInstance()->getDefaultMonitorProfileName());
+            //        art::engine::ICCStore::getInstance()->setDefaultMonitorProfileName(art::engine::ICCStore::getInstance()->getDefaultMonitorProfileName());
 
             profileBox.setPreferredWidth(70, 200);
             setExpandAlignProperties(&profileBox, false, false,
@@ -97,7 +97,7 @@ private:
                                   defprofname + ")");
 
                 if (options.rtSettings.autoMonitorProfile) {
-                    // rtengine::ICCStore::getInstance()->setDefaultMonitorProfileName
+                    // art::engine::ICCStore::getInstance()->setDefaultMonitorProfileName
                     // (defprof);
                     profileBox.set_active(1);
                 } else {
@@ -117,8 +117,8 @@ private:
 
     void prepareIntentBox()
     {
-        if (rtengine::Settings::color_mgmt_mode ==
-            rtengine::Settings::ColorManagementMode::APPLICATION) {
+        if (art::engine::Settings::color_mgmt_mode ==
+            art::engine::Settings::ColorManagementMode::APPLICATION) {
             // same order as the enum
             intentBox.addEntry("intent-perceptual.svg",
                                M("PREFERENCES_INTENT_PERCEPTUAL"));
@@ -227,7 +227,7 @@ private:
                     return true;
                 }
             }
-            auto iccs = rtengine::ICCStore::getInstance();
+            auto iccs = art::engine::ICCStore::getInstance();
             auto prof = iccs->getProfile(options.rtSettings.printerProfile);
             if (!prof) {
                 auto name = options.rtSettings.printerProfile;
@@ -267,10 +267,10 @@ private:
     void updateParameters(bool noEvent = false)
     {
         Glib::ustring profile;
-        rtengine::RenderingIntent intent = rtengine::RI_RELATIVE;
+        art::engine::RenderingIntent intent = art::engine::RI_RELATIVE;
 
-        if (rtengine::Settings::color_mgmt_mode ==
-            rtengine::Settings::ColorManagementMode::APPLICATION) {
+        if (art::engine::Settings::color_mgmt_mode ==
+            art::engine::Settings::ColorManagementMode::APPLICATION) {
             ConnectionBlocker profileBlocker(profileConn);
             ConnectionBlocker intentBlocker(intentConn);
 
@@ -302,7 +302,7 @@ private:
 
             } else {
                 const uint8_t supportedIntents =
-                    rtengine::ICCStore::getInstance()->getProofIntents(profile);
+                    art::engine::ICCStore::getInstance()->getProofIntents(profile);
                 const bool supportsRelativeColorimetric =
                     supportedIntents & 1 << INTENT_RELATIVE_COLORIMETRIC;
                 const bool supportsPerceptual =
@@ -336,13 +336,13 @@ private:
             switch (intentBox.getSelected()) {
             default:
             case 0:
-                intent = rtengine::RI_PERCEPTUAL;
+                intent = art::engine::RI_PERCEPTUAL;
                 break;
             case 1:
-                intent = rtengine::RI_RELATIVE;
+                intent = art::engine::RI_RELATIVE;
                 break;
             case 2:
-                intent = rtengine::RI_ABSOLUTE;
+                intent = art::engine::RI_ABSOLUTE;
                 break;
             }
         }
@@ -355,23 +355,23 @@ private:
             processor->beginUpdateParams();
         }
 
-        if (rtengine::Settings::color_mgmt_mode ==
-            rtengine::Settings::ColorManagementMode::APPLICATION) {
+        if (art::engine::Settings::color_mgmt_mode ==
+            art::engine::Settings::ColorManagementMode::APPLICATION) {
             processor->setMonitorProfile(profile, intent);
         }
 
-        rtengine::GamutCheck gc = rtengine::GAMUT_CHECK_OFF;
+        art::engine::GamutCheck gc = art::engine::GAMUT_CHECK_OFF;
         if (spGamutCheck.get_sensitive() && spGamutCheck.get_active()) {
-            gc = rtengine::GAMUT_CHECK_OUTPUT;
+            gc = art::engine::GAMUT_CHECK_OUTPUT;
         } else if (spGamutCheckMonitor.get_sensitive() &&
                    spGamutCheckMonitor.get_active()) {
-            gc = rtengine::GAMUT_CHECK_MONITOR;
+            gc = art::engine::GAMUT_CHECK_MONITOR;
         }
         processor->setSoftProofing(
             softProof.get_sensitive() && softProof.get_active(), gc);
 
         if (!noEvent) {
-            processor->endUpdateParams(rtengine::EvMonitorTransform);
+            processor->endUpdateParams(art::engine::EvMonitorTransform);
         }
     }
 
@@ -379,8 +379,8 @@ private:
     {
         bool profile_active = profileBox.get_active_row_number() > 0;
         bool check_is_active =
-            rtengine::Settings::color_mgmt_mode !=
-                rtengine::Settings::ColorManagementMode::APPLICATION ||
+            art::engine::Settings::color_mgmt_mode !=
+                art::engine::Settings::ColorManagementMode::APPLICATION ||
             profile_active;
         spGamutCheck.set_sensitive(check_is_active);
 
@@ -390,18 +390,18 @@ private:
                     processor->beginUpdateParams();
                 }
 
-                rtengine::GamutCheck gc = rtengine::GAMUT_CHECK_OFF;
+                art::engine::GamutCheck gc = art::engine::GAMUT_CHECK_OFF;
                 if (spGamutCheck.get_sensitive() && spGamutCheck.get_active()) {
-                    gc = rtengine::GAMUT_CHECK_OUTPUT;
+                    gc = art::engine::GAMUT_CHECK_OUTPUT;
                 } else if (spGamutCheckMonitor.get_sensitive() &&
                            spGamutCheckMonitor.get_active()) {
-                    gc = rtengine::GAMUT_CHECK_MONITOR;
+                    gc = art::engine::GAMUT_CHECK_MONITOR;
                 }
                 processor->setSoftProofing(
                     softProof.get_sensitive() && softProof.get_active(), gc);
 
                 if (!noEvent) {
-                    processor->endUpdateParams(rtengine::EvMonitorTransform);
+                    processor->endUpdateParams(art::engine::EvMonitorTransform);
                 }
             }
         }
@@ -409,7 +409,7 @@ private:
 
 public:
     explicit ColorManagementToolbar(
-        EditorPanel *p, std::shared_ptr<rtengine::StagedImageProcessor> &ipc)
+        EditorPanel *p, std::shared_ptr<art::engine::StagedImageProcessor> &ipc)
         : intentBox(Glib::ustring(), true),
           surround_box_(Glib::ustring(), true),
           processor(ipc), parent(p)
@@ -432,8 +432,8 @@ public:
         spGamutCheckMonitor.signal_toggled().connect(sigc::mem_fun(
             this, &ColorManagementToolbar::spGamutCheckMonitorToggled));
 
-        if (rtengine::Settings::color_mgmt_mode ==
-            rtengine::Settings::ColorManagementMode::APPLICATION) {
+        if (art::engine::Settings::color_mgmt_mode ==
+            art::engine::Settings::ColorManagementMode::APPLICATION) {
             profileConn = profileBox.signal_changed().connect(sigc::mem_fun(
                 this, &ColorManagementToolbar::profileBoxChanged));
             intentConn = intentBox.signal_changed().connect(
@@ -446,8 +446,8 @@ public:
 
     void pack_right_in(Gtk::Grid *grid)
     {
-        if (rtengine::Settings::color_mgmt_mode ==
-            rtengine::Settings::ColorManagementMode::APPLICATION) {
+        if (art::engine::Settings::color_mgmt_mode ==
+            art::engine::Settings::ColorManagementMode::APPLICATION) {
             grid->attach_next_to(profileBox, Gtk::POS_RIGHT, 1, 1);
             grid->attach_next_to(*intentBox.buttonGroup, Gtk::POS_RIGHT, 1, 1);
         }
@@ -466,8 +466,8 @@ public:
 
     void reset()
     {
-        if (rtengine::Settings::color_mgmt_mode ==
-            rtengine::Settings::ColorManagementMode::APPLICATION) {
+        if (art::engine::Settings::color_mgmt_mode ==
+            art::engine::Settings::ColorManagementMode::APPLICATION) {
             ConnectionBlocker intentBlocker(intentConn);
             ConnectionBlocker profileBlocker(profileConn);
 
@@ -480,15 +480,15 @@ public:
 
             switch (options.rtSettings.monitorIntent) {
             default:
-            case rtengine::RI_PERCEPTUAL:
+            case art::engine::RI_PERCEPTUAL:
                 intentBox.setSelected(0);
                 break;
 
-            case rtengine::RI_RELATIVE:
+            case art::engine::RI_RELATIVE:
                 intentBox.setSelected(1);
                 break;
 
-            case rtengine::RI_ABSOLUTE:
+            case art::engine::RI_ABSOLUTE:
                 intentBox.setSelected(2);
                 break;
             }
@@ -502,16 +502,16 @@ public:
     void defaultMonitorProfileChanged(const Glib::ustring &profile_name,
                                       bool auto_monitor_profile)
     {
-        if (rtengine::Settings::color_mgmt_mode ==
-            rtengine::Settings::ColorManagementMode::APPLICATION) {
+        if (art::engine::Settings::color_mgmt_mode ==
+            art::engine::Settings::ColorManagementMode::APPLICATION) {
             ConnectionBlocker profileBlocker(profileConn);
 
             if (auto_monitor_profile && !defprof.empty()) {
-                rtengine::ICCStore::getInstance()->setDefaultMonitorProfileName(
+                art::engine::ICCStore::getInstance()->setDefaultMonitorProfileName(
                     defprof);
                 profileBox.set_active(1);
             } else {
-                rtengine::ICCStore::getInstance()->setDefaultMonitorProfileName(
+                art::engine::ICCStore::getInstance()->setDefaultMonitorProfileName(
                     profile_name);
                 setActiveTextOrIndex(profileBox, profile_name, 0);
             }
@@ -537,7 +537,7 @@ EditorPanel::EditorPanel(FilePanel *filePanel)
     epih->epanel = this;
     epih->destroyed = false;
     epih->pending = 0;
-    // rtengine::befaf=true;
+    // art::engine::befaf=true;
     processingStartedTime = 0;
     firstProcessingDone = false;
 
@@ -987,7 +987,7 @@ EditorPanel::~EditorPanel()
     beforePreviewHandler = nullptr;
 
     // if (beforeIpc) {
-    //     rtengine::StagedImageProcessor::destroy (beforeIpc);
+    //     art::engine::StagedImageProcessor::destroy (beforeIpc);
     // }
     // beforeIpc = nullptr;
     beforeIpc.reset();
@@ -1129,11 +1129,11 @@ bool EditorPanel::can_open_now() const
     if (!ipc) {
         return true;
     }
-    return !static_cast<const rtengine::ImProcCoordinator *>(ipc.get())
+    return !static_cast<const art::engine::ImProcCoordinator *>(ipc.get())
                 ->is_running();
 }
 
-void EditorPanel::open(Thumbnail *tmb, rtengine::InitialImage *isrc)
+void EditorPanel::open(Thumbnail *tmb, art::engine::InitialImage *isrc)
 {
     close();
 
@@ -1150,7 +1150,7 @@ void EditorPanel::open(Thumbnail *tmb, rtengine::InitialImage *isrc)
     previewHandler = new PreviewHandler();
 
     this->isrc = isrc;
-    ipc.reset(rtengine::StagedImageProcessor::create(isrc));
+    ipc.reset(art::engine::StagedImageProcessor::create(isrc));
     ipc->setProgressListener(this);
     colorMgmtToolBar->updateProcessor();
     ipc->setPreviewImageListener(previewHandler);
@@ -1167,7 +1167,7 @@ void EditorPanel::open(Thumbnail *tmb, rtengine::InitialImage *isrc)
     navigator->previewWindow->setPreviewHandler(previewHandler);
     navigator->previewWindow->setImageArea(iareapanel->imageArea);
 
-    rtengine::ImageSource *is = isrc->getImageSource();
+    art::engine::ImageSource *is = isrc->getImageSource();
     is->setProgressListener(this);
 
     // try to load the last saved parameters from the cache or from the
@@ -1225,7 +1225,7 @@ void EditorPanel::close()
         // close image processor and the current thumbnail
         tpc->closeImage(); // this call stops image processing
         tpc->writeOptions();
-        rtengine::ImageSource *is = isrc->getImageSource();
+        art::engine::ImageSource *is = isrc->getImageSource();
         is->setProgressListener(nullptr);
 
         if (ipc) {
@@ -1249,7 +1249,7 @@ void EditorPanel::close()
             iareapanel->imageArea->unsubscribe();
         }
 
-        // rtengine::StagedImageProcessor::destroy (ipc);
+        // art::engine::StagedImageProcessor::destroy (ipc);
         // ipc = nullptr;
         ipc.reset();
         navigator->previewWindow->setPreviewHandler(nullptr);
@@ -1314,8 +1314,8 @@ Glib::ustring EditorPanel::getFileName()
 
 // TODO!!!
 void EditorPanel::procParamsChanged(
-    const rtengine::procparams::ProcParams *params,
-    const rtengine::ProcEvent &ev, const Glib::ustring &descr,
+    const art::engine::procparams::ProcParams *params,
+    const art::engine::ProcEvent &ev, const Glib::ustring &descr,
     const ParamsEdited *paramsEdited)
 {
 
@@ -1323,15 +1323,15 @@ void EditorPanel::procParamsChanged(
     //        saveLabel->set_markup (Glib::ustring("<span foreground=\"#AA0000\"
     //        weight=\"bold\">") + M("MAIN_BUTTON_SAVE") + "</span>");
 
-    rtengine::eSensorType sensorType = isrc->getImageSource()->getSensorType();
+    art::engine::eSensorType sensorType = isrc->getImageSource()->getSensorType();
 
     selectedFrame = 0;
-    if (sensorType == rtengine::ST_BAYER) {
+    if (sensorType == art::engine::ST_BAYER) {
         selectedFrame = params->raw.bayersensor.imageNum;
-        //} else if (sensorType == rtengine::ST_FUJI_XTRANS) {
+        //} else if (sensorType == art::engine::ST_FUJI_XTRANS) {
         //    selectedFrame = params->raw.xtranssensor.imageNum;
     }
-    selectedFrame = rtengine::LIM<int>(
+    selectedFrame = art::engine::LIM<int>(
         selectedFrame, 0,
         isrc->getImageSource()->getMetaData()->getFrameCount() - 1);
 
@@ -1380,7 +1380,7 @@ Glib::ustring EditorPanel::readyText() const
                                   formatPipelineTimes(lastTimes_));
 }
 
-void EditorPanel::pipelineTimes(const rtengine::PipelineTimes &t)
+void EditorPanel::pipelineTimes(const art::engine::PipelineTimes &t)
 {
     // called from a processing thread, before setProgressState(false), and
     // idle callbacks of equal priority run in order
@@ -1470,7 +1470,7 @@ void EditorPanel::refreshProcessingState(bool inProcessingP)
         // Set proc params of thumbnail. It saves it into the cache and updates
         // the file browser.
         if (ipc && openThm && tpc->getChangedState()) {
-            rtengine::procparams::ProcParams pparams;
+            art::engine::procparams::ProcParams pparams;
             ipc->getParams(&pparams);
             openThm->setProcParams(pparams, EDITOR, false);
         }
@@ -1521,7 +1521,7 @@ void EditorPanel::info_toggled()
         return;
     }
 
-    const rtengine::FramesMetaData *idata =
+    const art::engine::FramesMetaData *idata =
         ipc->getInitialImage()->getMetaData();
 
     if (idata && idata->hasExif()) {
@@ -2031,17 +2031,17 @@ void EditorPanel::procParamsChanged(Thumbnail *thm, int whoChangedIt)
 
     if (whoChangedIt != EDITOR) {
         const auto &pp = openThm->getProcParams();
-        rtengine::procparams::FullPartialProfile fp(pp);
-        tpc->profileChange(&fp, rtengine::EvProfileChangeNotification,
+        art::engine::procparams::FullPartialProfile fp(pp);
+        tpc->profileChange(&fp, art::engine::EvProfileChangeNotification,
                            M("PROGRESSDLG_PROFILECHANGEDINBROWSER"));
     }
 }
 
-bool EditorPanel::idle_saveImage(ProgressConnector<rtengine::IImagefloat *> *pc,
+bool EditorPanel::idle_saveImage(ProgressConnector<art::engine::IImagefloat *> *pc,
                                  Glib::ustring fname, SaveFormat sf,
-                                 rtengine::procparams::ProcParams &pparams)
+                                 art::engine::procparams::ProcParams &pparams)
 {
-    rtengine::IImagefloat *img = pc->returnValue();
+    art::engine::IImagefloat *img = pc->returnValue();
     // delete pc;
     pc->destroy();
 
@@ -2055,28 +2055,28 @@ bool EditorPanel::idle_saveImage(ProgressConnector<rtengine::IImagefloat *> *pc,
         if (sf.format == "tif") {
             ld->startFunc(
                 sigc::bind(
-                    sigc::mem_fun(img, &rtengine::IImagefloat::saveAsTIFF),
+                    sigc::mem_fun(img, &art::engine::IImagefloat::saveAsTIFF),
                     fname, sf.tiffBits, sf.tiffFloat, sf.tiffUncompressed),
                 sigc::bind(sigc::mem_fun(*this, &EditorPanel::idle_imageSaved),
                            ld, img, fname, sf, pparams));
         } else if (sf.format == "png") {
             ld->startFunc(
                 sigc::bind(
-                    sigc::mem_fun(img, &rtengine::IImagefloat::saveAsPNG),
+                    sigc::mem_fun(img, &art::engine::IImagefloat::saveAsPNG),
                     fname, sf.pngBits, false),
                 sigc::bind(sigc::mem_fun(*this, &EditorPanel::idle_imageSaved),
                            ld, img, fname, sf, pparams));
         } else if (sf.format == "jpg") {
             ld->startFunc(
                 sigc::bind(
-                    sigc::mem_fun(img, &rtengine::IImagefloat::saveAsJPEG),
+                    sigc::mem_fun(img, &art::engine::IImagefloat::saveAsJPEG),
                     fname, sf.jpegQuality, sf.jpegSubSamp),
                 sigc::bind(sigc::mem_fun(*this, &EditorPanel::idle_imageSaved),
                            ld, img, fname, sf, pparams));
         } else {
             // delete ld;
             const auto do_save = [=]() -> int {
-                return rtengine::ImageIOManager::getInstance()->save(
+                return art::engine::ImageIOManager::getInstance()->save(
                            img, sf.format, fname, this)
                            ? 0
                            : 1;
@@ -2098,15 +2098,15 @@ bool EditorPanel::idle_saveImage(ProgressConnector<rtengine::IImagefloat *> *pc,
         isProcessing = false;
     }
 
-    rtengine::ImageSource *imgsrc = isrc->getImageSource();
+    art::engine::ImageSource *imgsrc = isrc->getImageSource();
     imgsrc->setProgressListener(this);
     return false;
 }
 
 bool EditorPanel::idle_imageSaved(ProgressConnector<int> *pc,
-                                  rtengine::IImagefloat *img,
+                                  art::engine::IImagefloat *img,
                                   Glib::ustring fname, SaveFormat sf,
-                                  rtengine::procparams::ProcParams &pparams)
+                                  art::engine::procparams::ProcParams &pparams)
 {
     img->free();
 
@@ -2147,19 +2147,19 @@ bool EditorPanel::idle_imageSaved(ProgressConnector<int> *pc,
 
 BatchQueueEntry *EditorPanel::createBatchQueueEntry(
     bool fast_export, bool use_batch_queue_profile,
-    const rtengine::procparams::PartialProfile *export_profile)
+    const art::engine::procparams::PartialProfile *export_profile)
 {
-    rtengine::procparams::ProcParams pparams;
+    art::engine::procparams::ProcParams pparams;
     ipc->getParams(&pparams);
     if (export_profile) {
         export_profile->applyTo(pparams);
     }
-    // rtengine::ProcessingJob* job = rtengine::ProcessingJob::create
+    // art::engine::ProcessingJob* job = art::engine::ProcessingJob::create
     // (openThm->getFileName (), openThm->getType() == FT_Raw, pparams);
-    rtengine::ProcessingJob *job = create_processing_job(
+    art::engine::ProcessingJob *job = create_processing_job(
         openThm->getFileName(), openThm->getType() == FT_Raw, pparams,
         fast_export);
-    static_cast<rtengine::ProcessingJobImpl *>(job)->use_batch_profile =
+    static_cast<art::engine::ProcessingJobImpl *>(job)->use_batch_profile =
         use_batch_queue_profile;
     int fullW = 0, fullH = 0;
     isrc->getImageSource()->getFullSize(
@@ -2259,27 +2259,27 @@ void EditorPanel::do_save_image(bool fast_export)
             if (fnameOK) {
                 isProcessing = true;
                 // save image
-                rtengine::procparams::ProcParams pparams;
+                art::engine::procparams::ProcParams pparams;
                 ipc->getParams(&pparams);
                 auto ep = saveAsDialog->getExportProfile();
                 if (ep) {
                     ep->applyTo(pparams);
                 }
-                ep = rtengine::ImageIOManager::getInstance()->getSaveProfile(
+                ep = art::engine::ImageIOManager::getInstance()->getSaveProfile(
                     sf.format);
                 if (ep) {
                     ep->applyTo(pparams);
                 }
 
-                rtengine::ProcessingJob *job = create_processing_job(
+                art::engine::ProcessingJob *job = create_processing_job(
                     ipc->getInitialImage(), pparams, fast_export);
-                static_cast<rtengine::ProcessingJobImpl *>(job)
+                static_cast<art::engine::ProcessingJobImpl *>(job)
                     ->use_batch_profile = false;
 
-                ProgressConnector<rtengine::IImagefloat *> *ld =
-                    new ProgressConnector<rtengine::IImagefloat *>();
+                ProgressConnector<art::engine::IImagefloat *> *ld =
+                    new ProgressConnector<art::engine::IImagefloat *>();
                 ld->startFunc(
-                    sigc::bind(sigc::ptr_fun(&rtengine::processImage), job, err,
+                    sigc::bind(sigc::ptr_fun(&art::engine::processImage), job, err,
                                parent->getProgressListener(), false),
                     sigc::bind(
                         sigc::mem_fun(*this, &EditorPanel::idle_saveImage), ld,
@@ -2333,20 +2333,20 @@ void EditorPanel::do_send_to_gimp(bool fast_export)
     }
 
     // develop image
-    rtengine::procparams::ProcParams pparams;
+    art::engine::procparams::ProcParams pparams;
     ipc->getParams(&pparams);
     if (options.editor_bypass_output_profile) {
         pparams.icm.outputProfile =
-            rtengine::procparams::ColorManagementParams::NoProfileString;
+            art::engine::procparams::ColorManagementParams::NoProfileString;
     }
-    // rtengine::ProcessingJob* job = rtengine::ProcessingJob::create
+    // art::engine::ProcessingJob* job = art::engine::ProcessingJob::create
     // (ipc->getInitialImage(), pparams);
-    rtengine::ProcessingJob *job =
+    art::engine::ProcessingJob *job =
         create_processing_job(ipc->getInitialImage(), pparams, fast_export);
-    ProgressConnector<rtengine::IImagefloat *> *ld =
-        new ProgressConnector<rtengine::IImagefloat *>();
+    ProgressConnector<art::engine::IImagefloat *> *ld =
+        new ProgressConnector<art::engine::IImagefloat *>();
     ld->startFunc(
-        sigc::bind(sigc::ptr_fun(&rtengine::processImage), job, err,
+        sigc::bind(sigc::ptr_fun(&art::engine::processImage), job, err,
                    parent->getProgressListener(), false),
         sigc::bind(sigc::mem_fun(*this, &EditorPanel::idle_sendToGimp), ld,
                    openThm->getFileName()));
@@ -2357,15 +2357,15 @@ void EditorPanel::do_send_to_gimp(bool fast_export)
 bool EditorPanel::saveImmediately(const Glib::ustring &filename,
                                   const SaveFormat &sf)
 {
-    rtengine::procparams::ProcParams pparams;
+    art::engine::procparams::ProcParams pparams;
     ipc->getParams(&pparams);
 
-    rtengine::ProcessingJob *job =
-        rtengine::ProcessingJob::create(ipc->getInitialImage(), pparams);
+    art::engine::ProcessingJob *job =
+        art::engine::ProcessingJob::create(ipc->getInitialImage(), pparams);
 
     // save immediately
-    rtengine::IImagefloat *img =
-        rtengine::processImage(job, err, nullptr, false);
+    art::engine::IImagefloat *img =
+        art::engine::processImage(job, err, nullptr, false);
     if (img) {
         img->setSaveProgressListener(parent);
     }
@@ -2382,7 +2382,7 @@ bool EditorPanel::saveImmediately(const Glib::ustring &filename,
     } else if (sf.format == "jpg") {
         err = img->saveAsJPEG(filename, sf.jpegQuality, sf.jpegSubSamp);
     } else {
-        err = rtengine::ImageIOManager::getInstance()->save(img, sf.format,
+        err = art::engine::ImageIOManager::getInstance()->save(img, sf.format,
                                                             filename, this)
                   ? 0
                   : 1;
@@ -2423,10 +2423,10 @@ void EditorPanel::histogramProfile_toggled()
 }
 
 bool EditorPanel::idle_sendToGimp(
-    ProgressConnector<rtengine::IImagefloat *> *pc, Glib::ustring fname)
+    ProgressConnector<art::engine::IImagefloat *> *pc, Glib::ustring fname)
 {
 
-    rtengine::IImagefloat *img = pc->returnValue();
+    art::engine::IImagefloat *img = pc->returnValue();
     // delete pc;
     pc->destroy();
 
@@ -2482,7 +2482,7 @@ bool EditorPanel::idle_sendToGimp(
         ProgressConnector<int> *ld = new ProgressConnector<int>();
         img->setSaveProgressListener(parent->getProgressListener());
         ld->startFunc(
-            sigc::bind(sigc::mem_fun(img, &rtengine::IImagefloat::saveAsTIFF),
+            sigc::bind(sigc::mem_fun(img, &art::engine::IImagefloat::saveAsTIFF),
                        fileName, sf.tiffBits, sf.tiffFloat,
                        sf.tiffUncompressed),
             sigc::bind(sigc::mem_fun(*this, &EditorPanel::idle_sentToGimp), ld,
@@ -2501,7 +2501,7 @@ bool EditorPanel::idle_sendToGimp(
 }
 
 bool EditorPanel::idle_sentToGimp(ProgressConnector<int> *pc,
-                                  rtengine::IImagefloat *img,
+                                  art::engine::IImagefloat *img,
                                   Glib::ustring filename)
 {
     img->free();
@@ -2539,14 +2539,14 @@ bool EditorPanel::idle_sentToGimp(ProgressConnector<int> *pc,
 }
 
 void EditorPanel::historyBeforeAfterChanged(
-    const rtengine::procparams::ProcParams &params)
+    const art::engine::procparams::ProcParams &params)
 {
 
     if (beforeIpc) {
         ProcParams *pparams = beforeIpc->beginUpdateParams();
         *pparams = params;
         beforeIpc->endUpdateParams(
-            rtengine::EvProfileChanged); // starts the IPC processing
+            art::engine::EvProfileChanged); // starts the IPC processing
     }
 }
 
@@ -2578,7 +2578,7 @@ void EditorPanel::beforeAfterToggled()
         beforePreviewHandler = nullptr;
 
         // if (beforeIpc) {
-        //     rtengine::StagedImageProcessor::destroy (beforeIpc);
+        //     art::engine::StagedImageProcessor::destroy (beforeIpc);
         // }
         // beforeIpc = nullptr;
         beforeIpc.reset();
@@ -2587,7 +2587,7 @@ void EditorPanel::beforeAfterToggled()
     if (beforeAfter->get_active()) {
 
         int errorCode = 0;
-        rtengine::InitialImage *beforeImg = rtengine::InitialImage::load(
+        art::engine::InitialImage *beforeImg = art::engine::InitialImage::load(
             isrc->getImageSource()->getFileName(), openThm->getType() == FT_Raw,
             &errorCode, nullptr);
 
@@ -2641,11 +2641,11 @@ void EditorPanel::beforeAfterToggled()
 
         beforePreviewHandler = new PreviewHandler();
 
-        beforeIpc.reset(rtengine::StagedImageProcessor::create(beforeImg));
+        beforeIpc.reset(art::engine::StagedImageProcessor::create(beforeImg));
         beforeIpc->setPreviewScale(10);
         beforeIpc->setPreviewImageListener(beforePreviewHandler);
         Glib::ustring monitorProfile;
-        rtengine::RenderingIntent intent;
+        art::engine::RenderingIntent intent;
         ipc->getMonitorProfile(monitorProfile, intent);
         beforeIpc->setMonitorProfile(monitorProfile, intent);
 
@@ -2673,7 +2673,7 @@ void EditorPanel::beforeAfterToggled()
             beforeIarea->imageArea->mainCropWindow = cw;
         }
 
-        rtengine::procparams::ProcParams params;
+        art::engine::procparams::ProcParams params;
 
         if (history->getBeforeAfterParams(params)) {
             historyBeforeAfterChanged(params);
@@ -2689,11 +2689,11 @@ void EditorPanel::tbBeforeLock_toggled()
 }
 
 void EditorPanel::histogramChanged(
-    const LUTu &histRed, const LUTu &histGreen, const LUTu &histBlue,
-    const LUTu &histLuma, const LUTu &histToneCurve, const LUTu &histLCurve,
-    const LUTu &histCCurve, const LUTu &histLCAM, const LUTu &histCCAM,
-    const LUTu &histRedRaw, const LUTu &histGreenRaw, const LUTu &histBlueRaw,
-    const LUTu &histChroma, const LUTu &histLRETI, int vectorscopeScale,
+    const art::engine::LUTu &histRed, const art::engine::LUTu &histGreen, const art::engine::LUTu &histBlue,
+    const art::engine::LUTu &histLuma, const art::engine::LUTu &histToneCurve, const art::engine::LUTu &histLCurve,
+    const art::engine::LUTu &histCCurve, const art::engine::LUTu &histLCAM, const art::engine::LUTu &histCCAM,
+    const art::engine::LUTu &histRedRaw, const art::engine::LUTu &histGreenRaw, const art::engine::LUTu &histBlueRaw,
+    const art::engine::LUTu &histChroma, const art::engine::LUTu &histLRETI, int vectorscopeScale,
     const array2D<int> &vectorscopeHC, const array2D<int> &vectorscopeHS,
     int waveformScale, const array2D<int> &waveformRed,
     const array2D<int> &waveformGreen, const array2D<int> &waveformBlue,
@@ -2712,7 +2712,7 @@ void EditorPanel::histogramChanged(
                                         histBlue, histLuma, histLRETI);
 }
 
-void EditorPanel::setObservable(rtengine::HistogramObservable *observable)
+void EditorPanel::setObservable(art::engine::HistogramObservable *observable)
 {
     histogram_observable = observable;
 }
@@ -2833,7 +2833,7 @@ void EditorPanel::tbShowHideSidePanels_managestate()
 }
 
 void EditorPanel::updateProfiles(const Glib::ustring &printerProfile,
-                                 rtengine::RenderingIntent printerIntent,
+                                 art::engine::RenderingIntent printerIntent,
                                  bool printerBPC)
 {
 }

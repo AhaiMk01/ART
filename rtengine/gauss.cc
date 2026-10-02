@@ -24,6 +24,18 @@
 #include <cmath>
 #include <cstdlib>
 
+#include <cmath>
+#include <cstring>
+#include <vector>
+#ifdef ART_USE_VULKAN
+#include "settings.h"
+#include "gpu/gpu.h"
+#include "gpu/vk_pass.h"
+#endif
+
+namespace art { namespace engine {
+
+
 namespace {
 
 template <class T> class AlignedMatrix {
@@ -34,7 +46,7 @@ public:
 private:
     int w_;
     int h_;
-    rtengine::AlignedBuffer<T> buf_;
+    art::engine::AlignedBuffer<T> buf_;
 };
 
 template <class T> class AlignedVector {
@@ -44,19 +56,19 @@ public:
 
 private:
     int w_;
-    rtengine::AlignedBuffer<T> buf_;
+    art::engine::AlignedBuffer<T> buf_;
 };
 
 void compute7x7kernel(float sigma, float kernel[7][7])
 {
-    const double temp = -2.f * rtengine::SQR(sigma);
+    const double temp = -2.f * art::engine::SQR(sigma);
     float sum = 0.f;
     for (int i = -3; i <= 3; ++i) {
         for (int j = -3; j <= 3; ++j) {
-            if ((rtengine::SQR(i) + rtengine::SQR(j)) <=
-                rtengine::SQR(3.0 * 1.15)) {
+            if ((art::engine::SQR(i) + art::engine::SQR(j)) <=
+                art::engine::SQR(3.0 * 1.15)) {
                 kernel[i + 3][j + 3] =
-                    std::exp((rtengine::SQR(i) + rtengine::SQR(j)) / temp);
+                    std::exp((art::engine::SQR(i) + art::engine::SQR(j)) / temp);
                 sum += kernel[i + 3][j + 3];
             } else {
                 kernel[i + 3][j + 3] = 0.f;
@@ -73,14 +85,14 @@ void compute7x7kernel(float sigma, float kernel[7][7])
 
 void compute5x5kernel(float sigma, float kernel[5][5])
 {
-    const double temp = -2.f * rtengine::SQR(sigma);
+    const double temp = -2.f * art::engine::SQR(sigma);
     float sum = 0.f;
     for (int i = -2; i <= 2; ++i) {
         for (int j = -2; j <= 2; ++j) {
-            if ((rtengine::SQR(i) + rtengine::SQR(j)) <=
-                rtengine::SQR(3.0 * 0.84)) {
+            if ((art::engine::SQR(i) + art::engine::SQR(j)) <=
+                art::engine::SQR(3.0 * 0.84)) {
                 kernel[i + 2][j + 2] =
-                    std::exp((rtengine::SQR(i) + rtengine::SQR(j)) / temp);
+                    std::exp((art::engine::SQR(i) + art::engine::SQR(j)) / temp);
                 sum += kernel[i + 2][j + 2];
             } else {
                 kernel[i + 2][j + 2] = 0.f;
@@ -252,16 +264,16 @@ void gauss3x3div(T **RESTRICT src, T **RESTRICT dst, T **RESTRICT divBuffer,
 #pragma omp single nowait
 #endif
     {
-        dst[0][0] = rtengine::max(
+        dst[0][0] = art::engine::max(
             divBuffer[0][0] / (src[0][0] > 0.f ? src[0][0] : 1.f), 0.f);
 
         for (int j = 1; j < W - 1; j++) {
             float tmp = (b1 * (src[0][j - 1] + src[0][j + 1]) + b0 * src[0][j]);
             dst[0][j] =
-                rtengine::max(divBuffer[0][j] / (tmp > 0.f ? tmp : 1.f), 0.f);
+                art::engine::max(divBuffer[0][j] / (tmp > 0.f ? tmp : 1.f), 0.f);
         }
 
-        dst[0][W - 1] = rtengine::max(
+        dst[0][W - 1] = art::engine::max(
             divBuffer[0][W - 1] / (src[0][W - 1] > 0.f ? src[0][W - 1] : 1.f),
             0.f);
     }
@@ -273,7 +285,7 @@ void gauss3x3div(T **RESTRICT src, T **RESTRICT dst, T **RESTRICT divBuffer,
     for (int i = 1; i < H - 1; i++) {
         float tmp = (b1 * (src[i - 1][0] + src[i + 1][0]) + b0 * src[i][0]);
         dst[i][0] =
-            rtengine::max(divBuffer[i][0] / (tmp > 0.f ? tmp : 1.f), 0.f);
+            art::engine::max(divBuffer[i][0] / (tmp > 0.f ? tmp : 1.f), 0.f);
 
         for (int j = 1; j < W - 1; j++) {
             tmp = (c2 * (src[i - 1][j - 1] + src[i - 1][j + 1] +
@@ -282,13 +294,13 @@ void gauss3x3div(T **RESTRICT src, T **RESTRICT dst, T **RESTRICT divBuffer,
                          src[i + 1][j]) +
                    c0 * src[i][j]);
             dst[i][j] =
-                rtengine::max(divBuffer[i][j] / (tmp > 0.f ? tmp : 1.f), 0.f);
+                art::engine::max(divBuffer[i][j] / (tmp > 0.f ? tmp : 1.f), 0.f);
         }
 
         tmp =
             (b1 * (src[i - 1][W - 1] + src[i + 1][W - 1]) + b0 * src[i][W - 1]);
         dst[i][W - 1] =
-            rtengine::max(divBuffer[i][W - 1] / (tmp > 0.f ? tmp : 1.f), 0.f);
+            art::engine::max(divBuffer[i][W - 1] / (tmp > 0.f ? tmp : 1.f), 0.f);
     }
 
     // last row
@@ -296,18 +308,18 @@ void gauss3x3div(T **RESTRICT src, T **RESTRICT dst, T **RESTRICT divBuffer,
 #pragma omp single
 #endif
     {
-        dst[H - 1][0] = rtengine::max(
+        dst[H - 1][0] = art::engine::max(
             divBuffer[H - 1][0] / (src[H - 1][0] > 0.f ? src[H - 1][0] : 1.f),
             0.f);
 
         for (int j = 1; j < W - 1; j++) {
             float tmp = (b1 * (src[H - 1][j - 1] + src[H - 1][j + 1]) +
                          b0 * src[H - 1][j]);
-            dst[H - 1][j] = rtengine::max(
+            dst[H - 1][j] = art::engine::max(
                 divBuffer[H - 1][j] / (tmp > 0.f ? tmp : 1.f), 0.f);
         }
 
-        dst[H - 1][W - 1] = rtengine::max(
+        dst[H - 1][W - 1] = art::engine::max(
             divBuffer[H - 1][W - 1] /
                 (src[H - 1][W - 1] > 0.f ? src[H - 1][W - 1] : 1.f),
             0.f);
@@ -1354,7 +1366,7 @@ void gaussVerticalSsediv(T **src, T **dst, T **divBuffer, const int W,
         }
 
         for (int j = 0; j < H; j++) {
-            dst[j][i] = rtengine::max(
+            dst[j][i] = art::engine::max(
                 divBuffer[j][i] / (tmp[j][0] > 0.f ? tmp[j][0] : 1.f), 0.f);
         }
     }
@@ -1540,15 +1552,15 @@ void gaussVerticaldiv(T **src, T **dst, T **divBuffer, const int W, const int H,
         }
 
         for (int k = 0; k < numcols; k++) {
-            dst[H - 1][i + k] = rtengine::max(
+            dst[H - 1][i + k] = art::engine::max(
                 divBuffer[H - 1][i + k] / (temp2[H - 1][k] = temp2Hm1[k]), 0.0);
-            dst[H - 2][i + k] = rtengine::max(
+            dst[H - 2][i + k] = art::engine::max(
                 divBuffer[H - 2][i + k] /
                     (temp2[H - 2][k] = B * temp2[H - 2][k] +
                                        b1 * temp2[H - 1][k] + b2 * temp2H[k] +
                                        b3 * temp2Hp1[k]),
                 0.0);
-            dst[H - 3][i + k] = rtengine::max(
+            dst[H - 3][i + k] = art::engine::max(
                 divBuffer[H - 3][i + k] /
                     (temp2[H - 3][k] = B * temp2[H - 3][k] +
                                        b1 * temp2[H - 2][k] +
@@ -1558,7 +1570,7 @@ void gaussVerticaldiv(T **src, T **dst, T **divBuffer, const int W, const int H,
 
         for (int j = H - 4; j >= 0; j--) {
             for (int k = 0; k < numcols; k++) {
-                dst[j][i + k] = rtengine::max(
+                dst[j][i + k] = art::engine::max(
                     divBuffer[j][i + k] /
                         (temp2[j][k] = B * temp2[j][k] + b1 * temp2[j + 1][k] +
                                        b2 * temp2[j + 2][k] +
@@ -1599,21 +1611,21 @@ void gaussVerticaldiv(T **src, T **dst, T **divBuffer, const int W, const int H,
                           M[2][1] * (temp2[H - 2][0] - src[H - 1][i]) +
                           M[2][2] * (temp2[H - 3][0] - src[H - 1][i]);
 
-        dst[H - 1][i] = rtengine::max(
+        dst[H - 1][i] = art::engine::max(
             divBuffer[H - 1][i] / (temp2[H - 1][0] = temp2Hm1), 0.0);
-        dst[H - 2][i] = rtengine::max(
+        dst[H - 2][i] = art::engine::max(
             divBuffer[H - 2][i] /
                 (temp2[H - 2][0] = B * temp2[H - 2][0] + b1 * temp2[H - 1][0] +
                                    b2 * temp2H + b3 * temp2Hp1),
             0.0);
-        dst[H - 3][i] = rtengine::max(
+        dst[H - 3][i] = art::engine::max(
             divBuffer[H - 3][i] /
                 (temp2[H - 3][0] = B * temp2[H - 3][0] + b1 * temp2[H - 2][0] +
                                    b2 * temp2[H - 1][0] + b3 * temp2H),
             0.0);
 
         for (int j = H - 4; j >= 0; j--) {
-            dst[j][i] = rtengine::max(
+            dst[j][i] = art::engine::max(
                 divBuffer[j][i] /
                     (temp2[j][0] = B * temp2[j][0] + b1 * temp2[j + 1][0] +
                                    b2 * temp2[j + 2][0] + b3 * temp2[j + 3][0]),
@@ -1793,10 +1805,10 @@ void gaussianBlurImpl(T **src, T **dst, const int W, const int H,
             sizes[i] = ((i < m ? wl : wu) - 1) / 2;
         }
 
-        rtengine::boxblur(src, dst, buffer, sizes[0], sizes[0], W, H);
+        art::engine::boxblur(src, dst, buffer, sizes[0], sizes[0], W, H);
 
         for (int i = 1; i < n; i++) {
-            rtengine::boxblur(dst, dst, buffer, sizes[i], sizes[i], W, H);
+            art::engine::boxblur(dst, dst, buffer, sizes[i], sizes[i], W, H);
         }
     } else {
         if (sigma < GAUSS_SKIP) {
@@ -1811,8 +1823,8 @@ void gaussianBlurImpl(T **src, T **dst, const int W, const int H,
                 // If src != dst we can take the fast way
                 // compute 3x3 kernel values
                 double c0 = 1.0;
-                double c1 = exp(-0.5 * (rtengine::SQR(1.0 / sigma)));
-                double c2 = exp(-rtengine::SQR(1.0 / sigma));
+                double c1 = exp(-0.5 * (art::engine::SQR(1.0 / sigma)));
+                double c2 = exp(-art::engine::SQR(1.0 / sigma));
 
                 // normalize kernel values
                 double sum = c0 + 4.0 * (c1 + c2);
@@ -1942,15 +1954,7 @@ void gaussianBlur(float **src, float **dst, const int W, const int H,
 
 #ifdef ART_USE_VULKAN
 
-#include "settings.h"
-#include "gpu/gpu.h"
-#include "gpu/vk_pass.h"
 
-#include <cmath>
-#include <cstring>
-#include <vector>
-
-namespace rtengine {
 
 extern const Settings *settings;
 
@@ -2020,6 +2024,8 @@ bool gaussianBlurPasses(Pass &pass, Buffer &a, Buffer &b, Buffer &weights,
 
 } // namespace ops
 } // namespace gpu
-} // namespace rtengine
 
 #endif // ART_USE_VULKAN
+
+
+} } // namespace art::engine

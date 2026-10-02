@@ -135,7 +135,7 @@ bool UserCommand::matches(const std::vector<Thumbnail *> &args) const
         }
         if (!extensions.empty()) {
             auto ext = std::string(
-                rtengine::getFileExtension(args[i]->getFileName()).lowercase());
+                art::engine::getFileExtension(args[i]->getFileName()).lowercase());
             if (std::find(extensions.begin(), extensions.end(), ext) ==
                 extensions.end()) {
                 return false;
@@ -153,7 +153,7 @@ void UserCommand::execute(const std::vector<Thumbnail *> &args) const
     }
 
     std::vector<Glib::ustring> argv =
-        rtengine::subprocess::split_command_line(command);
+        art::engine::subprocess::split_command_line(command);
 
     for (auto &t : args) {
         t->updateCache(true, false);
@@ -163,10 +163,10 @@ void UserCommand::execute(const std::vector<Thumbnail *> &args) const
     const auto doit = [=](bool verb) -> void {
         try {
             PathSetter ps;
-            rtengine::subprocess::exec_sync(
+            art::engine::subprocess::exec_sync(
                 UserCommandStore::getInstance()->dir(), argv, true, nullptr,
                 nullptr);
-        } catch (rtengine::subprocess::error &exc) {
+        } catch (art::engine::subprocess::error &exc) {
             if (verb) {
                 std::cerr << "Failed to execute \"" << command
                           << "\": " << exc.what() << std::endl;
@@ -180,16 +180,16 @@ void UserCommand::execute(const std::vector<Thumbnail *> &args) const
 void UserCommand::executeWithDirectory(const Glib::ustring &path) const
 {
     std::vector<Glib::ustring> argv =
-        rtengine::subprocess::split_command_line(command);
+        art::engine::subprocess::split_command_line(command);
     argv.push_back(path);
 
     const auto doit = [=](bool verb) -> void {
         try {
             PathSetter ps;
-            rtengine::subprocess::exec_sync(
+            art::engine::subprocess::exec_sync(
                 UserCommandStore::getInstance()->dir(), argv, true, nullptr,
                 nullptr);
-        } catch (rtengine::subprocess::error &exc) {
+        } catch (art::engine::subprocess::error &exc) {
             if (verb) {
                 std::cerr << "Failed to execute \"" << command
                           << "\": " << exc.what() << std::endl;
@@ -240,7 +240,7 @@ void UserCommandStore::init(const Glib::ustring &dirname)
         std::sort(dirlist.begin(), dirlist.end());
 
         for (auto &filename : dirlist) {
-            auto ext = rtengine::getFileExtension(filename).lowercase();
+            auto ext = art::engine::getFileExtension(filename).lowercase();
             if (ext != "txt") {
                 continue;
             }
@@ -365,7 +365,7 @@ bool spawnCommandAsync(const Glib::ustring &cmd)
 {
     try {
         Glib::spawn_async("", Glib::shell_parse_argv(cmd),
-                          rtengine::subprocess::get_env(),
+                          art::engine::subprocess::get_env(),
                           Glib::SPAWN_SEARCH_PATH_FROM_ENVP);
 
         return true;
@@ -387,7 +387,7 @@ bool spawnCommandSync(const Glib::ustring &cmd)
 
     try {
         Glib::spawn_sync("", Glib::shell_parse_argv(cmd),
-                         rtengine::subprocess::get_env(),
+                         art::engine::subprocess::get_env(),
                          Glib::SPAWN_SEARCH_PATH_FROM_ENVP, {}, nullptr,
                          nullptr, &exitStatus);
     } catch (const Glib::Exception &exception) {
@@ -405,11 +405,11 @@ bool openInGimp(const Glib::ustring &fileName)
 {
 #if defined WIN32
 
-    auto executable = rtengine::subprocess::to_wstr(
+    auto executable = art::engine::subprocess::to_wstr(
         Glib::build_filename(options.gimpDir, "bin", "gimp-win-remote"));
-    auto fn = rtengine::subprocess::quote(
-        rtengine::subprocess::to_wstr(fileName)); //'"' + fileName + '"';
-    auto open = rtengine::subprocess::to_wstr("open");
+    auto fn = art::engine::subprocess::quote(
+        art::engine::subprocess::to_wstr(fileName)); //'"' + fileName + '"';
+    auto open = art::engine::subprocess::to_wstr("open");
     auto success = ShellExecuteW(NULL, open.c_str(), executable.c_str(),
                                  fn.c_str(), NULL, SW_SHOWNORMAL);
 
@@ -442,7 +442,7 @@ bool openInGimp(const Glib::ustring &fileName)
     for (auto major = 3; major >= 2; --major) {
         for (auto minor = (major == 3 ? 1 : 12); minor >= 0; --minor) {
 
-            executable = rtengine::subprocess::to_wstr(Glib::build_filename(
+            executable = art::engine::subprocess::to_wstr(Glib::build_filename(
                 options.gimpDir, "bin",
                 Glib::ustring::compose(Glib::ustring("gimp-%1.%2.exe"), major,
                                        minor)));
@@ -475,11 +475,11 @@ bool openInPhotoshop(const Glib::ustring &fileName)
 {
 #if defined WIN32
 
-    const auto executable = rtengine::subprocess::to_wstr(
+    const auto executable = art::engine::subprocess::to_wstr(
         Glib::build_filename(options.psDir, "Photoshop.exe"));
     const auto fn =
-        rtengine::subprocess::quote(rtengine::subprocess::to_wstr(fileName));
-    auto open = rtengine::subprocess::to_wstr("open");
+        art::engine::subprocess::quote(art::engine::subprocess::to_wstr(fileName));
+    auto open = art::engine::subprocess::to_wstr("open");
     auto success = ShellExecuteW(NULL, open.c_str(), executable.c_str(),
                                  fn.c_str(), NULL, SW_SHOWNORMAL);
     return (uintptr_t)success > 32;
@@ -506,10 +506,10 @@ bool openInCustomEditor(const Glib::ustring &fileName)
 #if defined WIN32
 
     const auto cmdLine =
-        rtengine::subprocess::to_wstr(options.customEditorProg);
+        art::engine::subprocess::to_wstr(options.customEditorProg);
     auto fn =
-        rtengine::subprocess::quote(rtengine::subprocess::to_wstr(fileName));
-    auto open = rtengine::subprocess::to_wstr("open");
+        art::engine::subprocess::quote(art::engine::subprocess::to_wstr(fileName));
+    auto open = art::engine::subprocess::to_wstr("open");
     auto success = ShellExecuteW(NULL, open.c_str(), cmdLine.c_str(),
                                  fn.c_str(), NULL, SW_SHOWNORMAL);
     return (uintptr_t)success > 32;

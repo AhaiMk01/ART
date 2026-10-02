@@ -22,6 +22,9 @@
 #include <glibmm.h>
 #include <vector>
 
+namespace art { namespace engine {
+
+
 class DynamicProfileRule {
 public:
     template <class T> struct Range {
@@ -49,12 +52,12 @@ public:
 
         explicit CustomMetadata(bool e = false): value(), enabled(e) {}
 
-        bool operator()(const rtengine::FramesMetaData *m) const;
+        bool operator()(const art::engine::FramesMetaData *m) const;
         bool operator()(const Glib::ustring &filename) const;
     };
 
     DynamicProfileRule();
-    bool matches(const rtengine::FramesMetaData *im) const;
+    bool matches(const art::engine::FramesMetaData *im) const;
     bool operator<(const DynamicProfileRule &other) const;
 
     int serial_number;
@@ -89,3 +92,6 @@ public:
 private:
     static Glib::ustring builtin_rules_file_;
 };
+
+
+} } // namespace art::engine

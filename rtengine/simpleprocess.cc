@@ -36,7 +36,7 @@
 
 #undef THREAD_PRIORITY_NORMAL
 
-namespace rtengine {
+namespace art { namespace engine {
 extern const Settings *settings;
 
 namespace {
@@ -696,4 +696,4 @@ void startBatchProcessing(ProcessingJob *job, BatchProcessingListener *bpl)
     }
 }
 
-} // namespace rtengine
+}} // namespace art::engine

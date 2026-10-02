@@ -23,8 +23,8 @@
 #include <cmath>
 #include <iomanip>
 
-using namespace rtengine;
-using namespace rtengine::procparams;
+using namespace art::engine;
+using namespace art::engine::procparams;
 extern Options options;
 
 Denoise::Denoise()
@@ -33,16 +33,16 @@ Denoise::Denoise()
 {
     auto m = ProcEventMapper::getInstance();
     EvGuidedChromaRadius =
-        m->newEvent(rtengine::HDR, "HISTORY_MSG_DENOISE_GUIDED_CHROMA_RADIUS");
+        m->newEvent(art::engine::HDR, "HISTORY_MSG_DENOISE_GUIDED_CHROMA_RADIUS");
     EvChrominanceAutoFactor = m->newEvent(
-        rtengine::HDR, "HISTORY_MSG_DENOISE_CHROMINANCE_AUTO_FACTOR");
+        art::engine::HDR, "HISTORY_MSG_DENOISE_CHROMINANCE_AUTO_FACTOR");
     EvLuminanceDetailThreshold = m->newEvent(
-        rtengine::HDR, "HISTORY_MSG_DENOISE_LUMINANCE_DETAIL_THRESHOLD");
-    EvColorSpace = m->newEvent(rtengine::HDR, "HISTORY_MSG_203");
-    EvNlDetail = m->newEvent(rtengine::HDR, "HISTORY_MSG_DENOISE_NL_DETAIL");
+        art::engine::HDR, "HISTORY_MSG_DENOISE_LUMINANCE_DETAIL_THRESHOLD");
+    EvColorSpace = m->newEvent(art::engine::HDR, "HISTORY_MSG_203");
+    EvNlDetail = m->newEvent(art::engine::HDR, "HISTORY_MSG_DENOISE_NL_DETAIL");
     EvNlStrength =
-        m->newEvent(rtengine::HDR, "HISTORY_MSG_DENOISE_NL_STRENGTH");
-    EvToolReset.set_action(rtengine::HDR);
+        m->newEvent(art::engine::HDR, "HISTORY_MSG_DENOISE_NL_STRENGTH");
+    EvToolReset.set_action(art::engine::HDR);
 
     Gtk::Frame *lumaFrame =
         Gtk::manage(new Gtk::Frame(M("TP_DIRPYRDENOISE_LUMINANCE_FRAME")));
@@ -224,7 +224,7 @@ void Denoise::read(const ProcParams *pp)
     aggressive->set_active(pp->denoise.aggressive ? 1 : 0);
     colorSpace->set_active(
         pp->denoise.colorSpace ==
-                rtengine::procparams::DenoiseParams::ColorSpace::LAB
+                art::engine::procparams::DenoiseParams::ColorSpace::LAB
             ? 1
             : 0);
     gamma->setValue(pp->denoise.gamma);
@@ -256,8 +256,8 @@ void Denoise::write(ProcParams *pp)
     }
     pp->denoise.colorSpace =
         colorSpace->get_active_row_number() == 1
-            ? rtengine::procparams::DenoiseParams::ColorSpace::LAB
-            : rtengine::procparams::DenoiseParams::ColorSpace::RGB;
+            ? art::engine::procparams::DenoiseParams::ColorSpace::LAB
+            : art::engine::procparams::DenoiseParams::ColorSpace::RGB;
     pp->denoise.gamma = gamma->getValue();
     pp->denoise.luminance = luminance->getValue();
     pp->denoise.luminanceDetail = luminanceDetail->getValue();
@@ -383,7 +383,7 @@ void Denoise::smoothingEnabledToggled()
     }
 }
 
-void Denoise::trimValues(rtengine::procparams::ProcParams *pp)
+void Denoise::trimValues(art::engine::procparams::ProcParams *pp)
 {
     luminance->trimValue(pp->denoise.luminance);
     luminanceDetail->trimValue(pp->denoise.luminanceDetail);

@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-namespace rtengine {
+namespace art { namespace engine {
 
 namespace {
 
@@ -319,17 +319,17 @@ void ColorTemp::clip(double &temp, double &green) const
     if (temp < MINTEMP || temp > MAXTEMP) {
         clipped_ = true;
     }
-    temp = rtengine::LIM(temp, MINTEMP, MAXTEMP);
+    temp = art::engine::LIM(temp, MINTEMP, MAXTEMP);
     if (green < MINGREEN || green > MAXGREEN) {
         clipped_ = true;
     }
-    green = rtengine::LIM(green, MINGREEN, MAXGREEN);
+    green = art::engine::LIM(green, MINGREEN, MAXGREEN);
 }
 
 void ColorTemp::clip(double &temp, double &green, double &equal) const
 {
     clip(temp, green);
-    equal = rtengine::LIM(equal, MINEQUAL, MAXEQUAL);
+    equal = art::engine::LIM(equal, MINEQUAL, MAXEQUAL);
 }
 
 ColorTemp::ColorTemp(double mulr, double mulg, double mulb, double e)
@@ -398,7 +398,7 @@ void ColorTemp::temp2mul(double temp, double green, double equal, double &rmul,
     //};
     gmul /= green;
     // printf("rmul=%f gmul=%f bmul=%f\n",rmul, gmul, bmul);
-    double maxRGB = rtengine::max(rmul, gmul, bmul);
+    double maxRGB = art::engine::max(rmul, gmul, bmul);
 
     rmul /= maxRGB;
     gmul /= maxRGB;
@@ -461,4 +461,4 @@ bool ColorTemp::operator!=(const ColorTemp &other) const
     return !(*this == other);
 }
 
-} // namespace rtengine
+}} // namespace art::engine

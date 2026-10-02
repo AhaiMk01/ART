@@ -17,8 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _IIMAGE_
-#define _IIMAGE_
+#pragma once
 
 #include "../rtgui/threadutils.h"
 #include "LUT.h"
@@ -45,7 +44,7 @@
 #define CHECK_BOUNDS 0
 #endif
 
-namespace rtengine {
+namespace art { namespace engine {
 
 extern const char sImage8[];
 extern const char sImage16[];
@@ -1842,6 +1841,4 @@ public:
     ~IImage16() override {}
 };
 
-} // namespace rtengine
-
-#endif
+}} // namespace art::engine

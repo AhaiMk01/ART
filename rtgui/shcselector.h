@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _SHCSELECTOR_
-#define _SHCSELECTOR_
+#pragma once
 
 #include "coloredbar.h"
 #include <gtkmm.h>
@@ -87,5 +86,3 @@ public:
     bool reset();
     void refresh();
 };
-
-#endif

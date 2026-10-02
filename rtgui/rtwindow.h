@@ -16,8 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef _RTWINDOW_
-#define _RTWINDOW_
+#pragma once
 
 #include "batchqueuepanel.h"
 #include "editorpanel.h"
@@ -55,7 +54,7 @@ protected:
     sigc::connection reveal_conn_;
 };
 
-class RTWindow: public MessageWindow, public rtengine::ProgressListener {
+class RTWindow: public MessageWindow, public art::engine::ProgressListener {
 public:
     RTWindow();
     ~RTWindow() override;
@@ -90,7 +89,7 @@ public:
     void showInfo(const Glib::ustring &msg, double duration) override;
     void showError(const Glib::ustring &msg) override;
 
-    rtengine::ProgressListener *getProgressListener() { return pldBridge; }
+    art::engine::ProgressListener *getProgressListener() { return pldBridge; }
 
     EditorPanel *epanel;
     FilePanel *fpanel;
@@ -101,7 +100,7 @@ public:
     void MoveFileBrowserToMain();
 
     void updateProfiles(const Glib::ustring &printerProfile,
-                        rtengine::RenderingIntent printerIntent,
+                        art::engine::RenderingIntent printerIntent,
                         bool printerBPC);
     void updateTPVScrollbar(bool hide);
     void updateHistogramPosition(int oldPosition, int newPosition);
@@ -167,5 +166,3 @@ private:
     IdleRegister idle_register;
     bool is_application_;
 };
-
-#endif
