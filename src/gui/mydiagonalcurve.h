@@ -1,0 +1,123 @@
+/* -*- C++ -*-
+ *
+ *  This file is part of RawTherapee.
+ *
+ *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *
+ *  RawTherapee is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  RawTherapee is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ */
+#pragma once
+
+#include "../engine/LUT.h"
+#include "cursormanager.h"
+#include "curvelistener.h"
+#include "mycurve.h"
+#include "../utils/curvetypes.h"
+#include <gtkmm.h>
+#include <vector>
+
+namespace art { namespace gui {
+using namespace utils;
+
+
+
+class DiagonalCurveDescr {
+
+public:
+    DiagonalCurveType type;
+    std::vector<double> x,
+        y; // in case of parametric curves the curve parameters are stored in
+           // vector x. In other cases these vectors store the coordinates of
+           // the bullets.
+};
+
+class CurveBackgroundProvider {
+public:
+    virtual ~CurveBackgroundProvider() = default;
+    virtual void renderCurveBackground(int caller_id,
+                                       Glib::RefPtr<Gtk::StyleContext> style,
+                                       Cairo::RefPtr<Cairo::Context> cr,
+                                       double x, double y, double w,
+                                       double h) = 0;
+};
+
+class MyDiagonalCurve: public MyCurve {
+private:
+    IdleRegister idle_register;
+
+protected:
+    DiagonalCurveDescr curve;
+    int grab_point;    // the point that the user is moving by mouse
+    int closest_point; // the point that is the closest from the cursor
+    int lit_point;     // the point that is lit when the cursor is near it
+    double clampedX;   // clamped grabbed point X coordinates in the [0;1] range
+    double clampedY;   // clamped grabbed point Y coordinates in the [0;1] range
+    double deltaX;    // signed X distance of the cursor between two consecutive
+                      // MOTION_NOTIFY
+    double deltaY;    // signed Y distance of the cursor between two consecutive
+                      // MOTION_NOTIFY
+    double distanceX; // X distance from the cursor to the closest point
+    double distanceY; // Y distance from the cursor to the closest point
+    double ugpX;      // unclamped grabbed point X coordinate in the graph
+    double ugpY;      // unclamped grabbed point Y coordinate in the graph
+    int activeParam;
+    unsigned int *bghist; // histogram values
+    bool bghistvalid;
+    CurveBackgroundProvider *bp_;
+    int bp_id_;
+
+    void draw(int handle);
+    void interpolate();
+    void findClosestPoint();
+    CursorShape motionNotify(CursorShape type, double minDistanceX,
+                             double minDistanceY, int num);
+    std::vector<double> get_vector(int veclen) override;
+    void get_LUT(art::engine::LUTf &lut);
+    // Get the cursor position and unclamped position from the curve given an X
+    // value ; BEWARE: can be time consuming, use with care
+    void getCursorPositionFromCurve(float x);
+    void getCursorPositionFromCurve(int x);
+    // Get the cursor position and unclamped value depending on cursor's
+    // position in the graph
+    void getCursorPosition(Gdk::EventType evType, bool isHint, int evX, int evY,
+                           Gdk::ModifierType modifierKey);
+
+public:
+    MyDiagonalCurve();
+    ~MyDiagonalCurve() override;
+    std::vector<double> getPoints() override;
+    void setPoints(const std::vector<double> &p) override;
+    void setType(DiagonalCurveType t);
+    bool on_draw(const ::Cairo::RefPtr<Cairo::Context> &cr) override;
+    bool handleEvents(GdkEvent *event) override;
+    void setActiveParam(int ac);
+    void reset(const std::vector<double> &resetCurve,
+               double identityValue = 0.5) override;
+    void updateBackgroundHistogram(art::engine::LUTu &hist);
+
+    void pipetteMouseOver(CurveEditor *ce, EditDataProvider *provider,
+                          int modifierKey) override;
+    bool pipetteButton1Pressed(EditDataProvider *provider,
+                               int modifierKey) override;
+    void pipetteButton1Released(EditDataProvider *provider) override;
+    void pipetteDrag(EditDataProvider *provider, int modifierKey) override;
+
+    void setPos(double pos, int chanIdx) override;
+    void stopNumericalAdjustment() override;
+
+    void setBackgroundProvider(CurveBackgroundProvider *bp, int caller_id);
+};
+
+
+} } // namespace art::gui

@@ -146,11 +146,11 @@ if(WIN32)
     # set part of the output archive name
     set(SYSTEM_NAME "WinVista")
 
-    configure_file("${PROJECT_SOURCE_DIR}/tools/win/InnoSetup/WindowsInnoSetup.iss.in" "${CMAKE_BINARY_DIR}/rtdata/WindowsInnoSetup.iss")
+    configure_file("${PROJECT_SOURCE_DIR}/tools/win/InnoSetup/WindowsInnoSetup.iss.in" "${CMAKE_BINARY_DIR}/data/WindowsInnoSetup.iss")
 endif(WIN32)
 
 # build version.h from template
-configure_file("${PROJECT_SOURCE_DIR}/rtgui/version.h.in" "${CMAKE_BINARY_DIR}/rtgui/version.h")
+configure_file("${PROJECT_SOURCE_DIR}/src/utils/version.h.in" "${CMAKE_BINARY_DIR}/src/utils/version.h")
 # build AboutThisBuild.txt from template
 configure_file("${PROJECT_SOURCE_DIR}/AboutThisBuild.txt.in" "${CMAKE_BINARY_DIR}/AboutThisBuild.txt")
 

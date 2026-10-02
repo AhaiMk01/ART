@@ -139,7 +139,7 @@ def extra_files(opts, msys_env, tempdir):
     # NOTE: nothing is bundled for the GPU backend on Windows: vulkan-1.dll
     # ships with the OS and with every GPU driver, and the vendor ICD comes
     # from the driver -- see the candidates() comment in
-    # rtengine/gpu/vk_api.cc.
+    # src/engine/gpu/vk_api.cc.
     return [
         ('.', [
             D('bin/gdbus.exe'),

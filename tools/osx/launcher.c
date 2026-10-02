@@ -30,7 +30,7 @@
  * kAEOpenDocuments Apple Event addressed to the process it launched, not on
  * argv. execv keeps the pid (and the process serial number), so the event
  * reaches the exec'd ART binary, where it is picked up by the
- * "NSApplicationOpenFile" handler installed in rtgui/main.cc. If the real
+ * "NSApplicationOpenFile" handler installed in src/gui/main.cc. If the real
  * binary ran as a child process instead - as it did with the shell script this
  * launcher replaces - the event would be delivered to the parent and dropped.
  *
@@ -65,7 +65,7 @@
 
 extern char **environ;
 
-/* rtengine/subprocess.cc (get_env) restores the value saved under this prefix
+/* src/engine/subprocess.cc (get_env) restores the value saved under this prefix
  * when spawning helper programs such as exiftool, so that they do not inherit
  * the bundle-private GTK environment set up below. A saved empty value means
  * "unset in the child", which is exactly what we want for variables that had

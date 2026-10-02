@@ -62,7 +62,7 @@ set(CACHE_NAME_SUFFIX "" CACHE STRING "ART's cache folder suffix")
 # Specify other values to optimize for specific processor architecture as listed in ProcessorTargets.cmake:
 set(PROC_TARGET_NUMBER 0 CACHE STRING "Selected target processor from the list above (taken from ProcessorTargets.cmake)")
 
-# Set special compilation flags for rtengine which get added to CMAKE_CXX_FLAGS:
+# Set special compilation flags for the engine (src/engine) which get added to CMAKE_CXX_FLAGS:
 # Some Linux distros build with -O2 instead of -O3. We explicitly enable auto vectorization by using -ftree-vectorize
 set(RTENGINE_CXX_FLAGS "-ftree-vectorize" CACHE STRING "Special compilation flags for RTEngine")
 
@@ -774,7 +774,7 @@ endif()
 
 # Remove files which could require manual work.
 # We will remove this after some time to have a clean build system without file modifications in the source tree again. (?)
-set(OOSB_FILES "${PROJECT_SOURCE_DIR}/rtdata/ART.desktop" "${PROJECT_SOURCE_DIR}/rtgui/version.h" "${PROJECT_SOURCE_DIR}/rtgui/config.h" "${PROJECT_SOURCE_DIR}/AboutThisBuild.txt")
+set(OOSB_FILES "${PROJECT_SOURCE_DIR}/data/ART.desktop" "${PROJECT_SOURCE_DIR}/src/utils/version.h" "${PROJECT_SOURCE_DIR}/src/utils/config.h" "${PROJECT_SOURCE_DIR}/AboutThisBuild.txt")
 if(OUT_OF_SOURCE_BUILD)
     foreach(f ${OOSB_FILES})
         file(REMOVE "${f}")
@@ -810,7 +810,7 @@ else()
 endif()
 
 
-# Get C++ and linker flags for rtengine (the GUI's C++ flags may have fewer flags):
+# Get C++ and linker flags for the engine (the GUI's C++ flags may have fewer flags):
 set(CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${UPPER_CMAKE_BUILD_TYPE}} ${RTENGINE_CXX_FLAGS}")
 set(LFLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_EXE_LINKER_FLAGS_${UPPER_CMAKE_BUILD_TYPE}}")
 
@@ -948,6 +948,7 @@ int main() { return 0; }
     endif()
 endif()
 
-add_subdirectory(rtengine)
-add_subdirectory(rtgui)
-add_subdirectory(rtdata)
+add_subdirectory(src/utils)
+add_subdirectory(src/engine)
+add_subdirectory(src/gui)
+add_subdirectory(data)

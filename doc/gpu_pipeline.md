@@ -1,6 +1,6 @@
 # The GPU pipeline in ART
 
-ART's Vulkan backend lives entirely under `rtengine/gpu/`. It's built around
+ART's Vulkan backend lives entirely under `src/engine/gpu/`. It's built around
 one hard rule stated at the top of `gpu.h`: **nothing here ever throws or
 aborts**. Every entry point returns `bool`/pointer, and a `false`/`null` means
 "run the existing CPU code instead." The GPU path is always an optional
@@ -240,7 +240,7 @@ mapped-only check used to guarantee everywhere.
 
 Each `.comp` shader source is compiled offline by `glslc` to SPIR-V at build
 time and embedded directly into the binary as byte arrays
-(`gpu_shaders_generated.cc`, generated from `rtengine/gpu/shaders/*.comp` via
+(`gpu_shaders_generated.cc`, generated from `src/engine/gpu/shaders/*.comp` via
 a `file(GLOB)` at configure time — see §4 for why that means adding/removing
 a `.comp` needs a re-`cmake`, while editing one's contents doesn't).
 `findShader()` (`vk_pipeline.cc:67`) looks
@@ -456,7 +456,7 @@ small `PC` (push-constant) struct matching the shader's
 Individual per-tool GPU implementations (like `gpu::ops::nlmeans_smoothing`
 in `ipsmoothing.cc:1699`) live next to their CPU counterpart in the same
 `.cc` file, gated by `#ifdef ART_USE_VULKAN`, rather than under
-`rtengine/gpu/`.
+`src/engine/gpu/`.
 
 The `.comp` files themselves are ordinary GLSL compute shaders.
 `log_lin.comp` is representative of the whole style:
@@ -602,7 +602,7 @@ easy to hit while editing a shader or its call site:
   symptom is not a validation error and not a wrong pixel, it's a device loss
   several dispatches later (see below), which reads like a driver problem and
   sends you looking at the wrong kernel.
-- **The shader list is a `file(GLOB)`** (`rtengine/CMakeLists.txt`) — matches
+- **The shader list is a `file(GLOB)`** (`src/engine/CMakeLists.txt`) — matches
   `findShader()`'s embedded-blob path (`gpu_shaders_generated.cc`, §2.3)
   being generated at configure time from whatever `.comp` files exist then.
   Adding or deleting a shader needs a re-`cmake`; editing one's contents

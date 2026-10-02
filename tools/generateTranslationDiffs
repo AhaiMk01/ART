@@ -8,7 +8,7 @@
 #
 # Developers should run it from the project root after receiving
 # a translation file from a translator:
-# cp /tmp/new_japanese_translation rtdata/languages/Japanese
+# cp /tmp/new_japanese_translation data/languages/Japanese
 # ./tools/generateTranslationDiffs "Japanese"
 #
 # Running the script without an argument iterates through all files.
@@ -31,7 +31,7 @@ abort () {
 trap 'abort' HUP INT QUIT ABRT TERM
 
 
-cd "rtdata/languages" || { printf "%s\n" "You must run this script from the root of the project."; exit 1; }
+cd "data/languages" || { printf "%s\n" "You must run this script from the root of the project."; exit 1; }
 # Build array of all interface translation files, or use user-specified ones only
 unset langFiles
 if [[ $# = 0 ]]; then

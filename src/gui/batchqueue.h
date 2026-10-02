@@ -1,0 +1,153 @@
+/* -*- C++ -*-
+ *
+ *  This file is part of RawTherapee.
+ *
+ *
+ *  RawTherapee is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  RawTherapee is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ */
+#pragma once
+
+#include <set>
+
+#include <gtkmm.h>
+
+#include "../engine/rtengine.h"
+
+#include "batchqueueentry.h"
+#include "lwbuttonset.h"
+#include "options.h"
+#include "../utils/threadutils.h"
+#include "thumbbrowserbase.h"
+
+namespace art { namespace gui {
+using namespace utils;
+
+
+class BatchQueueListener {
+
+public:
+    virtual ~BatchQueueListener() = default;
+    virtual void queueSizeChanged(int qsize, bool queueRunning, bool queueError,
+                                  const Glib::ustring &queueErrorMessage) = 0;
+    virtual bool canStartNext() = 0;
+    /** Called from the GUI thread with the pipeline time of the image that
+     * was just processed. */
+    virtual void lastExportTimes(const art::engine::PipelineTimes &t) {}
+};
+
+class FileCatalog;
+
+class BatchQueue final: public ThumbBrowserBase,
+                        public art::engine::BatchProcessingListener,
+                        public LWButtonListener {
+public:
+    explicit BatchQueue(FileCatalog *aFileCatalog);
+    ~BatchQueue() override;
+
+    void addEntries(const std::vector<BatchQueueEntry *> &entries,
+                    bool head = false, bool save = true);
+    void cancelItems(const std::vector<ThumbBrowserEntryBase *> &items)
+    {
+        cancelItems(items, false);
+    }
+    void cancelItems(const std::vector<ThumbBrowserEntryBase *> &items,
+                     bool immediately);
+    void headItems(const std::vector<ThumbBrowserEntryBase *> &items);
+    void tailItems(const std::vector<ThumbBrowserEntryBase *> &items);
+    void selectAll();
+    void openItemInEditor(ThumbBrowserEntryBase *item);
+    void openLastSelectedItemInEditor();
+
+    void startProcessing();
+
+    // Show or hide the reorder/cancel buttons on every queued thumbnail.
+    // The buttons are hidden while the queue is running and shown again when
+    // it is stopped or paused.
+    void setButtonSetsVisible(bool visible);
+
+    bool hasJobs()
+    {
+        MYREADERLOCK(l, entryRW);
+        return (!fd.empty());
+    }
+
+    void setProgress(double p) override;
+    void setProgressStr(const Glib::ustring &str) override;
+    void setProgressState(bool inProcessing) override;
+    void error(const Glib::ustring &descr) override;
+    void pipelineTimes(const art::engine::PipelineTimes &t) override;
+    art::engine::ProcessingJob *imageReady(art::engine::IImagefloat *img) override;
+
+    void rightClicked(ThumbBrowserEntryBase *entry) override;
+    void doubleClicked(ThumbBrowserEntryBase *entry) override;
+    bool keyPressed(GdkEventKey *event) override;
+    void buttonPressed(LWButton *button, int actionCode,
+                       void *actionData, int bstate) override;
+    void redrawNeeded(LWButton *button) override;
+
+    void setBatchQueueListener(BatchQueueListener *l) { listener = l; }
+
+    bool loadBatchQueue();
+    void resizeLoadedQueue();
+
+    static int calcMaxThumbnailHeight();
+
+    void setBatchProfile(const art::engine::procparams::PartialProfile *bp);
+    const art::engine::procparams::PartialProfile *getBatchProfile() override;
+
+private:
+    void cancelItems_(const std::vector<ThumbBrowserEntryBase *> &items)
+    {
+        cancelItems(items, false);
+    }
+    int getMaxThumbnailHeight() const override;
+    void saveThumbnailHeight(int height) override;
+    int getThumbnailHeight() override;
+
+    Glib::ustring autoCompleteFileName(const Glib::ustring &fileName,
+                                       const Glib::ustring &format);
+    Glib::ustring getTempFilenameForParams(const Glib::ustring &filename);
+    bool saveBatchQueue();
+    void notifyListener();
+
+    using ThumbBrowserBase::redrawEntryNeeded;
+
+    BatchQueueEntry *processing; // holds the currently processed image
+    FileCatalog *fileCatalog;
+    int sequence; // holds the current sequence index
+
+    Glib::ustring nameTemplate;
+
+    MyImageMenuItem *cancel;
+    MyImageMenuItem *head;
+    MyImageMenuItem *tail;
+    Gtk::MenuItem *selall;
+    Gtk::MenuItem *open;
+    Glib::RefPtr<Gtk::AccelGroup> pmaccelgroup;
+    Gtk::Menu pmenu;
+
+    BatchQueueListener *listener;
+
+    std::set<BatchQueueEntry *> removable_batch_queue_entries;
+    MyMutex mutex_removable_batch_queue_entries;
+
+    IdleRegister idle_register;
+
+    const art::engine::procparams::PartialProfile *batch_profile_;
+
+    std::unordered_map<std::string, std::string> format2ext_;
+};
+
+
+} } // namespace art::gui

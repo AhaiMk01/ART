@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Required variables, must be set in rtdata/CMakeLists.txt
+# Required variables, must be set in data/CMakeLists.txt
 # - PROJECT_NAME
 # - PROJECT_VERSION (if without git)
 # - PROJECT_SOURCE_DIR
@@ -287,7 +287,7 @@ cp -RL {"${LOCAL_PREFIX}","${RESOURCES}"}/share/mime
 
 msg "Installing required application bundle files:"
 PROJECT_SOURCE_DATA_DIR="${PROJECT_SOURCE_DIR}/tools/osx"
-cp -RL "${PROJECT_SOURCE_DIR}/rtdata/fonts" "${ETC}/fonts"
+cp -RL "${PROJECT_SOURCE_DIR}/data/fonts" "${ETC}/fonts"
 cp "${PROJECT_SOURCE_DIR}/LICENSE.txt" ${RESOURCES}
 
 # App bundle resources

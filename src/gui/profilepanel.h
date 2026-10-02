@@ -1,0 +1,114 @@
+/* -*- C++ -*-
+ *
+ *  This file is part of RawTherapee.
+ *
+ *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *
+ *  RawTherapee is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  RawTherapee is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ */
+#pragma once
+
+#include "../engine/rtengine.h"
+#include "guiutils.h"
+#include "partialpastedlg.h"
+#include "pparamschangelistener.h"
+#include "profilechangelistener.h"
+#include "profilestorecombobox.h"
+#include "rtimage.h"
+#include <gtkmm.h>
+#include <vector>
+
+namespace art { namespace gui {
+
+
+class ProfilePanel: public Gtk::Grid,
+                    public PParamsChangeListener,
+                    public art::engine::ProfileStoreListener {
+
+private:
+    art::engine::procparams::ProcParams stored_pp_;
+    Glib::ustring storedValue;
+    Glib::ustring lastFilename;
+    Glib::ustring imagePath;
+    RTImage *append_mode_on_image_;
+    RTImage *append_mode_off_image_;
+    Gtk::ToggleButton *append_mode_;
+    Gtk::TreeIter currRow;
+    art::engine::ProfileStoreEntry *lastSavedPSE;
+    art::engine::ProfileStoreEntry *customPSE;
+    art::engine::ProfileStoreEntry *defaultPSE;
+
+    void appendModeToggled();
+    bool isCustomSelected();
+    bool isLastSavedSelected();
+    bool isDefaultSelected();
+    Gtk::TreeIter getCustomRow();
+    Gtk::TreeIter getLastSavedRow();
+    Gtk::TreeIter addCustomRow();
+    Gtk::TreeIter addLastSavedRow();
+    Gtk::TreeIter addDefaultRow();
+
+    // protected:
+
+    static PartialPasteDlg *partialProfileDlg;
+    Gtk::Button *save;
+    Gtk::Button *load;
+    Gtk::Button *copy;
+    Gtk::Button *paste;
+    ProfileStoreComboBox *profiles;
+    art::engine::procparams::PartialProfile *custom;
+    art::engine::procparams::PartialProfile *lastsaved;
+    art::engine::procparams::PartialProfile *defprofile;
+    ProfileChangeListener *tpc;
+    bool dontupdate;
+    sigc::connection changeconn;
+    static Gtk::Window *parent;
+    void changeTo(const art::engine::procparams::PartialProfile *newpp,
+                  Glib::ustring profname);
+
+public:
+    explicit ProfilePanel();
+    ~ProfilePanel() override;
+
+    void setProfileChangeListener(ProfileChangeListener *ppl) { tpc = ppl; }
+
+    static void init(Gtk::Window *parentWindow);
+    static void cleanup();
+    void storeCurrentValue() override;
+    void updateProfileList() override;
+    void restoreValue() override;
+
+    void initProfile(const Glib::ustring &profileFullPath,
+                     art::engine::procparams::ProcParams *lastSaved,
+                     const art::engine::FramesMetaData *metadata);
+    void setInitialFileName(const Glib::ustring &filename);
+
+    // PParamsChangeListener interface
+    void procParamsChanged(const art::engine::procparams::ProcParams *params,
+                           const art::engine::ProcEvent &ev,
+                           const Glib::ustring &descr,
+                           const ParamsEdited *paramsEdited = nullptr) override;
+    void clearParamChanges() override;
+
+    // gui callbacks
+    void save_clicked(GdkEventButton *event);
+    void load_clicked(GdkEventButton *event);
+    void copy_clicked(GdkEventButton *event);
+    void paste_clicked(GdkEventButton *event);
+    void selection_changed();
+    void writeOptions();
+};
+
+
+} } // namespace art::gui

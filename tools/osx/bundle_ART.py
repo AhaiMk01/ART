@@ -65,12 +65,33 @@ def get_imageio_releases():
     return RelInfo(rel)
 
 
+def lc_rpaths(binary):
+    """The LC_RPATH entries of a Mach-O file, in order."""
+    r = subprocess.run(['otool', '-l', binary], capture_output=True,
+                       encoding='utf-8')
+    lines = r.stdout.splitlines()
+    res = []
+    for i, line in enumerate(lines):
+        if line.strip() == 'cmd LC_RPATH':
+            for l in lines[i+1:i+4]:
+                l = l.strip()
+                if l.startswith('path '):
+                    res.append(l[5:].split(' (offset')[0])
+                    break
+    return res
+
+
 def getdlls(opts):
     blacklist = ['/System/', '/usr/lib/']
     res = {}
     d = os.path.join(os.getcwd(), 'Contents/MacOS')
     to_process = [os.path.join(d, 'ART'),
                   os.path.join(getprefix(opts), 'bin/dbus-daemon')]
+    # like dyld, look for @rpath/ libraries in the rpaths of the library that
+    # needs them as well as in those of the main program, after the ones given
+    # with -r (a library such as libwebp finds its sibling libsharpyuv only
+    # via its own @loader_path/../lib)
+    main_rpaths = lc_rpaths(to_process[0])
     if opts.verbose:
         print('========== getdlls ==========')
     seen = set()
@@ -85,18 +106,25 @@ def getdlls(opts):
         r = subprocess.run(['otool', '-L', name], capture_output=True,
                            encoding='utf-8')
         out = r.stdout
+        search = list(opts.rpath or [])
+        if os.path.isabs(name):
+            loader = os.path.dirname(os.path.realpath(name))
+            for rp in lc_rpaths(name) + main_rpaths:
+                rp = rp.replace('@loader_path', loader)
+                rp = rp.replace('@executable_path', d)
+                if os.path.isabs(rp):
+                    search.append(os.path.normpath(rp))
         for line in out.splitlines()[1:]:
             line = line.strip()
             bits = line.split('(compatibility ')
             lib = bits[0].strip()
             if lib.startswith('@rpath/'):
                 bn = lib[7:]
-                if opts.rpath:
-                    for p in opts.rpath:
-                        plib = os.path.join(p, bn)
-                        if os.path.exists(plib):
-                            lib = plib
-                            break
+                for p in search:
+                    plib = os.path.join(p, bn)
+                    if os.path.exists(plib):
+                        lib = plib
+                        break
             if not any(lib.startswith(p) for p in blacklist):
                 key = os.path.basename(lib)
                 if key not in res:
@@ -183,12 +211,12 @@ def vulkan_files(opts, pref):
     (it finds the bundled copy through the
     "@executable_path/../Frameworks/libMoltenVK.dylib" candidate), which is
     why there is only ever one dylib to carry -- see the candidates() comment
-    in rtengine/gpu/vk_api.cc. The cost, documented there, is that Vulkan
+    in src/engine/gpu/vk_api.cc. The cost, documented there, is that Vulkan
     layers (validation) are a loader feature and so are unavailable on macOS.
 
     MoltenVK is dlopen'd, never linked, so getdlls() cannot find it; it has
     to be copied explicitly. Best-effort: the GPU backend is optional and
-    never fatal (rtengine/gpu/gpu.h), so if it isn't installed on the build
+    never fatal (src/engine/gpu/gpu.h), so if it isn't installed on the build
     machine the bundle just falls back to whatever the user has, exactly like
     an unbundled build."""
     name = 'libMoltenVK.dylib'

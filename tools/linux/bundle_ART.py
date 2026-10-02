@@ -178,7 +178,7 @@ def extra_files(opts):
     # must always win -- a libvulkan.so.1 copied into lib/ would be found
     # through the LD_LIBRARY_PATH the launcher script sets and would shadow
     # it -- and the vendor/mesa ICD comes from the host's own graphics stack.
-    # See the candidates() comment in rtengine/gpu/vk_api.cc.
+    # See the candidates() comment in src/engine/gpu/vk_api.cc.
 
 
 def main():
