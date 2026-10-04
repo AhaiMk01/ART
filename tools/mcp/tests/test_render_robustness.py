@@ -81,21 +81,32 @@ EDITS = [
 ]
 
 
-async def test_an_edit_during_a_render_waits_and_never_shows_half_of_itself(server, image, monkeypatch):
+async def test_an_edit_during_a_render_waits_and_never_shows_half_of_itself(
+    server, image, monkeypatch, tmp_path
+):
     done: dict[str, float] = {}
     previews: list[bytes] = []
+    log = tmp_path / "runs"
+    log.mkdir()
 
     async with Client(server) as client:
         await client.call_tool("open_image", {"path": str(image)})
         monkeypatch.setenv("FAKE_ARTCLI_SLEEP", "0.8")
+        monkeypatch.setenv("FAKE_ARTCLI_LOG", str(log))
 
         async def render():
             result = await client.call_tool("render_preview", {"path": str(image)})
+            assert not result.is_error, result.content
             done["render"] = time.monotonic()
             previews.append(Path(result.structured_content["path"]).read_bytes())
 
         async def edit():
-            await anyio.sleep(0.3)  # the render is under way
+            # Wait until art-cli is actually running (the render holds the
+            # image's lock by then), not a fixed time: under load, starting
+            # can take longer than any guess.
+            with anyio.fail_after(30):
+                while not any(p.name.endswith("-start") for p in log.iterdir()):
+                    await anyio.sleep(0.02)
             result = await client.call_tool("edit_profile", {"path": str(image), "raw_edits": EDITS})
             assert not result.is_error, result.content
             done["edit"] = time.monotonic()
@@ -105,6 +116,7 @@ async def test_an_edit_during_a_render_waits_and_never_shows_half_of_itself(serv
             tg.start_soon(edit)
 
         monkeypatch.setenv("FAKE_ARTCLI_SLEEP", "0")
+        monkeypatch.delenv("FAKE_ARTCLI_LOG")
         after = await client.call_tool("render_preview", {"path": str(image)})
         previews.append(Path(after.structured_content["path"]).read_bytes())
 

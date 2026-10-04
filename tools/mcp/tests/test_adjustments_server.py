@@ -203,3 +203,57 @@ async def test_edit_profile_input_schema_shows_the_adjustments(server):
     schema = next(t for t in tools.tools if t.name == "edit_profile").input_schema
     exposure = schema["properties"]["adjustments"]
     assert "compensation" in str(exposure) and "-12" in str(exposure)
+
+
+async def test_crop_is_checked_against_the_image_frame(server, image):
+    """The fake art-cli's frame is 6000x4000."""
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        inside = await client.call_tool(
+            "edit_profile",
+            {"path": str(image), "adjustments": {"crop": {"x": 100, "y": 100, "w": 5900, "h": 3900}}},
+        )
+        outside = await client.call_tool(
+            "edit_profile",
+            {"path": str(image), "adjustments": {"crop": {"x": 101}}},
+        )
+
+    assert not inside.is_error, inside.content
+    assert outside.is_error and "out_of_range" in outside.content[0].text
+    assert "6000x4000" in outside.content[0].text
+
+
+async def test_a_partial_crop_on_an_unset_crop_asks_for_the_whole_rectangle(server, image):
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await client.call_tool(
+            "edit_profile", {"path": str(image), "adjustments": {"crop": {"x": 10}}}
+        )
+
+    assert result.is_error and "out_of_range" in result.content[0].text
+    assert "x, y, w and h" in result.content[0].text
+
+
+async def test_a_non_numeric_stored_crop_value_is_treated_as_unset(server, image):
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        await client.call_tool(
+            "edit_profile",
+            {"path": str(image), "raw_edits": [{"group": "Crop", "key": "W", "value": "wide"}]},
+        )
+        result = await client.call_tool(
+            "edit_profile", {"path": str(image), "adjustments": {"crop": {"x": 10}}}
+        )
+
+    assert result.is_error and "x, y, w and h" in result.content[0].text
+
+
+async def test_lens_options_while_lens_profile_is_off_carry_a_warning(server, image):
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await client.call_tool(
+            "edit_profile", {"path": str(image), "adjustments": {"lens_profile": {"use_ca": True}}}
+        )
+
+    assert not result.is_error, result.content
+    assert any("lc_mode" in w for w in result.structured_content["warnings"])

@@ -36,6 +36,7 @@ from art_mcp.metadata import Exiftool, ExiftoolError, ExiftoolTimeout, InvalidTa
 from art_mcp.preview import PreviewFolder, default_root, sweep_stale
 from art_mcp.profile import Conflict as EditConflict
 from art_mcp.profile import (
+    crop_rect,
     ProfileView,
     RawEdit,
     UnknownKey,
@@ -44,10 +45,12 @@ from art_mcp.profile import (
     read_format,
     version_warnings,
 )
+from art_mcp.schema import Crop as CropAdjustment
 from art_mcp.schema import (
     AdjustmentError,
     AdjustmentsDescription,
     adjustments_json_schema,
+    crop_bounds_problem,
     parse_adjustments,
 )
 from art_mcp.schema import describe_adjustments as schema_description
@@ -379,15 +382,34 @@ def build_server(
         cached per image file and per frame-defining profile groups.
         """
         profile = wp.changes.profile
-        crop = profile.get("Crop", {})
-        try:
-            x, y, w, h = (int(crop[k]) for k in ("X", "Y", "W", "H"))
-        except (KeyError, ValueError):
-            pass
-        else:
-            if crop.get("Enabled") == "true" and x >= 0 and y >= 0 and w > 0 and h > 0:
-                return Rect(x, y, w, h)
+        x, y, w, h = crop_rect(profile)
+        if profile.get("Crop", {}).get("Enabled") == "true" and x >= 0 and y >= 0 and w > 0 and h > 0:
+            return Rect(x, y, w, h)
 
+        return whole_frame(wp)
+
+    def check_crop(wp: WorkingProfile, crop: CropAdjustment) -> None:
+        """Reject a crop rectangle that doesn't fit the image's frame; fields
+        not in the request keep the working profile's values."""
+        given = (crop.x, crop.y, crop.w, crop.h)
+        if all(v is None for v in given):
+            return
+        current = crop_rect(wp.changes.profile)
+        if any(v is None and c < 0 for v, c in zip(given, current)):
+            raise tool_error(
+                "out_of_range",
+                "the image has no crop rectangle yet: give x, y, w and h together",
+            )
+        x, y, w, h = (v if v is not None else c for v, c in zip(given, current))
+        frame = whole_frame(wp)
+        problem = crop_bounds_problem(x, y, w, h, frame_w=frame.w, frame_h=frame.h)
+        if problem:
+            raise tool_error("out_of_range", problem)
+
+    def whole_frame(wp: WorkingProfile) -> Rect:
+        """The whole frame ART's ``[Crop]`` addresses, measured (see
+        ``frame_of``) and cached."""
+        profile = wp.changes.profile
         stat = wp.image.stat()
         row = frame_probe_layer(profile, strip="row")
         key = (image_key(wp.image), stat.st_mtime_ns, stat.st_size, row)
@@ -483,6 +505,8 @@ def build_server(
             wp = opened(path)
             try:
                 parsed = parse_adjustments(adjustments) if adjustments else None
+                if parsed is not None and parsed.crop is not None:
+                    check_crop(wp, parsed.crop)
                 outcome = wp.changes.edit(parsed, raw_edits or [])
             except AdjustmentError as e:
                 raise tool_error(e.code, str(e)) from e
@@ -490,11 +514,17 @@ def build_server(
                 raise tool_error("unknown_key", str(e)) from e
             except EditConflict as e:
                 raise tool_error("conflict", str(e)) from e
-        return EditResult(
-            changed=outcome.changed,
-            implied=outcome.implied,
-            warnings=version_warnings(ppversion_of(wp.changes.profile)),
-        )
+        warnings = version_warnings(ppversion_of(wp.changes.profile))
+        if (
+            parsed is not None
+            and parsed.lens_profile is not None
+            and wp.changes.profile.get("LensProfile", {}).get("LcMode", "none") == "none"
+        ):
+            warnings.append(
+                "lens_profile options have no effect while lc_mode is none; "
+                "set lc_mode to turn lens correction on"
+            )
+        return EditResult(changed=outcome.changed, implied=outcome.implied, warnings=warnings)
 
     @server.tool()
     def describe_adjustments() -> AdjustmentsDescription:

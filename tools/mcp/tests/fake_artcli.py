@@ -30,6 +30,19 @@ Black=0
 [White Balance]
 Enabled=true
 Setting=Camera
+
+[Crop]
+Enabled=false
+X=-1
+Y=-1
+W=-1
+H=-1
+
+[LensProfile]
+LcMode=none
+UseDistortion=true
+UseVignette=true
+UseCA=false
 """
 
 args = sys.argv[1:]
@@ -62,6 +75,8 @@ def png_header():
             elif in_crop and "=" in line:
                 k, _, v = line.partition("=")
                 crop[k] = int(v) if v.lstrip("-").isdigit() else v
+    if crop.get("Enabled") != "true" or crop.get("W", 0) <= 0 or crop.get("H", 0) <= 0:
+        crop = {}  # like ART: a disabled or empty crop is no crop
     w = min(FAKE_SIZE[0], crop.get("W", FAKE_SIZE[0]))
     h = min(FAKE_SIZE[1], crop.get("H", FAKE_SIZE[1]))
     return (

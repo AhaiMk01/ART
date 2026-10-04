@@ -12,7 +12,15 @@ from typing import Any
 from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from art_mcp.keyfile import KeyFile
-from art_mcp.schema import PPVERSION, TOOLS, Adjustments, field_key
+from art_mcp.schema import (
+    PPVERSION,
+    TOOLS,
+    Adjustments,
+    field_group,
+    field_key,
+    named_value,
+    stored_value,
+)
 
 VERSION_GROUP = "Version"
 
@@ -101,10 +109,15 @@ class WorkingChanges:
             if not values:
                 continue
             explicit += [
-                RawEdit(group=group, key=field_key(model, f), value=_arp_value(v))
+                RawEdit(
+                    group=field_group(model, f, group),
+                    key=field_key(model, f),
+                    value=stored_value(model, f, _arp_value(v)),
+                )
                 for f, v in values.items()
             ]
-            if "enabled" not in values and self._value(group, "Enabled") == "false":
+            own_group = any(field_group(model, f, group) == group for f in values)
+            if "enabled" not in values and own_group and self._value(group, "Enabled") == "false":
                 implied.append(RawEdit(group=group, key="Enabled", value="true"))
             if (
                 name == "white_balance"
@@ -182,18 +195,36 @@ def typed_adjustments(profile: KeyFile) -> tuple[dict[str, dict[str, Any]], set[
         values: dict[str, Any] = {}
         for field, info in model.model_fields.items():
             key = field_key(model, field)
+            field_grp = field_group(model, field, group)
+            stored = profile.get(field_grp, {}).get(key)
             extra = info.json_schema_extra
             assert isinstance(extra, dict)
-            if key not in entries:
+            if stored is None:
                 values[field] = extra["art_default"]
                 continue
             try:
-                values[field] = TypeAdapter(info.annotation).validate_python(entries[key])
+                values[field] = TypeAdapter(info.annotation).validate_python(
+                    named_value(model, field, stored)
+                )
             except ValidationError:
                 continue
-            consumed.add((group, key))
+            consumed.add((field_grp, key))
         typed[name] = values
     return typed, consumed
+
+
+def crop_rect(profile: KeyFile) -> tuple[int, int, int, int]:
+    """The ``[Crop]`` X, Y, W, H; -1 for each that is unset or not a number
+    (ART's "no geometry")."""
+
+    def number(key: str) -> int:
+        try:
+            return int(profile.get("Crop", {}).get(key, "-1"))
+        except ValueError:
+            return -1
+
+    x, y, w, h = (number(k) for k in ("X", "Y", "W", "H"))
+    return x, y, w, h
 
 
 def ppversion_of(profile: KeyFile) -> int | None:

@@ -223,3 +223,42 @@ async def test_real_region_preview_is_1_to_1_and_capped_at_max_size(tmp_path):
     assert small_size[0] / small_size[1] == pytest.approx(whole_size[0] / whole_size[1], rel=0.02)
     assert 500 < small_size[0] < 700, small_size
     assert max(large_size) == 2576
+
+
+async def test_all_curated_tools_round_trip_through_real_art(tmp_path):
+    raw = tmp_path / Path(RAW).name
+    shutil.copyfile(RAW, raw)
+    server = build_server(
+        ArtCli((str(CLI),), timeout=120),
+        artdir.user_config_dir(os.environ),
+        PreviewFolder(tmp_path / "previews"),
+    )
+    adjustments = {
+        "crop": {"x": 100, "y": 80, "w": 3000, "h": 2000},
+        "rotation": {"degree": 1.5, "auto_fill": False},
+        "local_contrast": {"contrast": 25},
+        "sharpening": {"method": "usm", "amount": 300, "radius": 0.8},
+        "denoise": {"luminance": 20, "chrominance_method": "manual", "chrominance": 30},
+        "vignetting": {"amount": 20, "center_x": 10},
+        "lens_profile": {"lc_mode": "lfauto", "use_ca": True},
+    }
+
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(raw)})
+        edited = await client.call_tool("edit_profile", {"path": str(raw), "adjustments": adjustments})
+        preview = await client.call_tool("render_preview", {"path": str(raw)})
+        profile = await client.call_tool("get_profile", {"path": str(raw)})
+        too_wide = await client.call_tool(
+            "edit_profile", {"path": str(raw), "adjustments": {"crop": {"x": 0, "w": 100000}}}
+        )
+
+        assert not edited.is_error, edited.content
+        assert not preview.is_error, preview.content
+        typed = profile.structured_content["adjustments"]
+        for tool, fields in adjustments.items():
+            for field, value in fields.items():
+                assert typed[tool][field] == value, (tool, field)
+        assert typed["crop"]["enabled"] is True and typed["rotation"]["enabled"] is True
+        with Image.open(preview.structured_content["path"]) as jpeg:
+            assert abs(jpeg.size[0] / jpeg.size[1] - 3000 / 2000) < 0.02
+        assert too_wide.is_error and "out_of_range" in too_wide.content[0].text

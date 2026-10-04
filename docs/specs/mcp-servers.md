@@ -371,7 +371,12 @@ Typed field names are snake_case of the .arp key; each maps to exactly one
 `enabled: bool` (`Enabled`), except Lens Profile (enabled via `lc_mode`).
 Setting any field of a disabled tool also sets `enabled: true`; the result
 lists every implied change. (An explicit `enabled: false` in the same request
-wins.)
+wins.) Only fields in the tool's own group count: Rotation's `auto_fill`,
+which lives in `[Common Properties for Transformations]`, doesn't enable
+Rotation. Lens Profile has no `enabled`; `lc_mode: none` is off. Values ART
+stores differently are mapped both ways (Denoise `chrominance_method`
+`manual`/`automatic` is stored as `0`/`1`). A key a tool's group lacks reads
+as ART's default.
 
 **exposure** -> `[Exposure]`
 
@@ -405,7 +410,10 @@ raw-edit only.
 | `ratio` | enum | ART's ratio list (`3:2`, `4:3`, `16:9`, `1:1`, ... see `crop_ratios` in `src/gui/crop.cc`) | | `As Image` |
 | `orientation` | enum | `Landscape`, `Portrait`, `As Image` | | `As Image` |
 
-Pixel bounds are checked against the image size from `open_image`. `Guide`
+Pixel bounds are checked against the image's frame (measured as in 6.1, cached).
+A partial rectangle on an image with no crop yet is rejected: give x, y, w
+and h together. Known limit: the frame is the one before this request's raw
+edits, so a coarse rotation changed in the same request isn't accounted for. `Guide`
 (display overlay) stays raw-edit only.
 
 **rotation** -> `[Rotation]` + `[Common Properties for Transformations]`

@@ -130,7 +130,8 @@ def test_read_format_types_curated_tools_and_leaves_other_keys_raw_once():
     }
     assert "Exposure" not in view.raw
     assert view.raw["White Balance"] == {"Multipliers": "1;1;1"}
-    assert view.raw["Sharpening"] == {"Enabled": "false"}
+    assert "Sharpening" not in view.raw  # curated since #16
+    assert view.adjustments["sharpening"]["enabled"] is False
 
 
 def test_a_value_that_does_not_fit_the_schema_stays_raw():
