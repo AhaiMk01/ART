@@ -21,7 +21,9 @@ def test_resolve_run_uses_default_profile_without_sidecar():
 
 
 def test_preview_run_layers_working_profile_then_resize():
-    args = artcli.preview_args(IMG, OUT, profile=Path("C:/tmp/w.arp"), resize=Path("C:/tmp/r.arp"))
+    args = artcli.preview_args(
+        IMG, OUT, profile=Path("C:/tmp/w.arp"), resize=Path("C:/tmp/r.arp"), fast=True
+    )
 
     assert args == [
         "-o", str(OUT), "-f", "-Y", "-a",
@@ -83,3 +85,80 @@ def test_invalid_combinations_are_rejected(fmt, quality, bit_depth):
 
 def test_jpeg_accepts_8_bit():
     assert flags(export("jpeg", 80, "8")) == ["-j80", "-b8"]
+
+
+def test_preview_run_without_fast_export_has_no_f_flag():
+    args = artcli.preview_args(
+        IMG, OUT, profile=Path("C:/tmp/w.arp"), resize=Path("C:/tmp/r.arp"), fast=False
+    )
+
+    assert "-f" not in args
+    assert args[:4] == ["-o", str(OUT), "-Y", "-a"]
+
+
+def test_region_preview_layers_crop_between_profile_and_resize():
+    args = artcli.preview_args(
+        IMG, OUT, profile=Path("C:/tmp/w.arp"), resize=Path("C:/tmp/r.arp"),
+        fast=False, crop=Path("C:/tmp/c.arp"),
+    )  # fmt: skip
+
+    layers = [args[i + 1] for i, a in enumerate(args) if a == "-p"]
+    assert layers == [str(Path(p)) for p in ("C:/tmp/w.arp", "C:/tmp/c.arp", "C:/tmp/r.arp")]
+
+
+def test_crop_layer_is_pixel_geometry_without_a_fixed_ratio():
+    from art_mcp import keyfile
+
+    layer = keyfile.loads(artcli.crop_profile(artcli.Rect(10, 20, 300, 200)))
+
+    assert layer == {
+        "Crop": {"Enabled": "true", "X": "10", "Y": "20", "W": "300", "H": "200", "FixedRatio": "false"}
+    }
+
+
+def test_region_fractions_map_onto_the_frame_in_pixels():
+    frame = artcli.Rect(100, 50, 6000, 4000)
+
+    rect = artcli.region_rect(frame, x=0.25, y=0.5, w=0.5, h=0.25)
+
+    assert rect == artcli.Rect(100 + 1500, 50 + 2000, 3000, 1000)
+
+
+def test_region_rect_never_leaves_the_frame_or_collapses():
+    frame = artcli.Rect(0, 0, 1000, 1000)
+
+    assert artcli.region_rect(frame, x=0.9999, y=0.0, w=0.0001, h=1.0) == artcli.Rect(999, 0, 1, 1000)
+    assert artcli.region_rect(frame, x=0.5, y=0.5, w=0.5, h=0.5) == artcli.Rect(500, 500, 500, 500)
+
+
+def test_png_size_reads_the_header(tmp_path):
+    png = tmp_path / "p.png"
+    png.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00\x00\x00\rIHDR" + (6016).to_bytes(4, "big") + (1).to_bytes(4, "big"))
+
+    assert artcli.png_size(png) == (6016, 1)
+
+
+def test_frame_probe_strips_the_frame_with_only_frame_defining_groups():
+    from art_mcp import keyfile
+
+    profile = {
+        "Exposure": {"Compensation": "1"},
+        "Coarse Transformation": {"Rotate": "90"},
+        "RAW Bayer": {"Border": "4"},
+        "Crop": {"Enabled": "true", "X": "5"},
+    }
+
+    row = keyfile.loads(artcli.frame_probe_layer(profile, strip="row"))
+    column = keyfile.loads(artcli.frame_probe_layer(profile, strip="column"))
+
+    assert set(row) == {"Coarse Transformation", "RAW Bayer", "Crop", "Resize"}
+    assert row["Coarse Transformation"] == {"Rotate": "90"}
+    assert (row["Crop"]["X"], row["Crop"]["H"]) == ("0", "1") and int(row["Crop"]["W"]) > 100000
+    assert (column["Crop"]["W"], int(column["Crop"]["H"]) > 100000) == ("1", True)
+    assert row["Resize"] == {"Enabled": "false"}
+
+
+def test_probe_run_applies_only_the_probe_layer():
+    args = artcli.probe_args(IMG, OUT, layer=Path("C:/tmp/p.arp"))
+
+    assert args == ["-o", str(OUT), "-n", "-Y", "-a", "-p", str(Path("C:/tmp/p.arp")), "-c", str(IMG)]

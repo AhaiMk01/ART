@@ -10,6 +10,7 @@ import sys
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Literal
 
 from art_mcp import keyfile
 
@@ -32,11 +33,21 @@ def resolve_profile_args(image: Path, output: Path, sidecar: Path | None) -> lis
     return ["-O", str(output), "-f", "-Y", "-a", *base, "-c", str(image)]
 
 
-def preview_args(image: Path, output: Path, profile: Path, resize: Path) -> list[str]:
-    """A fast JPEG render of ``profile`` with the ``resize`` layer on top."""
+def preview_args(
+    image: Path,
+    output: Path,
+    profile: Path,
+    resize: Path,
+    *,
+    fast: bool,
+    crop: Path | None = None,
+) -> list[str]:
+    """A JPEG render of ``profile`` with the optional ``crop`` layer (a region
+    preview) and then the ``resize`` layer on top. ``fast`` adds ``-f``."""
+    layers = [profile, *([crop] if crop else []), resize]
     return [
-        "-o", str(output), "-f", "-Y", "-a",
-        "-p", str(profile), "-p", str(resize),
+        "-o", str(output), *(["-f"] if fast else []), "-Y", "-a",
+        *(arg for layer in layers for arg in ("-p", str(layer))),
         f"-j{JPEG_QUALITY}", "-c", str(image),
     ]  # fmt: skip
 
@@ -108,6 +119,84 @@ def describe_exit(returncode: int, output: str) -> str:
     if meaning:
         text += f" ({meaning})"
     return f"{text}: {output.strip()}" if output.strip() else text
+
+
+@dataclass(frozen=True)
+class Rect:
+    x: int
+    y: int
+    w: int
+    h: int
+
+
+def crop_profile(rect: Rect) -> str:
+    """A partial profile cropping to ``rect``, in the pixels of the frame
+    ART's ``[Crop]`` group addresses (see ``frame_probe_layer``)."""
+    return keyfile.dumps({
+        "Crop": {
+            "Enabled": "true",
+            "X": str(rect.x),
+            "Y": str(rect.y),
+            "W": str(rect.w),
+            "H": str(rect.h),
+            "FixedRatio": "false",
+        }
+    })  # fmt: skip
+
+
+def region_rect(frame: Rect, *, x: float, y: float, w: float, h: float) -> Rect:
+    """The pixel rectangle of a region given as fractions of ``frame``,
+    always at least 1x1 and inside the frame."""
+
+    def span(start: float, length: float, extent: int) -> tuple[int, int]:
+        first = min(round(start * extent), extent - 1)
+        last = min(round((start + length) * extent), extent)
+        return first, max(1, last - first)
+
+    left, width = span(x, w, frame.w)
+    top, height = span(y, h, frame.h)
+    return Rect(frame.x + left, frame.y + top, width, height)
+
+
+FRAME_GROUPS = ("Coarse Transformation", "RAW")
+"""Profile groups (by name or prefix) that change the size of the frame
+``[Crop]`` addresses: coarse rotation/flip and the raw border."""
+
+
+def frame_probe_layer(profile: keyfile.KeyFile, *, strip: Literal["row", "column"]) -> str:
+    """A partial profile that renders a 1-pixel strip of the whole frame: the
+    frame-defining groups of ``profile``, a crop far larger than any image
+    (ART clamps it to the frame, so the strip's length is the frame's width
+    or height) and no resize."""
+    groups = {
+        name: values
+        for name, values in profile.items()
+        if any(name == g or name.startswith(g + " ") for g in FRAME_GROUPS)
+    }
+    huge = "1000000"
+    groups["Crop"] = {
+        "Enabled": "true", "X": "0", "Y": "0",
+        "W": huge if strip == "row" else "1",
+        "H": "1" if strip == "row" else huge,
+        "FixedRatio": "false",
+    }  # fmt: skip
+    groups["Resize"] = {"Enabled": "false"}
+    return keyfile.dumps(groups)
+
+
+def probe_args(image: Path, output: Path, layer: Path) -> list[str]:
+    """Render ``layer`` (a ``frame_probe_layer``) to a PNG, whose header
+    holds the strip's size. No ``-d``/sidecar: only ``layer`` applies."""
+    return ["-o", str(output), "-n", "-Y", "-a", "-p", str(layer), "-c", str(image)]
+
+
+def png_size(path: Path) -> tuple[int, int]:
+    """(width, height) from a PNG's IHDR chunk."""
+    with path.open("rb") as f:
+        header = f.read(24)
+    if header[:8] != b"\x89PNG\r\n\x1a\n" or header[12:16] != b"IHDR":
+        raise ArtCliError(f"{path} is not a PNG")
+    return int.from_bytes(header[16:20], "big"), int.from_bytes(header[20:24], "big")
 
 
 class ArtCliError(Exception):

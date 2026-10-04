@@ -1,4 +1,5 @@
 import json
+import base64
 import sys
 from pathlib import Path
 
@@ -378,3 +379,133 @@ async def test_open_image_still_opens_when_metadata_cannot_be_read(tmp_path, ima
         opened = await client.call_tool("open_image", {"path": str(image)})
 
     assert not opened.is_error and opened.structured_content["metadata"] is None
+
+
+def error_text(result):
+    return result.content[0].text
+
+
+async def preview_bytes(client, image, **args):
+    result = await client.call_tool("render_preview", {"path": str(image), **args})
+    assert not result.is_error, result.content
+    return Path(result.structured_content["path"]).read_bytes(), result
+
+
+async def test_max_size_is_between_1_and_2576(server, image):
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        for bad in (0, 2577):
+            result = await client.call_tool("render_preview", {"path": str(image), "max_size": bad})
+            assert result.is_error and "out_of_range" in error_text(result), bad
+        _, ok = await preview_bytes(client, image, max_size=2576)
+
+    assert ok.structured_content["max_size"] == 2576
+
+
+async def test_max_size_sets_the_resize_layer(server, image):
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        jpeg, _ = await preview_bytes(client, image, max_size=640)
+
+    assert b"Width=640" in jpeg and b"Height=640" in jpeg
+
+
+async def used_fast_export(client, image, **args):
+    jpeg, _ = await preview_bytes(client, image, **args)
+    return b" -f " in jpeg.split(b"args: ")[1]
+
+
+async def test_fast_export_only_when_max_size_fits_the_users_fast_export_box(server, image, tmp_path):
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+
+        assert await used_fast_export(client, image)  # 1024, default box 1920
+        assert await used_fast_export(client, image, max_size=1920)
+        assert not await used_fast_export(client, image, max_size=1921)
+
+    (tmp_path / "config" / "options").write_text(
+        "[Fast Export]\nfastexport_resize_width=2400\nfastexport_resize_height=2400\n"
+    )
+    async with Client(server) as client:
+        assert await used_fast_export(client, image, max_size=2400)
+        assert not await used_fast_export(client, image, max_size=2401)
+
+
+REGION = {"x": 0.25, "y": 0.5, "w": 0.5, "h": 0.25}
+
+
+async def test_region_preview_crops_at_1_to_1_without_fast_export(server, image):
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        jpeg, _ = await preview_bytes(client, image, region=REGION, max_size=2000)
+        profile = await client.call_tool("get_profile", {"path": str(image)})
+
+    # The fake image is 6000x4000: the region is 1500,2000 3000x1000 pixels.
+    assert b"X=1500\nY=2000\nW=3000\nH=1000" in jpeg
+    assert b"Width=2000" in jpeg  # the resize layer only caps at max_size
+    assert b" -f " not in jpeg.split(b"args: ")[1]
+    assert "Crop" not in profile.structured_content["raw"]
+
+
+async def test_region_is_relative_to_the_working_crop_when_there_is_one(server, image):
+    image.with_name(image.name + ".arp").write_text(
+        "[Crop]\nEnabled=true\nX=1000\nY=500\nW=2000\nH=1000\nFixedRatio=false\n"
+    )
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        jpeg, _ = await preview_bytes(client, image, region=REGION)
+
+    assert b"X=1500\nY=1000\nW=1000\nH=250" in jpeg
+
+
+@pytest.mark.parametrize(
+    "region",
+    [
+        {"x": -0.1, "y": 0, "w": 0.5, "h": 0.5},
+        {"x": 0, "y": 0, "w": 0, "h": 0.5},
+        {"x": 0.6, "y": 0, "w": 0.5, "h": 0.5},
+        {"x": 0, "y": 0.5, "w": 0.5, "h": 0.6},
+        {"x": 0, "y": 0, "w": 1.5, "h": 1},
+    ],
+)
+async def test_region_outside_the_image_is_out_of_range(server, image, region):
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await client.call_tool("render_preview", {"path": str(image), "region": region})
+
+    assert result.is_error
+    assert "out_of_range" in error_text(result)
+
+
+def images(result):
+    return [block for block in result.content if block.type == "image"]
+
+
+@pytest.fixture
+def inline_server(tmp_path):
+    cli = ArtCli((sys.executable, str(FAKE)))
+    config = tmp_path / "config"
+    config.mkdir()
+    return build_server(cli, config, PreviewFolder(tmp_path / "previews"), inline_previews=True)
+
+
+async def test_previews_are_not_inline_by_default(server, image):
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        default = await client.call_tool("render_preview", {"path": str(image)})
+        forced = await client.call_tool("render_preview", {"path": str(image), "inline": True})
+        jpeg = Path(forced.structured_content["path"]).read_bytes()  # the path is still returned
+
+    assert not images(default)
+    [block] = images(forced)
+    assert base64.b64decode(block.data) == jpeg and block.mime_type == "image/jpeg"
+
+
+async def test_inline_launch_flag_is_the_default_and_a_call_can_override_it(inline_server, image):
+    async with Client(inline_server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        default = await client.call_tool("render_preview", {"path": str(image)})
+        off = await client.call_tool("render_preview", {"path": str(image), "inline": False})
+
+    assert len(images(default)) == 1 and default.structured_content["path"]
+    assert not images(off)

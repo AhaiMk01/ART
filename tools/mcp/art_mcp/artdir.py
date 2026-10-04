@@ -73,3 +73,20 @@ def sidecar_path(image: Path, config_dir: Path) -> Path:
     if profiles.get("ParamsSidecarStripExtension") == "true":
         return image.with_suffix(".arp")
     return image.with_name(image.name + ".arp")
+
+
+FAST_EXPORT_DEFAULT = 1920
+
+
+def fast_export_box(config_dir: Path) -> int:
+    """The long edge of the user's fast-export box (the smaller of its width
+    and height; ART's default is 1920x1920). ``art-cli -f`` shrinks anything
+    larger into it."""
+    section = _read_options(config_dir).get("Fast Export", {})
+    sides = []
+    for key in ("fastexport_resize_width", "fastexport_resize_height"):
+        try:
+            sides.append(int(section.get(key, FAST_EXPORT_DEFAULT)))
+        except ValueError:
+            sides.append(FAST_EXPORT_DEFAULT)
+    return min(sides)

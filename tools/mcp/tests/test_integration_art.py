@@ -186,3 +186,40 @@ async def test_adjustments_change_the_real_render_and_read_back_typed(tmp_path):
         assert profile.structured_content["raw"]["White Balance"].keys() <= {"Multipliers"}
         brighter = mean_brightness(after.structured_content["path"])
         assert brighter > mean_brightness(before.structured_content["path"]) + 10
+
+
+async def test_real_region_preview_is_1_to_1_and_capped_at_max_size(tmp_path):
+    raw = tmp_path / Path(RAW).name
+    shutil.copyfile(RAW, raw)
+    server = build_server(
+        ArtCli((str(CLI),), timeout=120),
+        artdir.user_config_dir(os.environ),
+        PreviewFolder(tmp_path / "previews"),
+    )
+
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(raw)})
+        whole = await client.call_tool("render_preview", {"path": str(raw), "max_size": 2576})
+        small = await client.call_tool(
+            "render_preview",
+            {"path": str(raw), "region": {"x": 0.25, "y": 0.25, "w": 0.1, "h": 0.1}},
+        )
+        large = await client.call_tool(
+            "render_preview",
+            {"path": str(raw), "region": {"x": 0, "y": 0, "w": 0.75, "h": 0.75}, "max_size": 2576},
+        )
+        assert not small.is_error and not large.is_error, (small.content, large.content)
+        with Image.open(whole.structured_content["path"]) as full:
+            whole_size = full.size
+        with Image.open(small.structured_content["path"]) as jpeg:
+            small_size = jpeg.size
+        with Image.open(large.structured_content["path"]) as jpeg:
+            large_size = jpeg.size
+
+    # Unrotated, uncropped default profile: the sensor frame is about 6016x4016,
+    # so a tenth of it is ~602x402 pixels at 1:1 (no resize), whereas the
+    # whole image is shrunk to the 2576 cap.
+    assert max(whole_size) == 2576
+    assert small_size[0] / small_size[1] == pytest.approx(whole_size[0] / whole_size[1], rel=0.02)
+    assert 500 < small_size[0] < 700, small_size
+    assert max(large_size) == 2576

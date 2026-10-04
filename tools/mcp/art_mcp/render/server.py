@@ -5,6 +5,7 @@ image's sidecar (or ART's default profile) and never written back by renders.
 """
 
 import argparse
+import base64
 import functools
 import hashlib
 import os
@@ -20,6 +21,7 @@ from mcp.server.mcpserver import Context, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.shared.exceptions import NoBackChannelError
 from mcp_types import ClientCapabilities, ElicitationCapability
+from mcp.types import CallToolResult, ContentBlock, ImageContent, TextContent
 from pydantic import BaseModel, WithJsonSchema
 
 from art_mcp import artdir, keyfile, sidecar
@@ -49,12 +51,22 @@ from art_mcp.render.artcli import (
     ArtCliError,
     ArtCliTimeout,
     export_args,
+    Rect,
+    crop_profile,
+    frame_probe_layer,
+    png_size,
     preview_args,
+    probe_args,
+    region_rect,
     resize_profile,
     resolve_profile_args,
 )
 
 PREVIEW_SIZE = 1024
+MAX_PREVIEW_SIZE = 2576
+"""Claude downscales images with a longer edge above this."""
+MAX_PREVIEW_SIZE = 2576
+"""Claude downscales images with a longer edge above this."""
 
 ErrorCode = Literal[
     "not_open", "not_found", "unknown_key", "render_failed", "timeout",
@@ -171,6 +183,22 @@ class PartialProfileResult(BaseModel):
     """The `[Group] Key` entries written."""
 
 
+class Region(BaseModel):
+    """An area of the image as fractions (0 to 1) of its width and height."""
+
+    x: float
+    y: float
+    w: float
+    h: float
+
+    def inside_image(self) -> bool:
+        eps = 1e-9
+        return (
+            self.x >= 0 and self.y >= 0 and self.w > 0 and self.h > 0
+            and self.x + self.w <= 1 + eps and self.y + self.h <= 1 + eps
+        )  # fmt: skip
+
+
 class Preview(BaseModel):
     path: str
     """JPEG file; open it to look at the preview."""
@@ -196,9 +224,11 @@ def build_server(
     previews: PreviewFolder,
     *,
     exiftool: Exiftool | None = None,
+    inline_previews: bool = False,
 ) -> MCPServer:
     working: dict[str, WorkingProfile] = {}
     locks = ImageLocks()
+    frames: dict[tuple[str, int, int, str], Rect] = {}
 
     @asynccontextmanager
     async def lifespan(_: MCPServer) -> AsyncIterator[None]:
@@ -326,26 +356,111 @@ def build_server(
         with locks.hold(path):
             return ResetResult(profile_from=load_working_profile(opened(path).image, to))
 
+    def probe_size(image: Path, layer_text: str) -> tuple[int, int]:
+        layer = previews.new_file("probe", ".arp")
+        output = previews.new_file("probe", ".png")
+        try:
+            layer.write_text(layer_text, encoding="utf-8")
+            run(probe_args(image, output, layer), output)
+            return png_size(output)
+        except ArtCliError as e:
+            raise tool_error("render_failed", str(e)) from e
+        finally:
+            layer.unlink(missing_ok=True)
+            output.unlink(missing_ok=True)
+
+    def frame_of(wp: WorkingProfile) -> Rect:
+        """The area, in the pixels ART's ``[Crop]`` addresses, that a region's
+        fractions refer to: the working profile's crop if it has one (so a
+        region is a fraction of the image as previewed), else the whole frame.
+
+        The frame is the raw image after coarse rotation and the raw border,
+        and nothing in a profile or file header reports it cheaply, so it is
+        measured: art-cli clamps an oversized crop to the frame, so rendering
+        a 1 px strip with a huge crop yields a PNG as wide (then as tall) as
+        the frame (~0.5 s each on a 24 MP raw, no full render). The result is
+        cached per image file and per frame-defining profile groups.
+        """
+        profile = wp.changes.profile
+        crop = profile.get("Crop", {})
+        try:
+            x, y, w, h = (int(crop[k]) for k in ("X", "Y", "W", "H"))
+        except (KeyError, ValueError):
+            pass
+        else:
+            if crop.get("Enabled") == "true" and x >= 0 and y >= 0 and w > 0 and h > 0:
+                return Rect(x, y, w, h)
+
+        stat = wp.image.stat()
+        row = frame_probe_layer(profile, strip="row")
+        key = (image_key(wp.image), stat.st_mtime_ns, stat.st_size, row)
+        if key not in frames:
+            width, _ = probe_size(wp.image, row)
+            _, height = probe_size(wp.image, frame_probe_layer(profile, strip="column"))
+            frames[key] = Rect(0, 0, width, height)
+        return frames[key]
+
     @server.tool()
-    def render_preview(path: str) -> Preview:
-        """Render the working profile as a JPEG (long edge 1024 px) and return
-        its path."""
+    def render_preview(
+        path: str,
+        max_size: int = PREVIEW_SIZE,
+        region: Region | None = None,
+        inline: bool | None = None,
+    ) -> Annotated[CallToolResult, Preview]:
+        """Render the working profile as a JPEG (long edge `max_size` px, 1 to
+        2576) and return its path. `region` {x, y, w, h}, as fractions of the
+        image, renders just that area at 1:1 (shrunk only to fit `max_size`).
+        `inline` also returns the image itself (default: the server's
+        --inline-previews setting)."""
+        if not 1 <= max_size <= MAX_PREVIEW_SIZE:
+            raise tool_error("out_of_range", f"max_size must be 1 to {MAX_PREVIEW_SIZE}")
+        if region is not None and not region.inside_image():
+            raise tool_error(
+                "out_of_range",
+                "region x, y, w, h are fractions of the image: x, y >= 0, w, h > 0, "
+                "x + w <= 1 and y + h <= 1",
+            )
         with locks.hold(path):
             wp = opened(path)
+            # -f resizes before processing, which approximates sharpening and
+            # local effects: only worth it for a whole-image preview that fits the
+            # user's fast-export box (-f would shrink anything larger into it).
+            fast = region is None and max_size <= artdir.fast_export_box(config_dir)
             profile = previews.new_file("profile", ".arp")
+            crop = previews.new_file("crop", ".arp")
             resize = previews.new_file("resize", ".arp")
             output = previews.new_file("preview", ".jpg")
             try:
                 profile.write_text(keyfile.dumps(wp.changes.profile), encoding="utf-8")
-                resize.write_text(resize_profile(PREVIEW_SIZE), encoding="utf-8")
-                run(preview_args(wp.image, output, profile, resize), output)
+                if region is not None:
+                    rect = region_rect(frame_of(wp), x=region.x, y=region.y, w=region.w, h=region.h)
+                    crop.write_text(crop_profile(rect), encoding="utf-8")
+                resize.write_text(resize_profile(max_size), encoding="utf-8")
+                run(
+                    preview_args(
+                        wp.image, output, profile, resize, fast=fast,
+                        crop=crop if region is not None else None,
+                    ),
+                    output,
+                )  # fmt: skip
             except BaseException:
                 output.unlink(missing_ok=True)
                 raise
             finally:
-                profile.unlink(missing_ok=True)
-                resize.unlink(missing_ok=True)
-        return Preview(path=str(output), max_size=PREVIEW_SIZE)
+                for temporary in (profile, crop, resize):
+                    temporary.unlink(missing_ok=True)
+        result = Preview(path=str(output), max_size=max_size)
+        content: list[ContentBlock] = [TextContent(text=result.model_dump_json())]
+        if inline if inline is not None else inline_previews:
+            content.append(
+                ImageContent(
+                    data=base64.b64encode(output.read_bytes()).decode("ascii"),
+                    mime_type="image/jpeg",
+                )
+            )
+        # Returning the result object (rather than the model) is what lets a
+        # tool carry content blocks next to its structured output.
+        return CallToolResult(content=content, structured_content=result.model_dump(mode="json"))
 
     @server.tool()
     def get_profile(path: str) -> ProfileView:
@@ -557,6 +672,12 @@ def main() -> None:
         "--export-timeout", type=float, default=120.0, metavar="SECONDS",
         help="the same for exports (default 120)",
     )  # fmt: skip
+    parser.add_argument(
+        "--inline-previews",
+        action="store_true",
+        help="return preview images inline (base64) as well as by path; "
+        "render_preview's `inline` argument overrides this per call",
+    )
     args = parser.parse_args()
 
     program_files = Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "ART"
@@ -572,5 +693,6 @@ def main() -> None:
         artdir.user_config_dir(os.environ),
         PreviewFolder(default_root()),
         exiftool=Exiftool((str(exiftool_path),)) if exiftool_path else None,
+        inline_previews=args.inline_previews,
     )
     server.run()

@@ -52,3 +52,15 @@ def test_exiftool_is_found_beside_art_cli(tmp_path):
     assert artdir.find_exiftool(art) is None
     (art / "exiftool.exe").write_bytes(b"")
     assert artdir.find_exiftool(art) == art / "exiftool.exe"
+
+
+def test_fast_export_box_is_the_smaller_side_of_the_users_box(tmp_path):
+    assert artdir.fast_export_box(tmp_path) == 1920  # no options file: ART's default
+
+    (tmp_path / "options").write_text(
+        "[Fast Export]\nfastexport_resize_width=1600\nfastexport_resize_height=1200\n"
+    )
+    assert artdir.fast_export_box(tmp_path) == 1200
+
+    (tmp_path / "options").write_text("[Fast Export]\nfastexport_resize_width=1600\n")
+    assert artdir.fast_export_box(tmp_path) == 1600

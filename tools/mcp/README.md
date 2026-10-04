@@ -39,7 +39,7 @@ Claude Desktop (`claude_desktop_config.json`):
 |---|---|
 | `open_image(path)` | Loads the image's processing profile (sidecar, else ART's default profile) as its working profile; also returns a short `metadata` summary (camera, lens, capture date, pixel size), or null if exiftool is unavailable or can't read the file |
 | `inspect_image(path, tags?)` | Metadata of an opened image from the `exiftool` beside `ART-cli` (`-j -n`): make, model, lens, ISO, `shutter_seconds`, `aperture`, `focal_length_mm`, `capture_date` (local, ISO 8601), `width`, `height`, `orientation` (EXIF 1-8), each null when absent; `tags` adds named exiftool tags (e.g. `Software`) that the file has, under `tags` |
-| `render_preview(path)` | Renders the working profile to a 1024 px JPEG and returns its path |
+| `render_preview(path, max_size=1024, region?, inline?)` | Renders the working profile to a JPEG and returns its path; see [Previews](#previews) |
 | `get_profile(path)` | The working profile: curated tools typed under `adjustments`, every other value as a string under `raw` (each value once) |
 | `edit_profile(path, adjustments?, raw_edits?)` | Changes the working profile: typed, range-checked `adjustments` (`exposure`, `white_balance`) and/or `[Group] Key` raw edits; all or nothing. Lists `implied` changes (a disabled tool gets enabled; White Balance switches to `CustomTemp`) |
 | `describe_adjustments()` | The curated adjustments: fields, ranges, units, the `[Group] Key` each sets, and the `PPVERSION` the schema targets |
@@ -68,6 +68,27 @@ in the temp folder whose process is gone.
 Results of `get_profile`, `edit_profile` and `describe_adjustments` carry a
 `warnings` list when ART's profile version is newer than the schema's
 (`PPVERSION` 1045); edits keep working.
+
+## Previews
+
+`render_preview` writes a JPEG (quality 85) into `%TEMP%/art-mcp-<pid>/` and returns its path.
+
+- `max_size` (1 to 2576, default 1024): long edge in pixels. 2576 is the most Claude
+  displays without downscaling. Anything else is `out_of_range`.
+- `region` `{x, y, w, h}`: fractions (0 to 1) of the image; renders just that area at
+  1:1 through a temporary `[Crop]` layer, shrunk only to fit `max_size`. The working
+  profile is untouched. Fractions are of the image as previewed: of the working
+  profile's crop when it has an enabled one, else of the whole frame (the raw image
+  after coarse rotation and the raw border). The frame size is measured with two
+  1-pixel-strip art-cli renders (about 0.5 s each) and cached per image file.
+- `inline`: also return the image as an MCP image block, next to the path. Defaults to
+  the `--inline-previews` launch flag (off), so `claude mcp add art-render -- uv run
+  --directory <repo>/tools/mcp art-mcp-render --inline-previews` turns it on for every call.
+- Fast export (`art-cli -f`, about twice as fast, but it resizes before processing so
+  sharpening and local effects are approximated) is used only for whole-image previews
+  whose `max_size` fits your fast-export box (ART preferences, default 1920; the
+  smaller side of `fastexport_resize_width`/`height` in `options`). `region` previews
+  and bigger previews render without it.
 
 ## Development
 
