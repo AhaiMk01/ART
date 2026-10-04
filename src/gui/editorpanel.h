@@ -162,6 +162,9 @@ public:
     // The current processing profile as .arp (KeyFile) text, and the
     // selected History row; false when no image is loaded.
     bool getProfileText(std::string &arp, int &history_position);
+    // Whether pp applies cleanly to the current processing profile (tried
+    // on a copy; nothing changes).
+    bool canApply(const art::engine::procparams::PartialProfile &pp);
     // Applies a partial profile as a paste does (one History entry described
     // by `label`); then the selected History row. False when no image is
     // loaded.

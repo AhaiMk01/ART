@@ -1147,6 +1147,23 @@ std::string LiveControl::apply_profile(const Args &args, bool &ok)
         return error_object("bad_request",
                             "\"profile\" is not processing-profile text");
     }
+    {
+        // [Version] would make the whole current profile go through the
+        // loader's old-version migrations.
+        Glib::KeyFile kf;
+        kf.load_from_data(profile->second);
+        if (kf.has_group("Version")) {
+            return error_object("bad_request",
+                                "[Version] can't be changed by an edit");
+        }
+    }
+    // Tried on a copy first: a value the loader rejects must not leave a
+    // half-applied profile and a History entry behind.
+    if (!ep->canApply(partial)) {
+        return error_object("bad_request",
+                            "ART could not load these values; nothing was "
+                            "changed");
+    }
     int position = -1;
     if (!ep->applyPartialProfile(partial, label->second, position)) {
         return still_loading(ep->getFileName());
@@ -1179,6 +1196,9 @@ std::string LiveControl::open(const Args &args, bool &ok)
         return error_object("bad_request", "open needs \"path\"");
     }
     const std::string &fname = path->second;
+    if (!Glib::path_is_absolute(fname)) {
+        return error_object("bad_request", "open needs an absolute \"path\"");
+    }
     if (EditorPanel *ep = find_editor(fname)) {
         window_->selectEditorPanel(ep->getFileName());
         ok = true;
@@ -1212,15 +1232,26 @@ std::string LiveControl::save_sidecar(const Args &args, bool &ok)
     if (!ep->getProfileText(arp, position)) {
         return still_loading(ep->getFileName());
     }
-    ep->saveProfile();
-    ok = true;
-    // Where the editor's save wrote the profile: the sidecar, unless ART is
+    // Where the editor's save writes the profile: the sidecar, unless ART is
     // set to keep profiles in its cache only.
-    if (options.saveParamsFile) {
-        return "{\"sidecar\":" +
-               json_string(options.getParamFile(ep->getFileName())) + "}";
+    const std::string image = ep->getFileName();
+    // saveProfile reports nothing, and writes nothing when the image file
+    // has gone: check for that, and that a sidecar is there afterwards.
+    if (!Glib::file_test(image, Glib::FILE_TEST_IS_REGULAR)) {
+        return error_object("write_failed",
+                            image + " no longer exists; nothing was saved");
     }
-    return "{\"sidecar\":null}";
+    ep->saveProfile();
+    if (!options.saveParamsFile) {
+        ok = true;
+        return "{\"sidecar\":null}";
+    }
+    const std::string sidecar = options.getParamFile(image);
+    if (!Glib::file_test(sidecar, Glib::FILE_TEST_IS_REGULAR)) {
+        return error_object("write_failed", "ART did not write " + sidecar);
+    }
+    ok = true;
+    return "{\"sidecar\":" + json_string(sidecar) + "}";
 }
 
 void LiveControl::close(Connection *c)
@@ -1272,6 +1303,22 @@ struct LiveControl::PendingPreview {
     guint timer;
 };
 
+namespace {
+
+bool has_jpeg_name(const std::string &path)
+{
+    const std::string lower = Glib::ustring(path).lowercase();
+    for (const char *ext : {".jpg", ".jpeg"}) {
+        const size_t n = strlen(ext);
+        if (lower.size() > n && lower.compare(lower.size() - n, n, ext) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+} // namespace
+
 void LiveControl::start_preview(Connection *c, const std::string &id_json,
                                 const Args &args)
 {
@@ -1292,6 +1339,13 @@ void LiveControl::start_preview(Connection *c, const std::string &id_json,
                !Glib::path_is_absolute(output->second)) {
         code = "bad_request";
         message = "preview needs an absolute \"output\" path";
+    } else if (!has_jpeg_name(output->second)) {
+        code = "bad_request";
+        message = "preview \"output\" must end in .jpg or .jpeg";
+    } else if (Glib::file_test(output->second, Glib::FILE_TEST_EXISTS)) {
+        // Never overwrite: the client names a new file in its own folder.
+        code = "exists";
+        message = output->second + " already exists";
     } else if (max_size < 0) {
         code = "bad_request";
         message = "max_size must be a whole number from 1 to 2576";

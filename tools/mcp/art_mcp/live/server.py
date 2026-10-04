@@ -175,9 +175,9 @@ def build_server(
         lifespan=lifespan,
     )
 
-    def call(op: str, args: dict[str, str] | None = None) -> object:
+    def call(op: str, args: dict[str, Any] | None = None, timeout: float | None = None) -> object:
         try:
-            return channel.request(op, args)
+            return channel.request(op, args, timeout=timeout)
         except ArtNotRunning as e:
             raise tool_error("art_not_running", str(e)) from e
         except ChannelTimeout as e:
@@ -385,14 +385,7 @@ def build_server(
         output = preview_folder.new_file("live", ".jpg")
         args = {"path": art_path(path), "output": str(output), "max_size": max_size}
         try:
-            try:
-                result = channel.request("preview", args, timeout=channel.timeout + ART_PREVIEW_WAIT)
-            except ArtNotRunning as e:
-                raise tool_error("art_not_running", str(e)) from e
-            except ChannelTimeout as e:
-                raise tool_error("timeout", str(e)) from e
-            except ChannelError as e:
-                raise tool_error(e.code, e.message) from e
+            result = call("preview", args, timeout=channel.timeout + ART_PREVIEW_WAIT)
             try:
                 if not isinstance(result, dict):
                     raise TypeError("not an object")

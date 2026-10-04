@@ -41,7 +41,7 @@ From [Implementation language and SDK](https://github.com/AhaiMk01/ART/issues/7)
   `not_open`, `not_found`, `out_of_range`, `unknown_key`, `conflict`, `exists`,
   `render_failed`, `timeout` (art-cli or exiftool), `metadata_unavailable` (no
   exiftool beside ART-cli), `metadata_failed`, `invalid_tag`, `open_in_editor`,
-  `art_not_running`. Live server only: `timeout` also covers ART not answering
+  `art_not_running`, `write_failed`, `busy`. Live server only: `timeout` also covers ART not answering
   on the control channel; `bad_reply` (ART's answer isn't the protocol); ART's
   own codes pass through (`bad_request`, `unknown_op`).
 
@@ -295,9 +295,9 @@ toggle). The Live server never launches ART.
 | `get_profile` | `path` | Read format (3.4) + `history_position` (selected History row, 0 = oldest; null if none) |
 | `edit_profile` | `path`, `adjustments?`, `raw_edits?` | Keys changed; returns once the undo entry exists |
 | `undo` / `redo` | `path` | New History position |
-| `render_preview` | `path`, `max_size=1024`, `inline?` | JPEG path; waits until ART's processing queue drains (30 s timeout) |
-| `open_image` | `path` | Opened |
-| `save_sidecar` | `path` | Saved (editor's own save) |
+| `render_preview` | `path`, `max_size=1024`, `inline?` | JPEG path + width/height; waits until ART's processing queue drains (30 s, else `timeout`). The editor's preview (~600 px wide, whole frame, uncropped) shrunk to fit `max_size`, never enlarged |
+| `open_image` | `path` | ART's name for it, `already_open`; returns once ART has loaded it (60 s, else `timeout`) |
+| `save_sidecar` | `path` | The sidecar written (editor's own save), null when ART keeps profiles in its cache only; `write_failed` when nothing was written |
 | `describe_adjustments` | none | As Render server |
 | `inspect_image` | `path`, `tags?` | As Render server (Python + exiftool; no C++) |
 
@@ -308,7 +308,11 @@ toggle). The Live server never launches ART.
   the Render server's values for the same file, which come from the saved
   profile. Paths go to ART absolute but unresolved (links and `subst` drives
   as given), because ART matches the name it opened the file under.
-- History: one entry per `edit_profile`, labelled `Agent: <tools touched>`
+- History: one entry per `edit_profile`; ART shows it as
+  `ARP changed | Agent: <tools touched>` (its paste-entry prefix). A raw
+  edit ART can't load is rejected (`bad_request`) before anything changes:
+  ART tries the partial profile on a copy first. `[Version]` can't be
+  edited on either server.
   (e.g. `Agent: Exposure, White Balance`).
 - Previews come from the editor's preview image: **monitor** colour space, not
   sRGB output.
@@ -353,8 +357,13 @@ toggle). The Live server never launches ART.
 - New module `src/gui/livecontrol.{h,cc}` (always built): socket service,
   token check, JSON-lines dispatch, discovery file. Requests are handled in
   the GIO read callback, which already runs on the GTK main loop (under
-  `GThreadLock`), so no `IdleRegister` hop is needed; later ops that wait
-  (previews) will reply asynchronously.
+  `GThreadLock`), so no `IdleRegister` hop is needed. `preview` replies
+  later: it polls every 50 ms (low priority) until the editor isn't
+  processing, at most 4 waiting per connection (`busy` beyond), 30 s
+  (`timeout`); replies can therefore arrive out of order, matched by `id`.
+  Its `output` must be a new `.jpg`/`.jpeg` file (`exists` otherwise), so
+  the channel can't be used to overwrite files; `write_failed` if saving
+  it fails. `open` takes absolute paths only.
 - Hooks, kept small to limit upstream merge conflicts:
   - `RTWindow::getActiveEditorPanel()` / `getEditorPanels()` (and the same on
     `EditWindow`, via a non-creating `EditWindow::getExistingInstance()`),
@@ -365,9 +374,10 @@ toggle). The Live server never launches ART.
     existing editor caller; a copy taken mid-processing can lag a just-made
     change.
   - Public `EditorPanel` methods for: get profile (`ipc->getParams` -> .arp
-    text), history position, undo/redo, preview grab
-    (`PreviewHandler::getRoughImage` -> `Gdk::Pixbuf::save` JPEG), sidecar
-    save.
+    text), `canApply` (a partial profile tried on a copy), history
+    position, undo/redo, preview grab (a new
+    `PreviewHandler::getPreviewImage` -> `Gdk::Pixbuf::save` JPEG),
+    sidecar save.
   - `ProfilePanel::applyPartialProfile(const PartialProfile&, label)` built
     from the paste path (select the custom row, then
     `profileChange(EvProfileChanged)`), so the profile combo stays correct and
@@ -378,8 +388,11 @@ toggle). The Live server never launches ART.
     reset keys a group lacks (`[Exposure]` without `HLRecovery` turns
     highlight recovery off), so the given keys are laid over the current
     profile's own complete KeyFile, which is then loaded.
-- `edit_profile` that changes nothing sends nothing (no empty History
-  entry). The label names the adjusted tools, then the groups of raw edits.
+- Python side (`art-mcp-live`): `edit_profile` that changes nothing sends
+  nothing (no empty History entry). It works from a `get_profile` snapshot;
+  ART applies the partial profile over what it holds then, so a value the
+  user changed meanwhile survives, but `changed`/`implied` describe the
+  snapshot. The label names the adjusted tools, then the groups of raw edits.
   A crop is checked against `status`'s width/height; while ART hasn't
   reported them it is applied unchecked, with a warning.
 - `open_image` opens through the file browser as a command-line file does

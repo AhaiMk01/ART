@@ -1334,6 +1334,16 @@ bool EditorPanel::getProfileText(std::string &arp, int &history_position)
     return true;
 }
 
+bool EditorPanel::canApply(const art::engine::procparams::PartialProfile &pp)
+{
+    if (!ipc) {
+        return false;
+    }
+    art::engine::procparams::ProcParams trial;
+    ipc->getParams(&trial);
+    return pp.applyTo(trial);
+}
+
 bool EditorPanel::applyPartialProfile(
     const art::engine::procparams::PartialProfile &pp,
     const Glib::ustring &label, int &history_position)

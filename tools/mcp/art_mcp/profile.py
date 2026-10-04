@@ -139,6 +139,10 @@ class WorkingChanges:
         definition (ART omits some, e.g. ``Equal`` at its default). A raw edit
         and an adjustment on the same key conflict, but a raw edit of a key an
         adjustment only *implies* wins."""
+        versioned = [e for e in raw_edits if e.group == VERSION_GROUP]
+        if versioned:
+            # Which ART version wrote the profile decides how ART migrates it.
+            raise UnknownKey(f"{versioned[0].name} can't be edited")
         unknown = [e for e in raw_edits if e.key not in self.profile.get(e.group, {})]
         if unknown:
             names = ", ".join(e.name for e in unknown)

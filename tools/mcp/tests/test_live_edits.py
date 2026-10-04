@@ -141,6 +141,7 @@ async def test_raw_edit_groups_are_named_in_the_label(art, editor, image):
             "conflict",
         ),
         ({"adjustments": {"crop": {"x": 100, "w": 6000}}}, "out_of_range"),
+        ({"raw_edits": [{"group": "Version", "key": "Version", "value": "1000"}]}, "unknown_key"),
     ],
 )
 async def test_a_bad_edit_changes_nothing_in_art(art, editor, image, args, code):
