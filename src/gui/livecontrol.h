@@ -111,6 +111,22 @@ private:
     std::string token_;
     std::string discovery_path_;
     std::set<Connection *> connections_;
+
+    // The `preview` op answers later: once the editor has finished
+    // processing (or after a timeout), from a main-loop timer. A pending
+    // preview names its editor by path and is dropped with its connection,
+    // so neither can be used after it is gone.
+    struct PendingPreview;
+    // Replies at once to a bad request, else queues the preview.
+    void start_preview(Connection *c, const std::string &id_json,
+                       const Args &args);
+    static gboolean on_preview_poll(gpointer data);
+    // Answers p if its editor is idle, gone or out of time, and frees it;
+    // true while it is still waiting.
+    bool poll_preview(PendingPreview *p);
+    // Forgets the previews pending on c (nullptr: all), unanswered.
+    void drop_previews(Connection *c);
+    std::set<PendingPreview *> previews_;
 };
 
 }} // namespace art::gui

@@ -5,18 +5,24 @@ launches ART.
 """
 
 import argparse
+import base64
 import os
 import time
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
+from mcp.types import CallToolResult, ContentBlock, ImageContent, TextContent
 from pydantic import BaseModel
 
 from art_mcp import artdir, keyfile
 from art_mcp.live.channel import ArtNotRunning, ChannelError, ChannelTimeout, ControlChannel
 from art_mcp.metadata import Exiftool, Metadata, MetadataProblem, read_metadata
+from art_mcp.preview import PreviewFolder, default_root, sweep_stale
+from art_mcp.render.preview_tools import MAX_PREVIEW_SIZE, PREVIEW_SIZE, Preview
 from art_mcp.profile import Conflict as EditConflict
 from art_mcp.profile import (
     ProfileView,
@@ -118,6 +124,18 @@ def history_label(adjustments: Adjustments | None, raw_edits: list[RawEdit]) -> 
     return "Agent: " + ", ".join(names)
 
 
+class LivePreview(Preview):
+    width: int
+    height: int
+    """The JPEG's size: the editor's preview image shrunk to fit `max_size`
+    (never enlarged, so it can be smaller)."""
+
+
+ART_PREVIEW_WAIT = 30.0
+"""How long ART waits for its processing to drain before a preview fails
+with `timeout`."""
+
+
 def art_path(path: str) -> str:
     """How to name an image to ART: absolute, but with links, junctions and
     subst drives left as they are, since ART keeps the name it opened the
@@ -131,15 +149,30 @@ def same_image(a: str, b: str) -> bool:
 
 
 def build_server(
-    channel: ControlChannel, *, exiftool: Exiftool | None = None, open_timeout: float = 60.0
+    channel: ControlChannel,
+    *,
+    exiftool: Exiftool | None = None,
+    open_timeout: float = 60.0,
+    previews: PreviewFolder | None = None,
+    inline_previews: bool = False,
 ) -> MCPServer:
     """``open_timeout``: how long open_image waits for ART to load an image."""
+    preview_folder = previews or PreviewFolder(default_root())
+
+    @asynccontextmanager
+    async def lifespan(_: MCPServer) -> AsyncIterator[None]:
+        try:
+            yield
+        finally:
+            preview_folder.remove()
+
     server = MCPServer(
         "art-live",
         instructions=(
             "Work with the images open in a running ART editor (started with "
             "--live-control). Call status to see which images are open."
         ),
+        lifespan=lifespan,
     )
 
     def call(op: str, args: dict[str, str] | None = None) -> object:
@@ -335,6 +368,48 @@ def build_server(
             raise tool_error("bad_reply", f"unexpected save_sidecar reply from ART: {reply!r:.300}")
         return SidecarSaved(saved=True, sidecar=reply["sidecar"])
 
+    @server.tool()
+    def render_preview(
+        path: str, max_size: int = PREVIEW_SIZE, inline: bool | None = None
+    ) -> Annotated[CallToolResult, LivePreview]:
+        """The image open in ART's editor as the editor shows it now, as a
+        JPEG (long edge at most `max_size` px, 1 to 2576; the editor's preview
+        is often smaller, and is never enlarged); returns its path. Waits
+        until ART has finished processing the latest edits (fails with
+        timeout after 30 s). The colours are in the monitor colour space
+        ART displays with, not sRGB output. `inline` also returns the image
+        itself (default: the server's --inline-previews setting). Fails with
+        not_open if ART doesn't have the image open."""
+        if not 1 <= max_size <= MAX_PREVIEW_SIZE:
+            raise tool_error("out_of_range", f"max_size must be 1 to {MAX_PREVIEW_SIZE}")
+        output = preview_folder.new_file("live", ".jpg")
+        args = {"path": art_path(path), "output": str(output), "max_size": max_size}
+        try:
+            try:
+                result = channel.request("preview", args, timeout=channel.timeout + ART_PREVIEW_WAIT)
+            except ArtNotRunning as e:
+                raise tool_error("art_not_running", str(e)) from e
+            except ChannelTimeout as e:
+                raise tool_error("timeout", str(e)) from e
+            except ChannelError as e:
+                raise tool_error(e.code, e.message) from e
+            try:
+                if not isinstance(result, dict):
+                    raise TypeError("not an object")
+                preview = LivePreview(
+                    path=str(output), max_size=max_size, width=result["width"], height=result["height"]
+                )
+                jpeg = output.read_bytes()
+            except (KeyError, TypeError, ValueError, OSError) as e:
+                raise tool_error("bad_reply", f"unexpected preview reply from ART: {result!r:.300}") from e
+        except BaseException:
+            output.unlink(missing_ok=True)
+            raise
+        content: list[ContentBlock] = [TextContent(text=preview.model_dump_json())]
+        if inline if inline is not None else inline_previews:
+            content.append(ImageContent(data=base64.b64encode(jpeg).decode("ascii"), mime_type="image/jpeg"))
+        return CallToolResult(content=content, structured_content=preview.model_dump(mode="json"))
+
     return server
 
 
@@ -349,9 +424,21 @@ def main() -> None:
         help="ART's install folder, only to find the settings of a portable "
         "(MultiUser=false) install (default: ART_DIR, PATH, newest install)",
     )
+    parser.add_argument(
+        "--inline-previews",
+        action="store_true",
+        help="return preview images inline (base64) as well as by path; "
+        "render_preview's `inline` argument overrides this per call",
+    )
     args = parser.parse_args()
     program_files = Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "ART"
     art_dir = artdir.find_art_dir(args.art_dir, os.environ, program_files)
     channel = ControlChannel(artdir.user_config_dir(os.environ, art_dir=art_dir), timeout=args.timeout)
     exiftool_path = artdir.find_exiftool(art_dir) if art_dir else None
-    build_server(channel, exiftool=Exiftool((str(exiftool_path),)) if exiftool_path else None).run()
+    sweep_stale()
+    build_server(
+        channel,
+        exiftool=Exiftool((str(exiftool_path),)) if exiftool_path else None,
+        previews=PreviewFolder(default_root()),
+        inline_previews=args.inline_previews,
+    ).run()

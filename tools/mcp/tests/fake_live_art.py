@@ -27,6 +27,17 @@ def fail(code: str, message: str) -> Reply:
     ).encode()
 
 
+def write_preview(jpeg: bytes, *, width: int, height: int) -> Reply:
+    """Like ART's preview op: writes `jpeg` to the requested output path."""
+
+    def reply(req: dict[str, Any]) -> bytes:
+        output = req["args"]["output"]
+        Path(output).write_bytes(jpeg)
+        return answer({"path": output, "width": width, "height": height})(req)
+
+    return reply
+
+
 class FakeArt:
     def __init__(self, config_dir: Path, token: str = "s3cret", pid: int | None = None) -> None:
         self.config_dir = config_dir

@@ -209,6 +209,26 @@ PreviewHandler::getRoughImage(int desiredW, int desiredH, double &zoom_)
     return resPixbuf;
 }
 
+Glib::RefPtr<Gdk::Pixbuf> PreviewHandler::getPreviewImage(int max_size)
+{
+    MyMutex::MyLock lock(previewImgMutex);
+
+    if (!previewImg || max_size < 1) {
+        return Glib::RefPtr<Gdk::Pixbuf>();
+    }
+    const int w = previewImg->get_width();
+    const int h = previewImg->get_height();
+    const int longest = max(w, h);
+    if (longest <= max_size) {
+        // a deep copy: previewImg shares the engine's pixel buffer
+        return previewImg->copy();
+    }
+    const double s = double(max_size) / longest;
+    return previewImg->scale_simple(max(1, int(w * s + 0.5)),
+                                    max(1, int(h * s + 0.5)),
+                                    Gdk::INTERP_BILINEAR);
+}
+
 void PreviewHandler::previewImageChanged()
 {
 

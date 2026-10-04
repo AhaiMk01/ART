@@ -97,10 +97,12 @@ class ControlChannel:
             )
         return found
 
-    def request(self, op: str, args: dict[str, Any] | None = None) -> Any:
+    def request(self, op: str, args: dict[str, Any] | None = None, *, timeout: float | None = None) -> Any:
         """Send one request and return its ``result``. Raises ArtNotRunning,
-        ChannelTimeout or ChannelError (ART's error code and message)."""
+        ChannelTimeout or ChannelError (ART's error code and message).
+        ``timeout`` replaces the channel's own for an op that waits in ART."""
         found = self.discover()
+        limit = self.timeout if timeout is None else timeout
         request_id = next(self._ids)
         try:
             sock = socket.create_connection((self.host, found.port), timeout=self.timeout)
@@ -115,9 +117,9 @@ class ControlChannel:
         with sock:
             try:
                 sock.sendall(encode({"token": found.token}) + encode({"id": request_id, "op": op, "args": args or {}}))
-                line = read_line(sock, deadline=time.monotonic() + self.timeout)
+                line = read_line(sock, deadline=time.monotonic() + limit)
             except TimeoutError:
-                raise ChannelTimeout(f"ART did not answer `{op}` within {self.timeout:g} s") from None
+                raise ChannelTimeout(f"ART did not answer `{op}` within {limit:g} s") from None
             except ConnectionError:
                 # ART drops a connection whose token it refuses; on Windows
                 # that can arrive as a reset rather than a clean close.

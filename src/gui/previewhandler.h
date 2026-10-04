@@ -83,6 +83,9 @@ public:
                                             double zoom);
     Glib::RefPtr<Gdk::Pixbuf> getRoughImage(int desiredW, int desiredH,
                                             double &zoom);
+    // A copy of the whole preview image, shrunk (never enlarged) to fit
+    // max_size x max_size; null while there is none.
+    Glib::RefPtr<Gdk::Pixbuf> getPreviewImage(int max_size);
     art::engine::procparams::CropParams getCropParams() { return cropParams; }
 };
 

@@ -188,6 +188,11 @@ public:
 
     bool saveImmediately(const Glib::ustring &filename, const SaveFormat &sf);
 
+    // The editor's preview image (whole frame, monitor colour space), shrunk
+    // to fit max_size; null before the first preview. getIsProcessing()
+    // says whether it is up to date.
+    Glib::RefPtr<Gdk::Pixbuf> getPreviewImage(int max_size);
+
     Gtk::Paned *catalogPane;
 
     void cleanup();

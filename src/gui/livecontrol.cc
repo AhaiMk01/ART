@@ -465,6 +465,22 @@ std::string error_reply(const std::string &id, const std::string &code,
            json_string(code) + ",\"message\":" + json_string(message) + "}}";
 }
 
+// The `preview` op's args: the string members, plus max_size (a number) as
+// its JSON text.
+std::map<std::string, std::string> preview_args(const JsonDoc &doc,
+                                                const JsonNode *args)
+{
+    std::map<std::string, std::string> out;
+    if (args) {
+        out = doc.strings(*args);
+        const JsonNode *size = doc.get(*args, "max_size");
+        if (size && size->type == JsonNode::NUMBER) {
+            out["max_size"] = doc.raw(*size);
+        }
+    }
+    return out;
+}
+
 //-----------------------------------------------------------------------------
 
 std::string random_token()
@@ -672,6 +688,7 @@ LiveControl::~LiveControl()
         g_signal_handlers_disconnect_by_data(service_, this);
         g_object_unref(service_);
     }
+    drop_previews(nullptr);
     // A connection with a read or write in flight is freed by its callback
     // (if the main loop runs again at all).
     std::set<Connection *> all;
@@ -888,6 +905,10 @@ bool LiveControl::handle_line(Connection *c, const std::string &line)
                    args->type != JsonNode::NUL) {
             reply = error_reply(id_json, "bad_request",
                                 "\"args\" must be an object");
+        } else if (op->str == "preview") {
+            // Answered later, once the editor has finished processing.
+            start_preview(c, id_json, preview_args(doc, args));
+            return true;
         } else {
             bool ok = false;
             std::string result =
@@ -1204,8 +1225,170 @@ std::string LiveControl::save_sidecar(const Args &args, bool &ok)
 
 void LiveControl::close(Connection *c)
 {
+    drop_previews(c);
     connections_.erase(c);
     shut(c);
+}
+
+//-----------------------------------------------------------------------------
+// preview {path, output, max_size}: the editor's preview image as a JPEG
+//-----------------------------------------------------------------------------
+
+namespace {
+
+// How long a preview waits for the editor to finish processing.
+const gint64 PREVIEW_WAIT_SECONDS = 30;
+// How often a waiting preview looks at its editor. The timer runs below the
+// priority of the idle callbacks through which the processor reports to the
+// editor, so it never sees a state those are still about to change.
+const guint PREVIEW_POLL_MS = 50;
+const long DEFAULT_PREVIEW_SIZE = 1024;
+const long MAX_PREVIEW_SIZE = 2576;
+// Most previews one connection may have waiting at once.
+const size_t MAX_PENDING_PREVIEWS = 4;
+const int PREVIEW_JPEG_QUALITY = 85;
+
+// A whole number from 1 to MAX_PREVIEW_SIZE as JSON text, or -1.
+long preview_size(const std::string &text)
+{
+    if (text.empty() || text.size() > 5 ||
+        text.find_first_not_of("0123456789") != std::string::npos) {
+        return -1;
+    }
+    long n = strtol(text.c_str(), nullptr, 10);
+    return n >= 1 && n <= MAX_PREVIEW_SIZE ? n : -1;
+}
+
+} // namespace
+
+struct LiveControl::PendingPreview {
+    LiveControl *owner;
+    Connection *c;
+    std::string id_json;
+    std::string path;
+    std::string output;
+    int max_size;
+    gint64 deadline; // g_get_monotonic_time()
+    guint timer;
+};
+
+void LiveControl::start_preview(Connection *c, const std::string &id_json,
+                                const Args &args)
+{
+    Args::const_iterator path = args.find("path");
+    Args::const_iterator output = args.find("output");
+    Args::const_iterator size = args.find("max_size");
+    long max_size = size == args.end() ? DEFAULT_PREVIEW_SIZE
+                                       : preview_size(size->second);
+    size_t waiting = 0;
+    for (auto p : previews_) {
+        waiting += p->c == c;
+    }
+    std::string code, message;
+    if (path == args.end() || path->second.empty()) {
+        code = "bad_request";
+        message = "preview needs \"path\"";
+    } else if (output == args.end() ||
+               !Glib::path_is_absolute(output->second)) {
+        code = "bad_request";
+        message = "preview needs an absolute \"output\" path";
+    } else if (max_size < 0) {
+        code = "bad_request";
+        message = "max_size must be a whole number from 1 to 2576";
+    } else if (!Glib::file_test(Glib::path_get_dirname(output->second),
+                                Glib::FILE_TEST_IS_DIR)) {
+        code = "not_found";
+        message = "no folder for " + output->second;
+    } else if (!find_editor(path->second)) {
+        code = "not_open";
+        message = path->second + " is not open in ART";
+    } else if (waiting >= MAX_PENDING_PREVIEWS) {
+        code = "busy";
+        message = "too many previews waiting on this connection";
+    }
+    if (!code.empty()) {
+        send(c, error_reply(id_json, code, message));
+        return;
+    }
+    PendingPreview *p = new PendingPreview();
+    p->owner = this;
+    p->c = c;
+    p->id_json = id_json;
+    p->path = path->second;
+    p->output = output->second;
+    p->max_size = static_cast<int>(max_size);
+    p->deadline =
+        g_get_monotonic_time() + PREVIEW_WAIT_SECONDS * G_USEC_PER_SEC;
+    p->timer = gdk_threads_add_timeout_full(G_PRIORITY_LOW, PREVIEW_POLL_MS,
+                                            on_preview_poll, p, nullptr);
+    previews_.insert(p);
+}
+
+gboolean LiveControl::on_preview_poll(gpointer data)
+{
+    PendingPreview *p = static_cast<PendingPreview *>(data);
+    return p->owner->poll_preview(p) ? G_SOURCE_CONTINUE : G_SOURCE_REMOVE;
+}
+
+bool LiveControl::poll_preview(PendingPreview *p)
+{
+    std::string reply;
+    // Looked up again each time: the editor may have closed meanwhile.
+    EditorPanel *ep = find_editor(p->path);
+    if (!ep) {
+        reply = error_reply(p->id_json, "not_open",
+                            p->path + " is not open in ART");
+    } else if (!ep->getIsProcessing()) {
+        Glib::RefPtr<Gdk::Pixbuf> img = ep->getPreviewImage(p->max_size);
+        if (img) {
+            try {
+                img->save(p->output, "jpeg",
+                          std::vector<Glib::ustring>(1, "quality"),
+                          std::vector<Glib::ustring>(
+                              1, std::to_string(PREVIEW_JPEG_QUALITY)));
+                std::ostringstream out;
+                out << "{\"id\":" << p->id_json
+                    << ",\"ok\":true,\"result\":{\"path\":"
+                    << json_string(p->output)
+                    << ",\"width\":" << img->get_width()
+                    << ",\"height\":" << img->get_height() << "}}";
+                reply = out.str();
+            } catch (Glib::Error &e) {
+                std::string why = e.what();
+                reply = error_reply(p->id_json, "write_failed",
+                                    "cannot write " + p->output + ": " + why);
+            }
+        }
+        // no preview image yet: the image is still loading
+    }
+    if (reply.empty()) {
+        if (g_get_monotonic_time() < p->deadline) {
+            return true;
+        }
+        std::ostringstream message;
+        message << "ART was still processing " << p->path << " after "
+                << PREVIEW_WAIT_SECONDS << " s";
+        reply = error_reply(p->id_json, "timeout", message.str());
+    }
+    Connection *c = p->c;
+    previews_.erase(p);
+    delete p; // its timer goes away as this returns false
+    send(c, reply);
+    return false;
+}
+
+void LiveControl::drop_previews(Connection *c)
+{
+    for (auto it = previews_.begin(); it != previews_.end();) {
+        PendingPreview *p = *it;
+        if (c && p->c != c) {
+            ++it;
+            continue;
+        }
+        it = previews_.erase(it);
+        remove_timer(p->timer);
+        delete p;
+    }
 }
 
 }} // namespace art::gui

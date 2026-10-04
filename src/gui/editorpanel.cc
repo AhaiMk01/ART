@@ -2412,6 +2412,14 @@ void EditorPanel::do_send_to_gimp(bool fast_export)
     sendtogimp->set_sensitive(false);
 }
 
+Glib::RefPtr<Gdk::Pixbuf> EditorPanel::getPreviewImage(int max_size)
+{
+    if (!ipc || !previewHandler) {
+        return Glib::RefPtr<Gdk::Pixbuf>();
+    }
+    return previewHandler->getPreviewImage(max_size);
+}
+
 bool EditorPanel::saveImmediately(const Glib::ustring &filename,
                                   const SaveFormat &sf)
 {
