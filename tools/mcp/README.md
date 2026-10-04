@@ -43,9 +43,11 @@ Claude Desktop (`claude_desktop_config.json`):
 | `edit_profile(path, raw_edits)` | Sets `[Group] Key` values (raw edits); the group and key must exist; all or nothing |
 | `reset_profile(path, to)` | Reloads the working profile from the `sidecar` or ART's `default` profile |
 | `export_image(path, output, format, quality?, bit_depth?, write_profile=false, overwrite=false)` | Renders the working profile at full size as `jpeg` (quality 1..100, 8 bit), `png` (8/16 bit) or `tiff` (8/16/16f/32 bit) to `output` (its folder must exist); an existing `output` is refused unless `overwrite`; `write_profile` also saves `<output>.arp`, otherwise none is written |
+| `save_sidecar(path, on_conflict?)` | The only tool that writes the sidecar (named per ART's strip-extension option): atomic, previous one kept as `<sidecar>.bak`. If the sidecar changed on disk since it was loaded, asks the user (merge / overwrite / cancel) when the client supports elicitation; else fails with `conflict` listing the changed keys, and the agent calls again with `on_conflict`. `merge` applies only the agent's changed keys onto the current sidecar. Afterwards the saved file is the new baseline |
+| `save_partial_profile(path, dest, overwrite?)` | Writes only the keys the agent changed since load or the last save to `dest`; `exists` error if `dest` exists unless `overwrite`; writes nothing if nothing changed |
 
 Errors come back as tool errors whose text starts with a code: `not_open`,
-`not_found`, `unknown_key`, `render_failed`, `timeout`, `exists`,
+`not_found`, `unknown_key`, `render_failed`, `timeout`, `conflict`, `exists`,
 `out_of_range`.
 
 ## Development

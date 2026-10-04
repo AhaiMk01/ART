@@ -16,11 +16,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver import Context, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
+from mcp.shared.exceptions import NoBackChannelError
+from mcp_types import ClientCapabilities, ElicitationCapability
 from pydantic import BaseModel
 
-from art_mcp import artdir, keyfile
+from art_mcp import artdir, keyfile, sidecar
+from art_mcp.keyfile import KeyFile
 from art_mcp.preview import PreviewFolder, default_root
 from art_mcp.profile import ProfileView, RawEdit, UnknownKey, WorkingChanges, read_format
 from art_mcp.render.artcli import (
@@ -36,7 +39,8 @@ from art_mcp.render.artcli import (
 PREVIEW_SIZE = 1024
 
 ErrorCode = Literal[
-    "not_open", "not_found", "unknown_key", "render_failed", "timeout", "exists", "out_of_range"
+    "not_open", "not_found", "unknown_key", "render_failed", "timeout",
+    "conflict", "exists", "out_of_range",
 ]
 
 EXPORT_SUFFIXES = {"jpeg": ".jpg", "tiff": ".tif", "png": ".png"}
@@ -53,6 +57,16 @@ class WorkingProfile:
     """SHA-256 of the sidecar on disk when this working profile was loaded
     (whichever source it was loaded from), or None if there was none: the
     baseline for detecting that someone else changed the sidecar."""
+    sidecar_keys: KeyFile
+    """That sidecar's content, to tell what someone else changed in it."""
+
+
+def parse_sidecar(data: bytes | None) -> KeyFile:
+    """A sidecar's keys; empty if there is none or it doesn't parse."""
+    try:
+        return keyfile.loads(data.decode("utf-8")) if data is not None else {}
+    except ValueError:
+        return {}
 
 
 class OpenedImage(BaseModel):
@@ -76,6 +90,31 @@ class ExportResult(BaseModel):
     """The exported image."""
     profile_path: str | None
     """The `.arp` written beside it, when `write_profile` was set."""
+
+
+Conflict = Literal["merge", "overwrite", "cancel"]
+SaveHow = Literal["written", "merged", "overwritten", "cancelled"]
+
+
+class ConflictChoice(BaseModel):
+    choice: Conflict
+
+
+class SaveResult(BaseModel):
+    saved: bool
+    path: str
+    """The sidecar file."""
+    how: SaveHow
+    """`written` (nothing had changed there), `merged`, `overwritten` or
+    `cancelled` (nothing saved)."""
+
+
+class PartialProfileResult(BaseModel):
+    written: bool
+    """False when the agent has changed nothing: no file is written."""
+    path: str
+    keys: list[str]
+    """The `[Group] Key` entries written."""
 
 
 class Preview(BaseModel):
@@ -178,11 +217,33 @@ def build_server(cli: ArtCli, config_dir: Path, previews: PreviewFolder) -> MCPS
         working[image_key(image)] = WorkingProfile(
             image=image,
             changes=WorkingChanges(profile),
+            sidecar_keys=parse_sidecar(sidecar_bytes),
             sidecar_hash=(
                 hashlib.sha256(sidecar_bytes).hexdigest() if sidecar_bytes is not None else None
             ),
         )
         return source
+
+    async def ask_user(
+        ctx: Context, target: Path, theirs: list[str], ours: list[str]
+    ) -> Conflict | None:
+        """The user's choice about a changed sidecar, or None if the client
+        can't ask. Declining or dismissing the question is `cancel`."""
+        asks = ClientCapabilities(elicitation=ElicitationCapability())
+        if not ctx.request_context.session.check_client_capability(asks):
+            return None
+        try:
+            answer = await ctx.elicit(
+                f"{target.name} was changed since the agent loaded it "
+                f"(changed there: {', '.join(theirs) or 'unknown'}). The agent changed: "
+                f"{', '.join(ours) or 'nothing'}. Merge = keep the sidecar's values and "
+                "apply only the agent's changes; overwrite = replace the sidecar with "
+                "the agent's profile (a backup is kept).",
+                ConflictChoice,
+            )
+        except NoBackChannelError:
+            return None  # newer protocol versions: a tool can't ask mid-call
+        return answer.data.choice if answer.action == "accept" else "cancel"
 
     @server.tool()
     def open_image(path: str) -> OpenedImage:
@@ -287,6 +348,81 @@ def build_server(cli: ArtCli, config_dir: Path, previews: PreviewFolder) -> MCPS
             for leftover in (profile, temp, temp_arp):
                 leftover.unlink(missing_ok=True)
         return ExportResult(path=str(dest), profile_path=str(dest_arp) if write_profile else None)
+
+
+    @server.tool()
+    async def save_sidecar(
+        path: str, ctx: Context, on_conflict: Conflict | None = None
+    ) -> SaveResult:
+        """Write the working profile to the image's sidecar (the only tool
+        that writes it); the previous sidecar is kept as `<sidecar>.bak`.
+
+        If the sidecar changed on disk since it was loaded, the user is asked
+        (when the client supports it) whether to `merge` the agent's changes
+        onto the current sidecar, `overwrite` it, or `cancel`; otherwise a
+        `conflict` error lists the changed keys and the agent should ask the
+        user, then call again with `on_conflict`."""
+        wp = opened(path)
+        target = artdir.sidecar_path(wp.image, config_dir)
+        current = target.read_bytes() if target.is_file() else None
+        profile = wp.changes.profile
+        how: SaveHow = "written"
+        text: str | None = None
+        if (sidecar.file_hash(current) if current is not None else None) != wp.sidecar_hash:
+            theirs = sidecar.changed_keys(wp.sidecar_keys, parse_sidecar(current))
+            ours = sidecar.changed_keys({}, wp.changes.partial_profile())
+            if on_conflict is None:
+                on_conflict = await ask_user(ctx, target, theirs, ours)
+            if on_conflict is None:
+                raise tool_error(
+                    "conflict",
+                    "the sidecar changed since it was loaded. Changed in the sidecar: "
+                    f"{', '.join(theirs) or '(nothing that parses)'}. Changed by the agent: "
+                    f"{', '.join(ours) or '(nothing)'}. Ask the user, then call again with "
+                    "on_conflict: merge (agent's changes onto the current sidecar), "
+                    "overwrite, or cancel.",
+                )
+            if on_conflict == "cancel":
+                return SaveResult(saved=False, path=str(target), how="cancelled")
+            if on_conflict == "merge" and current is not None:
+                merged = sidecar.merge(parse_sidecar(current), wp.changes.partial_profile())
+                # The working profile follows the file, so later saves and
+                # renders include what the user changed there.
+                profile = sidecar.merge(profile, merged)
+                how = "merged"
+                text = keyfile.dumps(merged)
+            else:
+                how = "overwritten"
+        if text is None:
+            text = keyfile.dumps(profile)
+        data = text.encode("utf-8")
+        sidecar.write_with_backup(target, text)
+        wp.changes = WorkingChanges(profile)
+        wp.sidecar_hash = sidecar.file_hash(data)
+        wp.sidecar_keys = parse_sidecar(data)
+        return SaveResult(saved=True, path=str(target), how=how)
+
+    @server.tool()
+    def save_partial_profile(
+        path: str, dest: str, overwrite: bool = False
+    ) -> PartialProfileResult:
+        """Write only the values the agent changed since the profile was
+        loaded or last saved to `dest`, as a partial processing profile
+        (.arp) that can be applied on top of other images. Refuses an
+        existing `dest` unless `overwrite`. Nothing is written when nothing
+        changed."""
+        partial = opened(path).changes.partial_profile()
+        target = Path(dest)
+        if not target.parent.is_dir():
+            raise tool_error("not_found", f"folder {target.parent} does not exist")
+        if target.exists() and not overwrite:
+            raise tool_error("exists", f"{target} exists; pass overwrite=true to replace it")
+        if not partial:
+            return PartialProfileResult(written=False, path=str(target), keys=[])
+        sidecar.write_with_backup(target, keyfile.dumps(partial), backup=False)
+        return PartialProfileResult(
+            written=True, path=str(target), keys=sidecar.changed_keys({}, partial)
+        )
 
     return server
 
