@@ -54,6 +54,9 @@ public:
     // Stops listening, drops the clients and removes the discovery file.
     ~LiveControl();
 
+    // The port this channel listens on (127.0.0.1).
+    unsigned port() const { return port_; }
+
     struct Connection;
 
 private:

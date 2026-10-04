@@ -286,8 +286,8 @@ and [Control channel options for a running ART GUI](https://github.com/AhaiMk01/
 Every image tool takes an absolute path that must be open in ART (else
 `not_open`). If no control-enabled ART runs (no discovery file, its pid gone,
 the connection refused, or the token refused): `art_not_running`, with a hint
-to start ART with `--live-control` (and, once #26 lands, the Preferences
-toggle). The Live server never launches ART.
+to start ART with `--live-control` or turn on Preferences > General > AI
+Assistants. The Live server never launches ART.
 
 | Tool | Args | Returns |
 |---|---|---|
@@ -325,8 +325,13 @@ toggle). The Live server never launches ART.
   the GTK main loop. Works in the default and `-N` modes. If another ART is
   already running, a default-mode launch forwards its files to that one and
   `--live-control` is ignored (a warning says so): start with `-N` then.
-- **Enable:** off by default. `--live-control` for one run; a Preferences
-  toggle (stored in `Options`) is issue #26.
+- **Enable:** off by default. Either the Preferences toggle (General tab,
+  "AI Assistants"; saved as `[General] LiveControl`, default false) or
+  `--live-control` for one run. The channel runs when either is set; the flag
+  never changes the saved preference. Changing the toggle takes effect on OK
+  with no restart: on starts the channel (new port and token, new discovery
+  file), off stops it (connections closed, discovery file removed), even if the
+  flag had started it. OK acts only when the saved value changed.
 - **Discovery:** ART writes `{port, token, pid, version}` (`version` is
   `RTVERSION`, a release number or a git hash) to `live-control.json` in its
   config dir: temp file (named with the pid) renamed into place; 0600 on
@@ -404,7 +409,13 @@ toggle). The Live server never launches ART.
   limit; no ART, an error or no answer means it can't tell, and the save
   proceeds.
 - Preferences toggle + `--live-control` option; strings in
-  `data/languages/default`.
+  `data/languages/default`. `RTWindow` owns the `LiveControl` instance
+  (`initLiveControl(flag)` at startup, `setLiveControl(on)`,
+  `liveControlPort()`, `liveControlFailed()`); `Preferences::workflowUpdate`
+  calls `setLiveControl` when the option changed. A new frame at the bottom of
+  the General tab holds the checkbox and a status line (Active with port,
+  Active for this run (--live-control), Off, Could not start); the token is
+  never shown.
 
 ## 8. Installation
 

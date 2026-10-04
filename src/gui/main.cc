@@ -26,7 +26,6 @@
 #include "../engine/dynamicprofile.h"
 #include "../utils/config.h"
 #include "extprog.h"
-#include "livecontrol.h"
 #include "options.h"
 #include "../utils/pathutils.h"
 #include "printhelp.h"
@@ -294,8 +293,8 @@ public:
 
     ~RTApplication() override
     {
-        liveControl_.reset();
         if (rtWindow) {
+            rtWindow->setLiveControl(false);
             art::gui::session::save(art::gui::session::filename() + ".last");
             art::gui::session::clear();
             cleanup_rt();
@@ -326,9 +325,7 @@ private:
             rtWindow = create_rt_window();
             add_window(*rtWindow);
             rtWindow->setApplication(true);
-            if (liveControl) {
-                liveControl_ = LiveControl::start(rtWindow);
-            }
+            rtWindow->initLiveControl(liveControl);
 #ifdef __APPLE__
             add_action("quit", sigc::slot<void>([this]() {
                            GThreadLock lck;
@@ -446,7 +443,6 @@ public:
 
 private:
     RTWindow *rtWindow;
-    std::unique_ptr<LiveControl> liveControl_;
 #ifdef __APPLE__
     GtkosxApplication *osxApp;
 #endif // __APPLE__
@@ -729,15 +725,12 @@ int main(int argc, char **argv)
             Gtk::Main m(&argc, &argv);
             gdk_threads_enter();
             const std::unique_ptr<RTWindow> rtWindow(create_rt_window());
-            std::unique_ptr<LiveControl> live;
-            if (liveControl) {
-                live = LiveControl::start(rtWindow.get());
-            }
+            rtWindow->initLiveControl(liveControl);
             if (gimpPlugin) {
                 show_gimp_plugin_info_dialog(rtWindow.get());
             }
             m.run(*rtWindow);
-            live.reset();
+            rtWindow->setLiveControl(false);
             gdk_threads_leave();
 
             if (gimpPlugin && rtWindow->epanel &&

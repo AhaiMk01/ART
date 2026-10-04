@@ -23,6 +23,7 @@
 #include "cursormanager.h"
 #include "editwindow.h"
 #include "gdkcolormgmt.h"
+#include "livecontrol.h"
 #include "options.h"
 #include "preferences.h"
 #include "rtimage.h"
@@ -206,7 +207,8 @@ RTWindow::RTWindow()
       // info_msg_num_(0),
       mainNB(nullptr), bpanel(nullptr), splash(nullptr),
       btn_fullscreen(nullptr), browser_tab_label_(nullptr),
-      is_application_(false)
+      is_application_(false),
+      live_control_failed_(false)
 {
 
     // if (options.is_new_version()) {
@@ -585,6 +587,7 @@ bool RTWindow::on_draw(const ::Cairo::RefPtr<::Cairo::Context> &cr)
 
 RTWindow::~RTWindow()
 {
+    live_control_.reset();
     idle_register.destroy();
 
     cacheMgr->setProgressListener(nullptr);
@@ -1214,6 +1217,29 @@ void RTWindow::showPreferences()
             options.rtSettings.monitorProfile,
             options.rtSettings.autoMonitorProfile);
     }
+}
+
+void RTWindow::initLiveControl(bool flag)
+{
+    if (flag || options.liveControl) {
+        setLiveControl(true);
+    }
+}
+
+void RTWindow::setLiveControl(bool on)
+{
+    if (!on) {
+        live_control_.reset();
+        live_control_failed_ = false;
+    } else if (!live_control_) {
+        live_control_ = LiveControl::start(this);
+        live_control_failed_ = !live_control_;
+    }
+}
+
+unsigned RTWindow::liveControlPort() const
+{
+    return live_control_ ? live_control_->port() : 0;
 }
 
 void RTWindow::setProgress(double p) { prProgBar.set_fraction(p); }

@@ -24,12 +24,14 @@
 #include "progressconnector.h"
 #include "splash.h"
 #include <gtkmm.h>
+#include <memory>
 #include <set>
 
 namespace art { namespace gui {
 
 
 class EditWindow;
+class LiveControl;
 
 class MessageWindow: public Gtk::Window {
 public:
@@ -129,6 +131,16 @@ public:
 
     void quit();
 
+    // The control channel (see livecontrol.h). It runs when the Preferences
+    // option is on or ART was started with --live-control ("flag").
+    // initLiveControl is called once at startup; setLiveControl by the
+    // Preferences dialog when the option changes (off stops the channel even
+    // if the flag started it).
+    void initLiveControl(bool flag);
+    void setLiveControl(bool on);
+    unsigned liveControlPort() const; // 0 if not running
+    bool liveControlFailed() const { return live_control_failed_; }
+
 private:
     // void show_info_msg(const Glib::ustring &msg, bool is_error, double
     // duration, size_t padding); bool hide_info_msg(); Gtk::Overlay
@@ -172,6 +184,8 @@ private:
 
     IdleRegister idle_register;
     bool is_application_;
+    std::unique_ptr<LiveControl> live_control_;
+    bool live_control_failed_;
 };
 
 

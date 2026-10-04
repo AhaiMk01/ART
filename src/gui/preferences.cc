@@ -1582,6 +1582,37 @@ Gtk::Widget *Preferences::getGeneralPanel()
     }
     vbGeneral->attach_next_to(*fdg, *fclip, Gtk::POS_BOTTOM, 2, 1);
 
+    Gtk::Frame *fai =
+        Gtk::manage(new Gtk::Frame(M("PREFERENCES_AI_ASSISTANTS")));
+    setExpandAlignProperties(fai, true, false, Gtk::ALIGN_FILL,
+                             Gtk::ALIGN_FILL);
+    Gtk::VBox *aivb = Gtk::manage(new Gtk::VBox());
+    aivb->set_spacing(4);
+    liveControlCheck =
+        Gtk::manage(new Gtk::CheckButton(M("PREFERENCES_AI_ALLOW")));
+    liveControlCheck->set_tooltip_text(M("PREFERENCES_AI_ALLOW_TOOLTIP"));
+    setExpandAlignProperties(liveControlCheck, false, false, Gtk::ALIGN_START,
+                             Gtk::ALIGN_BASELINE);
+    aivb->pack_start(*liveControlCheck, Gtk::PACK_SHRINK);
+    Glib::ustring aistatus;
+    if (parent->liveControlPort()) {
+        aistatus = options.liveControl
+                       ? Glib::ustring::compose(
+                             M("PREFERENCES_AI_STATUS_ACTIVE"),
+                             parent->liveControlPort())
+                       : M("PREFERENCES_AI_STATUS_ACTIVE_FLAG");
+    } else if (parent->liveControlFailed()) {
+        aistatus = M("PREFERENCES_AI_STATUS_FAILED");
+    } else {
+        aistatus = M("PREFERENCES_AI_STATUS_OFF");
+    }
+    Gtk::Label *aistatuslab = Gtk::manage(new Gtk::Label(aistatus));
+    setExpandAlignProperties(aistatuslab, false, false, Gtk::ALIGN_START,
+                             Gtk::ALIGN_BASELINE);
+    aivb->pack_start(*aistatuslab, Gtk::PACK_SHRINK);
+    fai->add(*aivb);
+    vbGeneral->attach_next_to(*fai, *fdg, Gtk::POS_BOTTOM, 2, 1);
+
     langAutoDetectConn = ckbLangAutoDetect->signal_toggled().connect(
         sigc::mem_fun(*this, &Preferences::langAutoDetectToggled));
     tconn = themeCBT->signal_changed().connect(
@@ -2339,6 +2370,8 @@ void Preferences::storePreferences()
 
     moptions.clutsDir = clutsDir->get_filename();
 
+    moptions.liveControl = liveControlCheck->get_active();
+
     int editorMode = editorLayout->get_active_row_number();
     moptions.tabbedUI = (editorMode > 1);
     moptions.multiDisplayMode = editorMode == 3 ? 1 : 0;
@@ -2552,6 +2585,7 @@ void Preferences::fillPreferences()
     }
 
     showDateTime->set_active(moptions.fbShowDateTime);
+    liveControlCheck->set_active(moptions.liveControl);
     showBasicExif->set_active(moptions.fbShowBasicExif);
     showExpComp->set_active(moptions.fbShowExpComp);
     // ckbmenuGroupRank->set_active (moptions.menuGroupRank);
@@ -3161,6 +3195,9 @@ void Preferences::switchFontTo(const Glib::ustring &newFontFamily,
 
 void Preferences::workflowUpdate()
 {
+    if (moptions.liveControl != options.liveControl) {
+        parent->setLiveControl(moptions.liveControl);
+    }
 
     if (moptions.tabbedUI != options.tabbedUI) {
         parent->setEditorMode(moptions.tabbedUI);

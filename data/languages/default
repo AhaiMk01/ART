@@ -1027,6 +1027,13 @@ PIPELINE_TIME;%1
 PIPELINE_TIME_GPU;%1 (CPU %2, GPU %3)
 PREFERENCES_ADD;Add
 PREFERENCES_ADJUSTER_FORCE_LINEAR;Force linear scale in adjuster sliders
+PREFERENCES_AI_ALLOW;Allow AI assistants to control the editor
+PREFERENCES_AI_ALLOW_TOOLTIP;Lets an AI assistant on this computer (for example Claude, through ART's MCP server) read and change the images open in the editor, through a token-protected local connection. Leave off unless you use one.
+PREFERENCES_AI_ASSISTANTS;AI Assistants
+PREFERENCES_AI_STATUS_ACTIVE;Active (this computer only, port %1)
+PREFERENCES_AI_STATUS_ACTIVE_FLAG;Active for this run (--live-control)
+PREFERENCES_AI_STATUS_FAILED;Could not start
+PREFERENCES_AI_STATUS_OFF;Off
 PREFERENCES_APPEARANCE;Appearance
 PREFERENCES_APPEARANCE_COLORPICKERFONT;Color picker font
 PREFERENCES_APPEARANCE_CROPMASKCOLOR;Crop mask color

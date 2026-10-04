@@ -472,6 +472,7 @@ void Options::setDefaults()
     navRGBUnit = NavigatorUnit::PERCENT;
     navLCHUnit = NavigatorUnit::PERCENT;
     multiUser = true;
+    liveControl = false;
     profilePath = "profiles";
     loadSaveProfilePath =
         ""; // will be corrected in load as otherwise construction fails
@@ -814,6 +815,11 @@ void Options::readFromFile(Glib::ustring fname)
                 if (keyFile.has_key("General", "AdjusterMaxDelay")) {
                     adjusterMaxDelay =
                         keyFile.get_integer("General", "AdjusterMaxDelay");
+                }
+
+                if (keyFile.has_key("General", "LiveControl")) {
+                    liveControl =
+                        keyFile.get_boolean("General", "LiveControl");
                 }
 
                 if (keyFile.has_key("General", "MultiUser")) {
@@ -2215,6 +2221,7 @@ void Options::saveToFile(Glib::ustring fname)
         keyFile.set_integer("General", "AdjusterMinDelay", adjusterMinDelay);
         keyFile.set_integer("General", "AdjusterMaxDelay", adjusterMaxDelay);
         keyFile.set_boolean("General", "MultiUser", multiUser);
+        keyFile.set_boolean("General", "LiveControl", liveControl);
         keyFile.set_string("General", "Language", language);
         keyFile.set_boolean("General", "LanguageAutoDetect",
                             languageAutoDetect);

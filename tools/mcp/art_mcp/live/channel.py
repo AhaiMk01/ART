@@ -23,7 +23,7 @@ from typing import Any
 from art_mcp.preview import pid_alive
 
 DISCOVERY_FILE = "live-control.json"
-START_HINT = "start ART with --live-control"
+START_HINT = "start ART with --live-control, or turn on Preferences > General > AI Assistants"
 MAX_REPLY = 64 * 1024 * 1024
 
 

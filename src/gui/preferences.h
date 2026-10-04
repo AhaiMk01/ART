@@ -91,6 +91,7 @@ class Preferences: public Gtk::Dialog, public art::engine::ProfileStoreListener 
     Gtk::Label *dfLabel;
     Gtk::Label *ffLabel;
 
+    Gtk::CheckButton *liveControlCheck;
     Gtk::CheckButton *showDateTime;
     Gtk::CheckButton *showBasicExif;
     Gtk::CheckButton *showExpComp;

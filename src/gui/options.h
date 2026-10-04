@@ -228,6 +228,7 @@ public:
     NavigatorUnit navRGBUnit;
     NavigatorUnit navLCHUnit;
     bool multiUser;
+    bool liveControl; // allow AI assistants to control the editor
     Glib::ustring version;
     int thumbSize;
     int thumbSizeTab;
