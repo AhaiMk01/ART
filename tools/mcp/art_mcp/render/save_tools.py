@@ -3,12 +3,15 @@
 from pathlib import Path
 from typing import Literal
 
+import anyio.to_thread
 from mcp.server.mcpserver import Context, MCPServer
 from mcp.shared.exceptions import NoBackChannelError
 from mcp.types import ClientCapabilities, ElicitationCapability
 from pydantic import BaseModel
 
 from art_mcp import artdir, keyfile, sidecar
+from art_mcp.concurrency import image_key
+from art_mcp.live.channel import ArtNotRunning, ChannelError, ChannelTimeout, ControlChannel
 from art_mcp.profile import WorkingChanges
 from art_mcp.render.session import RenderSession, tool_error
 
@@ -59,6 +62,27 @@ async def ask_user(
     return answer.data.choice if answer.action == "accept" else "cancel"
 
 
+GUARD_TIMEOUT = 5.0
+"""How long save_sidecar waits for a running ART to say what it has open."""
+
+
+def open_in_art(image: Path, config_dir: Path) -> bool:
+    """Whether a control-enabled ART reports ``image`` open in its editor.
+    False when none runs or it doesn't answer: then it can't be told."""
+    try:
+        status = ControlChannel(config_dir, timeout=GUARD_TIMEOUT).request("status")
+    except (ArtNotRunning, ChannelTimeout, ChannelError):
+        return False
+    images = status.get("images") if isinstance(status, dict) else None
+    if not isinstance(images, list):
+        return False
+    key = image_key(image)
+    return any(
+        isinstance(i, dict) and isinstance(i.get("path"), str) and image_key(Path(i["path"]).resolve()) == key
+        for i in images
+    )
+
+
 def register(server: MCPServer, session: RenderSession) -> None:
     @server.tool()
     async def save_sidecar(
@@ -71,7 +95,21 @@ def register(server: MCPServer, session: RenderSession) -> None:
         (when the client supports it) whether to `merge` the agent's changes
         onto the current sidecar, `overwrite` it, or `cancel`; otherwise a
         `conflict` error lists the changed keys and the agent should ask the
-        user, then call again with `on_conflict`."""
+        user, then call again with `on_conflict`.
+
+        Refuses with `open_in_editor` while a running ART (started with
+        --live-control) has the image open: ART would overwrite the sidecar
+        with its own profile. Use the Live server to edit and save it then."""
+        with session.image(path) as wp:
+            image = wp.image
+        if await anyio.to_thread.run_sync(open_in_art, image, session.config_dir):
+            raise tool_error(
+                "open_in_editor",
+                f"{image} is open in ART's editor, which doesn't reload sidecars and "
+                "would overwrite this one when it saves; edit and save it with the "
+                "Live server (art-live: edit_profile, save_sidecar), or close it in "
+                "ART first",
+            )
         # Decide under the image lock, ask the user without it (the answer
         # can take minutes), then re-check and write under it again.
         with session.image(path) as wp:

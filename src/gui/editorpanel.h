@@ -162,6 +162,13 @@ public:
     // The current processing profile as .arp (KeyFile) text, and the
     // selected History row; false when no image is loaded.
     bool getProfileText(std::string &arp, int &history_position);
+    // Applies a partial profile as a paste does (one History entry described
+    // by `label`); then the selected History row. False when no image is
+    // loaded.
+    bool applyPartialProfile(const art::engine::procparams::PartialProfile &pp,
+                             const Glib::ustring &label, int &history_position);
+    // Undo (or redo, if `forward`) one History step; then the selected row.
+    bool stepHistory(bool forward, int &history_position);
     bool handleShortcutKey(GdkEventKey *event);
     bool keyPressedBefore(GdkEventKey *event);
     bool keyReleased(GdkEventKey *event);

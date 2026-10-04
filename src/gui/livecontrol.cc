@@ -22,7 +22,10 @@
 
 #include "livecontrol.h"
 #include "../utils/version.h"
+#include "../engine/procparams.h"
 #include "editorpanel.h"
+#include "filecatalog.h"
+#include "filepanel.h"
 #include "guiutils.h"
 #include "options.h"
 #include "rtwindow.h"
@@ -971,6 +974,18 @@ std::string LiveControl::dispatch(const std::string &op, const Args &args,
     if (op == "get_profile") {
         return get_profile(args, ok);
     }
+    if (op == "apply_profile") {
+        return apply_profile(args, ok);
+    }
+    if (op == "undo" || op == "redo") {
+        return step_history(args, op == "redo", ok);
+    }
+    if (op == "open") {
+        return open(args, ok);
+    }
+    if (op == "save_sidecar") {
+        return save_sidecar(args, ok);
+    }
     ok = false;
     return "{\"code\":\"unknown_op\",\"message\":" +
            json_string("unknown op: " + op) + "}";
@@ -1059,6 +1074,132 @@ std::string LiveControl::get_profile(const Args &args, bool &ok)
     out << "{\"profile\":" << json_string(arp)
         << ",\"history_position\":" << position << "}";
     return out.str();
+}
+
+EditorPanel *LiveControl::editor_for(const std::string &op, const Args &args,
+                                     std::string &error)
+{
+    Args::const_iterator path = args.find("path");
+    if (path == args.end() || path->second.empty()) {
+        error = error_object("bad_request", op + " needs \"path\"");
+        return nullptr;
+    }
+    EditorPanel *ep = find_editor(path->second);
+    if (!ep) {
+        error = error_object("not_open", path->second + " is not open in ART");
+    }
+    return ep;
+}
+
+namespace {
+
+std::string still_loading(const std::string &path)
+{
+    return error_object("not_open", path + " is still loading in ART");
+}
+
+std::string position_result(int position)
+{
+    std::ostringstream out;
+    out << "{\"history_position\":" << position << "}";
+    return out.str();
+}
+
+} // namespace
+
+std::string LiveControl::apply_profile(const Args &args, bool &ok)
+{
+    ok = false;
+    std::string error;
+    EditorPanel *ep = editor_for("apply_profile", args, error);
+    if (!ep) {
+        return error;
+    }
+    Args::const_iterator profile = args.find("profile");
+    Args::const_iterator label = args.find("label");
+    if (profile == args.end() || label == args.end()) {
+        return error_object("bad_request",
+                            "apply_profile needs \"profile\" and \"label\"");
+    }
+    art::engine::procparams::KeyFilePartialProfile partial(profile->second);
+    if (!partial.valid()) {
+        return error_object("bad_request",
+                            "\"profile\" is not processing-profile text");
+    }
+    int position = -1;
+    if (!ep->applyPartialProfile(partial, label->second, position)) {
+        return still_loading(ep->getFileName());
+    }
+    ok = true;
+    return position_result(position);
+}
+
+std::string LiveControl::step_history(const Args &args, bool forward, bool &ok)
+{
+    ok = false;
+    std::string error;
+    EditorPanel *ep = editor_for(forward ? "redo" : "undo", args, error);
+    if (!ep) {
+        return error;
+    }
+    int position = -1;
+    if (!ep->stepHistory(forward, position)) {
+        return still_loading(ep->getFileName());
+    }
+    ok = true;
+    return position_result(position);
+}
+
+std::string LiveControl::open(const Args &args, bool &ok)
+{
+    ok = false;
+    Args::const_iterator path = args.find("path");
+    if (path == args.end() || path->second.empty()) {
+        return error_object("bad_request", "open needs \"path\"");
+    }
+    const std::string &fname = path->second;
+    if (EditorPanel *ep = find_editor(fname)) {
+        window_->selectEditorPanel(ep->getFileName());
+        ok = true;
+        return "{\"already_open\":true}";
+    }
+    if (!Glib::file_test(fname, Glib::FILE_TEST_IS_REGULAR)) {
+        return error_object("not_found", fname + " does not exist");
+    }
+    if (!window_->fpanel) {
+        return error_object("unsupported",
+                            "this ART has no file browser to open images with");
+    }
+    // As a file named on the command line is opened: the browser shows its
+    // folder and opens it in the editor, from an idle callback.
+    window_->fpanel->fileCatalog->dirSelected(Glib::path_get_dirname(fname),
+                                              fname);
+    ok = true;
+    return "{\"already_open\":false}";
+}
+
+std::string LiveControl::save_sidecar(const Args &args, bool &ok)
+{
+    ok = false;
+    std::string error;
+    EditorPanel *ep = editor_for("save_sidecar", args, error);
+    if (!ep) {
+        return error;
+    }
+    std::string arp;
+    int position;
+    if (!ep->getProfileText(arp, position)) {
+        return still_loading(ep->getFileName());
+    }
+    ep->saveProfile();
+    ok = true;
+    // Where the editor's save wrote the profile: the sidecar, unless ART is
+    // set to keep profiles in its cache only.
+    if (options.saveParamsFile) {
+        return "{\"sidecar\":" +
+               json_string(options.getParamFile(ep->getFileName())) + "}";
+    }
+    return "{\"sidecar\":null}";
 }
 
 void LiveControl::close(Connection *c)

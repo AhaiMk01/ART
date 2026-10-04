@@ -6,7 +6,9 @@ launches ART.
 
 import argparse
 import os
+import time
 from pathlib import Path
+from typing import Any
 
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
@@ -15,9 +17,27 @@ from pydantic import BaseModel
 from art_mcp import artdir, keyfile
 from art_mcp.live.channel import ArtNotRunning, ChannelError, ChannelTimeout, ControlChannel
 from art_mcp.metadata import Exiftool, Metadata, MetadataProblem, read_metadata
-from art_mcp.profile import ProfileView, read_format
-from art_mcp.schema import AdjustmentsDescription
+from art_mcp.profile import Conflict as EditConflict
+from art_mcp.profile import (
+    ProfileView,
+    RawEdit,
+    UnknownKey,
+    WorkingChanges,
+    crop_problem,
+    edit_warnings,
+    read_format,
+)
+from art_mcp.schema import (
+    TOOLS,
+    AdjustmentError,
+    Adjustments,
+    AdjustmentsArg,
+    AdjustmentsDescription,
+    parse_adjustments,
+)
 from art_mcp.schema import describe_adjustments as schema_description
+
+OPEN_POLL_SECONDS = 0.25
 
 
 def tool_error(code: str, message: str) -> ToolError:
@@ -48,6 +68,56 @@ class Status(BaseModel):
     """The images open in ART's editor."""
 
 
+class LiveEditResult(BaseModel):
+    changed: list[RawEdit]
+    """Each [Group] Key whose value this call changed, with its new value
+    (re-setting a value is not a change)."""
+    implied: list[RawEdit]
+    """The part of `changed` that was not asked for: a disabled tool enabled
+    because it was adjusted, White Balance switched to CustomTemp."""
+    warnings: list[str]
+    history_position: int | None
+    """The selected History row afterwards: the new entry (the same row as
+    before when nothing changed, as no entry is made then)."""
+
+
+class HistoryStep(BaseModel):
+    history_position: int | None
+    """The selected History row afterwards (0 = the oldest entry)."""
+
+
+class OpenedInEditor(BaseModel):
+    path: str
+    """The image, as ART names it."""
+    already_open: bool
+
+
+class SidecarSaved(BaseModel):
+    saved: bool
+    sidecar: str | None
+    """The sidecar file written; null when ART is set to keep processing
+    profiles in its cache only."""
+
+
+TOOL_TITLES = {name: name.replace("_", " ").title() for name in TOOLS} | {
+    "vignetting": "Vignetting Correction"
+}
+"""How an edit names a curated tool in ART's History (``Agent: ...``)."""
+
+
+def history_label(adjustments: Adjustments | None, raw_edits: list[RawEdit]) -> str:
+    """``Agent: <tools touched>``: the adjusted curated tools, then the
+    groups of raw edits not already named, each once, in request order."""
+    names: list[str] = []
+    if adjustments is not None:
+        names += [TOOL_TITLES[n] for n in TOOLS if getattr(adjustments, n) is not None]
+    for edit in raw_edits:
+        named = next((TOOL_TITLES[n] for n, (g, _) in TOOLS.items() if g == edit.group), edit.group)
+        if named not in names:
+            names.append(named)
+    return "Agent: " + ", ".join(names)
+
+
 def art_path(path: str) -> str:
     """How to name an image to ART: absolute, but with links, junctions and
     subst drives left as they are, since ART keeps the name it opened the
@@ -60,7 +130,10 @@ def same_image(a: str, b: str) -> bool:
     return os.path.normcase(art_path(a)) == os.path.normcase(art_path(b))
 
 
-def build_server(channel: ControlChannel, *, exiftool: Exiftool | None = None) -> MCPServer:
+def build_server(
+    channel: ControlChannel, *, exiftool: Exiftool | None = None, open_timeout: float = 60.0
+) -> MCPServer:
+    """``open_timeout``: how long open_image waits for ART to load an image."""
     server = MCPServer(
         "art-live",
         instructions=(
@@ -131,6 +204,136 @@ def build_server(channel: ControlChannel, *, exiftool: Exiftool | None = None) -
             return read_metadata(exiftool, Path(art_path(path)), tags or [])
         except MetadataProblem as e:
             raise tool_error(e.code, e.message) from e
+
+    def history_position(op: str, result: object) -> int | None:
+        if not isinstance(result, dict) or not isinstance(result.get("history_position"), int):
+            raise tool_error("bad_reply", f"unexpected {op} reply from ART: {result!r:.300}")
+        position: int = result["history_position"]
+        return position if position >= 0 else None
+
+    def open_images() -> list[dict[str, Any]]:
+        result = call("status")
+        images = result.get("images") if isinstance(result, dict) else None
+        if not isinstance(images, list):
+            raise tool_error("bad_reply", f"unexpected status from ART: {result!r:.300}")
+        return [i for i in images if isinstance(i, dict)]
+
+    def get_profile_text(path: str) -> dict[str, Any]:
+        result = call("get_profile", {"path": art_path(path)})
+        if not isinstance(result, dict) or not isinstance(result.get("profile"), str):
+            raise tool_error("bad_reply", f"unexpected get_profile reply from ART: {result!r:.300}")
+        return result
+
+    def image_size(path: str) -> tuple[int, int] | None:
+        for image in open_images():
+            if same_image(str(image.get("path", "")), path):
+                w, h = image.get("width"), image.get("height")
+                return (w, h) if isinstance(w, int) and isinstance(h, int) else None
+        return None
+
+    @server.tool()
+    def edit_profile(
+        path: str,
+        adjustments: AdjustmentsArg = None,
+        raw_edits: list[RawEdit] | None = None,
+    ) -> LiveEditResult:
+        """Change the processing profile of an image open in ART's editor,
+        with typed `adjustments` of curated tools (range-checked; see
+        describe_adjustments) and/or `raw_edits`, each setting one
+        `[Group] Key` (as shown by get_profile) to a string value; the group
+        and key must already exist. All changes apply, or none do. An
+        adjustment and a raw edit may not set the same key. Adjusting a
+        disabled tool also enables it (listed under `implied`).
+
+        The user sees the change at once, as one History entry labelled
+        `Agent: <tools>` that undo reverts. Only the changed values are sent,
+        so the user's other settings are left alone. Returns once the History
+        entry exists (the preview may still be processing)."""
+        current = get_profile_text(path)
+        changes = WorkingChanges(keyfile.loads(current["profile"]))
+        warnings: list[str] = []
+        try:
+            parsed = parse_adjustments(adjustments) if adjustments else None
+            if parsed is not None and parsed.crop is not None:
+                size = image_size(path)
+                if size is None:
+                    warnings.append(
+                        "the crop was not checked against the image size: "
+                        "ART hasn't reported it yet"
+                    )
+                else:
+                    problem = crop_problem(changes.profile, parsed.crop, lambda: size)
+                    if problem:
+                        raise AdjustmentError("out_of_range", problem)
+            outcome = changes.edit(parsed, raw_edits or [])
+        except AdjustmentError as e:
+            raise tool_error(e.code, str(e)) from e
+        except UnknownKey as e:
+            raise tool_error("unknown_key", str(e)) from e
+        except EditConflict as e:
+            raise tool_error("conflict", str(e)) from e
+        warnings += edit_warnings(parsed, changes.profile)
+        partial = changes.partial_profile()
+        # ART applies the partial profile over the profile it holds then: a
+        # change the user made since get_profile stays, unless it is to one
+        # of these keys.
+        if not partial:
+            # Nothing to change: no empty History entry.
+            position = history_position("get_profile", current)
+        else:
+            reply = call("apply_profile", {
+                "path": art_path(path),
+                "profile": keyfile.dumps(partial),
+                "label": history_label(parsed, raw_edits or []),
+            })  # fmt: skip
+            position = history_position("apply_profile", reply)
+        return LiveEditResult(
+            changed=outcome.changed, implied=outcome.implied, warnings=warnings,
+            history_position=position,
+        )  # fmt: skip
+
+    @server.tool()
+    def undo(path: str) -> HistoryStep:
+        """Step back one entry in the History of an image open in ART (as
+        the user's Undo does). At the oldest entry nothing changes."""
+        return HistoryStep(history_position=history_position("undo", call("undo", {"path": art_path(path)})))
+
+    @server.tool()
+    def redo(path: str) -> HistoryStep:
+        """Step forward one entry in the History of an image open in ART (as
+        the user's Redo does). At the newest entry nothing changes."""
+        return HistoryStep(history_position=history_position("redo", call("redo", {"path": art_path(path)})))
+
+    @server.tool()
+    def open_image(path: str) -> OpenedInEditor:
+        """Open an image in ART's editor (or bring it to the front if it is
+        open already), as opening it from ART's file browser does. Returns
+        once ART has loaded it. Fails with not_found if there is no such
+        file."""
+        reply = call("open", {"path": art_path(path)})
+        already = isinstance(reply, dict) and reply.get("already_open") is True
+        deadline = time.monotonic() + open_timeout
+        while True:
+            for image in open_images():
+                listed = str(image.get("path", ""))
+                if same_image(listed, path) and image.get("width") is not None:
+                    return OpenedInEditor(path=listed, already_open=already)
+            if time.monotonic() >= deadline:
+                raise tool_error(
+                    "timeout",
+                    f"ART did not finish opening {path} within {open_timeout:g} s "
+                    "(it may still be loading; call status to check)",
+                )
+            time.sleep(OPEN_POLL_SECONDS)
+
+    @server.tool()
+    def save_sidecar(path: str) -> SidecarSaved:
+        """Save the processing profile of an image open in ART as the
+        editor's own save does (to its sidecar file, and ART's cache)."""
+        reply = call("save_sidecar", {"path": art_path(path)})
+        if not isinstance(reply, dict) or not isinstance(reply.get("sidecar"), (str, type(None))):
+            raise tool_error("bad_reply", f"unexpected save_sidecar reply from ART: {reply!r:.300}")
+        return SidecarSaved(saved=True, sidecar=reply["sidecar"])
 
     return server
 

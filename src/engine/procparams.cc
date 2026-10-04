@@ -6425,6 +6425,56 @@ bool FilePartialProfile::applyTo(ProcParams &pp) const
     return !fname_.empty() && (pp.load(pl_, fname_, &pe) == 0);
 }
 
+KeyFilePartialProfile::KeyFilePartialProfile(const Glib::ustring &data)
+    : data_(data), valid_(false)
+{
+    try {
+        Glib::KeyFile kf;
+        valid_ = kf.load_from_data(data);
+    } catch (const Glib::Error &e) {
+        valid_ = false;
+    }
+}
+
+bool KeyFilePartialProfile::applyTo(ProcParams &pp) const
+{
+    if (!valid_) {
+        return false;
+    }
+    setlocale(LC_NUMERIC, "C"); // to set decimal point to "."
+    // Loading a group can reset keys it lacks (e.g. [Exposure] without
+    // HLRecovery turns highlight recovery off), so the keys given are laid
+    // over pp's own complete profile, and all of that is loaded back.
+    try {
+        KeyFile current;
+        if (pp.save(nullptr, current) != 0) {
+            return false;
+        }
+        Glib::KeyFile merged;
+        Glib::KeyFile given;
+        if (!merged.load_from_data(current.to_data()) ||
+            !given.load_from_data(data_)) {
+            return false;
+        }
+        for (const Glib::ustring &group : given.get_groups()) {
+            for (const Glib::ustring &key : given.get_keys(group)) {
+                merged.set_value(group, key, given.get_value(group, key));
+            }
+        }
+        KeyFile result;
+        if (!result.load_from_data(merged.to_data())) {
+            return false;
+        }
+        // No reset on error: the profile being edited must not fall back
+        // to the defaults.
+        art::gui::ParamsEdited pe(true);
+        pe.set_append(false);
+        return pp.load(nullptr, result, &pe, false) == 0;
+    } catch (const Glib::Error &e) {
+        return false;
+    }
+}
+
 PEditedPartialProfile::PEditedPartialProfile(ProgressListener *pl,
                                              const Glib::ustring &fname,
                                              const art::gui::ParamsEdited &pe)

@@ -374,7 +374,22 @@ toggle). The Live server never launches ART.
     one History entry is made. The label goes in the existing `descr`
     argument; no new ProcEvent.
   - A small `KeyFilePartialProfile` that turns received .arp text into a
-    `PartialProfile` (only the keys present are applied).
+    `PartialProfile` (only the keys present are applied). ART's loader can
+    reset keys a group lacks (`[Exposure]` without `HLRecovery` turns
+    highlight recovery off), so the given keys are laid over the current
+    profile's own complete KeyFile, which is then loaded.
+- `edit_profile` that changes nothing sends nothing (no empty History
+  entry). The label names the adjusted tools, then the groups of raw edits.
+  A crop is checked against `status`'s width/height; while ART hasn't
+  reported them it is applied unchecked, with a warning.
+- `open_image` opens through the file browser as a command-line file does
+  (`FileCatalog::dirSelected`, so the browser shows its folder) and returns
+  once `status` lists the image with its size (60 s, else `timeout`).
+  `save_sidecar` is `EditorPanel::saveProfile` and returns the sidecar path
+  (null when ART keeps profiles in its cache only).
+- The Render server's `open_in_editor` check asks ART's `status` with a 5 s
+  limit; no ART, an error or no answer means it can't tell, and the save
+  proceeds.
 - Preferences toggle + `--live-control` option; strings in
   `data/languages/default`.
 

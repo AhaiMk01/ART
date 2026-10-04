@@ -2,10 +2,9 @@
 edit_profile, describe_adjustments."""
 
 from pathlib import Path
-from typing import Annotated, Any
 
 from mcp.server.mcpserver import MCPServer
-from pydantic import BaseModel, WithJsonSchema
+from pydantic import BaseModel
 
 from art_mcp.metadata import ExiftoolError
 from art_mcp.profile import Conflict as EditConflict
@@ -13,7 +12,7 @@ from art_mcp.profile import (
     ProfileView,
     RawEdit,
     UnknownKey,
-    ppversion_of,
+    edit_warnings,
     read_format,
     version_warnings,
 )
@@ -21,19 +20,11 @@ from art_mcp.render.metadata_tools import MetadataSummary, summarize
 from art_mcp.render.session import ProfileSource, RenderSession, tool_error
 from art_mcp.schema import (
     AdjustmentError,
+    AdjustmentsArg,
     AdjustmentsDescription,
-    adjustments_json_schema,
     parse_adjustments,
 )
 from art_mcp.schema import describe_adjustments as schema_description
-
-# Validated by hand (parse_adjustments) so a bad value is reported as
-# out_of_range rather than as a generic schema error; the published input
-# schema is still the typed one.
-AdjustmentsArg = Annotated[
-    dict[str, Any] | None,
-    WithJsonSchema({"anyOf": [adjustments_json_schema(), {"type": "null"}]}),
-]
 
 
 class OpenedImage(BaseModel):
@@ -116,16 +107,7 @@ def register(server: MCPServer, session: RenderSession) -> None:
                 raise tool_error("unknown_key", str(e)) from e
             except EditConflict as e:
                 raise tool_error("conflict", str(e)) from e
-            warnings = version_warnings(ppversion_of(wp.changes.profile))
-            if (
-                parsed is not None
-                and parsed.lens_profile is not None
-                and wp.changes.profile.get("LensProfile", {}).get("LcMode", "none") == "none"
-            ):
-                warnings.append(
-                    "lens_profile options have no effect while lc_mode is none; "
-                    "set lc_mode to turn lens correction on"
-                )
+            warnings = edit_warnings(parsed, wp.changes.profile)
         return EditResult(changed=outcome.changed, implied=outcome.implied, warnings=warnings)
 
     @server.tool()

@@ -1334,6 +1334,32 @@ bool EditorPanel::getProfileText(std::string &arp, int &history_position)
     return true;
 }
 
+bool EditorPanel::applyPartialProfile(
+    const art::engine::procparams::PartialProfile &pp,
+    const Glib::ustring &label, int &history_position)
+{
+    if (!ipc || !profilep || !history) {
+        return false;
+    }
+    profilep->applyPartialProfile(pp, label);
+    history_position = history->getPosition();
+    return true;
+}
+
+bool EditorPanel::stepHistory(bool forward, int &history_position)
+{
+    if (!ipc || !history) {
+        return false;
+    }
+    if (forward) {
+        history->redo();
+    } else {
+        history->undo();
+    }
+    history_position = history->getPosition();
+    return true;
+}
+
 bool EditorPanel::getImageSize(int &w, int &h)
 {
     if (!ipc) {

@@ -106,6 +106,10 @@ public:
     void load_clicked(GdkEventButton *event);
     void copy_clicked(GdkEventButton *event);
     void paste_clicked(GdkEventButton *event);
+    // Applies `pp` over the current profile as a paste does: the custom row
+    // gets selected and one History entry, described by `label`, is made.
+    void applyPartialProfile(const art::engine::procparams::PartialProfile &pp,
+                             const Glib::ustring &label);
     void selection_changed();
     void writeOptions();
 };

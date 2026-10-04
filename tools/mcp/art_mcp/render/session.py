@@ -20,7 +20,7 @@ from art_mcp.concurrency import ImageLocks, image_key
 from art_mcp.keyfile import KeyFile
 from art_mcp.metadata import Exiftool
 from art_mcp.preview import PreviewFolder
-from art_mcp.profile import WorkingChanges, crop_rect, ppversion_of
+from art_mcp.profile import WorkingChanges, crop_problem, crop_rect, ppversion_of
 from art_mcp.render.artcli import (
     ArtCli,
     ArtCliError,
@@ -32,11 +32,10 @@ from art_mcp.render.artcli import (
     resolve_profile_args,
 )
 from art_mcp.schema import Crop as CropAdjustment
-from art_mcp.schema import crop_bounds_problem
 
 ErrorCode = Literal[
     "not_open", "not_found", "unknown_key", "render_failed", "timeout",
-    "conflict", "exists", "out_of_range",
+    "conflict", "exists", "out_of_range", "open_in_editor",
     "metadata_unavailable", "metadata_failed", "invalid_tag",
 ]
 
@@ -200,18 +199,11 @@ class RenderSession:
     def check_crop(self, wp: WorkingProfile, crop: CropAdjustment) -> None:
         """Reject a crop rectangle that doesn't fit the image's frame; fields
         not in the request keep the working profile's values."""
-        given = (crop.x, crop.y, crop.w, crop.h)
-        if all(v is None for v in given):
-            return
-        current = crop_rect(wp.changes.profile)
-        if any(v is None and c < 0 for v, c in zip(given, current)):
-            raise tool_error(
-                "out_of_range",
-                "the image has no crop rectangle yet: give x, y, w and h together",
-            )
-        x, y, w, h = (v if v is not None else c for v, c in zip(given, current))
-        frame = self.whole_frame(wp)
-        problem = crop_bounds_problem(x, y, w, h, frame_w=frame.w, frame_h=frame.h)
+        def frame() -> tuple[int, int]:
+            whole = self.whole_frame(wp)
+            return whole.w, whole.h
+
+        problem = crop_problem(wp.changes.profile, crop, frame)
         if problem:
             raise tool_error("out_of_range", problem)
 

@@ -7,6 +7,7 @@ Changes arrive as *adjustments* (typed, range-checked, see ``schema``) and/or
 partial profile.
 """
 
+from collections.abc import Callable
 from typing import Any
 
 from pydantic import BaseModel, TypeAdapter, ValidationError
@@ -16,11 +17,13 @@ from art_mcp.schema import (
     PPVERSION,
     TOOLS,
     Adjustments,
+    crop_bounds_problem,
     field_group,
     field_key,
     named_value,
     stored_value,
 )
+from art_mcp.schema import Crop as CropAdjustment
 
 VERSION_GROUP = "Version"
 
@@ -225,6 +228,39 @@ def crop_rect(profile: KeyFile) -> tuple[int, int, int, int]:
 
     x, y, w, h = (number(k) for k in ("X", "Y", "W", "H"))
     return x, y, w, h
+
+
+def crop_problem(
+    profile: KeyFile, crop: CropAdjustment, frame: Callable[[], tuple[int, int]]
+) -> str | None:
+    """Why a crop adjustment doesn't fit the image's frame (``frame()``: its
+    width and height, asked only when needed), or None if it does. Fields not
+    in the request keep the profile's values."""
+    given = (crop.x, crop.y, crop.w, crop.h)
+    if all(v is None for v in given):
+        return None
+    current = crop_rect(profile)
+    if any(v is None and c < 0 for v, c in zip(given, current)):
+        return "the image has no crop rectangle yet: give x, y, w and h together"
+    x, y, w, h = (v if v is not None else c for v, c in zip(given, current))
+    frame_w, frame_h = frame()
+    return crop_bounds_problem(x, y, w, h, frame_w=frame_w, frame_h=frame_h)
+
+
+def edit_warnings(adjustments: Adjustments | None, profile: KeyFile) -> list[str]:
+    """Warnings about an edit just applied to ``profile``: a newer profile
+    version than the schema's, lens options that can't take effect."""
+    warnings = version_warnings(ppversion_of(profile))
+    if (
+        adjustments is not None
+        and adjustments.lens_profile is not None
+        and profile.get("LensProfile", {}).get("LcMode", "none") == "none"
+    ):
+        warnings.append(
+            "lens_profile options have no effect while lc_mode is none; "
+            "set lc_mode to turn lens correction on"
+        )
+    return warnings
 
 
 def ppversion_of(profile: KeyFile) -> int | None:

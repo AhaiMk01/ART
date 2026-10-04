@@ -11,6 +11,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from art_mcp import keyfile
+
 Reply = Callable[[dict[str, Any]], bytes | None]
 """Given a request, the raw bytes to send back (None: send nothing)."""
 
@@ -91,3 +93,103 @@ class FakeArt:
                         conn.sendall(chunk)
                 elif reply is not None:
                     conn.sendall(reply)
+
+
+class FakeEditor:
+    """Images open in a fake ART's editor, each with a processing profile and
+    a History, behind the ops that read and change them (status, get_profile,
+    apply_profile, undo, redo, open, save_sidecar)."""
+
+    def __init__(self, art: FakeArt) -> None:
+        self.art = art
+        self.images: dict[str, dict[str, Any]] = {}
+        self.applied: list[dict[str, str]] = []
+        """The args of every apply_profile received."""
+        self.saved: list[str] = []
+        self.loadable: set[str] = set()
+        """Paths `open` can open; they are listed `open_delay` s later."""
+        self.open_delay = 0.0
+        art.ops.update({
+            "status": self._status,
+            "get_profile": self._get_profile,
+            "apply_profile": self._apply,
+            "undo": lambda req: self._step(req, -1),
+            "redo": lambda req: self._step(req, +1),
+            "open": self._open,
+            "save_sidecar": self._save,
+        })  # fmt: skip
+
+    def add(self, path: str, profile: str, width: int | None = 6000, height: int | None = 4000) -> None:
+        self.images[os.path.normcase(path)] = {
+            "path": path, "width": width, "height": height,
+            "history": [("Photo loaded", keyfile.loads(profile))], "position": 0,
+        }  # fmt: skip
+
+    def profile(self, path: str) -> keyfile.KeyFile:
+        image = self.images[os.path.normcase(path)]
+        result: keyfile.KeyFile = image["history"][image["position"]][1]
+        return result
+
+    def labels(self, path: str) -> list[str]:
+        return [label for label, _ in self.images[os.path.normcase(path)]["history"]]
+
+    def _image(self, req: dict[str, Any]) -> dict[str, Any] | None:
+        return self.images.get(os.path.normcase(req["args"].get("path", "")))
+
+    def _status(self, req: dict[str, Any]) -> bytes | None:
+        images = [
+            {"path": i["path"], "active": n == 0, "width": i["width"], "height": i["height"]}
+            for n, i in enumerate(list(self.images.values()))
+        ]
+        return answer({"version": "1.26.test", "images": images})(req)
+
+    def _not_open(self, req: dict[str, Any]) -> bytes | None:
+        return fail("not_open", f"{req['args'].get('path')} is not open in ART")(req)
+
+    def _get_profile(self, req: dict[str, Any]) -> bytes | None:
+        image = self._image(req)
+        if image is None:
+            return self._not_open(req)
+        text = keyfile.dumps(image["history"][image["position"]][1])
+        return answer({"profile": text, "history_position": image["position"]})(req)
+
+    def _apply(self, req: dict[str, Any]) -> bytes | None:
+        image = self._image(req)
+        if image is None:
+            return self._not_open(req)
+        self.applied.append(req["args"])
+        merged = {g: dict(keys) for g, keys in image["history"][image["position"]][1].items()}
+        for group, keys in keyfile.loads(req["args"]["profile"]).items():
+            merged.setdefault(group, {}).update(keys)
+        del image["history"][image["position"] + 1 :]
+        image["history"].append((req["args"]["label"], merged))
+        image["position"] = len(image["history"]) - 1
+        return answer({"history_position": image["position"]})(req)
+
+    def _step(self, req: dict[str, Any], by: int) -> bytes | None:
+        image = self._image(req)
+        if image is None:
+            return self._not_open(req)
+        image["position"] = min(max(image["position"] + by, 0), len(image["history"]) - 1)
+        return answer({"history_position": image["position"]})(req)
+
+    def _open(self, req: dict[str, Any]) -> bytes | None:
+        path = req["args"]["path"]
+        if self._image(req) is not None:
+            return answer({"already_open": True})(req)
+        if path not in self.loadable:
+            return fail("not_found", f"{path} does not exist")(req)
+
+        def load() -> None:
+            time.sleep(self.open_delay)
+            self.add(path, "[Exposure]\nCompensation=0\n")
+
+        threading.Thread(target=load, daemon=True).start()
+        return answer({"already_open": False})(req)
+
+    def _save(self, req: dict[str, Any]) -> bytes | None:
+        image = self._image(req)
+        if image is None:
+            return self._not_open(req)
+        self.saved.append(image["path"])
+        return answer({"sidecar": image["path"] + ".arp"})(req)

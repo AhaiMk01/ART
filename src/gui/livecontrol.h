@@ -84,6 +84,19 @@ private:
     std::string dispatch(const std::string &op, const Args &args, bool &ok);
     std::string status();
     std::string get_profile(const Args &args, bool &ok);
+    // Applies .arp partial-profile text to an open image as one History
+    // entry described by "label".
+    std::string apply_profile(const Args &args, bool &ok);
+    // Undo, or redo if `forward`, one History step of an open image.
+    std::string step_history(const Args &args, bool forward, bool &ok);
+    // Opens an image in the editor (selects it if it is open already).
+    std::string open(const Args &args, bool &ok);
+    // Saves an open image's profile as the editor does (sidecar and cache).
+    std::string save_sidecar(const Args &args, bool &ok);
+    // The editor showing the image `op`'s "path" arg names; nullptr with
+    // `error` set (an error object) otherwise.
+    EditorPanel *editor_for(const std::string &op, const Args &args,
+                            std::string &error);
     // The editor showing `path` (compared as the OS compares paths), or
     // nullptr.
     EditorPanel *find_editor(const std::string &path);

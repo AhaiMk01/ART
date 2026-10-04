@@ -637,6 +637,20 @@ void ProfilePanel::paste_clicked(GdkEventButton *event)
     return;
 }
 
+void ProfilePanel::applyPartialProfile(const PartialProfile &pp,
+                                       const Glib::ustring &label)
+{
+    // As paste_clicked: select the custom row first, or procParamsChanged
+    // ignores the EvProfileChanged and the combo keeps the old profile name.
+    // `custom` then becomes the merged result, in procParamsChanged.
+    bool prevState = changeconn.block(true);
+    profiles->set_active(addCustomRow());
+    currRow = profiles->get_active();
+    changeconn.block(prevState);
+
+    changeTo(&pp, label);
+}
+
 void ProfilePanel::changeTo(const PartialProfile *newpp, Glib::ustring profname)
 {
     if (!newpp) {

@@ -1736,6 +1736,20 @@ private:
     bool append_;
 };
 
+// A processing profile given as .arp (KeyFile) text: only the values of the
+// keys present in the text change.
+class KeyFilePartialProfile: public PartialProfile {
+public:
+    explicit KeyFilePartialProfile(const Glib::ustring &data);
+    // Whether the text parsed as a KeyFile.
+    bool valid() const { return valid_; }
+    bool applyTo(ProcParams &pp) const override;
+
+private:
+    Glib::ustring data_;
+    bool valid_;
+};
+
 class PEditedPartialProfile: public PartialProfile {
 public:
     PEditedPartialProfile(ProgressListener *pl, const Glib::ustring &fname,

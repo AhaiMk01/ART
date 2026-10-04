@@ -5,9 +5,9 @@ exactly one ``[Group] Key`` of the processing profile, recorded in the field's
 ``key`` extra. Fields default to ``None`` = "not set in this request".
 """
 
-from typing import Any, Literal, get_args
+from typing import Annotated, Any, Literal, get_args
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, WithJsonSchema
 
 PPVERSION = 1045
 """The processing-profile version (``src/utils/ppversion.h``) this schema was
@@ -343,6 +343,16 @@ def adjustments_json_schema() -> dict[str, Any]:
 
     result: dict[str, Any] = inline(schema)
     return result
+
+
+AdjustmentsArg = Annotated[
+    dict[str, Any] | None,
+    WithJsonSchema({"anyOf": [adjustments_json_schema(), {"type": "null"}]}),
+]
+"""``edit_profile``'s `adjustments` argument (both servers). Validated by
+hand (``parse_adjustments``) so a bad value is reported as out_of_range rather
+than as a generic schema error; the published input schema is still the typed
+one."""
 
 
 class AdjustmentError(Exception):
