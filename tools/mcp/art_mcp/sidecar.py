@@ -8,24 +8,47 @@ import os
 import shutil
 from pathlib import Path
 
+from art_mcp import keyfile
 from art_mcp.keyfile import KeyFile
 
 
-def write_with_backup(target: Path, text: str, backup: bool = True) -> None:
-    """Replace ``target`` atomically (temp file, then rename), first copying
-    an existing ``target`` to ``<target>.bak`` (replacing any older backup)."""
+def write_atomic(target: Path, text: str) -> None:
+    """Replace ``target`` atomically: temp file, then rename."""
     temp = target.with_name(target.name + ".tmp")
     try:
         temp.write_text(text, encoding="utf-8", newline="")
-        if backup and target.is_file():
-            shutil.copyfile(target, target.with_name(target.name + ".bak"))
         os.replace(temp, target)
     finally:
         temp.unlink(missing_ok=True)
 
 
+def write_with_backup(target: Path, text: str) -> None:
+    """``write_atomic``, first copying an existing ``target`` to
+    ``<target>.bak`` (replacing any older backup)."""
+    if target.is_file():
+        shutil.copyfile(target, target.with_name(target.name + ".bak"))
+    write_atomic(target, text)
+
+
+def read(path: Path) -> bytes | None:
+    """A sidecar's bytes, or None if there is none."""
+    return path.read_bytes() if path.is_file() else None
+
+
+def parse(data: bytes | None) -> KeyFile:
+    """A sidecar's keys; empty if there is none or it doesn't parse."""
+    try:
+        return keyfile.loads(data.decode("utf-8")) if data is not None else {}
+    except ValueError:
+        return {}
+
+
 def file_hash(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def hash_or_none(data: bytes | None) -> str | None:
+    return file_hash(data) if data is not None else None
 
 
 def changed_keys(before: KeyFile, after: KeyFile) -> list[str]:

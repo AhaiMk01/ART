@@ -39,7 +39,9 @@ From [Implementation language and SDK](https://github.com/AhaiMk01/ART/issues/7)
   models, plus a text copy for older clients.
 - **Errors:** MCP `isError` with a short code and a message. Codes:
   `not_open`, `not_found`, `out_of_range`, `unknown_key`, `conflict`, `exists`,
-  `render_failed`, `timeout`, `open_in_editor`, `art_not_running`.
+  `render_failed`, `timeout` (art-cli or exiftool), `metadata_unavailable` (no
+  exiftool beside ART-cli), `metadata_failed`, `invalid_tag`, `open_in_editor`,
+  `art_not_running`.
 
 ```
 tools/mcp/
@@ -74,7 +76,10 @@ Both compile into one partial profile. Rules:
 - Out-of-range adjustment: rejected with `out_of_range`, message names the
   range. No clamping.
 - An adjustment and a raw edit setting the same key in one request: rejected
-  with `conflict`, naming the key.
+  with `conflict`, naming the key. A raw edit of a key an adjustment only
+  *implies* (e.g. `Enabled`) is not a conflict: the raw edit wins.
+- An unknown curated tool or field: `unknown_key`. Any other bad adjustment
+  value (wrong type, bad enum value): `out_of_range`.
 - An adjustment on a disabled tool also enables it (White Balance: switches
   to `CustomTemp`); implied changes are listed in the result. See Appendix A.
 
@@ -107,12 +112,15 @@ shapes for them are a later, separate effort.
 {
   "ppversion": 1045,
   "adjustments": { "exposure": { "compensation": 0.0, "...": "..." }, "...": {} },
-  "raw": { "ToneCurve": { "Enabled": "true", "Curve": "..." }, "...": {} }
+  "raw": { "ToneCurve": { "Enabled": "true", "Curve": "..." }, "...": {} },
+  "warnings": []
 }
 ```
 
 Curated tools appear typed under `adjustments`; every other group/key appears
-as strings under `raw`. Each value appears once.
+as strings under `raw`. Each value appears once. A value that doesn't fit the
+schema (e.g. White Balance `CustomMultLegacy`) stays under `raw`. `warnings`
+carries the `PPVERSION` warning (3.3).
 
 ## 4. Preview delivery (both servers)
 
@@ -128,7 +136,9 @@ and [Render server tool list and signatures](https://github.com/AhaiMk01/ART/iss
 - **Fast export (Render server):** whole-image previews use `art-cli -f`
   (~2x faster; resizes before processing, so sharpening and local effects
   are approximated). `region` previews, exports, and previews with `max_size`
-  above the user's fast-export box (default 1920) never use `-f`.
+  above the user's fast-export box never use `-f`. The box is the smaller of
+  `[Fast Export] fastexport_resize_width`/`fastexport_resize_height` in ART's
+  `options` file (legacy `MaxWidth`/`MaxHeight`), default 1920.
 - **Files:** unique file per render in `%TEMP%/art-mcp-<pid>/` (system temp on
   other OSes), so earlier previews stay viewable for comparison. Folder deleted
   on exit; stale folders of dead pids swept at startup.
@@ -156,15 +166,19 @@ on Windows). Any tool except `open_image` on a path not opened returns
 | `edit_profile` | `path`, `adjustments?`, `raw_edits?` | Keys changed |
 | `reset_profile` | `path`, `to: "sidecar" \| "default"` | Working-profile changes discarded |
 | `render_preview` | `path`, `max_size=1024`, `region?`, `inline?` | JPEG path (+ `ImageContent` if inline) |
-| `export_image` | `path`, `output`, `format: "jpeg" \| "tiff" \| "png"`, `quality?`, `bit_depth?`, `write_profile=false`, `overwrite=false` | Output path |
-| `save_sidecar` | `path`, `on_conflict?: "merge" \| "overwrite" \| "cancel"` | Saved, or conflict + changed keys |
-| `save_partial_profile` | `path`, `dest`, `overwrite=false` | Saved path |
+| `export_image` | `path`, `output`, `format: "jpeg" \| "tiff" \| "png"`, `quality?` (jpeg only, 1..100), `bit_depth?` (jpeg `8`; png `8`\|`16`; tiff `8`\|`16`\|`16f`\|`32`), `write_profile=false`, `overwrite=false` | Output path, `.arp` path when written |
+| `save_sidecar` | `path`, `on_conflict?: "merge" \| "overwrite" \| "cancel"` | `saved`, path, `how` (written/merged/overwritten/cancelled), or conflict + changed keys |
+| `save_partial_profile` | `path`, `dest`, `overwrite=false` | `written`, path, keys written |
 | `inspect_image` | `path`, `tags?` | Fixed metadata fields + requested tags |
 | `describe_adjustments` | none | Curated schema + `PPVERSION` warning |
 
-`region` is `{x, y, w, h}` as fractions of the image; it renders that area at
-1:1 (still capped at `max_size`) through a temporary `[Crop]` layer. The
-working profile is untouched.
+`region` is `{x, y, w, h}` as fractions of the image as previewed: of the
+working profile's crop when it has an enabled one, else of the whole frame
+(the raw image after coarse rotation and the raw border). It renders that
+area at 1:1 (still capped at `max_size`) through a temporary `[Crop]` layer;
+the working profile is untouched. ART's `[Crop]` is in frame pixels, so the
+frame size is measured once per image with two 1-pixel-strip `art-cli`
+renders (~0.5 s each) and cached.
 
 ### 6.2 Working profile and sidecars
 
@@ -187,9 +201,13 @@ From [Sidecar write policy for the Render server](https://github.com/AhaiMk01/AR
 - Only `save_sidecar` writes the sidecar. Renders and previews never do.
 - **Conflict:** if the sidecar's hash changed since load, the server asks the
   user (merge = agent's changed keys onto the current sidecar / overwrite /
-  cancel). It uses MCP elicitation when the client supports it; otherwise it
-  returns `conflict` with the changed keys, and the agent asks the user and
-  calls again with `on_conflict`.
+  cancel). It uses MCP elicitation when the connection allows it; otherwise
+  it returns `conflict` with the changed keys, and the agent asks the user and
+  calls again with `on_conflict`. Elicitation can be unavailable even when the
+  client advertises it: newer protocol versions give a tool call no
+  back-channel to ask on. The user is asked without holding the image's lock;
+  if the sidecar changes again, or the image is reopened or reset, before the
+  write, the save fails with `conflict` instead of overwriting.
 - **Open in editor:** if a control-enabled ART reports the path open,
   `save_sidecar` returns `open_in_editor` and points to the Live server (ART
   doesn't reload sidecars and would overwrite on autosave/close). Without the
@@ -197,10 +215,14 @@ From [Sidecar write policy for the Render server](https://github.com/AhaiMk01/AR
 - **Backup:** before overwriting, the previous sidecar is copied to
   `<sidecar>.bak` (one, replaced each save).
 - **Atomic write:** temp file then rename.
-- **Sidecar name** follows ART's `params_sidecar_strip_extension` option
-  (`IMG.arp` vs `IMG.CR2.arp`).
-- `save_partial_profile` writes only the agent's changed keys to `dest`;
-  refuses an existing file unless `overwrite=true`.
+- **Sidecar name** follows ART's "strip extension" preference
+  (`[Profiles] ParamsSidecarStripExtension` in its `options` file):
+  `IMG.arp` vs `IMG.CR2.arp`.
+- After a save, the saved sidecar is the new baseline: its hash, and the start
+  of change tracking.
+- `save_partial_profile` writes only the keys the agent changed since load or
+  the last `save_sidecar` to `dest`; refuses an existing file unless
+  `overwrite=true`; writes nothing when nothing changed.
 - `export_image` renders the working profile as it is, saved or not. It writes
   a `.arp` beside the output only with `write_profile=true` (art-cli `-O`).
 

@@ -7,7 +7,6 @@ image's sidecar (or ART's default profile) and never written back by renders.
 import argparse
 import base64
 import functools
-import hashlib
 import os
 import shutil
 import sys
@@ -20,8 +19,14 @@ from typing import Annotated, Any, Literal
 from mcp.server.mcpserver import Context, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.shared.exceptions import NoBackChannelError
-from mcp_types import ClientCapabilities, ElicitationCapability
-from mcp.types import CallToolResult, ContentBlock, ImageContent, TextContent
+from mcp.types import (
+    CallToolResult,
+    ClientCapabilities,
+    ContentBlock,
+    ElicitationCapability,
+    ImageContent,
+    TextContent,
+)
 from pydantic import BaseModel, WithJsonSchema
 
 from art_mcp import artdir, keyfile, sidecar
@@ -65,8 +70,6 @@ from art_mcp.render.artcli import (
 PREVIEW_SIZE = 1024
 MAX_PREVIEW_SIZE = 2576
 """Claude downscales images with a longer edge above this."""
-MAX_PREVIEW_SIZE = 2576
-"""Claude downscales images with a longer edge above this."""
 
 ErrorCode = Literal[
     "not_open", "not_found", "unknown_key", "render_failed", "timeout",
@@ -98,14 +101,6 @@ class WorkingProfile:
     baseline for detecting that someone else changed the sidecar."""
     sidecar_keys: KeyFile
     """That sidecar's content, to tell what someone else changed in it."""
-
-
-def parse_sidecar(data: bytes | None) -> KeyFile:
-    """A sidecar's keys; empty if there is none or it doesn't parse."""
-    try:
-        return keyfile.loads(data.decode("utf-8")) if data is not None else {}
-    except ValueError:
-        return {}
 
 
 class MetadataSummary(BaseModel):
@@ -158,12 +153,12 @@ class ExportResult(BaseModel):
     """The `.arp` written beside it, when `write_profile` was set."""
 
 
-Conflict = Literal["merge", "overwrite", "cancel"]
+OnConflict = Literal["merge", "overwrite", "cancel"]
 SaveHow = Literal["written", "merged", "overwritten", "cancelled"]
 
 
 class ConflictChoice(BaseModel):
-    choice: Conflict
+    choice: OnConflict
 
 
 class SaveResult(BaseModel):
@@ -212,6 +207,14 @@ def move_over(source: Path, target: Path) -> None:
     except OSError:
         shutil.copyfile(source, target)  # temp folder on another drive
         source.unlink()
+
+
+def no_profile_written() -> ToolError:
+    return tool_error(
+        "render_failed",
+        "art-cli wrote no profile beside its output; turn off "
+        '"Embed processing parameters in metadata" in ART\'s preferences',
+    )
 
 
 def tool_error(code: ErrorCode, message: str) -> ToolError:
@@ -270,10 +273,10 @@ def build_server(
         """Resolve ``image``'s complete processing profile with one art-cli
         run and make it the working profile. ``source`` None means the sidecar
         if there is one, else ART's default profile."""
-        sidecar = artdir.sidecar_path(image, config_dir)
-        sidecar_bytes = sidecar.read_bytes() if sidecar.is_file() else None
+        sidecar_file = artdir.sidecar_path(image, config_dir)
+        sidecar_bytes = sidecar.read(sidecar_file)
         if source == "sidecar" and sidecar_bytes is None:
-            raise tool_error("not_found", f"{image.name} has no sidecar ({sidecar})")
+            raise tool_error("not_found", f"{image.name} has no sidecar ({sidecar_file})")
         source = source or ("sidecar" if sidecar_bytes is not None else "default")
 
         output = previews.new_file("resolve", ".jpg")
@@ -288,11 +291,7 @@ def build_server(
                 base = sidecar_copy
             run(resolve_profile_args(image, output, base), output)
             if not arp.is_file():
-                raise tool_error(
-                    "render_failed",
-                    "art-cli wrote no profile beside its output; turn off "
-                    '"Embed processing parameters in metadata" in ART\'s preferences',
-                )
+                raise no_profile_written()
             profile = keyfile.loads(arp.read_text(encoding="utf-8"))
         finally:
             output.unlink(missing_ok=True)
@@ -302,16 +301,14 @@ def build_server(
         working[image_key(image)] = WorkingProfile(
             image=image,
             changes=WorkingChanges(profile),
-            sidecar_keys=parse_sidecar(sidecar_bytes),
-            sidecar_hash=(
-                hashlib.sha256(sidecar_bytes).hexdigest() if sidecar_bytes is not None else None
-            ),
+            sidecar_keys=sidecar.parse(sidecar_bytes),
+            sidecar_hash=sidecar.hash_or_none(sidecar_bytes),
         )
         return source
 
     async def ask_user(
         ctx: Context, target: Path, theirs: list[str], ours: list[str]
-    ) -> Conflict | None:
+    ) -> OnConflict | None:
         """The user's choice about a changed sidecar, or None if the client
         can't ask. Declining or dismissing the question is `cancel`."""
         asks = ClientCapabilities(elicitation=ElicitationCapability())
@@ -506,7 +503,7 @@ def build_server(
         warning if an open image's ART profile version is newer than the
         schema's."""
         description = schema_description()
-        for wp in working.values():
+        for wp in list(working.values()):
             for warning in version_warnings(ppversion_of(wp.changes.profile)):
                 if warning not in description.warnings:
                     description.warnings.append(warning)
@@ -550,11 +547,7 @@ def build_server(
                 profile.write_text(keyfile.dumps(wp.changes.profile), encoding="utf-8")
                 run(args, temp, timeout=cli.export_timeout)
                 if write_profile and not temp_arp.is_file():
-                    raise tool_error(
-                        "render_failed",
-                        "art-cli wrote no profile beside its output; turn off "
-                        '"Embed processing parameters in metadata" in ART\'s preferences',
-                    )
+                    raise no_profile_written()
                 moves = [(temp, dest), (temp_arp, dest_arp)] if write_profile else [(temp, dest)]
                 for source, target in moves:
                     move_over(source, target)
@@ -565,7 +558,7 @@ def build_server(
 
     @server.tool()
     async def save_sidecar(
-        path: str, ctx: Context, on_conflict: Conflict | None = None
+        path: str, ctx: Context, on_conflict: OnConflict | None = None
     ) -> SaveResult:
         """Write the working profile to the image's sidecar (the only tool
         that writes it); the previous sidecar is kept as `<sidecar>.bak`.
@@ -575,17 +568,18 @@ def build_server(
         onto the current sidecar, `overwrite` it, or `cancel`; otherwise a
         `conflict` error lists the changed keys and the agent should ask the
         user, then call again with `on_conflict`."""
-        wp = opened(path)
-        target = artdir.sidecar_path(wp.image, config_dir)
-        current = target.read_bytes() if target.is_file() else None
-        profile = wp.changes.profile
-        how: SaveHow = "written"
-        text: str | None = None
-        if (sidecar.file_hash(current) if current is not None else None) != wp.sidecar_hash:
-            theirs = sidecar.changed_keys(wp.sidecar_keys, parse_sidecar(current))
-            ours = sidecar.changed_keys({}, wp.changes.partial_profile())
-            if on_conflict is None:
-                on_conflict = await ask_user(ctx, target, theirs, ours)
+        # Decide under the image lock, ask the user without it (the answer
+        # can take minutes), then re-check and write under it again.
+        with locks.hold(path):
+            wp = opened(path)
+            target = artdir.sidecar_path(wp.image, config_dir)
+            current = sidecar.read(target)
+            changed_on_disk = sidecar.hash_or_none(current) != wp.sidecar_hash
+            if changed_on_disk:
+                theirs = sidecar.changed_keys(wp.sidecar_keys, sidecar.parse(current))
+                ours = sidecar.changed_keys({}, wp.changes.partial_profile())
+        if changed_on_disk and on_conflict is None:
+            on_conflict = await ask_user(ctx, target, theirs, ours)
             if on_conflict is None:
                 raise tool_error(
                     "conflict",
@@ -595,26 +589,38 @@ def build_server(
                     "on_conflict: merge (agent's changes onto the current sidecar), "
                     "overwrite, or cancel.",
                 )
-            if on_conflict == "cancel":
-                return SaveResult(saved=False, path=str(target), how="cancelled")
-            if on_conflict == "merge" and current is not None:
-                merged = sidecar.merge(parse_sidecar(current), wp.changes.partial_profile())
+        if changed_on_disk and on_conflict == "cancel":
+            return SaveResult(saved=False, path=str(target), how="cancelled")
+
+        with locks.hold(path):
+            if working.get(image_key(wp.image)) is not wp:
+                raise tool_error(
+                    "conflict", "the image was reopened or reset while saving; save again"
+                )
+            if sidecar.hash_or_none(sidecar.read(target)) != sidecar.hash_or_none(current):
+                raise tool_error(
+                    "conflict",
+                    "the sidecar changed again while saving; call save_sidecar again",
+                )
+            # Read the working profile only now, so edits made while the user
+            # was answering are saved too.
+            profile = wp.changes.profile
+            how: SaveHow = "written"
+            if changed_on_disk and on_conflict == "merge" and current is not None:
+                merged = sidecar.merge(sidecar.parse(current), wp.changes.partial_profile())
                 # The working profile follows the file, so later saves and
                 # renders include what the user changed there.
                 profile = sidecar.merge(profile, merged)
                 how = "merged"
                 text = keyfile.dumps(merged)
             else:
-                how = "overwritten"
-        if text is None:
-            text = keyfile.dumps(profile)
-        data = text.encode("utf-8")
-        # Held only for the write, not while waiting for the user's answer.
-        with locks.hold(path):
+                how = "overwritten" if changed_on_disk else "written"
+                text = keyfile.dumps(profile)
+            data = text.encode("utf-8")
             sidecar.write_with_backup(target, text)
             wp.changes = WorkingChanges(profile)
             wp.sidecar_hash = sidecar.file_hash(data)
-            wp.sidecar_keys = parse_sidecar(data)
+            wp.sidecar_keys = sidecar.parse(data)
         return SaveResult(saved=True, path=str(target), how=how)
 
     @server.tool()
@@ -628,14 +634,14 @@ def build_server(
         changed."""
         with locks.hold(path):
             partial = opened(path).changes.partial_profile()
-            target = Path(dest)
+            target = Path(dest).resolve()
             if not target.parent.is_dir():
                 raise tool_error("not_found", f"folder {target.parent} does not exist")
             if target.exists() and not overwrite:
                 raise tool_error("exists", f"{target} exists; pass overwrite=true to replace it")
             if not partial:
                 return PartialProfileResult(written=False, path=str(target), keys=[])
-            sidecar.write_with_backup(target, keyfile.dumps(partial), backup=False)
+            sidecar.write_atomic(target, keyfile.dumps(partial))
             return PartialProfileResult(
                 written=True, path=str(target), keys=sidecar.changed_keys({}, partial)
             )
@@ -646,11 +652,12 @@ def build_server(
         ISO, shutter, aperture, focal length, capture date, pixel dimensions
         and orientation, each None when the file has no value, plus any extra
         exiftool `tags` named (by tag name, e.g. "Software") that it has."""
-        wp = opened(path)
+        with locks.hold(path):
+            image = opened(path).image
         if exiftool is None:
             raise tool_error("metadata_unavailable", "exiftool was not found beside ART-cli")
         try:
-            return exiftool.read(wp.image, tags or [])
+            return exiftool.read(image, tags or [])
         except InvalidTag as e:
             raise tool_error("invalid_tag", str(e)) from e
         except ExiftoolTimeout as e:

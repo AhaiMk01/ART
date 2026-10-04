@@ -334,3 +334,40 @@ async def test_external_change_without_elicitation_is_a_conflict_naming_the_keys
     assert "on_conflict" in message
     assert "Black=7" in sidecar.read_text()  # untouched
     assert not sidecar.with_name(sidecar.name + ".bak").exists()
+
+
+async def test_sidecar_changing_again_while_the_user_answers_is_not_overwritten(
+    server, image, sidecar
+):
+    async def callback(context, params):
+        sidecar.write_text(SIDECAR.replace("Black=0", "Black=9"))  # someone else, mid-question
+        return ElicitResult(action="accept", content={"choice": "overwrite"})
+
+    async with Client(server, elicitation_callback=callback, mode="legacy") as client:
+        await open_and_edit(client, image, edit("Exposure", "Compensation", "2"))
+        change_externally(sidecar)
+        result = await client.call_tool("save_sidecar", {"path": str(image)})
+
+    assert result.is_error and "conflict" in text_of(result)
+    assert "Black=9" in sidecar.read_text()
+
+
+async def test_an_edit_made_while_the_user_answers_is_saved_and_kept(server, image, sidecar):
+    holder = {}
+
+    async def callback(context, params):
+        await holder["client"].call_tool(
+            "edit_profile", {"path": str(image), "raw_edits": [edit("Exposure", "Compensation", "5")]}
+        )
+        return ElicitResult(action="accept", content={"choice": "merge"})
+
+    async with Client(server, elicitation_callback=callback, mode="legacy") as client:
+        holder["client"] = client
+        await open_and_edit(client, image, edit("Exposure", "Compensation", "2"))
+        change_externally(sidecar)
+        result = await client.call_tool("save_sidecar", {"path": str(image)})
+        profile = await client.call_tool("get_profile", {"path": str(image)})
+
+    assert not result.is_error, result.content
+    assert keyfile.loads(sidecar.read_text())["Exposure"]["Compensation"] == "5"
+    assert profile.structured_content["adjustments"]["exposure"]["compensation"] == 5

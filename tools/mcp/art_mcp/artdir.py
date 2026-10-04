@@ -84,9 +84,10 @@ def fast_export_box(config_dir: Path) -> int:
     larger into it."""
     section = _read_options(config_dir).get("Fast Export", {})
     sides = []
-    for key in ("fastexport_resize_width", "fastexport_resize_height"):
+    # Like ART's Options::load: the current key, else the legacy one.
+    for key, legacy in (("fastexport_resize_width", "MaxWidth"), ("fastexport_resize_height", "MaxHeight")):
         try:
-            sides.append(int(section.get(key, FAST_EXPORT_DEFAULT)))
+            sides.append(int(section.get(key, section.get(legacy, FAST_EXPORT_DEFAULT))))
         except ValueError:
             sides.append(FAST_EXPORT_DEFAULT)
     return min(sides)

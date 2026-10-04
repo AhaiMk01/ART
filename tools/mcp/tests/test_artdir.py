@@ -64,3 +64,13 @@ def test_fast_export_box_is_the_smaller_side_of_the_users_box(tmp_path):
 
     (tmp_path / "options").write_text("[Fast Export]\nfastexport_resize_width=1600\n")
     assert artdir.fast_export_box(tmp_path) == 1600
+
+
+def test_fast_export_box_falls_back_to_the_legacy_keys_like_art(tmp_path):
+    (tmp_path / "options").write_text("[Fast Export]\nMaxWidth=1500\nMaxHeight=1000\n")
+    assert artdir.fast_export_box(tmp_path) == 1000
+
+    (tmp_path / "options").write_text(
+        "[Fast Export]\nfastexport_resize_width=1600\nMaxWidth=900\nMaxHeight=1700\n"
+    )
+    assert artdir.fast_export_box(tmp_path) == 1600
