@@ -38,7 +38,7 @@ From [Implementation language and SDK](https://github.com/AhaiMk01/ART/issues/7)
 - **Results:** `structuredContent` with an `outputSchema` from Pydantic return
   models, plus a text copy for older clients.
 - **Errors:** MCP `isError` with a short code and a message. Codes:
-  `not_open`, `out_of_range`, `unknown_key`, `conflict`, `exists`,
+  `not_open`, `not_found`, `out_of_range`, `unknown_key`, `conflict`, `exists`,
   `render_failed`, `timeout`, `open_in_editor`, `art_not_running`.
 
 ```
@@ -46,7 +46,8 @@ tools/mcp/
   pyproject.toml, uv.lock
   art_mcp/
     schema.py       # curated adjustments (Pydantic), PPVERSION it targets
-    profile.py      # KeyFile I/O, read format, adjustments+raw edits -> partial profile
+    keyfile.py      # GLib KeyFile (.arp) reader/writer
+    profile.py      # read format, adjustments+raw edits -> partial profile
     preview.py      # temp folder, JPEG files, inline ImageContent
     metadata.py     # exiftool wrapper
     artdir.py       # locating ART-cli.exe / exiftool.exe / config dir
@@ -175,9 +176,14 @@ From [Sidecar write policy for the Render server](https://github.com/AhaiMk01/AR
   profile for that image type (same as the editor). A content hash of the
   sidecar is kept.
 - To get the resolved, complete processing profile (default profile, dynamic
-  rules, sidecar), `open_image` runs `art-cli` once (`-s` or `-d`, `-f`, tiny
-  resize, `-O`) to a throwaway output and reads the `.arp` written beside it.
-  Later renders pass the working profile explicitly and never use `-d`.
+  rules, sidecar), `open_image` runs `art-cli` once (`-p <sidecar>` or `-d`,
+  `-f`, `-O`) to a throwaway output and reads the `.arp` written beside it.
+  The sidecar is passed with `-p` (not `-s`) so the file read is the file the
+  server hashes and later saves. No resize layer is added: `-O` saves the
+  layered profile, so a resize would leak into it (`-f`'s own resize is
+  applied to a copy and doesn't). Later renders pass the working profile
+  explicitly and never use `-d`. If ART is set to embed parameters in output
+  metadata, `-O` writes no `.arp` and `open_image` fails with a hint.
 - Only `save_sidecar` writes the sidecar. Renders and previews never do.
 - **Conflict:** if the sidecar's hash changed since load, the server asks the
   user (merge = agent's changed keys onto the current sidecar / overwrite /
