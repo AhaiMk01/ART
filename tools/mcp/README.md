@@ -92,6 +92,14 @@ Results of `get_profile`, `edit_profile` and `describe_adjustments` carry a
 
 ## Development
 
+Layout of the Render server (`art_mcp/render/`): `server.py` only wires
+things up; `session.py` holds `RenderSession` (working profiles, per-image
+locks, the frame-size cache, running art-cli); each feature module
+(`profile_tools.py`, `preview_tools.py`, `export_tools.py`, `save_tools.py`,
+`metadata_tools.py`) has a `register(server, session)` that adds its tools. A
+tool reaches a working profile only through `with session.image(path) as wp:`,
+which holds that image's lock.
+
 ```sh
 uv run pytest                      # unit + fake-art-cli tests
 uv run mypy --strict art_mcp       # typecheck

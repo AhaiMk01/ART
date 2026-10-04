@@ -2,7 +2,8 @@
 
 MCP runs synchronous tool handlers on worker threads, so two calls about the
 same image can really overlap. Every tool that reads or changes an image's
-working state, or renders it, should run inside ``locks.hold(path)``.
+working state, or renders it, runs under that image's lock; the Render
+server's tools get it through ``RenderSession.image(path)``.
 """
 
 import os

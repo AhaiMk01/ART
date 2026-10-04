@@ -53,7 +53,17 @@ tools/mcp/
     preview.py      # temp folder, JPEG files, inline ImageContent
     metadata.py     # exiftool wrapper
     artdir.py       # locating ART-cli.exe / exiftool.exe / config dir
-    render/         # Render server: art-cli runner, working profiles, tools
+    render/         # Render server
+      server.py         # build_server: wiring only; main() entry point
+      session.py        # RenderSession: working profiles, per-image locks,
+                        #   frame cache, art-cli runs; the only locking path
+      artcli.py         # art-cli runner and argument builders
+      profile_tools.py  # open_image, reset_profile, get/edit_profile,
+                        #   describe_adjustments
+      preview_tools.py  # render_preview
+      export_tools.py   # export_image
+      save_tools.py     # save_sidecar, save_partial_profile
+      metadata_tools.py # inspect_image
     live/           # Live server: control channel client, tools
   tests/
 ```
