@@ -50,6 +50,17 @@ Errors come back as tool errors whose text starts with a code: `not_open`,
 `not_found`, `unknown_key`, `render_failed`, `timeout`, `conflict`, `exists`,
 `out_of_range`.
 
+`render_failed` carries art-cli's exit code with its meaning (`-3` bad
+arguments, `-2` load/save or options failure, `-1` unknown option, `1` stray
+argument, `2` no input or skipped extension) and its output; an art-cli that
+exits 0 without writing the file is `render_failed` too.
+
+Robustness: art-cli is killed and the call reports `timeout` after 60 s
+(`--preview-timeout SECONDS`; `--export-timeout SECONDS`, default 120, is for
+exports). Calls about one image run one at a time, and at most two art-cli
+processes run at once. On startup the server deletes `art-mcp-<pid>` folders
+in the temp folder whose process is gone.
+
 ## Development
 
 ```sh

@@ -23,8 +23,9 @@ from mcp_types import ClientCapabilities, ElicitationCapability
 from pydantic import BaseModel
 
 from art_mcp import artdir, keyfile, sidecar
+from art_mcp.concurrency import ImageLocks, image_key
 from art_mcp.keyfile import KeyFile
-from art_mcp.preview import PreviewFolder, default_root
+from art_mcp.preview import PreviewFolder, default_root, sweep_stale
 from art_mcp.profile import ProfileView, RawEdit, UnknownKey, WorkingChanges, read_format
 from art_mcp.render.artcli import (
     ArtCli,
@@ -123,12 +124,6 @@ class Preview(BaseModel):
     max_size: int
 
 
-def image_key(image: Path) -> str:
-    """Identity of a resolved image path across calls (case-folded on
-    Windows)."""
-    return os.path.normcase(str(image))
-
-
 def move_over(source: Path, target: Path) -> None:
     """Move ``source`` to ``target``, replacing it; works across drives."""
     try:
@@ -144,6 +139,7 @@ def tool_error(code: ErrorCode, message: str) -> ToolError:
 
 def build_server(cli: ArtCli, config_dir: Path, previews: PreviewFolder) -> MCPServer:
     working: dict[str, WorkingProfile] = {}
+    locks = ImageLocks()
 
     @asynccontextmanager
     async def lifespan(_: MCPServer) -> AsyncIterator[None]:
@@ -165,9 +161,9 @@ def build_server(cli: ArtCli, config_dir: Path, previews: PreviewFolder) -> MCPS
     def art_version() -> str:
         return cli.version()
 
-    def run(args: list[str], output: Path) -> None:
+    def run(args: list[str], output: Path, timeout: float | None = None) -> None:
         try:
-            cli.run(args)
+            cli.run(args, timeout=timeout)
         except ArtCliTimeout as e:
             raise tool_error("timeout", str(e)) from e
         except ArtCliError as e:
@@ -252,51 +248,55 @@ def build_server(cli: ArtCli, config_dir: Path, previews: PreviewFolder) -> MCPS
         image = Path(path).resolve()
         if not image.is_file():
             raise tool_error("not_found", f"{image} does not exist")
-        source = load_working_profile(image, None)
+        with locks.hold(image):
+            source = load_working_profile(image, None)
         return OpenedImage(path=str(image), profile_from=source, art_version=art_version())
 
     @server.tool()
     def reset_profile(path: str, to: ProfileSource) -> ResetResult:
         """Discard working-profile changes: reload the profile from the
         image's sidecar, or from ART's default profile."""
-        return ResetResult(profile_from=load_working_profile(opened(path).image, to))
+        with locks.hold(path):
+            return ResetResult(profile_from=load_working_profile(opened(path).image, to))
 
     @server.tool()
     def render_preview(path: str) -> Preview:
         """Render the working profile as a JPEG (long edge 1024 px) and return
         its path."""
-        wp = opened(path)
-        profile = previews.new_file("profile", ".arp")
-        resize = previews.new_file("resize", ".arp")
-        output = previews.new_file("preview", ".jpg")
-        try:
-            profile.write_text(keyfile.dumps(wp.changes.profile), encoding="utf-8")
-            resize.write_text(resize_profile(PREVIEW_SIZE), encoding="utf-8")
-            run(preview_args(wp.image, output, profile, resize), output)
-        except BaseException:
-            output.unlink(missing_ok=True)
-            raise
-        finally:
-            profile.unlink(missing_ok=True)
-            resize.unlink(missing_ok=True)
+        with locks.hold(path):
+            wp = opened(path)
+            profile = previews.new_file("profile", ".arp")
+            resize = previews.new_file("resize", ".arp")
+            output = previews.new_file("preview", ".jpg")
+            try:
+                profile.write_text(keyfile.dumps(wp.changes.profile), encoding="utf-8")
+                resize.write_text(resize_profile(PREVIEW_SIZE), encoding="utf-8")
+                run(preview_args(wp.image, output, profile, resize), output)
+            except BaseException:
+                output.unlink(missing_ok=True)
+                raise
+            finally:
+                profile.unlink(missing_ok=True)
+                resize.unlink(missing_ok=True)
         return Preview(path=str(output), max_size=PREVIEW_SIZE)
 
     @server.tool()
     def get_profile(path: str) -> ProfileView:
         """The image's working profile: curated tools under `adjustments`,
         every other `[Group] Key` as a string under `raw`."""
-        return read_format(opened(path).changes.profile)
+        with locks.hold(path):
+            return read_format(opened(path).changes.profile)
 
     @server.tool()
     def edit_profile(path: str, raw_edits: list[RawEdit] | None = None) -> EditResult:
         """Change values of the working profile. Each raw edit sets one
         `[Group] Key` (as shown by get_profile) to a string value; the group
         and key must already exist. All edits apply, or none do."""
-        wp = opened(path)
-        try:
-            changed = wp.changes.apply(raw_edits or [])
-        except UnknownKey as e:
-            raise tool_error("unknown_key", str(e)) from e
+        with locks.hold(path):
+            try:
+                changed = opened(path).changes.apply(raw_edits or [])
+            except UnknownKey as e:
+                raise tool_error("unknown_key", str(e)) from e
         return EditResult(changed=changed)
 
     @server.tool()
@@ -315,40 +315,40 @@ def build_server(cli: ArtCli, config_dir: Path, previews: PreviewFolder) -> MCPS
         `.arp`) is refused with `exists` unless `overwrite`. With
         `write_profile`, the working profile is also saved as `<output>.arp`;
         otherwise no `.arp` is written. The folder of `output` must exist."""
-        wp = opened(path)
-        dest = Path(output).resolve()
-        dest_arp = Path(str(dest) + ".arp")
-        profile = previews.new_file("profile", ".arp")
-        temp = previews.new_file("export", EXPORT_SUFFIXES.get(format, ".out"))
-        temp_arp = Path(str(temp) + ".arp")
-        try:
-            args = export_args(wp.image, temp, profile, format, quality, bit_depth, write_profile)
-        except ValueError as e:
-            raise tool_error("out_of_range", str(e)) from e
-        if not dest.parent.is_dir():
-            raise tool_error("not_found", f"folder {dest.parent} does not exist")
-        targets = [dest, dest_arp] if write_profile else [dest]
-        if not overwrite:
-            for target in targets:
-                if target.exists():
-                    raise tool_error("exists", f"{target} already exists; pass overwrite=true to replace it")
-        try:
-            profile.write_text(keyfile.dumps(wp.changes.profile), encoding="utf-8")
-            run(args, temp)
-            if write_profile and not temp_arp.is_file():
-                raise tool_error(
-                    "render_failed",
-                    "art-cli wrote no profile beside its output; turn off "
-                    '"Embed processing parameters in metadata" in ART\'s preferences',
-                )
-            moves = [(temp, dest), (temp_arp, dest_arp)] if write_profile else [(temp, dest)]
-            for source, target in moves:
-                move_over(source, target)
-        finally:
-            for leftover in (profile, temp, temp_arp):
-                leftover.unlink(missing_ok=True)
-        return ExportResult(path=str(dest), profile_path=str(dest_arp) if write_profile else None)
-
+        with locks.hold(path):
+            wp = opened(path)
+            dest = Path(output).resolve()
+            dest_arp = Path(str(dest) + ".arp")
+            profile = previews.new_file("profile", ".arp")
+            temp = previews.new_file("export", EXPORT_SUFFIXES.get(format, ".out"))
+            temp_arp = Path(str(temp) + ".arp")
+            try:
+                args = export_args(wp.image, temp, profile, format, quality, bit_depth, write_profile)
+            except ValueError as e:
+                raise tool_error("out_of_range", str(e)) from e
+            if not dest.parent.is_dir():
+                raise tool_error("not_found", f"folder {dest.parent} does not exist")
+            targets = [dest, dest_arp] if write_profile else [dest]
+            if not overwrite:
+                for target in targets:
+                    if target.exists():
+                        raise tool_error("exists", f"{target} already exists; pass overwrite=true to replace it")
+            try:
+                profile.write_text(keyfile.dumps(wp.changes.profile), encoding="utf-8")
+                run(args, temp, timeout=cli.export_timeout)
+                if write_profile and not temp_arp.is_file():
+                    raise tool_error(
+                        "render_failed",
+                        "art-cli wrote no profile beside its output; turn off "
+                        '"Embed processing parameters in metadata" in ART\'s preferences',
+                    )
+                moves = [(temp, dest), (temp_arp, dest_arp)] if write_profile else [(temp, dest)]
+                for source, target in moves:
+                    move_over(source, target)
+            finally:
+                for leftover in (profile, temp, temp_arp):
+                    leftover.unlink(missing_ok=True)
+            return ExportResult(path=str(dest), profile_path=str(dest_arp) if write_profile else None)
 
     @server.tool()
     async def save_sidecar(
@@ -396,10 +396,12 @@ def build_server(cli: ArtCli, config_dir: Path, previews: PreviewFolder) -> MCPS
         if text is None:
             text = keyfile.dumps(profile)
         data = text.encode("utf-8")
-        sidecar.write_with_backup(target, text)
-        wp.changes = WorkingChanges(profile)
-        wp.sidecar_hash = sidecar.file_hash(data)
-        wp.sidecar_keys = parse_sidecar(data)
+        # Held only for the write, not while waiting for the user's answer.
+        with locks.hold(path):
+            sidecar.write_with_backup(target, text)
+            wp.changes = WorkingChanges(profile)
+            wp.sidecar_hash = sidecar.file_hash(data)
+            wp.sidecar_keys = parse_sidecar(data)
         return SaveResult(saved=True, path=str(target), how=how)
 
     @server.tool()
@@ -411,18 +413,19 @@ def build_server(cli: ArtCli, config_dir: Path, previews: PreviewFolder) -> MCPS
         (.arp) that can be applied on top of other images. Refuses an
         existing `dest` unless `overwrite`. Nothing is written when nothing
         changed."""
-        partial = opened(path).changes.partial_profile()
-        target = Path(dest)
-        if not target.parent.is_dir():
-            raise tool_error("not_found", f"folder {target.parent} does not exist")
-        if target.exists() and not overwrite:
-            raise tool_error("exists", f"{target} exists; pass overwrite=true to replace it")
-        if not partial:
-            return PartialProfileResult(written=False, path=str(target), keys=[])
-        sidecar.write_with_backup(target, keyfile.dumps(partial), backup=False)
-        return PartialProfileResult(
-            written=True, path=str(target), keys=sidecar.changed_keys({}, partial)
-        )
+        with locks.hold(path):
+            partial = opened(path).changes.partial_profile()
+            target = Path(dest)
+            if not target.parent.is_dir():
+                raise tool_error("not_found", f"folder {target.parent} does not exist")
+            if target.exists() and not overwrite:
+                raise tool_error("exists", f"{target} exists; pass overwrite=true to replace it")
+            if not partial:
+                return PartialProfileResult(written=False, path=str(target), keys=[])
+            sidecar.write_with_backup(target, keyfile.dumps(partial), backup=False)
+            return PartialProfileResult(
+                written=True, path=str(target), keys=sidecar.changed_keys({}, partial)
+            )
 
     return server
 
@@ -430,6 +433,14 @@ def build_server(cli: ArtCli, config_dir: Path, previews: PreviewFolder) -> MCPS
 def main() -> None:
     parser = argparse.ArgumentParser(prog="art-mcp-render", description=__doc__)
     parser.add_argument("--art-dir", help="folder holding ART-cli (default: ART_DIR, PATH, newest install)")
+    parser.add_argument(
+        "--preview-timeout", type=float, default=60.0, metavar="SECONDS",
+        help="kill art-cli and report `timeout` when a preview render takes longer (default 60)",
+    )  # fmt: skip
+    parser.add_argument(
+        "--export-timeout", type=float, default=120.0, metavar="SECONDS",
+        help="the same for exports (default 120)",
+    )  # fmt: skip
     args = parser.parse_args()
 
     program_files = Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "ART"
@@ -438,8 +449,9 @@ def main() -> None:
     if cli_path is None:
         sys.exit("art-mcp-render: ART-cli not found; pass --art-dir or set ART_DIR")
 
+    sweep_stale()
     server = build_server(
-        ArtCli((str(cli_path),)),
+        ArtCli((str(cli_path),), timeout=args.preview_timeout, export_timeout=args.export_timeout),
         artdir.user_config_dir(os.environ),
         PreviewFolder(default_root()),
     )

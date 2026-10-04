@@ -7,7 +7,8 @@ Every run passes ``-Y`` (the server writes only into its own temp folder) and
 
 import subprocess
 import sys
-from dataclasses import dataclass
+import threading
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from art_mcp import keyfile
@@ -86,6 +87,29 @@ def resize_profile(long_edge: int) -> str:
     })  # fmt: skip
 
 
+EXIT_MEANINGS = {
+    -3: "bad arguments: art-cli rejected the command line",
+    -2: "could not load or save a file (or load ART's options)",
+    -1: "unknown option or help requested",
+    1: "stray argument on the command line",
+    2: "no input, or the input's extension was skipped",
+}
+
+
+def exit_code(returncode: int) -> int:
+    """Windows reports art-cli's ``-3`` as 4294967293; fold it back."""
+    return returncode - 2**32 if returncode >= 2**31 else returncode
+
+
+def describe_exit(returncode: int, output: str) -> str:
+    code = exit_code(returncode)
+    meaning = EXIT_MEANINGS.get(code)
+    text = f"art-cli exited with {code}"
+    if meaning:
+        text += f" ({meaning})"
+    return f"{text}: {output.strip()}" if output.strip() else text
+
+
 class ArtCliError(Exception):
     """art-cli failed or produced no output."""
 
@@ -100,29 +124,44 @@ class ArtCli:
     """How to start art-cli: normally just its path; tests substitute a fake."""
 
     timeout: float = 60.0
+    """Default limit on one run: the preview timeout."""
 
-    def run(self, args: list[str]) -> str:
-        """Run art-cli and return its combined output."""
+    export_timeout: float = 120.0
+    """Limit for exports: pass it as ``run(..., timeout=cli.export_timeout)``."""
+
+    max_processes: int = 2
+    """How many art-cli processes may run at once through this instance."""
+
+    _slots: threading.Semaphore = field(init=False, repr=False, compare=False)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "_slots", threading.Semaphore(self.max_processes))
+
+    def run(self, args: list[str], timeout: float | None = None) -> str:
+        """Run art-cli and return its combined output. ``timeout`` (seconds)
+        overrides the instance's for this call."""
+        limit = self.timeout if timeout is None else timeout
         flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
         try:
-            done = subprocess.run(
-                [*self.command, *args],
-                stdin=subprocess.DEVNULL,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=self.timeout,
-                creationflags=flags,
-            )
+            with self._slots:  # waiting for a slot doesn't count against the timeout
+                done = subprocess.run(
+                    [*self.command, *args],
+                    stdin=subprocess.DEVNULL,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    timeout=limit,
+                    creationflags=flags,
+                )
         except subprocess.TimeoutExpired as e:
             # subprocess.run has already killed the process.
-            raise ArtCliTimeout(f"art-cli timed out after {self.timeout:g} s") from e
+            raise ArtCliTimeout(f"art-cli timed out after {limit:g} s") from e
         except OSError as e:
             raise ArtCliError(f"cannot start art-cli: {e}") from e
         output = done.stdout + done.stderr
         if done.returncode != 0:
-            raise ArtCliError(f"art-cli exited with {done.returncode}: {output.strip()}")
+            raise ArtCliError(describe_exit(done.returncode, output))
         return output
 
     def version(self) -> str:
