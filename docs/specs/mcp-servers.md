@@ -329,9 +329,13 @@ Assistants. The Live server never launches ART.
   "AI Assistants"; saved as `[General] LiveControl`, default false) or
   `--live-control` for one run. The channel runs when either is set; the flag
   never changes the saved preference. Changing the toggle takes effect on OK
-  with no restart: on starts the channel (new port and token, new discovery
-  file), off stops it (connections closed, discovery file removed), even if the
-  flag had started it. OK acts only when the saved value changed.
+  with no restart: on starts the channel if it isn't running (new port and
+  token, new discovery file; a channel the flag already started keeps its port
+  and token), off stops it (connections closed, discovery file removed), even
+  if the flag had started it. OK acts only when the saved value changed. The
+  status line under the checkbox reflects the state when Preferences opened.
+  Known limit: ART's OK applies the toggle just before saving `options`, so a
+  failed save leaves the channel switched but the preference unsaved.
 - **Discovery:** ART writes `{port, token, pid, version}` (`version` is
   `RTVERSION`, a release number or a git hash) to `live-control.json` in its
   config dir: temp file (named with the pid) renamed into place; 0600 on
