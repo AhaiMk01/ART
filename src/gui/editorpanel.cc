@@ -1316,6 +1316,16 @@ Glib::ustring EditorPanel::getFileName()
     }
 }
 
+bool EditorPanel::getImageSize(int &w, int &h)
+{
+    if (!ipc) {
+        return false;
+    }
+    w = ipc->getFullWidth();
+    h = ipc->getFullHeight();
+    return w > 0 && h > 0;
+}
+
 // TODO!!!
 void EditorPanel::procParamsChanged(
     const art::engine::procparams::ProcParams *params,

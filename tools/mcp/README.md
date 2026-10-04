@@ -6,6 +6,12 @@ Design: [`docs/specs/mcp-servers.md`](../../docs/specs/mcp-servers.md).
 - **`art-mcp-render`**: opens images and renders previews headlessly through
   `art-cli`, and reads metadata with ART's exiftool. Changes stay in an in-memory working profile; renders never write
   sidecars.
+- **`art-mcp-live`**: talks to a running ART editor through its control
+  channel. Start ART with `--live-control` (it then writes
+  `live-control.json` with a port and a per-run token to its config folder,
+  and removes it on exit). Tools so far: `status()` (ART's version and the
+  images open in the editor, with sizes); without a control-enabled ART it
+  fails with `art_not_running`.
 
 Requires Python 3.11+, [uv](https://docs.astral.sh/uv/) and an ART install
 (found via `--art-dir`, `ART_DIR`, `PATH`, or the newest
@@ -18,6 +24,7 @@ fork (approve them on first use). Elsewhere:
 
 ```sh
 claude mcp add art-render -- uv run --directory <repo>/tools/mcp art-mcp-render
+claude mcp add art-live -- uv run --directory <repo>/tools/mcp art-mcp-live
 ```
 
 Claude Desktop (`claude_desktop_config.json`):

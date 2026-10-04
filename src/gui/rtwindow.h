@@ -65,6 +65,10 @@ public:
     void addEditorPanel(EditorPanel *ep, const std::string &name);
     void remEditorPanel(EditorPanel *ep);
     bool selectEditorPanel(const std::string &name);
+    // The editor the user is looking at, or nullptr if none has an image.
+    EditorPanel *getActiveEditorPanel();
+    // Every editor that has an image open.
+    std::vector<EditorPanel *> getEditorPanels();
 
     void addBatchQueueJob(BatchQueueEntry *bqe, bool head = false);
     void addBatchQueueJobs(const std::vector<BatchQueueEntry *> &entries);

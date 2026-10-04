@@ -26,6 +26,7 @@
 #include "../engine/dynamicprofile.h"
 #include "../utils/config.h"
 #include "extprog.h"
+#include "livecontrol.h"
 #include "options.h"
 #include "../utils/pathutils.h"
 #include "printhelp.h"
@@ -77,6 +78,7 @@ bool simpleEditor = false;
 bool gimpPlugin = false;
 bool remote = false;
 bool is_session = false;
+bool liveControl = false; // --live-control
 
 namespace {
 
@@ -150,6 +152,9 @@ int processLineParams(int argc, char **argv)
                 break;
 
             case '-':
+                if (currParam == "--live-control") {
+                    break; // read in main()
+                }
                 if (currParam.substr(5) == "--gtk" ||
                     currParam == "--g-fatal-warnings") {
                     break;
@@ -289,6 +294,7 @@ public:
 
     ~RTApplication() override
     {
+        liveControl_.reset();
         if (rtWindow) {
             art::gui::session::save(art::gui::session::filename() + ".last");
             art::gui::session::clear();
@@ -320,6 +326,9 @@ private:
             rtWindow = create_rt_window();
             add_window(*rtWindow);
             rtWindow->setApplication(true);
+            if (liveControl) {
+                liveControl_ = LiveControl::start(rtWindow);
+            }
 #ifdef __APPLE__
             add_action("quit", sigc::slot<void>([this]() {
                            GThreadLock lck;
@@ -437,6 +446,7 @@ public:
 
 private:
     RTWindow *rtWindow;
+    std::unique_ptr<LiveControl> liveControl_;
 #ifdef __APPLE__
     GtkosxApplication *osxApp;
 #endif // __APPLE__
@@ -514,6 +524,11 @@ int main(int argc, char **argv)
     argv2 = "";
 
     process_help_params(argc, argv);
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "--live-control") == 0) {
+            liveControl = true;
+        }
+    }
 
     Glib::init(); // called by Gtk::Main, but this may be important for thread
                   // handling, so we call it ourselves now
@@ -698,10 +713,15 @@ int main(int argc, char **argv)
             Gtk::Main m(&argc, &argv);
             gdk_threads_enter();
             const std::unique_ptr<RTWindow> rtWindow(create_rt_window());
+            std::unique_ptr<LiveControl> live;
+            if (liveControl) {
+                live = LiveControl::start(rtWindow.get());
+            }
             if (gimpPlugin) {
                 show_gimp_plugin_info_dialog(rtWindow.get());
             }
             m.run(*rtWindow);
+            live.reset();
             gdk_threads_leave();
 
             if (gimpPlugin && rtWindow->epanel &&

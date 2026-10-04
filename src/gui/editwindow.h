@@ -57,6 +57,8 @@ public:
     void addEditorPanel(EditorPanel *ep, const std::string &name);
     void remEditorPanel(EditorPanel *ep);
     bool selectEditorPanel(const std::string &name);
+    EditorPanel *getActiveEditorPanel();
+    std::vector<EditorPanel *> getEditorPanels();
     bool closeOpenEditors();
     bool isProcessing();
 

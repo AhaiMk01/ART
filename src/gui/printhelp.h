@@ -36,6 +36,8 @@ inline void ART_print_help(std::ostream &out, const char *progname, bool gui)
 #endif
         out << "  -v Print version number and exit\n";
         out << "  -N Force opening a new app instance\n";
+        out << "  --live-control Let the ART MCP Live server control this "
+               "editor\n";
         out << "  -s Simple editor mode\n";
         out << "  -S <file> Start with session from file\n"
             << "  -Sc Clear the session\n"

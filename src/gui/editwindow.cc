@@ -255,6 +255,25 @@ bool EditWindow::selectEditorPanel(const std::string &name)
     return false;
 }
 
+EditorPanel *EditWindow::getActiveEditorPanel()
+{
+    int page = mainNB->get_current_page();
+    if (page < 0) {
+        return nullptr;
+    }
+    // Every page of this notebook is an editor.
+    return static_cast<EditorPanel *>(mainNB->get_nth_page(page));
+}
+
+std::vector<EditorPanel *> EditWindow::getEditorPanels()
+{
+    std::vector<EditorPanel *> ret;
+    for (auto &p : epanels) {
+        ret.push_back(p.second);
+    }
+    return ret;
+}
+
 void EditWindow::toFront()
 {
     // when using the secondary window on the same monitor as the primary window

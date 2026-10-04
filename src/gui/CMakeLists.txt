@@ -76,6 +76,7 @@ set(NONCLISOURCEFILES
     labcurve.cc
     lensgeom.cc
     lensprofile.cc
+    livecontrol.cc
     lockablecolorpicker.cc
     lwbutton.cc
     lwbuttonset.cc

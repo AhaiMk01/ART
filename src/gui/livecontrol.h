@@ -1,0 +1,81 @@
+/* -*- C++ -*-
+ *
+ *  This file is part of ART.
+ *
+ *  ART is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  ART is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with ART.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+// The control channel: a local TCP endpoint through which the Live server
+// (tools/mcp, art-mcp-live) reads and changes the images open in this editor.
+//
+// Listens on 127.0.0.1 on an ephemeral port, on the GTK main loop. The port
+// and a random per-run token go to live-control.json in the user config dir;
+// a client must send {"token": "..."} as its first line, then JSON-lines
+// requests {"id", "op", "args"}, each answered by
+// {"id", "ok": true, "result"} or {"id", "ok": false, "error": {"code",
+// "message"}}.
+
+#pragma once
+
+#include <memory>
+#include <set>
+#include <string>
+
+#include <gio/gio.h>
+
+namespace art { namespace gui {
+
+class RTWindow;
+
+class LiveControl {
+public:
+    // Starts the control channel for this window; nullptr (with a message
+    // on stderr) if it can't listen or write the discovery file.
+    static std::unique_ptr<LiveControl> start(RTWindow *window);
+
+    // Stops listening, drops the clients and removes the discovery file.
+    ~LiveControl();
+
+    struct Connection;
+
+private:
+    explicit LiveControl(RTWindow *window);
+    LiveControl(const LiveControl &) = delete;
+    LiveControl &operator=(const LiveControl &) = delete;
+
+    static gboolean on_incoming(GSocketService *service,
+                                GSocketConnection *connection,
+                                GObject *source, gpointer data);
+    static void on_read(GObject *source, GAsyncResult *res, gpointer data);
+
+    void read_more(Connection *c);
+    // Handles one complete line; false closes the connection.
+    bool handle_line(Connection *c, const std::string &line);
+    std::string dispatch(const std::string &op, const std::string &args_json,
+                         bool &ok);
+    std::string status();
+    void close(Connection *c);
+
+    bool write_discovery_file();
+    void remove_discovery_file();
+
+    RTWindow *window_;
+    GSocketService *service_;
+    unsigned port_;
+    std::string token_;
+    std::string discovery_path_;
+    std::set<Connection *> connections_;
+};
+
+}} // namespace art::gui

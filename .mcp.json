@@ -3,6 +3,10 @@
     "art-render": {
       "command": "uv",
       "args": ["run", "--directory", "tools/mcp", "art-mcp-render"]
+    },
+    "art-live": {
+      "command": "uv",
+      "args": ["run", "--directory", "tools/mcp", "art-mcp-live"]
     }
   }
 }

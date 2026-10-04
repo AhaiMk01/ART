@@ -155,6 +155,9 @@ public:
     void saveProfile();
     Glib::ustring getShortName();
     Glib::ustring getFileName();
+    // The open image's size as the editor processes it (before cropping);
+    // false until the first preview has been computed.
+    bool getImageSize(int &w, int &h);
     bool handleShortcutKey(GdkEventKey *event);
     bool keyPressedBefore(GdkEventKey *event);
     bool keyReleased(GdkEventKey *event);

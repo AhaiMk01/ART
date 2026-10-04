@@ -848,6 +848,42 @@ bool RTWindow::selectEditorPanel(const std::string &name)
     return false;
 }
 
+EditorPanel *RTWindow::getActiveEditorPanel()
+{
+    EditorPanel *ep = nullptr;
+    if (simpleEditor || isSingleTabMode()) {
+        ep = epanel;
+    } else if (options.multiDisplayMode > 0) {
+        ep = EditWindow::getInstance(this, false)->getActiveEditorPanel();
+    } else if (mainNB->get_current_page() >= 0 &&
+               isEditorPanel(mainNB->get_current_page())) {
+        ep = static_cast<EditorPanel *>(
+            mainNB->get_nth_page(mainNB->get_current_page()));
+    }
+    return ep && !ep->getFileName().empty() ? ep : nullptr;
+}
+
+std::vector<EditorPanel *> RTWindow::getEditorPanels()
+{
+    std::vector<EditorPanel *> all;
+    if (simpleEditor || isSingleTabMode()) {
+        all.push_back(epanel);
+    } else if (options.multiDisplayMode > 0) {
+        all = EditWindow::getInstance(this, false)->getEditorPanels();
+    } else {
+        for (auto &p : epanels) {
+            all.push_back(p.second);
+        }
+    }
+    std::vector<EditorPanel *> ret;
+    for (EditorPanel *ep : all) {
+        if (ep && !ep->getFileName().empty()) {
+            ret.push_back(ep);
+        }
+    }
+    return ret;
+}
+
 void RTWindow::quit()
 {
     if (!on_delete_event(nullptr)) {
