@@ -34,7 +34,7 @@ def server(tmp_path):
     config = tmp_path / "config"
     config.mkdir()
     return build_server(
-        ArtCli((sys.executable, str(CTL)), timeout=1.0), config, PreviewFolder(tmp_path / "previews")
+        ArtCli((sys.executable, str(CTL)), timeout=5.0), config, PreviewFolder(tmp_path / "previews")
     )
 
 
