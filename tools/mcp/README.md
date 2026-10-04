@@ -4,7 +4,7 @@ MCP servers that let AI agents (Claude Code, Claude Desktop) work with ART.
 Design: [`docs/specs/mcp-servers.md`](../../docs/specs/mcp-servers.md).
 
 - **`art-mcp-render`**: opens images and renders previews headlessly through
-  `art-cli`. Changes stay in an in-memory working profile; renders never write
+  `art-cli`, and reads metadata with ART's exiftool. Changes stay in an in-memory working profile; renders never write
   sidecars.
 
 Requires Python 3.11+, [uv](https://docs.astral.sh/uv/) and an ART install
@@ -37,7 +37,8 @@ Claude Desktop (`claude_desktop_config.json`):
 
 | Tool | Does |
 |---|---|
-| `open_image(path)` | Loads the image's processing profile (sidecar, else ART's default profile) as its working profile |
+| `open_image(path)` | Loads the image's processing profile (sidecar, else ART's default profile) as its working profile; also returns a short `metadata` summary (camera, lens, capture date, pixel size), or null if exiftool is unavailable or can't read the file |
+| `inspect_image(path, tags?)` | Metadata of an opened image from the `exiftool` beside `ART-cli` (`-j -n`): make, model, lens, ISO, `shutter_seconds`, `aperture`, `focal_length_mm`, `capture_date` (local, ISO 8601), `width`, `height`, `orientation` (EXIF 1-8), each null when absent; `tags` adds named exiftool tags (e.g. `Software`) that the file has, under `tags` |
 | `render_preview(path)` | Renders the working profile to a 1024 px JPEG and returns its path |
 | `get_profile(path)` | The working profile: curated tools under `adjustments`, everything else as strings under `raw` |
 | `edit_profile(path, raw_edits)` | Sets `[Group] Key` values (raw edits); the group and key must exist; all or nothing |
@@ -48,7 +49,8 @@ Claude Desktop (`claude_desktop_config.json`):
 
 Errors come back as tool errors whose text starts with a code: `not_open`,
 `not_found`, `unknown_key`, `render_failed`, `timeout`, `conflict`, `exists`,
-`out_of_range`.
+`out_of_range`, and for metadata `metadata_unavailable` (no exiftool beside
+ART-cli), `metadata_failed`, `invalid_tag`.
 
 `render_failed` carries art-cli's exit code with its meaning (`-3` bad
 arguments, `-2` load/save or options failure, `-1` unknown option, `1` stray
@@ -70,4 +72,6 @@ ART_MCP_TEST_RAW=/path/to/raw uv run pytest tests/test_integration_art.py
 ```
 
 The integration tests copy the raw to a temp folder and are skipped when ART or
-`ART_MCP_TEST_RAW` is missing.
+`ART_MCP_TEST_RAW` is missing. `tests/test_integration_exiftool.py` runs the real
+exiftool on a generated JPEG (and, with `ART_MCP_TEST_RAW`, on the raw, read-only)
+and is skipped when no exiftool is found.

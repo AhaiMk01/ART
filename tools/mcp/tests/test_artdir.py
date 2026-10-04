@@ -45,3 +45,10 @@ def test_sidecar_name_follows_strip_extension_option(tmp_path):
 
     (config / "options").write_text("[Profiles]\nParamsSidecarStripExtension=false\n")
     assert artdir.sidecar_path(image, config) == tmp_path / "IMG_1.ARW.arp"
+
+
+def test_exiftool_is_found_beside_art_cli(tmp_path):
+    art = make_art(tmp_path / "ART")
+    assert artdir.find_exiftool(art) is None
+    (art / "exiftool.exe").write_bytes(b"")
+    assert artdir.find_exiftool(art) == art / "exiftool.exe"

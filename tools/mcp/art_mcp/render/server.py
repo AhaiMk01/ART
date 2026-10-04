@@ -25,6 +25,7 @@ from pydantic import BaseModel
 from art_mcp import artdir, keyfile, sidecar
 from art_mcp.concurrency import ImageLocks, image_key
 from art_mcp.keyfile import KeyFile
+from art_mcp.metadata import Exiftool, ExiftoolError, ExiftoolTimeout, InvalidTag, Metadata
 from art_mcp.preview import PreviewFolder, default_root, sweep_stale
 from art_mcp.profile import ProfileView, RawEdit, UnknownKey, WorkingChanges, read_format
 from art_mcp.render.artcli import (
@@ -42,6 +43,7 @@ PREVIEW_SIZE = 1024
 ErrorCode = Literal[
     "not_open", "not_found", "unknown_key", "render_failed", "timeout",
     "conflict", "exists", "out_of_range",
+    "metadata_unavailable", "metadata_failed", "invalid_tag",
 ]
 
 EXPORT_SUFFIXES = {"jpeg": ".jpg", "tiff": ".tif", "png": ".png"}
@@ -70,10 +72,33 @@ def parse_sidecar(data: bytes | None) -> KeyFile:
         return {}
 
 
+class MetadataSummary(BaseModel):
+    camera: str | None
+    """Make and model, e.g. "SONY ILCE-7M3"."""
+    lens: str | None
+    capture_date: str | None
+    width: int | None
+    height: int | None
+
+
+def summarize(m: Metadata) -> MetadataSummary:
+    camera = " ".join(part for part in (m.make, m.model) if part)
+    return MetadataSummary(
+        camera=camera or None,
+        lens=m.lens,
+        capture_date=m.capture_date,
+        width=m.width,
+        height=m.height,
+    )
+
+
 class OpenedImage(BaseModel):
     path: str
     profile_from: ProfileSource
     art_version: str
+    metadata: MetadataSummary | None = None
+    """None when exiftool is unavailable or couldn't read the file; call
+    inspect_image for the reason."""
 
 
 class ResetResult(BaseModel):
@@ -137,7 +162,13 @@ def tool_error(code: ErrorCode, message: str) -> ToolError:
     return ToolError(f"{code}: {message}")
 
 
-def build_server(cli: ArtCli, config_dir: Path, previews: PreviewFolder) -> MCPServer:
+def build_server(
+    cli: ArtCli,
+    config_dir: Path,
+    previews: PreviewFolder,
+    *,
+    exiftool: Exiftool | None = None,
+) -> MCPServer:
     working: dict[str, WorkingProfile] = {}
     locks = ImageLocks()
 
@@ -250,7 +281,15 @@ def build_server(cli: ArtCli, config_dir: Path, previews: PreviewFolder) -> MCPS
             raise tool_error("not_found", f"{image} does not exist")
         with locks.hold(image):
             source = load_working_profile(image, None)
-        return OpenedImage(path=str(image), profile_from=source, art_version=art_version())
+        summary = None
+        if exiftool is not None:
+            try:
+                summary = summarize(exiftool.read(image))
+            except ExiftoolError:
+                pass  # opening still works; inspect_image reports the reason
+        return OpenedImage(
+            path=str(image), profile_from=source, art_version=art_version(), metadata=summary
+        )
 
     @server.tool()
     def reset_profile(path: str, to: ProfileSource) -> ResetResult:
@@ -427,6 +466,24 @@ def build_server(cli: ArtCli, config_dir: Path, previews: PreviewFolder) -> MCPS
                 written=True, path=str(target), keys=sidecar.changed_keys({}, partial)
             )
 
+    @server.tool()
+    def inspect_image(path: str, tags: list[str] | None = None) -> Metadata:
+        """The image's metadata (read with ART's exiftool): make, model, lens,
+        ISO, shutter, aperture, focal length, capture date, pixel dimensions
+        and orientation, each None when the file has no value, plus any extra
+        exiftool `tags` named (by tag name, e.g. "Software") that it has."""
+        wp = opened(path)
+        if exiftool is None:
+            raise tool_error("metadata_unavailable", "exiftool was not found beside ART-cli")
+        try:
+            return exiftool.read(wp.image, tags or [])
+        except InvalidTag as e:
+            raise tool_error("invalid_tag", str(e)) from e
+        except ExiftoolTimeout as e:
+            raise tool_error("timeout", str(e)) from e
+        except ExiftoolError as e:
+            raise tool_error("metadata_failed", str(e)) from e
+
     return server
 
 
@@ -450,9 +507,11 @@ def main() -> None:
         sys.exit("art-mcp-render: ART-cli not found; pass --art-dir or set ART_DIR")
 
     sweep_stale()
+    exiftool_path = artdir.find_exiftool(folder) if folder else None
     server = build_server(
         ArtCli((str(cli_path),), timeout=args.preview_timeout, export_timeout=args.export_timeout),
         artdir.user_config_dir(os.environ),
         PreviewFolder(default_root()),
+        exiftool=Exiftool((str(exiftool_path),)) if exiftool_path else None,
     )
     server.run()

@@ -1,9 +1,11 @@
+import json
 import sys
 from pathlib import Path
 
 import pytest
 from mcp.client.client import Client
 
+from art_mcp.metadata import Exiftool
 from art_mcp.preview import PreviewFolder
 from art_mcp.render.artcli import ArtCli
 from art_mcp.render.server import build_server
@@ -285,3 +287,94 @@ async def test_reset_to_sidecar_without_one_is_not_found(server, image):
 
     assert result.is_error
     assert "not_found" in result.content[0].text
+
+
+FAKE_EXIFTOOL = Path(__file__).with_name("fake_exiftool.py")
+
+
+def exif_server(tmp_path, exiftool=...):
+    config = tmp_path / "config"
+    config.mkdir(exist_ok=True)
+    if exiftool is ...:
+        exiftool = Exiftool((sys.executable, str(FAKE_EXIFTOOL)))
+    return build_server(
+        ArtCli((sys.executable, str(FAKE))),
+        config,
+        PreviewFolder(tmp_path / "previews"),
+        exiftool=exiftool,
+    )
+
+
+@pytest.fixture
+def tagged(image):
+    known = {"Make": "SONY", "Model": "ILCE-7M3", "LensModel": "FE 35mm F1.8", "ISO": 400,
+             "DateTimeOriginal": "2025:12:28 12:04:04", "ImageWidth": 6000, "ImageHeight": 4000,
+             "Software": "v1"}  # fmt: skip
+    image.with_name(image.name + ".exif.json").write_text(json.dumps(known))
+    return image
+
+
+async def test_inspect_open_image_returns_fixed_fields_and_requested_tags(tmp_path, tagged):
+    async with Client(exif_server(tmp_path)) as client:
+        await client.call_tool("open_image", {"path": str(tagged)})
+        result = await client.call_tool("inspect_image", {"path": str(tagged), "tags": ["Software"]})
+
+    assert not result.is_error, result.content
+    data = result.structured_content
+    assert (data["make"], data["model"], data["iso"], data["width"]) == ("SONY", "ILCE-7M3", 400, 6000)
+    assert data["tags"] == {"Software": "v1"}
+
+
+async def test_inspect_image_not_opened_is_not_open(tmp_path, tagged):
+    async with Client(exif_server(tmp_path)) as client:
+        result = await client.call_tool("inspect_image", {"path": str(tagged)})
+
+    assert result.is_error and "not_open" in result.content[0].text
+
+
+async def test_inspect_without_exiftool_says_metadata_unavailable(tmp_path, tagged):
+    async with Client(exif_server(tmp_path, exiftool=None)) as client:
+        opened = await client.call_tool("open_image", {"path": str(tagged)})
+        result = await client.call_tool("inspect_image", {"path": str(tagged)})
+
+    assert not opened.is_error and opened.structured_content["metadata"] is None
+    assert result.is_error and "metadata_unavailable" in result.content[0].text
+
+
+async def test_inspect_with_a_bad_tag_name_is_invalid_tag(tmp_path, tagged):
+    async with Client(exif_server(tmp_path)) as client:
+        await client.call_tool("open_image", {"path": str(tagged)})
+        result = await client.call_tool(
+            "inspect_image", {"path": str(tagged), "tags": ["-overwrite_original"]}
+        )
+
+    assert result.is_error and "invalid_tag" in result.content[0].text
+
+
+async def test_inspect_when_exiftool_fails_is_metadata_failed(tmp_path, image):
+    # No .exif.json beside the image: the fake exits with a traceback.
+    async with Client(exif_server(tmp_path)) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await client.call_tool("inspect_image", {"path": str(image)})
+
+    assert result.is_error and "metadata_failed" in result.content[0].text
+
+
+async def test_open_image_includes_a_metadata_summary(tmp_path, tagged):
+    async with Client(exif_server(tmp_path)) as client:
+        opened = await client.call_tool("open_image", {"path": str(tagged)})
+
+    assert opened.structured_content["metadata"] == {
+        "camera": "SONY ILCE-7M3",
+        "lens": "FE 35mm F1.8",
+        "capture_date": "2025-12-28T12:04:04",
+        "width": 6000,
+        "height": 4000,
+    }
+
+
+async def test_open_image_still_opens_when_metadata_cannot_be_read(tmp_path, image):
+    async with Client(exif_server(tmp_path)) as client:
+        opened = await client.call_tool("open_image", {"path": str(image)})
+
+    assert not opened.is_error and opened.structured_content["metadata"] is None

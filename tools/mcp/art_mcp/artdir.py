@@ -8,10 +8,19 @@ from art_mcp import keyfile
 from art_mcp.keyfile import KeyFile
 
 CLI_NAMES = ("ART-cli.exe", "ART-cli")
+EXIFTOOL_NAMES = ("exiftool.exe", "exiftool")
 
 
 def find_cli(folder: Path) -> Path | None:
     for name in CLI_NAMES:
+        if (folder / name).is_file():
+            return folder / name
+    return None
+
+
+def find_exiftool(folder: Path) -> Path | None:
+    """The exiftool ART ships beside ART-cli."""
+    for name in EXIFTOOL_NAMES:
         if (folder / name).is_file():
             return folder / name
     return None
