@@ -20,8 +20,8 @@ from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import BaseModel
 
 from art_mcp import artdir, keyfile
-from art_mcp.keyfile import KeyFile
 from art_mcp.preview import PreviewFolder, default_root
+from art_mcp.profile import ProfileView, RawEdit, UnknownKey, WorkingChanges, read_format
 from art_mcp.render.artcli import (
     ArtCli,
     ArtCliError,
@@ -33,21 +33,36 @@ from art_mcp.render.artcli import (
 
 PREVIEW_SIZE = 1024
 
-ErrorCode = Literal["not_open", "not_found", "render_failed", "timeout"]
+ErrorCode = Literal["not_open", "not_found", "unknown_key", "render_failed", "timeout"]
+
+
+ProfileSource = Literal["sidecar", "default"]
 
 
 @dataclass
 class WorkingProfile:
     image: Path
-    profile: KeyFile
+    changes: WorkingChanges
     sidecar_hash: str | None
-    """SHA-256 of the sidecar as loaded, or None if there was none."""
+    """SHA-256 of the sidecar on disk when this working profile was loaded
+    (whichever source it was loaded from), or None if there was none: the
+    baseline for detecting that someone else changed the sidecar."""
 
 
 class OpenedImage(BaseModel):
     path: str
-    profile_from: Literal["sidecar", "default"]
+    profile_from: ProfileSource
     art_version: str
+
+
+class ResetResult(BaseModel):
+    profile_from: ProfileSource
+
+
+class EditResult(BaseModel):
+    changed: list[RawEdit]
+    """Each [Group] Key whose value this call changed, with its new value
+    (re-setting a value is not a change)."""
 
 
 class Preview(BaseModel):
@@ -105,21 +120,27 @@ def build_server(cli: ArtCli, config_dir: Path, previews: PreviewFolder) -> MCPS
             raise tool_error("not_open", f"{path} is not open; call open_image first")
         return wp
 
-    @server.tool()
-    def open_image(path: str) -> OpenedImage:
-        """Open an image and load its processing profile (from its sidecar,
-        else ART's default profile) as the working profile."""
-        image = Path(path).resolve()
-        if not image.is_file():
-            raise tool_error("not_found", f"{image} does not exist")
+    def load_working_profile(image: Path, source: ProfileSource | None) -> ProfileSource:
+        """Resolve ``image``'s complete processing profile with one art-cli
+        run and make it the working profile. ``source`` None means the sidecar
+        if there is one, else ART's default profile."""
         sidecar = artdir.sidecar_path(image, config_dir)
         sidecar_bytes = sidecar.read_bytes() if sidecar.is_file() else None
-        has_sidecar = sidecar_bytes is not None
+        if source == "sidecar" and sidecar_bytes is None:
+            raise tool_error("not_found", f"{image.name} has no sidecar ({sidecar})")
+        source = source or ("sidecar" if sidecar_bytes is not None else "default")
 
         output = previews.new_file("resolve", ".jpg")
         arp = Path(str(output) + ".arp")
+        # art-cli reads a copy of exactly the bytes that are hashed, so a
+        # sidecar changing meanwhile can't make the two disagree.
+        sidecar_copy = previews.new_file("sidecar", ".arp")
         try:
-            run(resolve_profile_args(image, output, sidecar if has_sidecar else None), output)
+            base = None
+            if source == "sidecar" and sidecar_bytes is not None:
+                sidecar_copy.write_bytes(sidecar_bytes)
+                base = sidecar_copy
+            run(resolve_profile_args(image, output, base), output)
             if not arp.is_file():
                 raise tool_error(
                     "render_failed",
@@ -130,19 +151,32 @@ def build_server(cli: ArtCli, config_dir: Path, previews: PreviewFolder) -> MCPS
         finally:
             output.unlink(missing_ok=True)
             arp.unlink(missing_ok=True)
+            sidecar_copy.unlink(missing_ok=True)
 
         working[image_key(image)] = WorkingProfile(
             image=image,
-            profile=profile,
+            changes=WorkingChanges(profile),
             sidecar_hash=(
                 hashlib.sha256(sidecar_bytes).hexdigest() if sidecar_bytes is not None else None
             ),
         )
-        return OpenedImage(
-            path=str(image),
-            profile_from="sidecar" if has_sidecar else "default",
-            art_version=art_version(),
-        )
+        return source
+
+    @server.tool()
+    def open_image(path: str) -> OpenedImage:
+        """Open an image and load its processing profile (from its sidecar,
+        else ART's default profile) as the working profile."""
+        image = Path(path).resolve()
+        if not image.is_file():
+            raise tool_error("not_found", f"{image} does not exist")
+        source = load_working_profile(image, None)
+        return OpenedImage(path=str(image), profile_from=source, art_version=art_version())
+
+    @server.tool()
+    def reset_profile(path: str, to: ProfileSource) -> ResetResult:
+        """Discard working-profile changes: reload the profile from the
+        image's sidecar, or from ART's default profile."""
+        return ResetResult(profile_from=load_working_profile(opened(path).image, to))
 
     @server.tool()
     def render_preview(path: str) -> Preview:
@@ -153,7 +187,7 @@ def build_server(cli: ArtCli, config_dir: Path, previews: PreviewFolder) -> MCPS
         resize = previews.new_file("resize", ".arp")
         output = previews.new_file("preview", ".jpg")
         try:
-            profile.write_text(keyfile.dumps(wp.profile), encoding="utf-8")
+            profile.write_text(keyfile.dumps(wp.changes.profile), encoding="utf-8")
             resize.write_text(resize_profile(PREVIEW_SIZE), encoding="utf-8")
             run(preview_args(wp.image, output, profile, resize), output)
         except BaseException:
@@ -163,6 +197,24 @@ def build_server(cli: ArtCli, config_dir: Path, previews: PreviewFolder) -> MCPS
             profile.unlink(missing_ok=True)
             resize.unlink(missing_ok=True)
         return Preview(path=str(output), max_size=PREVIEW_SIZE)
+
+    @server.tool()
+    def get_profile(path: str) -> ProfileView:
+        """The image's working profile: curated tools under `adjustments`,
+        every other `[Group] Key` as a string under `raw`."""
+        return read_format(opened(path).changes.profile)
+
+    @server.tool()
+    def edit_profile(path: str, raw_edits: list[RawEdit] | None = None) -> EditResult:
+        """Change values of the working profile. Each raw edit sets one
+        `[Group] Key` (as shown by get_profile) to a string value; the group
+        and key must already exist. All edits apply, or none do."""
+        wp = opened(path)
+        try:
+            changed = wp.changes.apply(raw_edits or [])
+        except UnknownKey as e:
+            raise tool_error("unknown_key", str(e)) from e
+        return EditResult(changed=changed)
 
     return server
 

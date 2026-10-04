@@ -95,3 +95,79 @@ async def test_an_empty_sidecar_is_still_the_sidecar(server, image):
         result = await client.call_tool("open_image", {"path": str(image)})
 
     assert result.structured_content["profile_from"] == "sidecar"
+
+
+async def test_get_profile_returns_every_value_as_raw_strings(server, image):
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await client.call_tool("get_profile", {"path": str(image)})
+
+    assert not result.is_error, result.content
+    profile = result.structured_content
+    assert profile["ppversion"] == 1045
+    assert profile["adjustments"] == {}
+    assert profile["raw"]["Exposure"] == {"Enabled": "true", "Compensation": "0", "Black": "0"}
+    assert profile["raw"]["White Balance"]["Setting"] == "Camera"
+
+
+async def test_raw_edit_changes_the_working_profile_and_the_next_render(server, image):
+    edit = {"group": "Exposure", "key": "Compensation", "value": "1.5"}
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await client.call_tool("edit_profile", {"path": str(image), "raw_edits": [edit]})
+        profile = await client.call_tool("get_profile", {"path": str(image)})
+        preview = await client.call_tool("render_preview", {"path": str(image)})
+
+        assert not result.is_error, result.content
+        assert result.structured_content["changed"] == [edit]
+        assert profile.structured_content["raw"]["Exposure"]["Compensation"] == "1.5"
+        assert b"Compensation=1.5" in Path(preview.structured_content["path"]).read_bytes()
+
+
+async def test_unknown_key_is_rejected_and_nothing_changes(server, image):
+    edits = [
+        {"group": "Exposure", "key": "Compensation", "value": "2"},
+        {"group": "Exposure", "key": "Compensaton", "value": "2"},
+    ]
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await client.call_tool("edit_profile", {"path": str(image), "raw_edits": edits})
+        profile = await client.call_tool("get_profile", {"path": str(image)})
+
+    assert result.is_error
+    assert "unknown_key" in result.content[0].text
+    assert "Compensaton" in result.content[0].text
+    assert profile.structured_content["raw"]["Exposure"]["Compensation"] == "0"
+
+
+def set_compensation(value):
+    return {"group": "Exposure", "key": "Compensation", "value": value}
+
+
+async def compensation(client, image):
+    profile = await client.call_tool("get_profile", {"path": str(image)})
+    return profile.structured_content["raw"]["Exposure"]["Compensation"]
+
+
+async def test_reset_to_sidecar_and_to_default(server, image):
+    image.with_name(image.name + ".arp").write_text("[Exposure]\nEnabled=true\nCompensation=1\n")
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        await client.call_tool("edit_profile", {"path": str(image), "raw_edits": [set_compensation("3")]})
+
+        to_sidecar = await client.call_tool("reset_profile", {"path": str(image), "to": "sidecar"})
+        assert not to_sidecar.is_error, to_sidecar.content
+        assert await compensation(client, image) == "1"
+
+        to_default = await client.call_tool("reset_profile", {"path": str(image), "to": "default"})
+        assert not to_default.is_error, to_default.content
+        assert await compensation(client, image) == "0"
+
+
+async def test_reset_to_sidecar_without_one_is_not_found(server, image):
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await client.call_tool("reset_profile", {"path": str(image), "to": "sidecar"})
+
+    assert result.is_error
+    assert "not_found" in result.content[0].text

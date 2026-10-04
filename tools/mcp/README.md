@@ -39,9 +39,12 @@ Claude Desktop (`claude_desktop_config.json`):
 |---|---|
 | `open_image(path)` | Loads the image's processing profile (sidecar, else ART's default profile) as its working profile |
 | `render_preview(path)` | Renders the working profile to a 1024 px JPEG and returns its path |
+| `get_profile(path)` | The working profile: curated tools under `adjustments`, everything else as strings under `raw` |
+| `edit_profile(path, raw_edits)` | Sets `[Group] Key` values (raw edits); the group and key must exist; all or nothing |
+| `reset_profile(path, to)` | Reloads the working profile from the `sidecar` or ART's `default` profile |
 
 Errors come back as tool errors whose text starts with a code: `not_open`,
-`not_found`, `render_failed`.
+`not_found`, `unknown_key`, `render_failed`, `timeout`.
 
 ## Development
 
