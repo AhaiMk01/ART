@@ -33,6 +33,7 @@
 #include "thumbnail.h"
 #include "thumbnaillistener.h"
 #include "toolpanelcoord.h"
+#include <atomic>
 #include <gtkmm.h>
 #include <memory>
 
@@ -156,7 +157,7 @@ public:
     Glib::ustring getShortName();
     Glib::ustring getFileName();
     // The open image's size as the editor processes it (before cropping);
-    // false until the first preview has been computed.
+    // false until the processor has reported it (the first preview).
     bool getImageSize(int &w, int &h);
     bool handleShortcutKey(GdkEventKey *event);
     bool keyPressedBefore(GdkEventKey *event);
@@ -292,6 +293,12 @@ private:
     sigc::connection ShowHideSidePanelsconn;
 
     bool isProcessing;
+
+    // The image size from the last sizeChanged (set on the processing
+    // thread); 0 until known. ImProcCoordinator's own fullw/fullh start at 1,
+    // so they can't tell "not yet" from a real size.
+    std::atomic<int> full_w_{0};
+    std::atomic<int> full_h_{0};
 
     IdleRegister idle_register;
 

@@ -30,6 +30,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <deque>
 #include <iostream>
 #include <sstream>
 #include <vector>
@@ -50,54 +51,99 @@ namespace art { namespace gui {
 namespace {
 
 const char *const DISCOVERY_FILE = "live-control.json";
-// Longest line accepted before the token is checked, and after.
+// At most this many clients at once; more are closed as they connect.
+const size_t MAX_CONNECTIONS = 8;
+// A client that hasn't sent the token this long after connecting is dropped.
+const guint AUTH_DEADLINE_SECONDS = 5;
+// Longest line accepted before the token has been checked. Enforced before
+// the line is parsed at all.
 const size_t MAX_TOKEN_LINE = 1024;
-const size_t MAX_REQUEST_LINE = 16 * 1024 * 1024;
+// Longest request line. Plenty for status; later ops that carry bigger
+// payloads (whole .arp profiles) may need to raise it.
+const size_t MAX_REQUEST_LINE = 1024 * 1024;
+// While more than this many bytes of replies wait for a client to read them,
+// its further requests are left unread (TCP then pushes back on it).
+const size_t MAX_OUTBOUND = 1024 * 1024;
+// A client whose pending write makes no progress for this long is dropped,
+// so one that never reads can't hold its slot forever.
+const guint WRITE_STALL_SECONDS = 30;
+// Deepest nesting of arrays/objects the JSON reader accepts (it recurses).
+const int MAX_JSON_DEPTH = 32;
 
 //-----------------------------------------------------------------------------
-// A small JSON reader: enough to take requests apart. Every value keeps its
-// source text, so an id can be echoed back as it came.
+// A small, strict (RFC 8259) JSON reader: enough to take requests apart.
+//
+// The values live in one flat vector and refer to each other by index, so no
+// type contains a container of itself and the text of nested values is never
+// copied: a value knows its span in the source, and only decoded strings are
+// stored.
 //-----------------------------------------------------------------------------
 
-struct JsonValue {
+const size_t NONE = static_cast<size_t>(-1);
+
+struct JsonNode {
     enum Type { NUL, BOOLEAN, NUMBER, STRING, ARRAY, OBJECT };
-    Type type = NUL;
-    std::string str; // decoded STRING
-    std::string raw; // the source text of this value
-    std::vector<std::pair<std::string, JsonValue>> members; // OBJECT
-    std::vector<JsonValue> items;                          // ARRAY
+    Type type;
+    size_t begin, end; // this value's span in the source text
+    size_t first;      // first element/member (ARRAY, OBJECT), or NONE
+    size_t next;       // next element/member of the parent, or NONE
+    std::string key;   // member name, for a value inside an OBJECT
+    std::string str;   // decoded STRING
 
-    const JsonValue *get(const std::string &key) const
+    JsonNode(): type(NUL), begin(0), end(0), first(NONE), next(NONE) {}
+};
+
+class JsonDoc {
+public:
+    JsonDoc(): s_(nullptr), pos_(0) {}
+
+    // The text must outlive the document.
+    bool parse(const std::string &text)
     {
-        for (auto &m : members) {
-            if (m.first == key) {
-                return &m.second;
+        nodes_.clear();
+        s_ = &text;
+        pos_ = 0;
+        if (!g_utf8_validate(text.data(), text.size(), nullptr)) {
+            return false;
+        }
+        size_t root;
+        if (!value(root, 0)) {
+            return false;
+        }
+        skip_ws();
+        return pos_ == text.size();
+    }
+
+    // Only after a successful parse.
+    const JsonNode &root() const { return nodes_[0]; }
+
+    const JsonNode *get(const JsonNode &obj, const std::string &key) const
+    {
+        if (obj.type != JsonNode::OBJECT) {
+            return nullptr;
+        }
+        for (size_t i = obj.first; i != NONE; i = nodes_[i].next) {
+            if (nodes_[i].key == key) {
+                return &nodes_[i];
             }
         }
         return nullptr;
     }
-};
 
-class JsonReader {
-public:
-    explicit JsonReader(const std::string &text): s_(text), pos_(0) {}
-
-    bool parse(JsonValue &out)
+    // The source text of a value (valid JSON, as the parse succeeded).
+    std::string raw(const JsonNode &n) const
     {
-        if (!value(out, 0)) {
-            return false;
-        }
-        skip_ws();
-        return pos_ == s_.size();
+        return s_->substr(n.begin, n.end - n.begin);
     }
 
 private:
-    static const int MAX_DEPTH = 64;
+    bool at_end() const { return pos_ >= s_->size(); }
+    char peek() const { return (*s_)[pos_]; }
 
     void skip_ws()
     {
-        while (pos_ < s_.size() && (s_[pos_] == ' ' || s_[pos_] == '\t' ||
-                                    s_[pos_] == '\n' || s_[pos_] == '\r')) {
+        while (!at_end() && (peek() == ' ' || peek() == '\t' ||
+                             peek() == '\n' || peek() == '\r')) {
             ++pos_;
         }
     }
@@ -105,78 +151,89 @@ private:
     bool literal(const char *word)
     {
         size_t n = strlen(word);
-        if (s_.compare(pos_, n, word) != 0) {
+        if (s_->compare(pos_, n, word) != 0) {
             return false;
         }
         pos_ += n;
         return true;
     }
 
-    bool value(JsonValue &out, int depth)
+    // `depth` is how many arrays/objects enclose this value.
+    bool value(size_t &idx, int depth)
     {
-        if (depth > MAX_DEPTH) {
-            return false;
-        }
         skip_ws();
-        if (pos_ >= s_.size()) {
+        if (at_end()) {
             return false;
         }
-        size_t start = pos_;
+        idx = nodes_.size();
+        nodes_.push_back(JsonNode());
+        nodes_[idx].begin = pos_;
         bool ok = false;
-        char c = s_[pos_];
-        if (c == '{') {
-            out.type = JsonValue::OBJECT;
-            ok = object(out, depth);
-        } else if (c == '[') {
-            out.type = JsonValue::ARRAY;
-            ok = array(out, depth);
+        char c = peek();
+        if (c == '{' || c == '[') {
+            ok = depth < MAX_JSON_DEPTH &&
+                 (c == '{' ? object(idx, depth) : array(idx, depth));
         } else if (c == '"') {
-            out.type = JsonValue::STRING;
-            ok = string(out.str);
+            nodes_[idx].type = JsonNode::STRING;
+            ok = string(nodes_[idx].str); // adds no nodes: no reallocation
         } else if (c == 't' || c == 'f') {
-            out.type = JsonValue::BOOLEAN;
+            nodes_[idx].type = JsonNode::BOOLEAN;
             ok = literal(c == 't' ? "true" : "false");
         } else if (c == 'n') {
-            out.type = JsonValue::NUL;
+            nodes_[idx].type = JsonNode::NUL;
             ok = literal("null");
-        } else {
-            out.type = JsonValue::NUMBER;
+        } else if (c == '-' || is_digit(c)) {
+            nodes_[idx].type = JsonNode::NUMBER;
             ok = number();
         }
         if (ok) {
-            out.raw = s_.substr(start, pos_ - start);
+            nodes_[idx].end = pos_;
         }
         return ok;
     }
 
-    bool object(JsonValue &out, int depth)
+    // Links `child` as the next element/member of `parent` after `last`.
+    void link(size_t parent, size_t &last, size_t child)
     {
+        if (last == NONE) {
+            nodes_[parent].first = child;
+        } else {
+            nodes_[last].next = child;
+        }
+        last = child;
+    }
+
+    bool object(size_t idx, int depth)
+    {
+        nodes_[idx].type = JsonNode::OBJECT;
         ++pos_; // {
         skip_ws();
-        if (pos_ < s_.size() && s_[pos_] == '}') {
+        if (!at_end() && peek() == '}') {
             ++pos_;
             return true;
         }
+        size_t last = NONE;
         while (true) {
             skip_ws();
             std::string key;
-            if (pos_ >= s_.size() || s_[pos_] != '"' || !string(key)) {
+            if (at_end() || peek() != '"' || !string(key)) {
                 return false;
             }
             skip_ws();
-            if (pos_ >= s_.size() || s_[pos_] != ':') {
+            if (at_end() || peek() != ':') {
                 return false;
             }
             ++pos_;
-            JsonValue v;
-            if (!value(v, depth + 1)) {
+            size_t child;
+            if (!value(child, depth + 1)) {
                 return false;
             }
-            out.members.emplace_back(key, std::move(v));
+            nodes_[child].key.swap(key);
+            link(idx, last, child);
             skip_ws();
-            if (pos_ < s_.size() && s_[pos_] == ',') {
+            if (!at_end() && peek() == ',') {
                 ++pos_;
-            } else if (pos_ < s_.size() && s_[pos_] == '}') {
+            } else if (!at_end() && peek() == '}') {
                 ++pos_;
                 return true;
             } else {
@@ -185,24 +242,26 @@ private:
         }
     }
 
-    bool array(JsonValue &out, int depth)
+    bool array(size_t idx, int depth)
     {
+        nodes_[idx].type = JsonNode::ARRAY;
         ++pos_; // [
         skip_ws();
-        if (pos_ < s_.size() && s_[pos_] == ']') {
+        if (!at_end() && peek() == ']') {
             ++pos_;
             return true;
         }
+        size_t last = NONE;
         while (true) {
-            JsonValue v;
-            if (!value(v, depth + 1)) {
+            size_t child;
+            if (!value(child, depth + 1)) {
                 return false;
             }
-            out.items.push_back(std::move(v));
+            link(idx, last, child);
             skip_ws();
-            if (pos_ < s_.size() && s_[pos_] == ',') {
+            if (!at_end() && peek() == ',') {
                 ++pos_;
-            } else if (pos_ < s_.size() && s_[pos_] == ']') {
+            } else if (!at_end() && peek() == ']') {
                 ++pos_;
                 return true;
             } else {
@@ -211,35 +270,60 @@ private:
         }
     }
 
-    bool number()
+    static bool is_digit(char c) { return c >= '0' && c <= '9'; }
+
+    // One or more digits.
+    bool digits()
     {
         size_t start = pos_;
-        if (pos_ < s_.size() && s_[pos_] == '-') {
+        while (!at_end() && is_digit(peek())) {
             ++pos_;
         }
-        while (pos_ < s_.size() &&
-               (isdigit(static_cast<unsigned char>(s_[pos_])) ||
-                s_[pos_] == '.' || s_[pos_] == 'e' || s_[pos_] == 'E' ||
-                s_[pos_] == '+' || s_[pos_] == '-')) {
+        return pos_ > start;
+    }
+
+    // number = [ "-" ] ( "0" / 1-9 *DIGIT ) [ "." 1*DIGIT ]
+    //          [ ( "e" / "E" ) [ "-" / "+" ] 1*DIGIT ]
+    // Whatever follows is left to the caller, so "01" or "1.2.3" fail there.
+    bool number()
+    {
+        if (peek() == '-') {
             ++pos_;
         }
-        if (pos_ == start) {
+        if (at_end() || !is_digit(peek())) {
             return false;
         }
-        char *end = nullptr;
-        std::string text = s_.substr(start, pos_ - start);
-        g_ascii_strtod(text.c_str(), &end);
-        return end && *end == '\0';
+        if (peek() == '0') {
+            ++pos_;
+        } else {
+            digits();
+        }
+        if (!at_end() && peek() == '.') {
+            ++pos_;
+            if (!digits()) {
+                return false;
+            }
+        }
+        if (!at_end() && (peek() == 'e' || peek() == 'E')) {
+            ++pos_;
+            if (!at_end() && (peek() == '-' || peek() == '+')) {
+                ++pos_;
+            }
+            if (!digits()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     bool hex4(unsigned &out)
     {
-        if (pos_ + 4 > s_.size()) {
+        if (pos_ + 4 > s_->size()) {
             return false;
         }
         out = 0;
         for (int i = 0; i < 4; ++i) {
-            int d = g_ascii_xdigit_value(s_[pos_++]);
+            int d = g_ascii_xdigit_value((*s_)[pos_++]);
             if (d < 0) {
                 return false;
             }
@@ -251,8 +335,8 @@ private:
     bool string(std::string &out)
     {
         ++pos_; // opening quote
-        while (pos_ < s_.size()) {
-            char c = s_[pos_++];
+        while (!at_end()) {
+            char c = (*s_)[pos_++];
             if (c == '"') {
                 return true;
             } else if (static_cast<unsigned char>(c) < 0x20) {
@@ -261,10 +345,10 @@ private:
                 out += c;
                 continue;
             }
-            if (pos_ >= s_.size()) {
+            if (at_end()) {
                 return false;
             }
-            c = s_[pos_++];
+            c = (*s_)[pos_++];
             switch (c) {
             case '"':
             case '\\':
@@ -293,7 +377,7 @@ private:
                 }
                 if (cp >= 0xD800 && cp < 0xDC00) {
                     unsigned lo;
-                    if (s_.compare(pos_, 2, "\\u") != 0) {
+                    if (s_->compare(pos_, 2, "\\u") != 0) {
                         return false;
                     }
                     pos_ += 2;
@@ -316,10 +400,13 @@ private:
         return false;
     }
 
-    const std::string &s_;
+    const std::string *s_;
     size_t pos_;
+    std::vector<JsonNode> nodes_;
 };
 
+// Encodes UTF-8 text as a JSON string (the input must be valid UTF-8 for the
+// output to be valid JSON).
 std::string json_string(const std::string &s)
 {
     std::string out = "\"";
@@ -395,7 +482,8 @@ std::string random_token()
     return out;
 }
 
-// Compares without stopping at the first difference.
+// Constant time over strings of equal length (the token's length is no
+// secret: it is always 32 hex digits).
 bool same_token(const std::string &a, const std::string &b)
 {
     if (a.size() != b.size() || a.empty()) {
@@ -448,21 +536,54 @@ bool write_private_file(const std::string &path, const std::string &content)
 //-----------------------------------------------------------------------------
 
 struct LiveControl::Connection {
-    LiveControl *owner; // nullptr once the channel is gone
+    LiveControl *owner; // nullptr once closed
     GSocketConnection *conn;
     GCancellable *cancel;
-    std::string buf;
+    std::string in;     // received, not handled yet
     bool authenticated;
+    bool discarding;    // skipping the rest of an over-long request line
+    bool reading;       // a read is in flight
+    bool writing;       // a write is in flight
+    std::deque<std::string> out; // reply lines not fully sent yet
+    size_t out_offset;  // bytes of out.front() already sent
+    size_t out_bytes;   // bytes in `out` not sent yet
+    guint auth_timer;   // pre-authentication deadline, or 0
+    guint stall_timer;  // pending-write deadline, or 0
     char chunk[8192];
 };
 
 namespace {
 
-void destroy_connection(LiveControl::Connection *c)
+// Frees a closed connection once no read or write in flight refers to it
+// (their callbacks call this again as they complete).
+void release_if_idle(LiveControl::Connection *c)
 {
+    if (c->owner || c->reading || c->writing) {
+        return;
+    }
     g_object_unref(c->cancel);
     g_object_unref(c->conn);
     delete c;
+}
+
+void remove_timer(guint &id)
+{
+    if (id) {
+        g_source_remove(id);
+        id = 0;
+    }
+}
+
+// Closes the socket and cancels whatever is in flight; the connection is
+// freed now or by the last callback.
+void shut(LiveControl::Connection *c)
+{
+    c->owner = nullptr;
+    remove_timer(c->auth_timer);
+    remove_timer(c->stall_timer);
+    g_cancellable_cancel(c->cancel);
+    g_io_stream_close(G_IO_STREAM(c->conn), nullptr, nullptr);
+    release_if_idle(c);
 }
 
 } // namespace
@@ -534,14 +655,13 @@ LiveControl::~LiveControl()
         g_signal_handlers_disconnect_by_data(service_, this);
         g_object_unref(service_);
     }
-    for (auto c : connections_) {
-        // A read is pending on each: its callback frees the connection once
-        // it sees the cancellation (if the main loop runs again at all).
-        c->owner = nullptr;
-        g_cancellable_cancel(c->cancel);
-        g_io_stream_close(G_IO_STREAM(c->conn), nullptr, nullptr);
+    // A connection with a read or write in flight is freed by its callback
+    // (if the main loop runs again at all).
+    std::set<Connection *> all;
+    all.swap(connections_);
+    for (auto c : all) {
+        shut(c);
     }
-    connections_.clear();
     remove_discovery_file();
 }
 
@@ -552,7 +672,11 @@ bool LiveControl::write_discovery_file()
          << ",\"pid\":" << current_pid()
          << ",\"version\":" << json_string(RTVERSION) << "}\n";
     // Written beside and renamed over, so a reader never sees half a file.
-    std::string tmp = discovery_path_ + ".tmp";
+    // The temporary name carries our pid: two ARTs starting at once must not
+    // write into the same temporary file.
+    std::ostringstream tmp_name;
+    tmp_name << discovery_path_ << "." << current_pid() << ".tmp";
+    std::string tmp = tmp_name.str();
     if (!write_private_file(tmp, json.str())) {
         g_remove(tmp.c_str());
         return false;
@@ -586,19 +710,49 @@ gboolean LiveControl::on_incoming(GSocketService *service,
                                   GObject *source, gpointer data)
 {
     LiveControl *self = static_cast<LiveControl *>(data);
+    if (self->connections_.size() >= MAX_CONNECTIONS) {
+        // Refused at once, so a flood of connections can't pile up.
+        g_io_stream_close(G_IO_STREAM(connection), nullptr, nullptr);
+        return TRUE;
+    }
     Connection *c = new Connection();
     c->owner = self;
     c->conn = G_SOCKET_CONNECTION(g_object_ref(connection));
     c->cancel = g_cancellable_new();
     c->authenticated = false;
+    c->discarding = false;
+    c->reading = false;
+    c->writing = false;
+    c->out_offset = 0;
+    c->out_bytes = 0;
+    c->stall_timer = 0;
+    c->auth_timer =
+        g_timeout_add_seconds(AUTH_DEADLINE_SECONDS, on_auth_timeout, c);
     self->connections_.insert(c);
     self->read_more(c);
     return TRUE;
 }
 
+gboolean LiveControl::on_auth_timeout(gpointer data)
+{
+    Connection *c = static_cast<Connection *>(data);
+    c->auth_timer = 0; // this source is going away
+    c->owner->close(c); // a timer is only armed while the connection is open
+    return G_SOURCE_REMOVE;
+}
+
+gboolean LiveControl::on_write_stall(gpointer data)
+{
+    Connection *c = static_cast<Connection *>(data);
+    c->stall_timer = 0;
+    c->owner->close(c);
+    return G_SOURCE_REMOVE;
+}
+
 void LiveControl::read_more(Connection *c)
 {
     GInputStream *in = g_io_stream_get_input_stream(G_IO_STREAM(c->conn));
+    c->reading = true;
     g_input_stream_read_async(in, c->chunk, sizeof(c->chunk),
                               G_PRIORITY_DEFAULT, c->cancel, on_read, c);
 }
@@ -611,36 +765,66 @@ void LiveControl::on_read(GObject *source, GAsyncResult *res, gpointer data)
     if (err) {
         g_error_free(err);
     }
+    c->reading = false;
     LiveControl *self = c->owner;
     if (!self) {
-        destroy_connection(c);
+        release_if_idle(c);
         return;
     }
     if (n <= 0) {
         self->close(c);
         return;
     }
+    c->in.append(c->chunk, n);
+    self->pump(c);
+}
 
+void LiveControl::pump(Connection *c)
+{
     GThreadLock lock; // requests touch the GUI
-    c->buf.append(c->chunk, n);
-    size_t eol;
-    while ((eol = c->buf.find('\n')) != std::string::npos) {
-        std::string line = c->buf.substr(0, eol);
-        c->buf.erase(0, eol + 1);
+    size_t start = 0; // of the first line not handled yet
+    while (c->out_bytes < MAX_OUTBOUND) {
+        size_t eol = c->in.find('\n', start);
+        size_t len = (eol == std::string::npos ? c->in.size() : eol) - start;
+        if (c->discarding) {
+            if (eol == std::string::npos) {
+                start = c->in.size();
+                break;
+            }
+            start = eol + 1;
+            c->discarding = false;
+            send(c, error_reply("null", "bad_request", "request too long"));
+            continue;
+        }
+        // Length first, before anything looks inside the line.
+        size_t limit = c->authenticated ? MAX_REQUEST_LINE : MAX_TOKEN_LINE;
+        if (len > limit) {
+            if (!c->authenticated) {
+                close(c);
+                return;
+            }
+            // Skip to the end of the line, then answer it.
+            c->discarding = true;
+            continue;
+        }
+        if (eol == std::string::npos) {
+            break;
+        }
+        std::string line = c->in.substr(start, len);
+        start = eol + 1;
         if (!line.empty() && line.back() == '\r') {
             line.pop_back();
         }
-        if (!self->handle_line(c, line)) {
-            self->close(c);
+        if (!handle_line(c, line)) {
+            close(c);
             return;
         }
     }
-    if (c->buf.size() >
-        (c->authenticated ? MAX_REQUEST_LINE : MAX_TOKEN_LINE)) {
-        self->close(c);
-        return;
+    c->in.erase(0, start);
+    // Over the limit, reading stays off until on_write has drained it.
+    if (!c->reading && c->out_bytes < MAX_OUTBOUND) {
+        read_more(c);
     }
-    self->read_more(c);
 }
 
 bool LiveControl::handle_line(Connection *c, const std::string &line)
@@ -648,42 +832,51 @@ bool LiveControl::handle_line(Connection *c, const std::string &line)
     if (line.find_first_not_of(" \t") == std::string::npos) {
         return true;
     }
-    JsonValue msg;
-    bool parsed = JsonReader(line).parse(msg) &&
-                  msg.type == JsonValue::OBJECT;
+
+    JsonDoc doc;
+    bool parsed = doc.parse(line) && doc.root().type == JsonNode::OBJECT;
 
     if (!c->authenticated) {
-        const JsonValue *token = parsed ? msg.get("token") : nullptr;
-        if (!token || token->type != JsonValue::STRING ||
+        // Nothing but the token is looked at before it has been shown; a
+        // wrong one closes the connection at once.
+        const JsonNode *token = parsed ? doc.get(doc.root(), "token") : nullptr;
+        if (!token || token->type != JsonNode::STRING ||
             !same_token(token->str, token_)) {
             return false;
         }
         c->authenticated = true;
+        remove_timer(c->auth_timer);
         return true;
     }
 
     std::string reply;
     if (!parsed) {
-        reply = error_reply("null", "bad_request", "not a JSON object");
+        reply = error_reply("null", "bad_request", "not a valid JSON object");
     } else {
-        const JsonValue *id = msg.get("id");
+        const JsonNode &msg = doc.root();
+        const JsonNode *id = doc.get(msg, "id");
+        // A number id goes back as sent (the strict grammar has vetted it),
+        // a string one re-encoded: the reply is valid JSON whatever came in.
         std::string id_json = "null";
-        if (id && (id->type == JsonValue::NUMBER ||
-                   id->type == JsonValue::STRING)) {
-            id_json = id->raw;
+        if (id && id->type == JsonNode::NUMBER) {
+            id_json = doc.raw(*id);
+        } else if (id && id->type == JsonNode::STRING) {
+            id_json = json_string(id->str);
         }
-        const JsonValue *op = msg.get("op");
-        const JsonValue *args = msg.get("args");
-        if (!op || op->type != JsonValue::STRING) {
+        const JsonNode *op = doc.get(msg, "op");
+        const JsonNode *args = doc.get(msg, "args");
+        if (!op || op->type != JsonNode::STRING) {
             reply = error_reply(id_json, "bad_request", "missing \"op\"");
-        } else if (args && args->type != JsonValue::OBJECT &&
-                   args->type != JsonValue::NUL) {
+        } else if (args && args->type != JsonNode::OBJECT &&
+                   args->type != JsonNode::NUL) {
             reply = error_reply(id_json, "bad_request",
                                 "\"args\" must be an object");
         } else {
             bool ok = false;
-            std::string result =
-                dispatch(op->str, args ? args->raw : "{}", ok);
+            std::string result = dispatch(
+                op->str,
+                args && args->type == JsonNode::OBJECT ? doc.raw(*args) : "{}",
+                ok);
             if (ok) {
                 reply = "{\"id\":" + id_json + ",\"ok\":true,\"result\":" +
                         result + "}";
@@ -693,11 +886,67 @@ bool LiveControl::handle_line(Connection *c, const std::string &line)
             }
         }
     }
+    send(c, reply);
+    return true;
+}
 
+void LiveControl::send(Connection *c, std::string reply)
+{
     reply += '\n';
+    c->out_bytes += reply.size();
+    c->out.push_back(std::move(reply));
+    if (!c->writing) {
+        start_write(c);
+    }
+}
+
+void LiveControl::start_write(Connection *c)
+{
+    // std::deque keeps its elements in place as more are queued, so this
+    // buffer stays valid while the write is in flight.
+    const std::string &s = c->out.front();
     GOutputStream *out = g_io_stream_get_output_stream(G_IO_STREAM(c->conn));
-    return g_output_stream_write_all(out, reply.data(), reply.size(), nullptr,
-                                     c->cancel, nullptr);
+    c->writing = true;
+    c->stall_timer =
+        g_timeout_add_seconds(WRITE_STALL_SECONDS, on_write_stall, c);
+    g_output_stream_write_async(out, s.data() + c->out_offset,
+                                s.size() - c->out_offset, G_PRIORITY_DEFAULT,
+                                c->cancel, on_write, c);
+}
+
+void LiveControl::on_write(GObject *source, GAsyncResult *res, gpointer data)
+{
+    Connection *c = static_cast<Connection *>(data);
+    GError *err = nullptr;
+    gssize n =
+        g_output_stream_write_finish(G_OUTPUT_STREAM(source), res, &err);
+    if (err) {
+        g_error_free(err);
+    }
+    c->writing = false;
+    remove_timer(c->stall_timer);
+    LiveControl *self = c->owner;
+    if (!self) {
+        release_if_idle(c);
+        return;
+    }
+    if (n <= 0) {
+        self->close(c);
+        return;
+    }
+    c->out_offset += n;
+    c->out_bytes -= n;
+    if (c->out_offset == c->out.front().size()) {
+        c->out.pop_front();
+        c->out_offset = 0;
+    }
+    if (!c->out.empty()) {
+        self->start_write(c);
+    }
+    // Drained below the limit: handle what is buffered and read on.
+    if (!c->reading && c->out_bytes < MAX_OUTBOUND) {
+        self->pump(c);
+    }
 }
 
 std::string LiveControl::dispatch(const std::string &op,
@@ -739,9 +988,7 @@ std::string LiveControl::status()
 void LiveControl::close(Connection *c)
 {
     connections_.erase(c);
-    g_cancellable_cancel(c->cancel);
-    g_io_stream_close(G_IO_STREAM(c->conn), nullptr, nullptr);
-    destroy_connection(c);
+    shut(c);
 }
 
 }} // namespace art::gui

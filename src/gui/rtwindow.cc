@@ -854,7 +854,9 @@ EditorPanel *RTWindow::getActiveEditorPanel()
     if (simpleEditor || isSingleTabMode()) {
         ep = epanel;
     } else if (options.multiDisplayMode > 0) {
-        ep = EditWindow::getInstance(this, false)->getActiveEditorPanel();
+        // Not getInstance: asking must not create the editor window.
+        EditWindow *ew = EditWindow::getExistingInstance();
+        ep = ew ? ew->getActiveEditorPanel() : nullptr;
     } else if (mainNB->get_current_page() >= 0 &&
                isEditorPanel(mainNB->get_current_page())) {
         ep = static_cast<EditorPanel *>(
@@ -869,7 +871,10 @@ std::vector<EditorPanel *> RTWindow::getEditorPanels()
     if (simpleEditor || isSingleTabMode()) {
         all.push_back(epanel);
     } else if (options.multiDisplayMode > 0) {
-        all = EditWindow::getInstance(this, false)->getEditorPanels();
+        EditWindow *ew = EditWindow::getExistingInstance();
+        if (ew) {
+            all = ew->getEditorPanels();
+        }
     } else {
         for (auto &p : epanels) {
             all.push_back(p.second);

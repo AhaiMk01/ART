@@ -38,6 +38,17 @@ bool EditWindow::isMultiDisplayEnabled()
 }
 
 // Should only be created once, auto-creates window on correct display
+namespace {
+
+EditWindow *existing_instance = nullptr; // set once getInstance created it
+
+} // namespace
+
+EditWindow *EditWindow::getExistingInstance()
+{
+    return existing_instance;
+}
+
 EditWindow *EditWindow::getInstance(RTWindow *p, bool restore)
 {
     struct EditWindowInstance {
@@ -47,6 +58,7 @@ EditWindow *EditWindow::getInstance(RTWindow *p, bool restore)
     };
 
     static EditWindowInstance instance_(p);
+    existing_instance = &instance_.editWnd;
     if (restore) {
         instance_.editWnd.restoreWindow();
     }

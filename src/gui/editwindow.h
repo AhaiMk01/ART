@@ -50,6 +50,9 @@ public:
 
     // Should only be created once, auto-creates window on correct display
     static EditWindow *getInstance(RTWindow *p, bool restore = true);
+    // The instance if getInstance has created it, else nullptr (never
+    // creates the window).
+    static EditWindow *getExistingInstance();
 
     explicit EditWindow(RTWindow *p);
 

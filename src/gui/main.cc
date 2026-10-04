@@ -707,6 +707,22 @@ int main(int argc, char **argv)
 #endif // __APPLE__
 
         RTApplication app;
+        if (liveControl) {
+            // run() registers too (a no-op once registered); doing it first
+            // tells whether the command line will go to an ART already
+            // running, which keeps its own control-channel setting.
+            bool forwarded = false;
+            try {
+                forwarded = app.register_application() && app.is_remote();
+            } catch (Glib::Error &) {
+                // run() will report it
+            }
+            if (forwarded) {
+                std::cerr << "--live-control ignored: another ART is running; "
+                             "start with -N"
+                          << std::endl;
+            }
+        }
         ret = app.run(app_argc, app_argv);
     } else {
         if (fatalError.empty() && init_rt()) {

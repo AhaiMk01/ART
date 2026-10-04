@@ -25,6 +25,11 @@
 // requests {"id", "op", "args"}, each answered by
 // {"id", "ok": true, "result"} or {"id", "ok": false, "error": {"code",
 // "message"}}.
+//
+// Everything runs on the main loop without ever blocking it: reads and writes
+// are asynchronous, a slow reader only stalls its own connection, and the
+// number of clients, the time to authenticate and the size of lines and
+// pending replies are all bounded.
 
 #pragma once
 
@@ -58,10 +63,19 @@ private:
                                 GSocketConnection *connection,
                                 GObject *source, gpointer data);
     static void on_read(GObject *source, GAsyncResult *res, gpointer data);
+    static void on_write(GObject *source, GAsyncResult *res, gpointer data);
+    static gboolean on_auth_timeout(gpointer data);
+    static gboolean on_write_stall(gpointer data);
 
     void read_more(Connection *c);
+    // Handles the complete lines received so far, then reads on unless the
+    // client's unsent replies are over the limit. May close (and free) c.
+    void pump(Connection *c);
     // Handles one complete line; false closes the connection.
     bool handle_line(Connection *c, const std::string &line);
+    // Queues a reply line and starts sending it if nothing else is.
+    void send(Connection *c, std::string reply);
+    void start_write(Connection *c);
     std::string dispatch(const std::string &op, const std::string &args_json,
                          bool &ok);
     std::string status();

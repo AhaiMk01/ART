@@ -1154,6 +1154,8 @@ void EditorPanel::open(Thumbnail *tmb, art::engine::InitialImage *isrc)
     previewHandler = new PreviewHandler();
 
     this->isrc = isrc;
+    full_w_ = 0; // until the new processor reports the size
+    full_h_ = 0;
     ipc.reset(art::engine::StagedImageProcessor::create(isrc));
     ipc->setProgressListener(this);
     colorMgmtToolBar->updateProcessor();
@@ -1321,8 +1323,8 @@ bool EditorPanel::getImageSize(int &w, int &h)
     if (!ipc) {
         return false;
     }
-    w = ipc->getFullWidth();
-    h = ipc->getFullHeight();
+    w = full_w_;
+    h = full_h_;
     return w > 0 && h > 0;
 }
 
@@ -2943,6 +2945,8 @@ bool EditorPanel::autosave()
 
 void EditorPanel::sizeChanged(int w, int h, int ow, int oh)
 {
+    full_w_ = w;
+    full_h_ = h;
     if (ipc) {
         idle_register.add([this]() -> bool {
             if (ipc) {
