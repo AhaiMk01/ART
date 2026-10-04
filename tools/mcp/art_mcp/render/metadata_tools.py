@@ -3,7 +3,7 @@
 from mcp.server.mcpserver import MCPServer
 from pydantic import BaseModel
 
-from art_mcp.metadata import ExiftoolError, ExiftoolTimeout, InvalidTag, Metadata
+from art_mcp.metadata import Metadata, MetadataProblem, read_metadata
 from art_mcp.render.session import RenderSession, tool_error
 
 
@@ -36,14 +36,7 @@ def register(server: MCPServer, session: RenderSession) -> None:
         exiftool `tags` named (by tag name, e.g. "Software") that it has."""
         with session.image(path) as wp:
             image = wp.image
-        exiftool = session.exiftool
-        if exiftool is None:
-            raise tool_error("metadata_unavailable", "exiftool was not found beside ART-cli")
         try:
-            return exiftool.read(image, tags or [])
-        except InvalidTag as e:
-            raise tool_error("invalid_tag", str(e)) from e
-        except ExiftoolTimeout as e:
-            raise tool_error("timeout", str(e)) from e
-        except ExiftoolError as e:
-            raise tool_error("metadata_failed", str(e)) from e
+            return read_metadata(session.exiftool, image, tags or [])
+        except MetadataProblem as e:
+            raise tool_error(e.code, e.message) from e  # type: ignore[arg-type]

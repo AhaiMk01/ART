@@ -159,6 +159,9 @@ public:
     // The open image's size as the editor processes it (before cropping);
     // false until the processor has reported it (the first preview).
     bool getImageSize(int &w, int &h);
+    // The current processing profile as .arp (KeyFile) text, and the
+    // selected History row; false when no image is loaded.
+    bool getProfileText(std::string &arp, int &history_position);
     bool handleShortcutKey(GdkEventKey *event);
     bool keyPressedBefore(GdkEventKey *event);
     bool keyReleased(GdkEventKey *event);

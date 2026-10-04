@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <map>
 #include <memory>
 #include <set>
 #include <string>
@@ -42,6 +43,7 @@
 namespace art { namespace gui {
 
 class RTWindow;
+class EditorPanel;
 
 class LiveControl {
 public:
@@ -76,9 +78,15 @@ private:
     // Queues a reply line and starts sending it if nothing else is.
     void send(Connection *c, std::string reply);
     void start_write(Connection *c);
-    std::string dispatch(const std::string &op, const std::string &args_json,
-                         bool &ok);
+    // The string-valued members of a request's args (no op takes any
+    // other kind yet).
+    typedef std::map<std::string, std::string> Args;
+    std::string dispatch(const std::string &op, const Args &args, bool &ok);
     std::string status();
+    std::string get_profile(const Args &args, bool &ok);
+    // The editor showing `path` (compared as the OS compares paths), or
+    // nullptr.
+    EditorPanel *find_editor(const std::string &path);
     void close(Connection *c);
 
     bool write_discovery_file();

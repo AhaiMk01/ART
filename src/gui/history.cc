@@ -439,6 +439,15 @@ void History::delBookmarkPressed()
     }
 }
 
+int History::getPosition()
+{
+    Gtk::TreeModel::iterator iter = hTreeView->get_selection()->get_selected();
+    if (!iter) {
+        return -1;
+    }
+    return historyModel->get_path(iter)[0];
+}
+
 void History::undo()
 {
 

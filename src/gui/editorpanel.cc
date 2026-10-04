@@ -1318,6 +1318,22 @@ Glib::ustring EditorPanel::getFileName()
     }
 }
 
+bool EditorPanel::getProfileText(std::string &arp, int &history_position)
+{
+    if (!ipc) {
+        return false;
+    }
+    art::engine::procparams::ProcParams pparams;
+    ipc->getParams(&pparams);
+    art::engine::procparams::KeyFile kf;
+    if (pparams.save(nullptr, kf) != 0) {
+        return false;
+    }
+    arp = kf.to_data();
+    history_position = history ? history->getPosition() : -1;
+    return true;
+}
+
 bool EditorPanel::getImageSize(int &w, int &h)
 {
     if (!ipc) {

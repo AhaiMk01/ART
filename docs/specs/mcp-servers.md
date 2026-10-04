@@ -292,7 +292,7 @@ toggle). The Live server never launches ART.
 | Tool | Args | Returns |
 |---|---|---|
 | `status` | none | ART version, open images: path, `active`, width/height (the editor's full image size before crop; null until known) |
-| `get_profile` | `path` | Read format (3.4) + History position |
+| `get_profile` | `path` | Read format (3.4) + `history_position` (selected History row, 0 = oldest; null if none) |
 | `edit_profile` | `path`, `adjustments?`, `raw_edits?` | Keys changed; returns once the undo entry exists |
 | `undo` / `redo` | `path` | New History position |
 | `render_preview` | `path`, `max_size=1024`, `inline?` | JPEG path; waits until ART's processing queue drains (30 s timeout) |
@@ -301,6 +301,13 @@ toggle). The Live server never launches ART.
 | `describe_adjustments` | none | As Render server |
 | `inspect_image` | `path`, `tags?` | As Render server (Python + exiftool; no C++) |
 
+- `get_profile` returns the profile as the editor holds it (`ipc->getParams`,
+  as ART's own sidecar save does), so it includes what the engine resolved:
+  the camera white balance's temperature/green, the automatic deconvolution
+  radius, the disabled crop filled with the full frame. These can differ from
+  the Render server's values for the same file, which come from the saved
+  profile. Paths go to ART absolute but unresolved (links and `subst` drives
+  as given), because ART matches the name it opened the file under.
 - History: one entry per `edit_profile`, labelled `Agent: <tools touched>`
   (e.g. `Agent: Exposure, White Balance`).
 - Previews come from the editor's preview image: **monitor** colour space, not
@@ -351,8 +358,12 @@ toggle). The Live server never launches ART.
 - Hooks, kept small to limit upstream merge conflicts:
   - `RTWindow::getActiveEditorPanel()` / `getEditorPanels()` (and the same on
     `EditWindow`, via a non-creating `EditWindow::getExistingInstance()`),
-    `EditorPanel::getImageSize()`. Lookup by filename comes with the ops that
-    need it (#23).
+    `EditorPanel::getImageSize()`, `EditorPanel::getProfileText()` (profile
+    as .arp text + History position) and `History::getPosition()`; editors
+    are found by filename, case-insensitively on Windows. Known limit:
+    `ipc->getParams` copies the engine's params without a lock, like every
+    existing editor caller; a copy taken mid-processing can lag a just-made
+    change.
   - Public `EditorPanel` methods for: get profile (`ipc->getParams` -> .arp
     text), history position, undo/redo, preview grab
     (`PreviewHandler::getRoughImage` -> `Gdk::Pixbuf::save` JPEG), sidecar

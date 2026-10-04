@@ -143,3 +143,27 @@ class Exiftool:
             return parse(json.loads(stdout)[0])
         except (ValueError, LookupError, TypeError, AttributeError) as e:
             raise ExiftoolError(f"unexpected exiftool output: {stdout.strip()[:200]!r}") from e
+
+
+class MetadataProblem(Exception):
+    """Why metadata couldn't be read, as a tool error code and message."""
+
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+        self.message = message
+
+
+def read_metadata(exiftool: "Exiftool | None", image: Path, tags: list[str]) -> Metadata:
+    """``exiftool.read`` for both servers, with failures as MetadataProblem:
+    metadata_unavailable, invalid_tag, timeout or metadata_failed."""
+    if exiftool is None:
+        raise MetadataProblem("metadata_unavailable", "exiftool was not found beside ART-cli")
+    try:
+        return exiftool.read(image, tags)
+    except InvalidTag as e:
+        raise MetadataProblem("invalid_tag", str(e)) from e
+    except ExiftoolTimeout as e:
+        raise MetadataProblem("timeout", str(e)) from e
+    except ExiftoolError as e:
+        raise MetadataProblem("metadata_failed", str(e)) from e

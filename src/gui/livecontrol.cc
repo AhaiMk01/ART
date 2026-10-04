@@ -130,6 +130,20 @@ public:
         return nullptr;
     }
 
+    // The members of an object that are strings, decoded.
+    std::map<std::string, std::string> strings(const JsonNode &obj) const
+    {
+        std::map<std::string, std::string> out;
+        if (obj.type == JsonNode::OBJECT) {
+            for (size_t i = obj.first; i != NONE; i = nodes_[i].next) {
+                if (nodes_[i].type == JsonNode::STRING) {
+                    out[nodes_[i].key] = nodes_[i].str;
+                }
+            }
+        }
+        return out;
+    }
+
     // The source text of a value (valid JSON, as the parse succeeded).
     std::string raw(const JsonNode &n) const
     {
@@ -873,10 +887,8 @@ bool LiveControl::handle_line(Connection *c, const std::string &line)
                                 "\"args\" must be an object");
         } else {
             bool ok = false;
-            std::string result = dispatch(
-                op->str,
-                args && args->type == JsonNode::OBJECT ? doc.raw(*args) : "{}",
-                ok);
+            std::string result =
+                dispatch(op->str, args ? doc.strings(*args) : Args(), ok);
             if (ok) {
                 reply = "{\"id\":" + id_json + ",\"ok\":true,\"result\":" +
                         result + "}";
@@ -949,13 +961,15 @@ void LiveControl::on_write(GObject *source, GAsyncResult *res, gpointer data)
     }
 }
 
-std::string LiveControl::dispatch(const std::string &op,
-                                  const std::string &args_json, bool &ok)
+std::string LiveControl::dispatch(const std::string &op, const Args &args,
+                                  bool &ok)
 {
-    (void)args_json; // no op takes arguments yet
     if (op == "status") {
         ok = true;
         return status();
+    }
+    if (op == "get_profile") {
+        return get_profile(args, ok);
     }
     ok = false;
     return "{\"code\":\"unknown_op\",\"message\":" +
@@ -982,6 +996,68 @@ std::string LiveControl::status()
         first = false;
     }
     out << "]}";
+    return out.str();
+}
+
+namespace {
+
+std::string error_object(const std::string &code, const std::string &message)
+{
+    return "{\"code\":" + json_string(code) +
+           ",\"message\":" + json_string(message) + "}";
+}
+
+// Paths compare as the OS does: case-insensitively and with either slash
+// on Windows.
+std::string path_key(const std::string &path)
+{
+#ifdef WIN32
+    std::string key = Glib::ustring(path).lowercase();
+    for (char &ch : key) {
+        if (ch == '/') {
+            ch = '\\';
+        }
+    }
+    return key;
+#else
+    return path;
+#endif
+}
+
+} // namespace
+
+EditorPanel *LiveControl::find_editor(const std::string &path)
+{
+    const std::string key = path_key(path);
+    for (EditorPanel *ep : window_->getEditorPanels()) {
+        if (path_key(ep->getFileName()) == key) {
+            return ep;
+        }
+    }
+    return nullptr;
+}
+
+std::string LiveControl::get_profile(const Args &args, bool &ok)
+{
+    ok = false;
+    Args::const_iterator path = args.find("path");
+    if (path == args.end() || path->second.empty()) {
+        return error_object("bad_request", "get_profile needs \"path\"");
+    }
+    EditorPanel *ep = find_editor(path->second);
+    std::string arp;
+    int position = -1;
+    if (!ep) {
+        return error_object("not_open", path->second + " is not open in ART");
+    }
+    if (!ep->getProfileText(arp, position)) {
+        return error_object("not_open",
+                            path->second + " is still loading in ART");
+    }
+    ok = true;
+    std::ostringstream out;
+    out << "{\"profile\":" << json_string(arp)
+        << ",\"history_position\":" << position << "}";
     return out.str();
 }
 

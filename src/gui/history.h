@@ -138,6 +138,8 @@ public:
 
     void undo();
     void redo();
+    // Index of the selected History row (0 = the oldest), or -1 if none.
+    int getPosition();
 
     void resetSnapShotNumber() { bmnum = 1; }
 
