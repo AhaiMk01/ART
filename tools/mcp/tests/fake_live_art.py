@@ -4,6 +4,8 @@ JSON-lines protocol, with its discovery file in a temp config folder."""
 import json
 import os
 import socket
+import time
+import struct
 import threading
 from collections.abc import Callable
 from pathlib import Path
@@ -32,6 +34,8 @@ class FakeArt:
         }
         self.received: list[bytes] = []
         self.rejected = 0
+        self.reset_on_reject = False
+        """Close a refused connection with a TCP reset, as Windows may."""
         self._sock = socket.create_server(("127.0.0.1", 0))
         self.port = self._sock.getsockname()[1]
         self._stop = threading.Event()
@@ -59,6 +63,12 @@ class FakeArt:
             threading.Thread(target=self._handle, args=(conn,), daemon=True).start()
 
     def _handle(self, conn: socket.socket) -> None:
+        try:
+            self._converse(conn)
+        except OSError:
+            pass  # the client gave up (e.g. after its timeout): nothing to do
+
+    def _converse(self, conn: socket.socket) -> None:
         with conn, conn.makefile("rb") as lines:
             first = lines.readline()
             self.received.append(first)
@@ -68,10 +78,16 @@ class FakeArt:
                 ok = False
             if not ok:
                 self.rejected += 1
+                if self.reset_on_reject:
+                    conn.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack("ii", 1, 0))
                 return  # like ART: close on a wrong token
             for line in lines:
                 self.received.append(line)
                 req = json.loads(line)
                 reply = self.ops.get(req["op"], fail("unknown_op", f"unknown op: {req['op']}"))(req)
-                if reply is not None:
+                if isinstance(reply, list):  # trickle: one chunk every 0.3 s
+                    for chunk in reply:
+                        time.sleep(0.3)
+                        conn.sendall(chunk)
+                elif reply is not None:
                     conn.sendall(reply)

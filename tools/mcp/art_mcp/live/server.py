@@ -6,6 +6,7 @@ launches ART.
 
 import argparse
 import os
+from pathlib import Path
 
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
@@ -13,6 +14,7 @@ from pydantic import BaseModel
 
 from art_mcp import artdir
 from art_mcp.live.channel import ArtNotRunning, ChannelError, ChannelTimeout, ControlChannel
+
 
 def tool_error(code: str, message: str) -> ToolError:
     """``code`` is art_not_running, timeout, bad_reply, or an error code ART
@@ -77,6 +79,13 @@ def main() -> None:
         "--timeout", type=float, default=30.0, metavar="SECONDS",
         help="how long to wait for ART to answer a request (default 30)",
     )  # fmt: skip
+    parser.add_argument(
+        "--art-dir",
+        help="ART's install folder, only to find the settings of a portable "
+        "(MultiUser=false) install (default: ART_DIR, PATH, newest install)",
+    )
     args = parser.parse_args()
-    channel = ControlChannel(artdir.user_config_dir(os.environ), timeout=args.timeout)
+    program_files = Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "ART"
+    art_dir = artdir.find_art_dir(args.art_dir, os.environ, program_files)
+    channel = ControlChannel(artdir.user_config_dir(os.environ, art_dir=art_dir), timeout=args.timeout)
     build_server(channel).run()

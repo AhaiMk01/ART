@@ -41,7 +41,9 @@ From [Implementation language and SDK](https://github.com/AhaiMk01/ART/issues/7)
   `not_open`, `not_found`, `out_of_range`, `unknown_key`, `conflict`, `exists`,
   `render_failed`, `timeout` (art-cli or exiftool), `metadata_unavailable` (no
   exiftool beside ART-cli), `metadata_failed`, `invalid_tag`, `open_in_editor`,
-  `art_not_running`.
+  `art_not_running`. Live server only: `timeout` also covers ART not answering
+  on the control channel; `bad_reply` (ART's answer isn't the protocol); ART's
+  own codes pass through (`bad_request`, `unknown_op`).
 
 ```
 tools/mcp/
@@ -160,6 +162,13 @@ and [Render server tool list and signatures](https://github.com/AhaiMk01/ART/iss
 The Render server fails at startup if none is found; the Live server needs it
 only for `inspect_image` and fails that tool alone.
 
+ART's **config folder** (its `options` file, and the Live server's discovery
+file) follows ART's own rules (`Options::load`): `ART_SETTINGS` if set; else
+`<install>/mysettings` for a portable install whose own `options` says
+`[General] MultiUser=false`; else `%LOCALAPPDATA%\ART` (XDG config dir
+elsewhere). Builds with a `CACHE_NAME_SUFFIX` use `ART<suffix>`: point
+`ART_SETTINGS` at it.
+
 ## 6. Render server
 
 ### 6.1 Tools
@@ -275,13 +284,14 @@ and [Control channel options for a running ART GUI](https://github.com/AhaiMk01/
 ### 7.1 Tools
 
 Every image tool takes an absolute path that must be open in ART (else
-`not_open`). If no control-enabled ART runs: `art_not_running`, with a hint to
-start ART with `--live-control` or enable it in Preferences. The Live server
-never launches ART.
+`not_open`). If no control-enabled ART runs (no discovery file, its pid gone,
+the connection refused, or the token refused): `art_not_running`, with a hint
+to start ART with `--live-control` (and, once #26 lands, the Preferences
+toggle). The Live server never launches ART.
 
 | Tool | Args | Returns |
 |---|---|---|
-| `status` | none | Running?, ART version, open image paths + sizes |
+| `status` | none | ART version, open images: path, `active`, width/height (the editor's full image size before crop; null until known) |
 | `get_profile` | `path` | Read format (3.4) + History position |
 | `edit_profile` | `path`, `adjustments?`, `raw_edits?` | Keys changed; returns once the undo entry exists |
 | `undo` / `redo` | `path` | New History position |
@@ -301,15 +311,31 @@ never launches ART.
 ### 7.2 Control channel
 
 - **Transport:** TCP on `127.0.0.1`, ephemeral port, Gio `GSocketService` on
-  the GTK main loop. Works in `-N`/`-s`/`-gimp` modes.
-- **Enable:** off by default. Preferences toggle (stored in `Options`) or
-  `--live-control` for one run.
-- **Discovery:** ART writes `{port, token, pid, version}` to
-  `live-control.json` in its config dir (user-only permissions), new random
-  token each run, deleted on exit. The Live server checks the pid is alive.
+  the GTK main loop. Works in the default and `-N` modes. If another ART is
+  already running, a default-mode launch forwards its files to that one and
+  `--live-control` is ignored (a warning says so): start with `-N` then.
+- **Enable:** off by default. `--live-control` for one run; a Preferences
+  toggle (stored in `Options`) is issue #26.
+- **Discovery:** ART writes `{port, token, pid, version}` (`version` is
+  `RTVERSION`, a release number or a git hash) to `live-control.json` in its
+  config dir: temp file (named with the pid) renamed into place; 0600 on
+  POSIX, on Windows the config folder's own ACL. New random 128-bit token each
+  run. Removed on a clean exit, only if it still holds this run's token; a
+  crash leaves it, and the Live server then sees the pid is gone.
 - **Protocol:** JSON lines. First line `{"token": "..."}`. Then requests
   `{"id", "op", "args"}` and replies `{"id", "ok": true, "result"}` or
-  `{"id", "ok": false, "error": {"code", "message"}}`.
+  `{"id", "ok": false, "error": {"code", "message"}}`. A wrong token closes
+  the connection (no reply). The Python client opens a fresh connection per
+  request, re-reading the discovery file, with one deadline for the whole
+  reply.
+- **Limits** (a local process of any user can reach a loopback port): at most
+  8 connections; a connection not authenticated within 5 s, or sending a
+  pre-auth line over 1 KB, is closed before anything is parsed; the token is
+  compared in constant time; requests over 1 MB or nested deeper than 32 get
+  `bad_request`; JSON numbers follow RFC 8259 strictly. Replies are written
+  asynchronously: reading pauses while 1 MB of replies is pending, and a
+  connection whose replies don't drain for 30 s is dropped, so a client can't
+  stall the GUI.
 - **Ops:** `status`, `get_profile` (returns .arp text + history position),
   `apply_profile` (.arp partial profile text + label), `undo`, `redo`,
   `preview` (target JPEG path + max size), `open`, `save_sidecar`. All schema
@@ -317,13 +343,16 @@ never launches ART.
 
 ### 7.3 C++ changes (fork only)
 
-- New module `src/gui/livecontrol.{h,cc}` (always built; add to
-  `src/gui/CMakeLists.txt`): socket service, token check, JSON-lines dispatch,
-  discovery file, hop onto the main thread with `IdleRegister::add`, deferred
-  replies for previews.
+- New module `src/gui/livecontrol.{h,cc}` (always built): socket service,
+  token check, JSON-lines dispatch, discovery file. Requests are handled in
+  the GIO read callback, which already runs on the GTK main loop (under
+  `GThreadLock`), so no `IdleRegister` hop is needed; later ops that wait
+  (previews) will reply asynchronously.
 - Hooks, kept small to limit upstream merge conflicts:
-  - `EditorPanel *RTWindow::getActiveEditorPanel()` and lookup by filename
-    (reusing `RTWindow::selectEditorPanel`).
+  - `RTWindow::getActiveEditorPanel()` / `getEditorPanels()` (and the same on
+    `EditWindow`, via a non-creating `EditWindow::getExistingInstance()`),
+    `EditorPanel::getImageSize()`. Lookup by filename comes with the ops that
+    need it (#23).
   - Public `EditorPanel` methods for: get profile (`ipc->getParams` -> .arp
     text), history position, undo/redo, preview grab
     (`PreviewHandler::getRoughImage` -> `Gdk::Pixbuf::save` JPEG), sidecar

@@ -111,3 +111,23 @@ def test_each_request_rereads_the_discovery_file(art, tmp_path):
         assert ch.request("status")["version"] == "2"
     finally:
         restarted.close()
+
+
+def test_the_timeout_covers_the_whole_reply_not_each_chunk(art):
+    import time
+
+    art.ops["slow"] = lambda req: [b"{"] * 20  # never finishes a line
+    started = time.monotonic()
+
+    with pytest.raises(ChannelTimeout):
+        channel(art, timeout=1.0).request("slow")
+    assert time.monotonic() - started < 3
+
+
+def test_a_reset_after_a_refused_token_still_names_the_token(art):
+    art.reset_on_reject = True
+    art.write_discovery(os.getpid(), token="stale")
+
+    with pytest.raises(ArtNotRunning) as e:
+        channel(art).request("status")
+    assert "refused" in str(e.value)

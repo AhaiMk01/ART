@@ -90,7 +90,7 @@ def main() -> None:
     exiftool_path = artdir.find_exiftool(folder) if folder else None
     server = build_server(
         ArtCli((str(cli_path),), timeout=args.preview_timeout, export_timeout=args.export_timeout),
-        artdir.user_config_dir(os.environ),
+        artdir.user_config_dir(os.environ, art_dir=folder),
         PreviewFolder(default_root()),
         exiftool=Exiftool((str(exiftool_path),)) if exiftool_path else None,
         inline_previews=args.inline_previews,

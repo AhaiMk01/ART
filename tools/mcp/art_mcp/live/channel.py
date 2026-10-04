@@ -14,6 +14,7 @@ moment, so an ART restarted meanwhile (new port and token) is picked up.
 import itertools
 import json
 import socket
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -107,19 +108,24 @@ class ControlChannel:
             raise ArtNotRunning(f"ART (pid {found.pid}) did not accept a connection on port {found.port}; {START_HINT}") from None
         except OSError as e:
             raise ArtNotRunning(f"can't connect to ART on port {found.port} ({e}); {START_HINT}") from None
+        refused = ArtNotRunning(
+            "ART closed the connection without answering: the token in "
+            f"{self.config_dir / DISCOVERY_FILE} was refused (stale file?); {START_HINT}"
+        )
         with sock:
             try:
                 sock.sendall(encode({"token": found.token}) + encode({"id": request_id, "op": op, "args": args or {}}))
-                line = read_line(sock)
+                line = read_line(sock, deadline=time.monotonic() + self.timeout)
             except TimeoutError:
                 raise ChannelTimeout(f"ART did not answer `{op}` within {self.timeout:g} s") from None
+            except ConnectionError:
+                # ART drops a connection whose token it refuses; on Windows
+                # that can arrive as a reset rather than a clean close.
+                raise refused from None
             except OSError as e:
                 raise ArtNotRunning(f"the connection to ART failed ({e}); {START_HINT}") from None
         if line is None:
-            raise ArtNotRunning(
-                "ART closed the connection without answering: the token in "
-                f"{self.config_dir / DISCOVERY_FILE} was refused (stale file?); {START_HINT}"
-            )
+            raise refused
         return parse_reply(line, request_id)
 
 
@@ -127,11 +133,17 @@ def encode(message: dict[str, Any]) -> bytes:
     return json.dumps(message, ensure_ascii=False, separators=(",", ":")).encode("utf-8") + b"\n"
 
 
-def read_line(sock: socket.socket) -> bytes | None:
+def read_line(sock: socket.socket, deadline: float | None = None) -> bytes | None:
     """One line from ``sock`` (without the newline), or None if the peer
-    closes first."""
+    closes first. ``deadline`` (``time.monotonic()``) bounds the whole read,
+    not each ``recv``: a peer trickling bytes can't stretch it."""
     buf = bytearray()
     while True:
+        if deadline is not None:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError
+            sock.settimeout(remaining)
         chunk = sock.recv(65536)
         if not chunk:
             return None

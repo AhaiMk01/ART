@@ -51,8 +51,16 @@ def find_art_dir(
     return None
 
 
-def user_config_dir(env: Mapping[str, str]) -> Path:
-    """ART's per-user config folder (holds the ``options`` file)."""
+def user_config_dir(env: Mapping[str, str], art_dir: Path | None = None) -> Path:
+    """ART's per-user config folder (holds the ``options`` file), by ART's
+    own rules (``Options::load``): ``ART_SETTINGS`` if set; else, for an
+    install whose own ``options`` says ``MultiUser=false`` (portable),
+    ``<art_dir>/mysettings``; else the per-user folder. Builds made with a
+    ``CACHE_NAME_SUFFIX`` use ``ART<suffix>``; point ``ART_SETTINGS`` at it."""
+    if env.get("ART_SETTINGS"):
+        return Path(env["ART_SETTINGS"])
+    if art_dir is not None and _read_options(art_dir).get("General", {}).get("MultiUser") == "false":
+        return art_dir / "mysettings"
     if "LOCALAPPDATA" in env:
         return Path(env["LOCALAPPDATA"]) / "ART"
     base = env.get("XDG_CONFIG_HOME") or str(Path.home() / ".config")

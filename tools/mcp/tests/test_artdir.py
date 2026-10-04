@@ -74,3 +74,20 @@ def test_fast_export_box_falls_back_to_the_legacy_keys_like_art(tmp_path):
         "[Fast Export]\nfastexport_resize_width=1600\nMaxWidth=900\nMaxHeight=1700\n"
     )
     assert artdir.fast_export_box(tmp_path) == 1600
+
+
+def test_config_dir_follows_arts_own_rules(tmp_path):
+    local = {"LOCALAPPDATA": str(tmp_path / "local")}
+    assert artdir.user_config_dir(local) == tmp_path / "local" / "ART"
+
+    settings = str(tmp_path / "elsewhere")
+    assert artdir.user_config_dir({**local, "ART_SETTINGS": settings}) == tmp_path / "elsewhere"
+
+    portable = make_art(tmp_path / "portable")
+    (portable / "options").write_text("[General]\nMultiUser=false\n")
+    assert artdir.user_config_dir(local, art_dir=portable) == portable / "mysettings"
+    # ART_SETTINGS still wins over a portable install
+    assert artdir.user_config_dir({**local, "ART_SETTINGS": settings}, art_dir=portable) == tmp_path / "elsewhere"
+
+    (portable / "options").write_text("[General]\nMultiUser=true\n")
+    assert artdir.user_config_dir(local, art_dir=portable) == tmp_path / "local" / "ART"
