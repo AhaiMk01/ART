@@ -110,3 +110,42 @@ async def test_raw_edit_and_reset_change_the_real_render(tmp_path):
         plain = mean_brightness(before.structured_content["path"])
         assert mean_brightness(after.structured_content["path"]) > plain + 20
         assert abs(mean_brightness(reset.structured_content["path"]) - plain) < 2
+
+
+async def test_real_export_in_all_formats_is_full_size_and_leaves_no_arp(tmp_path):
+    raw = tmp_path / Path(RAW).name
+    shutil.copyfile(RAW, raw)
+    out = tmp_path / "out"
+    out.mkdir()
+    server = build_server(
+        ArtCli((str(CLI),), timeout=300),
+        artdir.user_config_dir(os.environ),
+        PreviewFolder(tmp_path / "previews"),
+    )
+    cases = [
+        ("jpeg", "a.jpg", {"quality": 90}, "JPEG"),
+        ("tiff", "a.tif", {"bit_depth": "16"}, "TIFF"),
+        ("png", "a.png", {"bit_depth": "8"}, "PNG"),
+    ]
+
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(raw)})
+        sizes = set()
+        for fmt, name, extra, pil_format in cases:
+            result = await client.call_tool(
+                "export_image",
+                {"path": str(raw), "output": str(out / name), "format": fmt, **extra},
+            )
+            assert not result.is_error, result.content
+            with Image.open(out / name) as image:
+                assert image.format == pil_format
+                sizes.add(image.size)
+        assert len(sizes) == 1 and max(next(iter(sizes))) > 1024
+        assert sorted(p.name for p in out.iterdir()) == ["a.jpg", "a.png", "a.tif"]
+
+        with_arp = await client.call_tool(
+            "export_image",
+            {"path": str(raw), "output": str(out / "b.jpg"), "format": "jpeg", "write_profile": True},
+        )
+        assert not with_arp.is_error, with_arp.content
+        assert "[Exposure]" in (out / "b.jpg.arp").read_text()

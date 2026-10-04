@@ -1,7 +1,8 @@
 """Stand-in for ART-cli in tests: mimics its file effects, not its pixels.
 
 - ``-v`` prints a version line.
-- Writes a small JPEG-ish file to the ``-o``/``-O`` output. Its bytes embed
+- Writes a small JPEG-ish file (TIFF/PNG magic with ``-t``/``-n``) to the
+  ``-o``/``-O`` output. Its bytes embed
   the text of every ``-p`` layer, standing in for "the pixels reflect the
   profile" so tests can see what was rendered.
 - With ``-O``, writes ``<output>.arp``: the last ``-p`` file's text, or a
@@ -43,6 +44,7 @@ if not image.exists():
 
 layers = [Path(args[i + 1]).read_text() for i, a in enumerate(args) if a == "-p"]
 output = Path(value("-o") or value("-O"))
-output.write_bytes(b"\xff\xd8" + "\n".join(layers).encode() + b"\xff\xd9")
+magic = b"II*\x00" if "-t" in args else b"\x89PNG\r\n\x1a\n" if "-n" in args else b"\xff\xd8"
+output.write_bytes(magic + "\n".join(layers).encode() + b"\xff\xd9")
 if "-O" in args:
     Path(str(output) + ".arp").write_text(layers[-1] if layers else DEFAULT_PROFILE)

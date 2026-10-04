@@ -14,6 +14,13 @@ from art_mcp import keyfile
 
 JPEG_QUALITY = 85
 
+EXPORT_BIT_DEPTHS = {
+    "jpeg": ("8",),
+    "png": ("8", "16"),
+    "tiff": ("8", "16", "16f", "32"),
+}
+"""Export formats and the bit depths art-cli takes for each."""
+
 
 def resolve_profile_args(image: Path, output: Path, sidecar: Path | None) -> list[str]:
     """A fast render whose only purpose is the ``.arp`` that ``-O`` writes
@@ -30,6 +37,40 @@ def preview_args(image: Path, output: Path, profile: Path, resize: Path) -> list
         "-o", str(output), "-f", "-Y", "-a",
         "-p", str(profile), "-p", str(resize),
         f"-j{JPEG_QUALITY}", "-c", str(image),
+    ]  # fmt: skip
+
+
+def export_args(
+    image: Path,
+    output: Path,
+    profile: Path,
+    format: str,
+    quality: int | None,
+    bit_depth: str | None,
+    write_profile: bool,
+) -> list[str]:
+    """A full-size render of ``profile`` (no ``-f``). With ``write_profile``,
+    ``-O`` also writes ``<output>.arp``. Raises ValueError for a format,
+    quality or bit depth art-cli doesn't take."""
+    if format not in EXPORT_BIT_DEPTHS:
+        raise ValueError(f"format must be one of {', '.join(EXPORT_BIT_DEPTHS)}, not {format!r}")
+    if quality is not None and format != "jpeg":
+        raise ValueError(f"quality applies to jpeg only, not {format}")
+    if quality is not None and not 1 <= quality <= 100:
+        raise ValueError(f"quality must be 1..100, not {quality}")
+    allowed = EXPORT_BIT_DEPTHS[format]
+    if bit_depth is not None and bit_depth not in allowed:
+        raise ValueError(f"bit_depth for {format} must be one of {', '.join(allowed)}, not {bit_depth!r}")
+
+    if format == "jpeg":
+        format_flags = [f"-j{quality}" if quality is not None else "-j"]
+    else:
+        format_flags = ["-t" if format == "tiff" else "-n"]
+    if bit_depth is not None:
+        format_flags.append(f"-b{bit_depth}")
+    return [
+        "-O" if write_profile else "-o", str(output), "-Y", "-a",
+        "-p", str(profile), *format_flags, "-c", str(image),
     ]  # fmt: skip
 
 

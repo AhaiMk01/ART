@@ -140,6 +140,120 @@ async def test_unknown_key_is_rejected_and_nothing_changes(server, image):
     assert profile.structured_content["raw"]["Exposure"]["Compensation"] == "0"
 
 
+async def export(client, image, output, **args):
+    return await client.call_tool(
+        "export_image", {"path": str(image), "output": str(output), "format": "jpeg", **args}
+    )
+
+
+async def test_export_renders_the_working_profile_to_output_with_no_arp_beside_it(server, image, tmp_path):
+    out = tmp_path / "out" / "final.jpg"
+    out.parent.mkdir()
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        await client.call_tool("edit_profile", {"path": str(image), "raw_edits": [set_compensation("1.5")]})
+        result = await export(client, image, out, quality=90)
+
+        assert not result.is_error, result.content
+        assert result.structured_content["path"] == str(out)
+        assert b"Compensation=1.5" in out.read_bytes()
+        assert sorted(p.name for p in out.parent.iterdir()) == ["final.jpg"]
+
+
+async def test_export_formats_and_bit_depth_reach_art_cli(server, image, tmp_path):
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        tiff = await export(client, image, tmp_path / "a.tif", format="tiff", bit_depth="16f")
+        png = await export(client, image, tmp_path / "a.png", format="png", bit_depth="16")
+
+        assert not tiff.is_error and not png.is_error, (tiff.content, png.content)
+        assert (tmp_path / "a.tif").read_bytes().startswith(b"II*")
+        assert (tmp_path / "a.png").read_bytes().startswith(b"\x89PNG")
+
+
+async def test_existing_output_is_refused_untouched_unless_overwrite(server, image, tmp_path):
+    out = tmp_path / "final.jpg"
+    out.write_bytes(b"precious")
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        refused = await export(client, image, out)
+
+        assert refused.is_error
+        assert "exists" in refused.content[0].text
+        assert out.read_bytes() == b"precious"
+
+        replaced = await export(client, image, out, overwrite=True)
+        assert not replaced.is_error, replaced.content
+        assert out.read_bytes() != b"precious"
+
+
+async def test_write_profile_puts_the_working_profile_beside_the_output(server, image, tmp_path):
+    out = tmp_path / "final.jpg"
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        await client.call_tool("edit_profile", {"path": str(image), "raw_edits": [set_compensation("1.5")]})
+        result = await export(client, image, out, write_profile=True)
+
+        assert not result.is_error, result.content
+        arp = tmp_path / "final.jpg.arp"
+        assert result.structured_content["profile_path"] == str(arp)
+        assert "Compensation=1.5" in arp.read_text()
+        assert not any(p.suffix in {".tmp"} for p in tmp_path.iterdir())
+
+
+async def test_write_profile_respects_overwrite_for_the_arp(server, image, tmp_path):
+    out = tmp_path / "final.jpg"
+    (tmp_path / "final.jpg.arp").write_text("mine")
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        refused = await export(client, image, out, write_profile=True)
+
+        assert refused.is_error and "exists" in refused.content[0].text
+        assert not out.exists()
+        assert (tmp_path / "final.jpg.arp").read_text() == "mine"
+
+        without = await export(client, image, out)
+        assert not without.is_error, without.content
+        assert (tmp_path / "final.jpg.arp").read_text() == "mine"
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        {"quality": 101},
+        {"quality": 0},
+        {"format": "png", "quality": 90},
+        {"format": "png", "bit_depth": "32"},
+        {"bit_depth": "16"},
+        {"format": "gif"},
+    ],
+)
+async def test_invalid_export_options_are_out_of_range(server, image, tmp_path, args):
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await export(client, image, tmp_path / "x.out", **args)
+
+    assert result.is_error
+    assert "out_of_range" in result.content[0].text
+    assert not (tmp_path / "x.out").exists()
+
+
+async def test_export_to_a_missing_folder_is_not_found(server, image, tmp_path):
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await export(client, image, tmp_path / "nope" / "x.jpg")
+
+    assert result.is_error and "not_found" in result.content[0].text
+    assert not (tmp_path / "nope").exists()
+
+
+async def test_export_of_an_image_not_opened_is_not_open(server, image, tmp_path):
+    async with Client(server) as client:
+        result = await export(client, image, tmp_path / "x.jpg")
+
+    assert result.is_error and "not_open" in result.content[0].text
+
+
 def set_compensation(value):
     return {"group": "Exposure", "key": "Compensation", "value": value}
 
