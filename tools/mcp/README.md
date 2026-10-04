@@ -40,8 +40,9 @@ Claude Desktop (`claude_desktop_config.json`):
 | `open_image(path)` | Loads the image's processing profile (sidecar, else ART's default profile) as its working profile; also returns a short `metadata` summary (camera, lens, capture date, pixel size), or null if exiftool is unavailable or can't read the file |
 | `inspect_image(path, tags?)` | Metadata of an opened image from the `exiftool` beside `ART-cli` (`-j -n`): make, model, lens, ISO, `shutter_seconds`, `aperture`, `focal_length_mm`, `capture_date` (local, ISO 8601), `width`, `height`, `orientation` (EXIF 1-8), each null when absent; `tags` adds named exiftool tags (e.g. `Software`) that the file has, under `tags` |
 | `render_preview(path)` | Renders the working profile to a 1024 px JPEG and returns its path |
-| `get_profile(path)` | The working profile: curated tools under `adjustments`, everything else as strings under `raw` |
-| `edit_profile(path, raw_edits)` | Sets `[Group] Key` values (raw edits); the group and key must exist; all or nothing |
+| `get_profile(path)` | The working profile: curated tools typed under `adjustments`, every other value as a string under `raw` (each value once) |
+| `edit_profile(path, adjustments?, raw_edits?)` | Changes the working profile: typed, range-checked `adjustments` (`exposure`, `white_balance`) and/or `[Group] Key` raw edits; all or nothing. Lists `implied` changes (a disabled tool gets enabled; White Balance switches to `CustomTemp`) |
+| `describe_adjustments()` | The curated adjustments: fields, ranges, units, the `[Group] Key` each sets, and the `PPVERSION` the schema targets |
 | `reset_profile(path, to)` | Reloads the working profile from the `sidecar` or ART's `default` profile |
 | `export_image(path, output, format, quality?, bit_depth?, write_profile=false, overwrite=false)` | Renders the working profile at full size as `jpeg` (quality 1..100, 8 bit), `png` (8/16 bit) or `tiff` (8/16/16f/32 bit) to `output` (its folder must exist); an existing `output` is refused unless `overwrite`; `write_profile` also saves `<output>.arp`, otherwise none is written |
 | `save_sidecar(path, on_conflict?)` | The only tool that writes the sidecar (named per ART's strip-extension option): atomic, previous one kept as `<sidecar>.bak`. If the sidecar changed on disk since it was loaded, asks the user (merge / overwrite / cancel) when the client supports elicitation; else fails with `conflict` listing the changed keys, and the agent calls again with `on_conflict`. `merge` applies only the agent's changed keys onto the current sidecar. Afterwards the saved file is the new baseline |
@@ -49,7 +50,8 @@ Claude Desktop (`claude_desktop_config.json`):
 
 Errors come back as tool errors whose text starts with a code: `not_open`,
 `not_found`, `unknown_key`, `render_failed`, `timeout`, `conflict`, `exists`,
-`out_of_range`, and for metadata `metadata_unavailable` (no exiftool beside
+`out_of_range` (adjustment value outside its range; nothing is clamped), and
+for metadata `metadata_unavailable` (no exiftool beside
 ART-cli), `metadata_failed`, `invalid_tag`.
 
 `render_failed` carries art-cli's exit code with its meaning (`-3` bad
@@ -62,6 +64,10 @@ Robustness: art-cli is killed and the call reports `timeout` after 60 s
 exports). Calls about one image run one at a time, and at most two art-cli
 processes run at once. On startup the server deletes `art-mcp-<pid>` folders
 in the temp folder whose process is gone.
+
+Results of `get_profile`, `edit_profile` and `describe_adjustments` carry a
+`warnings` list when ART's profile version is newer than the schema's
+(`PPVERSION` 1045); edits keep working.
 
 ## Development
 

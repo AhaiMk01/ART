@@ -99,7 +99,7 @@ async def test_an_empty_sidecar_is_still_the_sidecar(server, image):
     assert result.structured_content["profile_from"] == "sidecar"
 
 
-async def test_get_profile_returns_every_value_as_raw_strings(server, image):
+async def test_get_profile_types_curated_tools_and_leaves_the_rest_raw(server, image):
     async with Client(server) as client:
         await client.call_tool("open_image", {"path": str(image)})
         result = await client.call_tool("get_profile", {"path": str(image)})
@@ -107,9 +107,9 @@ async def test_get_profile_returns_every_value_as_raw_strings(server, image):
     assert not result.is_error, result.content
     profile = result.structured_content
     assert profile["ppversion"] == 1045
-    assert profile["adjustments"] == {}
-    assert profile["raw"]["Exposure"] == {"Enabled": "true", "Compensation": "0", "Black": "0"}
-    assert profile["raw"]["White Balance"]["Setting"] == "Camera"
+    assert profile["adjustments"]["exposure"]["compensation"] == 0.0
+    assert profile["adjustments"]["white_balance"]["setting"] == "Camera"
+    assert profile["raw"] == {}
 
 
 async def test_raw_edit_changes_the_working_profile_and_the_next_render(server, image):
@@ -122,7 +122,7 @@ async def test_raw_edit_changes_the_working_profile_and_the_next_render(server, 
 
         assert not result.is_error, result.content
         assert result.structured_content["changed"] == [edit]
-        assert profile.structured_content["raw"]["Exposure"]["Compensation"] == "1.5"
+        assert profile.structured_content["adjustments"]["exposure"]["compensation"] == 1.5
         assert b"Compensation=1.5" in Path(preview.structured_content["path"]).read_bytes()
 
 
@@ -139,7 +139,7 @@ async def test_unknown_key_is_rejected_and_nothing_changes(server, image):
     assert result.is_error
     assert "unknown_key" in result.content[0].text
     assert "Compensaton" in result.content[0].text
-    assert profile.structured_content["raw"]["Exposure"]["Compensation"] == "0"
+    assert profile.structured_content["adjustments"]["exposure"]["compensation"] == 0
 
 
 async def export(client, image, output, **args):
@@ -262,7 +262,7 @@ def set_compensation(value):
 
 async def compensation(client, image):
     profile = await client.call_tool("get_profile", {"path": str(image)})
-    return profile.structured_content["raw"]["Exposure"]["Compensation"]
+    return profile.structured_content["adjustments"]["exposure"]["compensation"]
 
 
 async def test_reset_to_sidecar_and_to_default(server, image):
@@ -273,11 +273,11 @@ async def test_reset_to_sidecar_and_to_default(server, image):
 
         to_sidecar = await client.call_tool("reset_profile", {"path": str(image), "to": "sidecar"})
         assert not to_sidecar.is_error, to_sidecar.content
-        assert await compensation(client, image) == "1"
+        assert await compensation(client, image) == 1
 
         to_default = await client.call_tool("reset_profile", {"path": str(image), "to": "default"})
         assert not to_default.is_error, to_default.content
-        assert await compensation(client, image) == "0"
+        assert await compensation(client, image) == 0
 
 
 async def test_reset_to_sidecar_without_one_is_not_found(server, image):

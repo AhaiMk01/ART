@@ -14,20 +14,36 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Any, Literal
 
 from mcp.server.mcpserver import Context, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.shared.exceptions import NoBackChannelError
 from mcp_types import ClientCapabilities, ElicitationCapability
-from pydantic import BaseModel
+from pydantic import BaseModel, WithJsonSchema
 
 from art_mcp import artdir, keyfile, sidecar
 from art_mcp.concurrency import ImageLocks, image_key
 from art_mcp.keyfile import KeyFile
 from art_mcp.metadata import Exiftool, ExiftoolError, ExiftoolTimeout, InvalidTag, Metadata
 from art_mcp.preview import PreviewFolder, default_root, sweep_stale
-from art_mcp.profile import ProfileView, RawEdit, UnknownKey, WorkingChanges, read_format
+from art_mcp.profile import Conflict as EditConflict
+from art_mcp.profile import (
+    ProfileView,
+    RawEdit,
+    UnknownKey,
+    WorkingChanges,
+    ppversion_of,
+    read_format,
+    version_warnings,
+)
+from art_mcp.schema import (
+    AdjustmentError,
+    AdjustmentsDescription,
+    adjustments_json_schema,
+    parse_adjustments,
+)
+from art_mcp.schema import describe_adjustments as schema_description
 from art_mcp.render.artcli import (
     ArtCli,
     ArtCliError,
@@ -47,6 +63,14 @@ ErrorCode = Literal[
 ]
 
 EXPORT_SUFFIXES = {"jpeg": ".jpg", "tiff": ".tif", "png": ".png"}
+
+# Validated by hand (parse_adjustments) so a bad value is reported as
+# out_of_range rather than as a generic schema error; the published input
+# schema is still the typed one.
+AdjustmentsArg = Annotated[
+    dict[str, Any] | None,
+    WithJsonSchema({"anyOf": [adjustments_json_schema(), {"type": "null"}]}),
+]
 
 
 ProfileSource = Literal["sidecar", "default"]
@@ -109,6 +133,10 @@ class EditResult(BaseModel):
     changed: list[RawEdit]
     """Each [Group] Key whose value this call changed, with its new value
     (re-setting a value is not a change)."""
+    implied: list[RawEdit]
+    """The part of `changed` that was not asked for: a disabled tool enabled
+    because it was adjusted, White Balance switched to CustomTemp."""
+    warnings: list[str]
 
 
 class ExportResult(BaseModel):
@@ -327,16 +355,47 @@ def build_server(
             return read_format(opened(path).changes.profile)
 
     @server.tool()
-    def edit_profile(path: str, raw_edits: list[RawEdit] | None = None) -> EditResult:
-        """Change values of the working profile. Each raw edit sets one
-        `[Group] Key` (as shown by get_profile) to a string value; the group
-        and key must already exist. All edits apply, or none do."""
+    def edit_profile(
+        path: str,
+        adjustments: AdjustmentsArg = None,
+        raw_edits: list[RawEdit] | None = None,
+    ) -> EditResult:
+        """Change values of the working profile, with typed `adjustments` of
+        curated tools (range-checked; see describe_adjustments) and/or
+        `raw_edits`, each setting one `[Group] Key` (as shown by get_profile)
+        to a string value; the group and key must already exist. All changes
+        apply, or none do. An adjustment and a raw edit may not set the same
+        key. Adjusting a disabled tool also enables it (listed under
+        `implied`)."""
         with locks.hold(path):
+            wp = opened(path)
             try:
-                changed = opened(path).changes.apply(raw_edits or [])
+                parsed = parse_adjustments(adjustments) if adjustments else None
+                outcome = wp.changes.edit(parsed, raw_edits or [])
+            except AdjustmentError as e:
+                raise tool_error(e.code, str(e)) from e
             except UnknownKey as e:
                 raise tool_error("unknown_key", str(e)) from e
-        return EditResult(changed=changed)
+            except EditConflict as e:
+                raise tool_error("conflict", str(e)) from e
+        return EditResult(
+            changed=outcome.changed,
+            implied=outcome.implied,
+            warnings=version_warnings(ppversion_of(wp.changes.profile)),
+        )
+
+    @server.tool()
+    def describe_adjustments() -> AdjustmentsDescription:
+        """The curated adjustments `edit_profile` accepts: each tool's fields
+        with type, range, unit and the `[Group] Key` it sets. Carries a
+        warning if an open image's ART profile version is newer than the
+        schema's."""
+        description = schema_description()
+        for wp in working.values():
+            for warning in version_warnings(ppversion_of(wp.changes.profile)):
+                if warning not in description.warnings:
+                    description.warnings.append(warning)
+        return description
 
     @server.tool()
     def export_image(

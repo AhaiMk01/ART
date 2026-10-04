@@ -105,7 +105,7 @@ async def test_raw_edit_and_reset_change_the_real_render(tmp_path):
         reset = await client.call_tool("render_preview", {"path": str(raw)})
 
         assert profile.structured_content["ppversion"] >= 1045
-        assert "Exposure" in profile.structured_content["raw"]
+        assert "exposure" in profile.structured_content["adjustments"]
         assert not edited.is_error, edited.content
         plain = mean_brightness(before.structured_content["path"])
         assert mean_brightness(after.structured_content["path"]) > plain + 20
@@ -149,3 +149,40 @@ async def test_real_export_in_all_formats_is_full_size_and_leaves_no_arp(tmp_pat
         )
         assert not with_arp.is_error, with_arp.content
         assert "[Exposure]" in (out / "b.jpg.arp").read_text()
+
+
+async def test_adjustments_change_the_real_render_and_read_back_typed(tmp_path):
+    raw = tmp_path / Path(RAW).name
+    shutil.copyfile(RAW, raw)
+    server = build_server(
+        ArtCli((str(CLI),), timeout=120),
+        artdir.user_config_dir(os.environ),
+        PreviewFolder(tmp_path / "previews"),
+    )
+
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(raw)})
+        before = await client.call_tool("render_preview", {"path": str(raw)})
+        edited = await client.call_tool(
+            "edit_profile",
+            {
+                "path": str(raw),
+                "adjustments": {
+                    "exposure": {"compensation": 1.5},
+                    "white_balance": {"temperature": 4500, "equal": 1.1},
+                },
+            },
+        )
+        profile = await client.call_tool("get_profile", {"path": str(raw)})
+        after = await client.call_tool("render_preview", {"path": str(raw)})
+
+        assert not edited.is_error, edited.content
+        adjustments = profile.structured_content["adjustments"]
+        assert adjustments["exposure"]["compensation"] == 1.5
+        assert adjustments["exposure"]["enabled"] is True
+        assert adjustments["white_balance"]["setting"] == "CustomTemp"
+        assert adjustments["white_balance"]["temperature"] == 4500
+        assert adjustments["white_balance"]["equal"] == 1.1
+        assert profile.structured_content["raw"]["White Balance"].keys() <= {"Multipliers"}
+        brighter = mean_brightness(after.structured_content["path"])
+        assert brighter > mean_brightness(before.structured_content["path"]) + 10

@@ -177,7 +177,7 @@ async def test_merge_brings_the_current_sidecar_values_into_the_working_profile(
         await client.call_tool("save_sidecar", {"path": str(image), "on_conflict": "merge"})
         profile = await client.call_tool("get_profile", {"path": str(image)})
 
-    assert profile.structured_content["raw"]["Exposure"]["Black"] == "7"
+    assert profile.structured_content["adjustments"]["exposure"]["black"] == 7
 
 
 def answering(action, choice=None):
