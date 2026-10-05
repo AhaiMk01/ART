@@ -253,23 +253,43 @@ can only shrink the ~600 px editor preview, never enlarge it.
 
 ## 5. Locating ART (both servers)
 
-`--art-dir` flag or `ART_DIR` env (folder with `ART-cli.exe`), else PATH, else
-the newest `C:\Program Files\ART\<version>`. The Render server fails at
-startup if none is found; the Live server needs it only to find the config
-folder of a portable install and exiftool.
+`--art-dir` flag or `ART_DIR` env (the folder with the ART-cli binary), else
+PATH, else the system's usual install locations below. The Render server
+fails at startup if none is found; the Live server needs it only to find the
+config folder of a portable install and exiftool.
+
+The binary is `ART-cli.exe` on Windows and `ART-cli` elsewhere (ART's CMake
+`OUTPUT_NAME`; a lowercase `art-cli` is also accepted on macOS and Linux).
+Lookup order after PATH, per OS:
+
+| OS | ART-cli | exiftool (after beside ART-cli, then PATH) |
+|---|---|---|
+| Windows | newest `%ProgramFiles%\ART\<version>` | newest such folder that has `exiftool.exe` |
+| macOS | `/Applications/ART.app/Contents/Frameworks`, then `.../Contents/MacOS`, then the same under `~/Applications`; then `/usr/local/bin`, `/opt/homebrew/bin`, `/opt/local/bin`, `/usr/bin` | the same folders (the ExifTool pkg installs to `/usr/local/bin`; the bundle ships none) |
+| Linux | `/usr/local/bin`, `/usr/bin`, `~/.local/bin`, then `/opt/ART*` (newest by the numbers in the name) | the same folders, plus `<folder>/lib/exiftool/exiftool` (the layout of `tools/linux/bundle_ART.py`) |
+
+The macOS bundle layout comes from `tools/osx/macosx_bundle.sh` (ART-cli moved
+into `Contents/Frameworks`) and the `Contents/MacOS` install of the CMake
+bundle (`BINDIR`); AppImages are not searched (use `ART_DIR` on a mounted or
+extracted one).
 
 **exiftool** is located separately from ART-cli, because a fork build has
-none: beside ART-cli in that folder first, else on PATH, else beside the
-newest installed `C:\Program Files\ART\<version>` that has one. If none is
-found `inspect_image` fails with `metadata_unavailable` and `open_image`'s
-metadata is null (both servers).
+none: beside ART-cli in that folder first (also `lib/exiftool/` on macOS and
+Linux), else on PATH, else the locations in the table. If none is found
+`inspect_image` fails with `metadata_unavailable` and `open_image`'s metadata
+is null (both servers).
 
 ART's **config folder** (its `options` file, and the Live server's discovery
 file) follows ART's own rules (`Options::load`): `ART_SETTINGS` if set; else
 `<install>/mysettings` for a portable install whose own `options` says
-`[General] MultiUser=false`; else `%LOCALAPPDATA%\ART` (XDG config dir
-elsewhere). Builds with a `CACHE_NAME_SUFFIX` use `ART<suffix>`: point
-`ART_SETTINGS` at it.
+`[General] MultiUser=false`; else `ART` (`CACHEFOLDERNAME`) in the per-user
+config folder: `%LOCALAPPDATA%` on Windows; on macOS and Linux GLib's
+`g_get_user_config_dir()`, i.e. an absolute `$XDG_CONFIG_HOME`, else
+`~/.config`. ART does not use `~/Library/Application Support` itself (the
+app bundle's Info.plist sets a relative `XDG_CONFIG_HOME`, which GLib
+ignores), but on macOS, when `~/.config/ART` does not exist and
+`~/Library/Application Support/ART` does, the latter is used. Builds with a
+`CACHE_NAME_SUFFIX` use `ART<suffix>`: point `ART_SETTINGS` at it.
 
 ## 6. Render server
 
