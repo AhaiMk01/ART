@@ -64,8 +64,11 @@ async def test_working_profile_from_sidecar_is_what_renders(tmp_path):
     for copy in (plain, bright):
         copy.parent.mkdir()
         shutil.copyfile(RAW, copy)
-    sidecar = artdir.sidecar_path(bright, artdir.user_config_dir(os.environ))
-    sidecar.write_text("[Exposure]\nEnabled=true\nCompensation=2\n")
+    # Both get a sidecar, so they share a baseline whatever the user's default
+    # profile does (e.g. histogram matching); only the compensation differs.
+    for copy, ev in ((plain, 0), (bright, 2)):
+        sidecar = artdir.sidecar_path(copy, artdir.user_config_dir(os.environ))
+        sidecar.write_text(f"[Exposure]\nEnabled=true\nCompensation={ev}\n")
     server = build_server(
         ArtCli((str(CLI),), timeout=120),
         artdir.user_config_dir(os.environ),
@@ -216,12 +219,12 @@ async def test_real_region_preview_is_1_to_1_and_capped_at_max_size(tmp_path):
         with Image.open(large.structured_content["path"]) as jpeg:
             large_size = jpeg.size
 
-    # Unrotated, uncropped default profile: the sensor frame is about 6016x4016,
-    # so a tenth of it is ~602x402 pixels at 1:1 (no resize), whereas the
-    # whole image is shrunk to the 2576 cap.
+    # The whole image is shrunk to the 2576 cap, while a tenth of the frame is
+    # rendered at 1:1: for any raw over ~5000 px wide that is clearly more than
+    # a tenth of the shrunk whole (602 px for a 6016 px frame, 865 for 8652).
     assert max(whole_size) == 2576
     assert small_size[0] / small_size[1] == pytest.approx(whole_size[0] / whole_size[1], rel=0.02)
-    assert 500 < small_size[0] < 700, small_size
+    assert 0.2 * whole_size[0] < small_size[0] <= 2576, small_size
     assert max(large_size) == 2576
 
 
