@@ -133,13 +133,27 @@ Results of `get_profile`, `edit_profile` and `describe_adjustments` carry a
 
 ## Development
 
-Layout of the Render server (`art_mcp/render/`): `server.py` only wires
-things up; `session.py` holds `RenderSession` (working profiles, per-image
-locks, the frame-size cache, running art-cli); each feature module
-(`profile_tools.py`, `preview_tools.py`, `export_tools.py`, `save_tools.py`,
-`metadata_tools.py`, `sampling_tools.py`) has a `register(server, session)` that adds its tools. A
-tool reaches a working profile only through `with session.image(path) as wp:`,
-which holds that image's lock.
+Layout of the Render server (`art_mcp/render/`), in three layers:
+
+- **Operations** (plain Python, no MCP): `session.py` holds `RenderSession`
+  (per-image locks, running art-cli, the frame measurement) over a
+  `ProfileStore` (`store.py`; `MemoryStore` keeps the working profiles, the
+  loaded baseline for save's conflict check and the frame-size cache in the
+  process, another store can keep them elsewhere). The `*_ops.py` modules
+  (`profile_ops`, `preview_ops`, `export_ops`, `save_ops`, `metadata_ops`,
+  `sampling_ops`) hold one function per tool, taking the session first and the
+  tool's arguments, returning the tool's Pydantic result and raising
+  `RenderError(code, message)` (`errors.py`). Callable without MCP.
+- **Tools**: the `*_tools.py` modules each have a `register(server, session)`
+  adding thin MCP adapters over those operations (`adapter.py` turns a
+  `RenderError` into the tool error `<code>: <message>`). What only MCP can
+  do stays here: inline preview images, asking the user about a save
+  conflict.
+- **Wiring**: `server.py` builds the session and registers the tools.
+
+An operation reaches a working profile only through `with session.image(path)
+as wp:`, which holds that image's lock; after changing one it calls
+`session.commit(wp)`.
 
 ```sh
 uv run pytest                      # unit + fake-art-cli tests

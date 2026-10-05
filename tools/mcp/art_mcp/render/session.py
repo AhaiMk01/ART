@@ -1,23 +1,21 @@
 """The Render server's state and the operations its tools share.
 
-A ``RenderSession`` owns the per-image working profiles, the per-image locks
-and the frame-size cache. A working profile is only reachable through
+A ``RenderSession`` owns the per-image locks and the plumbing the operations
+share; the working profiles and the frame-size cache live in its
+``ProfileStore`` (in memory unless another is given). A working profile is only reachable through
 ``image(path)`` (or ``open``/``reset``), which hold that image's lock, so a
 tool can't read or change one without it.
 """
 
 import threading
+import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from mcp.server.mcpserver.exceptions import ToolError
-
 from art_mcp import artdir, keyfile, sidecar
 from art_mcp.concurrency import ImageLocks, image_key
-from art_mcp.keyfile import KeyFile
 from art_mcp.metadata import Exiftool
 from art_mcp.preview import PreviewFolder
 from art_mcp.profile import WorkingChanges, crop_problem, crop_rect, ppversion_of
@@ -31,39 +29,11 @@ from art_mcp.render.artcli import (
     probe_args,
     resolve_profile_args,
 )
+from art_mcp.render.errors import no_profile_written, render_error
+from art_mcp.render.store import MemoryStore, ProfileStore, WorkingProfile
 from art_mcp.schema import Crop as CropAdjustment
 
-ErrorCode = Literal[
-    "not_open", "not_found", "unknown_key", "render_failed", "timeout",
-    "conflict", "exists", "out_of_range", "open_in_editor",
-    "metadata_unavailable", "metadata_failed", "invalid_tag", "unsupported",
-]
-
 ProfileSource = Literal["sidecar", "default"]
-
-
-def tool_error(code: ErrorCode, message: str) -> ToolError:
-    return ToolError(f"{code}: {message}")
-
-
-def no_profile_written() -> ToolError:
-    return tool_error(
-        "render_failed",
-        "art-cli wrote no profile beside its output; turn off "
-        '"Embed processing parameters in metadata" in ART\'s preferences',
-    )
-
-
-@dataclass
-class WorkingProfile:
-    image: Path
-    changes: WorkingChanges
-    sidecar_hash: str | None
-    """SHA-256 of the sidecar on disk when this working profile was loaded
-    (whichever source it was loaded from), or None if there was none: the
-    baseline for detecting that someone else changed the sidecar."""
-    sidecar_keys: KeyFile
-    """That sidecar's content, to tell what someone else changed in it."""
 
 
 class RenderSession:
@@ -74,15 +44,15 @@ class RenderSession:
         previews: PreviewFolder,
         exiftool: Exiftool | None,
         inline_previews: bool,
+        store: ProfileStore | None = None,
     ) -> None:
         self.cli = cli
         self.config_dir = config_dir
         self.previews = previews
         self.exiftool = exiftool
         self.inline_previews = inline_previews
-        self._working: dict[str, WorkingProfile] = {}
+        self.store: ProfileStore = store if store is not None else MemoryStore()
         self._locks = ImageLocks()
-        self._frames: dict[tuple[str, int, int, str], Rect] = {}
         self._art_version: str | None = None
         self._version_guard = threading.Lock()
 
@@ -110,12 +80,12 @@ class RenderSession:
     def open_ppversions(self) -> list[int | None]:
         """The profile versions of the open images. Not locked: it reads one
         value from each and must not wait for a long render or export."""
-        return [ppversion_of(wp.changes.profile) for wp in list(self._working.values())]
+        return [ppversion_of(wp.changes.profile) for wp in self.store.all()]
 
     def _opened(self, path: str | Path) -> WorkingProfile:
-        wp = self._working.get(image_key(Path(path).resolve()))
+        wp = self.store.get(Path(path).resolve())
         if wp is None:
-            raise tool_error("not_open", f"{path} is not open; call open_image first")
+            raise render_error("not_open", f"{path} is not open; call open_image first")
         return wp
 
     def _load(self, image: Path, source: ProfileSource | None) -> ProfileSource:
@@ -125,7 +95,7 @@ class RenderSession:
         sidecar_file = artdir.sidecar_path(image, self.config_dir)
         sidecar_bytes = sidecar.read(sidecar_file)
         if source == "sidecar" and sidecar_bytes is None:
-            raise tool_error("not_found", f"{image.name} has no sidecar ({sidecar_file})")
+            raise render_error("not_found", f"{image.name} has no sidecar ({sidecar_file})")
         source = source or ("sidecar" if sidecar_bytes is not None else "default")
 
         output = self.previews.new_file("resolve", ".jpg")
@@ -147,13 +117,21 @@ class RenderSession:
             arp.unlink(missing_ok=True)
             sidecar_copy.unlink(missing_ok=True)
 
-        self._working[image_key(image)] = WorkingProfile(
-            image=image,
-            changes=WorkingChanges(profile),
-            sidecar_keys=sidecar.parse(sidecar_bytes),
-            sidecar_hash=sidecar.hash_or_none(sidecar_bytes),
+        self.store.put(
+            WorkingProfile(
+                image=image,
+                changes=WorkingChanges(profile),
+                sidecar_keys=sidecar.parse(sidecar_bytes),
+                sidecar_hash=sidecar.hash_or_none(sidecar_bytes),
+                token=uuid.uuid4().hex,
+            )
         )
         return source
+
+    def commit(self, wp: WorkingProfile) -> None:
+        """Hand a working profile back to the store after changing it (call
+        with the image's lock held)."""
+        self.store.put(wp)
 
     # -- art-cli ---------------------------------------------------------
 
@@ -169,11 +147,11 @@ class RenderSession:
         try:
             self.cli.run(args, timeout=timeout)
         except ArtCliTimeout as e:
-            raise tool_error("timeout", str(e)) from e
+            raise render_error("timeout", str(e)) from e
         except ArtCliError as e:
-            raise tool_error("render_failed", str(e)) from e
+            raise render_error("render_failed", str(e)) from e
         if not output.is_file():
-            raise tool_error("render_failed", f"art-cli wrote no output to {output}")
+            raise render_error("render_failed", f"art-cli wrote no output to {output}")
 
     # -- the frame (call with the image's lock held) -----------------------
 
@@ -205,7 +183,7 @@ class RenderSession:
 
         problem = crop_problem(wp.changes.profile, crop, frame)
         if problem:
-            raise tool_error("out_of_range", problem)
+            raise render_error("out_of_range", problem)
 
     def whole_frame(self, wp: WorkingProfile) -> Rect:
         """The whole frame ART's ``[Crop]`` addresses, measured (see
@@ -214,11 +192,13 @@ class RenderSession:
         stat = wp.image.stat()
         row = frame_probe_layer(profile, strip="row")
         key = (image_key(wp.image), stat.st_mtime_ns, stat.st_size, row)
-        if key not in self._frames:
+        frame = self.store.get_frame(key)
+        if frame is None:
             width, _ = self.probe_size(wp.image, row)
             _, height = self.probe_size(wp.image, frame_probe_layer(profile, strip="column"))
-            self._frames[key] = Rect(0, 0, width, height)
-        return self._frames[key]
+            frame = Rect(0, 0, width, height)
+            self.store.put_frame(key, frame)
+        return frame
 
     def probe_size(self, image: Path, layer_text: str) -> tuple[int, int]:
         layer = self.previews.new_file("probe", ".arp")
@@ -228,7 +208,7 @@ class RenderSession:
             self.run(probe_args(image, output, layer), output)
             return png_size(output)
         except ArtCliError as e:
-            raise tool_error("render_failed", str(e)) from e
+            raise render_error("render_failed", str(e)) from e
         finally:
             layer.unlink(missing_ok=True)
             output.unlink(missing_ok=True)
