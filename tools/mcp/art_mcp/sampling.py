@@ -38,15 +38,25 @@ shows the crop when one is enabled, so x = crop.x + px * crop.w / preview_w
 the whole frame.
 
 Returns the frame `width`/`height` and per spot `avg` and `max` as [r, g, b]:
-linear, 0..65535, white-balanced, taken before the film negative tool.
+linear, 0..65535, white-balanced, taken before the film negative tool. On a
+film negative these are the NEGATIVE's values (transmitted light): a higher
+value is a darker part of the scene. Ratios and the formulas below are
+unaffected.
 
 Film negative maths. Neutral spots: pick two neutral areas, the clearer one
 (`clear`) has the higher green, the other is `dense`. RedRatio =
 log(clear.r/dense.r) / log(clear.g/dense.g); BlueRatio likewise with b;
 GreenExponent unchanged. Set them with raw edits of `[Film Negative]
-RedRatio` and `BlueRatio`. Reference spot: `[Film Negative] RefInput` = avg
-as "r;g;b", `RefOutput` = "L;L;L" for an output grey level L (ART's default
-is 65535/24, about 2730.6).
+RedRatio` and `BlueRatio`. Better than one pair: sample many candidate
+neutrals, fit ln r against ln g by least squares (RedRatio = 1/slope; BlueRatio
+likewise with b), and drop spots with large residuals (coloured objects).
+
+Reference spot: `[Film Negative] RefInput` = avg as "r;g;b". `RefOutput` is
+the linear output level (0..65535, before the tone curve) that spot gets, grey:
+"L;L;L" with L = the spot's intended reflectance x 65535 (18% grey is about
+11800; a light stone, ~0.3, about 19700). ART's default 65535/24 (about 2731)
+matches the image median, not a chosen spot. Then check `image_stats`
+clipped_high and adjust: raise L until the highlights just don't clip.
 
 Render server: needs an ART build with spot sampling (else `unsupported`).
 Live server: samples the open editor's profile, unsaved edits included."""
@@ -146,7 +156,11 @@ def parse_spots_reply(reply: Any, size: int, space: str) -> SpotSamples:
 IMAGE_STATS_DOC = """Per channel r, g, b and lum (0.2126 R + 0.7152 G + 0.0722 B of the 8-bit
 values): `mean`, `clipped_high` / `clipped_low` (fraction of pixels at 255 /
 0), `percentiles` (0.1, 1, 5, 50, 95, 99, 99.9 %), and with `histogram` the
-256 counts; plus the width/height analysed. `max_size`: long edge, 1 to 2576."""
+256 counts; plus the width/height analysed. `max_size`: long edge, 1 to 2576.
+
+Film scans include the holder/border, which dominates clipping and
+percentiles: crop first (Render applies the working profile's crop; Live's
+preview is uncropped)."""
 
 PERCENTILES = ("0.1", "1", "5", "50", "95", "99", "99.9")
 _PERMILLE = {p: round(float(p) * 10) for p in PERCENTILES}

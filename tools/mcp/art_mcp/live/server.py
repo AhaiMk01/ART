@@ -506,7 +506,7 @@ def main() -> None:
     program_files = Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "ART"
     art_dir = artdir.find_art_dir(args.art_dir, os.environ, program_files)
     channel = ControlChannel(artdir.user_config_dir(os.environ, art_dir=art_dir), timeout=args.timeout)
-    exiftool_path = artdir.find_exiftool(art_dir) if art_dir else None
+    exiftool_path = artdir.locate_exiftool(art_dir, os.environ, program_files)
     sweep_stale()
     build_server(
         channel,

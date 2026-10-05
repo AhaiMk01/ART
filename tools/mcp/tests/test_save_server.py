@@ -371,3 +371,47 @@ async def test_an_edit_made_while_the_user_answers_is_saved_and_kept(server, ima
     assert not result.is_error, result.content
     assert keyfile.loads(sidecar.read_text())["Exposure"]["Compensation"] == "5"
     assert profile.structured_content["adjustments"]["exposure"]["compensation"] == 5
+
+
+async def test_partial_profile_exclude_drops_a_group_or_a_single_key(
+    server, image, sidecar, tmp_path
+):
+    async with Client(server) as client:
+        await open_and_edit(
+            client,
+            image,
+            edit("Exposure", "Compensation", "2"),
+            edit("Exposure", "Black", "5"),
+        )
+        _, one_key = await partial_dest(tmp_path, image, client, exclude=["Exposure/Black"])
+        dest, whole_group = await partial_dest(
+            tmp_path, image, client, overwrite=True, exclude=["Exposure"]
+        )
+
+    assert one_key.structured_content["keys"] == ["[Exposure] Compensation"]
+    assert whole_group.structured_content["written"] is False  # nothing left to write
+    assert whole_group.structured_content["keys"] == []
+
+
+async def test_partial_profile_exclude_writes_the_rest(server, image, sidecar, tmp_path):
+    async with Client(server) as client:
+        await open_and_edit(
+            client,
+            image,
+            edit("Exposure", "Compensation", "2"),
+            edit("Exposure", "Black", "5"),
+        )
+        dest, result = await partial_dest(tmp_path, image, client, exclude=["Exposure/Black"])
+
+    assert keyfile.loads(dest.read_text()) == {"Exposure": {"Compensation": "2"}}
+
+
+async def test_partial_profile_exclude_of_an_unknown_name_is_unknown_key(
+    server, image, sidecar, tmp_path
+):
+    async with Client(server) as client:
+        await open_and_edit(client, image, edit("Exposure", "Compensation", "2"))
+        for bad in ("Nonsense", "Exposure/Nonsense"):
+            dest, result = await partial_dest(tmp_path, image, client, exclude=[bad])
+            assert result.is_error and "unknown_key" in text_of(result)
+            assert not dest.exists()

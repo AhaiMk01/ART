@@ -54,6 +54,35 @@ def test_exiftool_is_found_beside_art_cli(tmp_path):
     assert artdir.find_exiftool(art) == art / "exiftool.exe"
 
 
+def put_exiftool(folder: Path) -> Path:
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "exiftool.exe").write_bytes(b"")
+    return folder / "exiftool.exe"
+
+
+def test_exiftool_lookup_order_beside_cli_then_path_then_newest_install(tmp_path):
+    art = make_art(tmp_path / "fork")  # a fork build: ART-cli, no exiftool
+    on_path = tmp_path / "path"
+    program_files = tmp_path / "ART"
+    put_exiftool(program_files / "1.26.9")
+    newest = put_exiftool(program_files / "1.26.10")
+    path_env = {"PATH": os.pathsep.join([str(tmp_path / "nothing"), str(on_path)])}
+
+    assert artdir.locate_exiftool(art, path_env, program_files) == newest
+    assert artdir.locate_exiftool(None, {}, program_files) == newest
+    on_path_tool = put_exiftool(on_path)
+    assert artdir.locate_exiftool(art, path_env, program_files) == on_path_tool
+    beside = put_exiftool(art)
+    assert artdir.locate_exiftool(art, path_env, program_files) == beside
+
+
+def test_exiftool_lookup_finds_nothing_without_candidates(tmp_path):
+    art = make_art(tmp_path / "fork")
+    make_art(tmp_path / "ART" / "1.26.9")  # an install without exiftool
+    assert artdir.locate_exiftool(art, {}, tmp_path / "ART") is None
+    assert artdir.locate_exiftool(None, {}, tmp_path / "missing") is None
+
+
 def test_fast_export_box_is_the_smaller_side_of_the_users_box(tmp_path):
     assert artdir.fast_export_box(tmp_path) == 1920  # no options file: ART's default
 

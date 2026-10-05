@@ -40,7 +40,7 @@ From [Implementation language and SDK](https://github.com/AhaiMk01/ART/issues/7)
 - **Errors:** MCP `isError` with a short code and a message. Codes:
   `not_open`, `not_found`, `out_of_range`, `unknown_key`, `conflict`, `exists`,
   `render_failed`, `timeout` (art-cli or exiftool), `metadata_unavailable` (no
-  exiftool beside ART-cli), `metadata_failed`, `invalid_tag`, `open_in_editor`,
+  exiftool found, 5), `metadata_failed`, `invalid_tag`, `open_in_editor`,
   `art_not_running`, `write_failed`, `busy`, `unsupported` (the ART
   build lacks a fork feature). Live server only: `timeout` also covers ART not answering
   on the control channel; `bad_reply` (ART's answer isn't the protocol); ART's
@@ -200,9 +200,19 @@ pickers use, not an approximation from a rendered file.
   have to read ART's source. Neutral spots `a` and `b` (the clearer one has
   the higher green): `RedRatio = log(clear.r/dense.r) / log(clear.g/dense.g)`,
   `BlueRatio` likewise with blue, `GreenExponent` unchanged. Reference spot:
-  `RefInput = avg`; `RefOutput = (L, L, L)` for an output grey level `L`
-  (ART's default is 65535/24; the GUI picks `L` so that the previous
+  `RefInput = avg`; `RefOutput = (L, L, L)`: the linear output level
+  (0..65535, before the tone curve) the reference spot gets, since the
+  engine computes `out = RefOutput * (in / RefInput)^exponent`, clipped at
+  65535. Choose `L` = the spot's intended reflectance x 65535 (18% grey about
+  11800; ~0.3 about 19700), then check `image_stats` `clipped_high` and raise
+  `L` until highlights just don't clip. ART's default 65535/24 corresponds to
+  the image median, not a chosen spot (the GUI picks `L` so that the previous
   reference spot keeps its luminance, which the agent may do or not).
+- On a film negative the sampled values are the negative's (transmitted
+  light): higher is a darker part of the scene; ratios are unaffected. The
+  description also recommends fitting `RedRatio = 1/slope` of ln r against
+  ln g (and `BlueRatio` with b) over many neutral spots, dropping those with
+  large residuals, instead of trusting one pair.
 
 Render server: a new `art-cli` option in the fork,
 `-x <size>,<space>,<x1>,<y1>[,<x2>,<y2>...]`, given with the usual `-p`
@@ -235,16 +245,24 @@ output-referred 8-bit image, and returns per channel `r`, `g`, `b` and `lum`
 - `mean`;
 - `histogram` (only when asked): 256 counts.
 
-Plus the rendered `width`/`height`. Downscaling hides clipping in tiny
+Film scans include the holder/border, which dominates clipping and
+percentiles: crop first (Render applies the working profile's crop; Live's
+preview is uncropped). Plus the rendered `width`/`height`. Downscaling hides clipping in tiny
 highlights. Render: raise `max_size` (up to 2576) to see more. Live: `max_size`
 can only shrink the ~600 px editor preview, never enlarge it.
 
 ## 5. Locating ART (both servers)
 
-`--art-dir` flag or `ART_DIR` env (folder with `ART-cli.exe` and
-`exiftool.exe`), else PATH, else the newest `C:\Program Files\ART\<version>`.
-The Render server fails at startup if none is found; the Live server needs it
-only for `inspect_image` and fails that tool alone.
+`--art-dir` flag or `ART_DIR` env (folder with `ART-cli.exe`), else PATH, else
+the newest `C:\Program Files\ART\<version>`. The Render server fails at
+startup if none is found; the Live server needs it only to find the config
+folder of a portable install and exiftool.
+
+**exiftool** is located separately from ART-cli, because a fork build has
+none: beside ART-cli in that folder first, else on PATH, else beside the
+newest installed `C:\Program Files\ART\<version>` that has one. If none is
+found `inspect_image` fails with `metadata_unavailable` and `open_image`'s
+metadata is null (both servers).
 
 ART's **config folder** (its `options` file, and the Live server's discovery
 file) follows ART's own rules (`Options::load`): `ART_SETTINGS` if set; else
@@ -271,7 +289,7 @@ on Windows). Any tool except `open_image` on a path not opened returns
 | `render_preview` | `path`, `max_size=1024`, `region?`, `inline?` | JPEG path (+ `ImageContent` if inline) |
 | `export_image` | `path`, `output`, `format: "jpeg" \| "tiff" \| "png"`, `quality?` (jpeg only, 1..100), `bit_depth?` (jpeg `8`; png `8`\|`16`; tiff `8`\|`16`\|`16f`\|`32`), `write_profile=false`, `overwrite=false` | Output path, `.arp` path when written |
 | `save_sidecar` | `path`, `on_conflict?: "merge" \| "overwrite" \| "cancel"` | `saved`, path, `how` (written/merged/overwritten/cancelled), or conflict + changed keys |
-| `save_partial_profile` | `path`, `dest`, `overwrite=false` | `written`, path, keys written |
+| `save_partial_profile` | `path`, `dest`, `overwrite=false`, `exclude=[]` | `written`, path, keys written |
 | `inspect_image` | `path`, `tags?` | Fixed metadata fields + requested tags |
 | `describe_adjustments` | none | Curated schema + `PPVERSION` warning |
 | `sample_spots` | `path`, `spots`, `size=32`, `space="working"` | Linear spot values (4.1); `unsupported` with a release `art-cli` |
@@ -327,7 +345,12 @@ From [Sidecar write policy for the Render server](https://github.com/AhaiMk01/AR
   of change tracking.
 - `save_partial_profile` writes only the keys the agent changed since load or
   the last `save_sidecar` to `dest`; refuses an existing file unless
-  `overwrite=true`; writes nothing when nothing changed.
+  `overwrite=true`; writes nothing when nothing changed (also when `exclude`
+  removes everything). `exclude` lists `"Group"` or `"Group/Key"` entries left
+  out of the file; a group or key not in the working profile is `unknown_key`.
+  For a roll preset the per-frame settings should be excluded: `Coarse
+  Transformation`, `Crop`, `Film Negative/RefInput` (and `Film Negative/RefOutput`
+  if set per frame). The Live server has no `save_partial_profile`.
 - `export_image` renders the working profile as it is, saved or not. It writes
   a `.arp` beside the output only with `write_profile=true` (art-cli `-O`).
 
@@ -356,7 +379,8 @@ From [art-cli as the Render server's backend](https://github.com/AhaiMk01/ART/is
 
 ### 6.4 Metadata
 
-`inspect_image` runs the `exiftool.exe` shipped with ART (13.59 in ART 1.26.9)
+`inspect_image` runs the `exiftool.exe` shipped with ART (13.59 in ART 1.26.9),
+located as in section 5 (not necessarily beside ART-cli),
 with `-j -n`. Fixed fields: make, model, lens, ISO, shutter, aperture, focal
 length, capture date, pixel dimensions, orientation. `tags` adds named exiftool
 tags. `art-cli` has no metadata output; Pillow can't read most raws.

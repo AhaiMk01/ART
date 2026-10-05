@@ -158,7 +158,7 @@ def read_metadata(exiftool: "Exiftool | None", image: Path, tags: list[str]) -> 
     """``exiftool.read`` for both servers, with failures as MetadataProblem:
     metadata_unavailable, invalid_tag, timeout or metadata_failed."""
     if exiftool is None:
-        raise MetadataProblem("metadata_unavailable", "exiftool was not found beside ART-cli")
+        raise MetadataProblem("metadata_unavailable", "exiftool was not found (beside ART-cli, on PATH, or in an ART install)")
     try:
         return exiftool.read(image, tags)
     except InvalidTag as e:

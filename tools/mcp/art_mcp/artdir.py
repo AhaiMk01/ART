@@ -19,7 +19,8 @@ def find_cli(folder: Path) -> Path | None:
 
 
 def find_exiftool(folder: Path) -> Path | None:
-    """The exiftool ART ships beside ART-cli."""
+    """The exiftool in ``folder`` (ART's release installs ship one beside
+    ART-cli)."""
     for name in EXIFTOOL_NAMES:
         if (folder / name).is_file():
             return folder / name
@@ -48,6 +49,28 @@ def find_art_dir(
         installs = [d for d in program_files.iterdir() if find_cli(d)]
         if installs:
             return max(installs, key=_version_key)
+    return None
+
+
+def locate_exiftool(
+    art_dir: Path | None, env: Mapping[str, str], program_files: Path | None
+) -> Path | None:
+    """exiftool, looked for apart from ART-cli (a fork build has none): beside
+    ART-cli in ``art_dir`` first, else on PATH, else beside the newest
+    versioned folder under ``program_files`` that has one."""
+    if art_dir is not None:
+        found = find_exiftool(art_dir)
+        if found:
+            return found
+    for entry in env.get("PATH", "").split(os.pathsep):
+        if entry:
+            found = find_exiftool(Path(entry))
+            if found:
+                return found
+    if program_files is not None and program_files.is_dir():
+        installs = [d for d in program_files.iterdir() if find_exiftool(d)]
+        if installs:
+            return find_exiftool(max(installs, key=_version_key))
     return None
 
 

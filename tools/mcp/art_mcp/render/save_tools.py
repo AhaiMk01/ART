@@ -166,15 +166,36 @@ def register(server: MCPServer, session: RenderSession) -> None:
 
     @server.tool()
     def save_partial_profile(
-        path: str, dest: str, overwrite: bool = False
+        path: str, dest: str, overwrite: bool = False, exclude: list[str] = []
     ) -> PartialProfileResult:
         """Write only the values the agent changed since the profile was
         loaded or last saved to `dest`, as a partial processing profile
         (.arp) that can be applied on top of other images. Refuses an
         existing `dest` unless `overwrite`. Nothing is written when nothing
-        changed."""
+        changed.
+
+        `exclude`: `"Group"` or `"Group/Key"` entries left out of the file
+        (an unknown group or key is `unknown_key`). For a roll preset exclude
+        the per-frame settings: `Coarse Transformation`, `Crop`,
+        `Film Negative/RefInput` (and `Film Negative/RefOutput` if set per
+        frame)."""
         with session.image(path) as wp:
+            profile = wp.changes.profile
+            for entry in exclude:
+                group, _, key = entry.partition("/")
+                if group not in profile or (key and key not in profile[group]):
+                    raise tool_error(
+                        "unknown_key",
+                        f"exclude {entry!r}: not in this image's processing profile",
+                    )
             partial = wp.changes.partial_profile()
+            for entry in exclude:
+                group, _, key = entry.partition("/")
+                if key:
+                    partial.get(group, {}).pop(key, None)
+                else:
+                    partial.pop(group, None)
+            partial = {g: k for g, k in partial.items() if k}
             target = Path(dest).resolve()
             if not target.parent.is_dir():
                 raise tool_error("not_found", f"folder {target.parent} does not exist")

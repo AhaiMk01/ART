@@ -90,7 +90,7 @@ def main() -> None:
         sys.exit("art-mcp-render: ART-cli not found; pass --art-dir or set ART_DIR")
 
     sweep_stale()
-    exiftool_path = artdir.find_exiftool(folder) if folder else None
+    exiftool_path = artdir.locate_exiftool(folder, os.environ, program_files)
     server = build_server(
         ArtCli((str(cli_path),), timeout=args.preview_timeout, export_timeout=args.export_timeout),
         artdir.user_config_dir(os.environ, art_dir=folder),
