@@ -271,20 +271,72 @@ class WorkingChanges:
         """Apply raw ``edits`` only; returns the values that changed."""
         return self.edit(None, edits).changed
 
+    def layer(self, resolved: KeyFile) -> list[tuple[str, str]]:
+        """Make ``resolved``, the complete profile art-cli built with a preset
+        laid over this one, the working profile. Whatever it changes counts as
+        the agent's change, like an edit's (so a save's merge and a partial
+        profile include it); returns the ``(group, key)`` of each, in file
+        order, leaving out ``[Version]``, which no edit sets. A key it lacks
+        is dropped (ART replaces Color Correction regions wholesale)."""
+        changed: list[tuple[str, str]] = []
+        for group in [*resolved, *(g for g in self.profile if g not in resolved)]:
+            old, new = self.profile.get(group, {}), resolved.get(group, {})
+            for key in [*new, *(k for k in old if k not in new)]:
+                if group != VERSION_GROUP and old.get(key) != new.get(key):
+                    self._loaded.setdefault((group, key), old.get(key))
+                    changed.append((group, key))
+        self.profile = {group: dict(entries) for group, entries in resolved.items()}
+        return changed
+
     def partial_profile(self) -> KeyFile:
         """Only the values the agent changed (and didn't change back)."""
         partial: KeyFile = {}
+        regions_dropped = False
         for (group, key), loaded in self._loaded.items():
-            if self.profile[group][key] != loaded:
-                partial.setdefault(group, {})[key] = self.profile[group][key]
-        changed = partial.get(CC_GROUP)
-        if changed is not None and any(is_region_key(k) for k in changed):
-            # ART replaces all Color Correction regions by the ones a profile
-            # lists, each from its own keys (defaults for the rest): changing
-            # one region key sends every region whole.
-            regions = {k: v for k, v in self.profile[CC_GROUP].items() if is_region_key(k)}
+            current = self._value(group, key)
+            if current == loaded:
+                continue
+            if current is None:
+                # Dropped by a layered preset: a partial profile can't say so.
+                regions_dropped = regions_dropped or (group == CC_GROUP and is_region_key(key))
+                continue
+            partial.setdefault(group, {})[key] = current
+        return _with_whole_regions(partial, self.profile, force=regions_dropped)
+
+
+def _with_whole_regions(partial: KeyFile, profile: KeyFile, force: bool = False) -> KeyFile:
+    """``partial`` with every Color Correction region key of ``profile`` when it
+    changes one (or ``force``: a region key was dropped): ART replaces all
+    regions by the ones a profile lists, each from its own keys (defaults for
+    the rest), so changing one region key sends every region whole."""
+    changed = partial.get(CC_GROUP, {})
+    if force or any(is_region_key(k) for k in changed):
+        regions = {k: v for k, v in profile.get(CC_GROUP, {}).items() if is_region_key(k)}
+        if regions:
             partial[CC_GROUP] = {**regions, **changed}
-        return partial
+    return partial
+
+
+def partial_vs_default(profile: KeyFile, default: KeyFile) -> KeyFile:
+    """The values of ``profile`` that differ from ``default`` (ART's default
+    profile for the image), whatever the profile was loaded from: a partial
+    profile that describes the work in full relative to ART's default.
+
+    Values are compared as the strings stored. A key equal to the default's is
+    left out; so is one only the default has (a partial profile can't unset a
+    key, and the target image's own value is its default anyway); a key only
+    ``profile`` has counts as different. ``[Version]`` is never taken: it says
+    which ART wrote the profile, and a partial profile without it is read as
+    the current version, as the complete values it holds are."""
+    partial: KeyFile = {}
+    for group, entries in profile.items():
+        if group == VERSION_GROUP:
+            continue
+        was = default.get(group, {})
+        for key, value in entries.items():
+            if was.get(key) != value:
+                partial.setdefault(group, {})[key] = value
+    return _with_whole_regions(partial, profile)
 
 
 def typed_adjustments(profile: KeyFile) -> tuple[dict[str, dict[str, Any]], set[tuple[str, str]]]:

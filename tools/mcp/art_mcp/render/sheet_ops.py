@@ -26,6 +26,7 @@ from art_mcp.keyfile import KeyFile
 from art_mcp.render.errors import RenderError, render_error
 from art_mcp.render.preview_ops import MAX_PREVIEW_SIZE, render_jpeg
 from art_mcp.render.session import RenderSession
+from art_mcp.render.sheet_changes import MAX_SHARED_CHANGES, ChangeSummary, KeyChange, changes_between, summarise
 
 SHEETS_DIR = "sheets"
 PROFILES_FILE = "profiles.json"
@@ -41,15 +42,24 @@ MAX_LABEL_SLUG = 40
 _PASS_FILE = re.compile(r"pass-(\d+)(?:-.*)?\.(?:jpg|json)", re.IGNORECASE)
 
 
-class KeyChange(BaseModel):
-    group: str
-    key: str
-    before: str | None
-    """The value in the earlier pass; null when the profile had no such key."""
-    after: str | None
+class Pass(BaseModel):
+    """What a pass's JSON file and the result of the call that made it have in common."""
+
+    index: int
+    label: str | None
+    time: str
+    """ISO 8601, local time."""
+    sheet: str
+    """The sheet's file name, beside the JSON file."""
+    thumb_size: int
+    columns: int
+    width: int
+    height: int
 
 
 class SheetImage(BaseModel):
+    """One frame, as the pass's JSON file has it, with every change."""
+
     path: str
     name: str
     box: list[int] | None
@@ -59,30 +69,43 @@ class SheetImage(BaseModel):
     since_pass: int | None
     """The pass `changes` is measured from: the last one this image was in. Null for its first."""
     changes: list[KeyChange] | None
-    """The profile values that differ from that pass; null for the image's first pass (or when its
-    profile couldn't be read)."""
+    """The profile values that differ from that pass, numbers in their shortest form; null for the
+    image's first pass (or when its profile couldn't be read)."""
 
 
-class PassRecord(BaseModel):
+class PassRecord(Pass):
     """What the pass's JSON file holds."""
 
-    index: int
-    label: str | None
-    time: str
-    """ISO 8601, local time."""
-    sheet: str
-    """The sheet's file name, beside this file."""
-    thumb_size: int
-    columns: int
-    width: int
-    height: int
     images: list[SheetImage]
 
 
-class SheetResult(PassRecord):
+class SheetFrame(BaseModel):
+    """One frame, as the result of ``contact_sheet`` has it: the number of changes, not the changes."""
+
+    path: str
+    name: str
+    box: list[int] | None
+    """[x, y, w, h] of its frame on the sheet; null when it could not be rendered."""
+    error: str | None
+    """`<code>: <message>` when this image could not be rendered; the sheet shows a placeholder."""
+    since_pass: int | None
+    """The pass `changed` is measured from: the last one this image was in. Null for its first."""
+    changed: int | None
+    """How many profile values differ from that pass (0 when none); null when there is nothing to
+    compare with. Which ones: `changes` for the roll, the pass JSON per frame."""
+
+
+class SheetResult(Pass):
+    images: list[SheetFrame]
+    changes: ChangeSummary | None
+    """What changed since the last pass, the same change on several frames being one entry with their
+    file names (`groups`: the most shared first, then by name; `more`: how many further ones are not
+    listed). Null when no frame had an earlier pass to compare with (a first pass). Every change per
+    frame is in the JSON."""
     path: str
     """The sheet (a JPEG); open it to look at the roll."""
     json_path: str
+    """The pass's record: per image `changes`, every profile value that differs."""
     rendered: int
     failed: int
     warnings: list[str] = []
@@ -165,18 +188,6 @@ def read_profiles(sheets: Path) -> dict[str, dict]:
         for key, entry in data.items()
         if isinstance(entry, dict) and isinstance(entry.get("pass"), int) and isinstance(entry.get("profile"), dict)
     }
-
-
-def changes_between(before: KeyFile, after: KeyFile) -> list[KeyChange]:
-    """Every value that differs between two profiles (changed, added or
-    removed), in file order."""
-    changes: list[KeyChange] = []
-    for group in [*before, *(g for g in after if g not in before)]:
-        old, new = before.get(group, {}), after.get(group, {})
-        for key in [*old, *(k for k in new if k not in old)]:
-            if old.get(key) != new.get(key):
-                changes.append(KeyChange(group=group, key=key, before=old.get(key), after=new.get(key)))
-    return changes
 
 
 def render_all(
@@ -345,8 +356,19 @@ def save_pass(
             f"the sheet is {grid.width}x{grid.height} px and gets shown at most {MAX_PREVIEW_SIZE} px on its "
             "long edge, so the frames look smaller than thumb_size: use fewer images or a smaller thumb_size"
         )
+    summary = summarise(((i.name, i.changes) for i in images), MAX_SHARED_CHANGES)
+    if summary is not None and summary.more:
+        warnings.append(
+            f"changes lists the {len(summary.groups)} most shared of {len(summary.groups) + summary.more} "
+            f"different changes ({summary.more} more not listed): every change per frame is in {record_file}"
+        )
     return SheetResult(
-        **record.model_dump(),
+        **record.model_dump(exclude={"images"}),
+        images=[
+            SheetFrame(**i.model_dump(exclude={"changes"}), changed=None if i.changes is None else len(i.changes))
+            for i in images
+        ],
+        changes=summary,
         path=str(jpeg),
         json_path=str(record_file),
         rendered=rendered,

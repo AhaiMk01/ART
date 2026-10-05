@@ -10,7 +10,7 @@ shape is written with every key ART's saver writes (``REGION_DEFAULTS`` and
 ``SHAPE_DEFAULTS``, taken from ``ColorCorrectionParams::Region``/``Mask``
 saving in ``src/engine/procparams.cc`` and a real default profile), and a
 partial profile that changes any region key carries all region keys
-(``WorkingChanges.partial_profile``).
+(``WorkingChanges.partial_profile``, ``partial_vs_default``).
 """
 
 import re

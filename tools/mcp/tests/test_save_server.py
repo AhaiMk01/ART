@@ -1,5 +1,6 @@
 """save_sidecar and save_partial_profile through an in-process client."""
 
+import json
 import sys
 from pathlib import Path
 
@@ -415,3 +416,153 @@ async def test_partial_profile_exclude_of_an_unknown_name_is_unknown_key(
             dest, result = await partial_dest(tmp_path, image, client, exclude=[bad])
             assert result.is_error and "unknown_key" in text_of(result)
             assert not dest.exists()
+
+
+# -- save_partial_profile vs: "default" ----------------------------------------
+
+ROLL_PRESET = (
+    "[Version]\nAppVersion=1.0.0\nVersion=1000\n\n"
+    "[Exposure]\nEnabled=false\nBlack=5\n\n"
+    "[Film Negative]\nEnabled=true\nRedRatio=1.5\n"
+)
+"""A roll preset: the base settings of a film roll, over ART's default profile
+(which has Exposure on, Black 0 and no Film Negative group; a version of its
+own, which the saved file must not take along)."""
+
+
+@pytest.fixture
+def preset(tmp_path):
+    path = tmp_path / "roll.arp"
+    path.write_text(ROLL_PRESET)
+    return path
+
+
+async def open_from_preset_and_edit(client, image, preset, *edits):
+    await client.call_tool("open_image", {"path": str(image), "profile": str(preset)})
+    result = await client.call_tool("edit_profile", {"path": str(image), "raw_edits": list(edits)})
+    assert not result.is_error, result.content
+
+
+async def test_partial_profile_vs_default_carries_the_keys_of_the_preset_the_frame_was_opened_from(
+    server, image, preset, tmp_path
+):
+    async with Client(server) as client:
+        await open_from_preset_and_edit(client, image, preset, edit("Exposure", "Compensation", "2"))
+        _, opened = await partial_dest(tmp_path, image, client)
+        dest, default = await partial_dest(tmp_path, image, client, overwrite=True, vs="default")
+
+    assert opened.structured_content["keys"] == ["[Exposure] Compensation"]
+    assert opened.structured_content["vs"] == "opened"
+    assert not default.is_error, default.content
+    assert keyfile.loads(dest.read_text()) == {
+        "Exposure": {"Enabled": "false", "Compensation": "2", "Black": "5"},
+        "Film Negative": {"Enabled": "true", "RedRatio": "1.5"},
+    }
+    assert default.structured_content["vs"] == "default"
+    assert default.structured_content["written"] is True
+    assert default.structured_content["keys"] == [
+        "[Exposure] Enabled", "[Exposure] Compensation", "[Exposure] Black",
+        "[Film Negative] Enabled", "[Film Negative] RedRatio",
+    ]  # fmt: skip
+
+
+async def test_partial_profile_vs_default_leaves_out_what_equals_the_default_and_the_version(
+    server, image, preset, tmp_path
+):
+    async with Client(server) as client:
+        await open_from_preset_and_edit(
+            client, image, preset, edit("Exposure", "Compensation", "2")
+        )
+        await client.call_tool(  # back to ART's default value: not a difference
+            "edit_profile",
+            {"path": str(image), "raw_edits": [edit("Exposure", "Compensation", "0")]},
+        )
+        dest, result = await partial_dest(tmp_path, image, client, vs="default")
+
+    saved = keyfile.loads(dest.read_text())
+    assert saved == {
+        "Exposure": {"Enabled": "false", "Black": "5"},
+        "Film Negative": {"Enabled": "true", "RedRatio": "1.5"},
+    }  # not White Balance, Crop, LensProfile (all the default's), nor [Version] (the preset's own)
+    assert result.structured_content["keys"] == [
+        "[Exposure] Enabled", "[Exposure] Black", "[Film Negative] Enabled", "[Film Negative] RedRatio",
+    ]  # fmt: skip
+
+
+async def test_partial_profile_vs_default_of_an_unchanged_default_profile_writes_nothing(
+    server, image, tmp_path
+):
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        dest, result = await partial_dest(tmp_path, image, client, vs="default")
+
+    assert result.structured_content["written"] is False
+    assert result.structured_content["keys"] == [] and result.structured_content["vs"] == "default"
+    assert not dest.exists()
+
+
+async def test_partial_profile_vs_default_skips_the_keys_only_the_default_has(
+    server, image, sidecar, tmp_path
+):
+    """The sidecar fixture lists only [Exposure]: with the fake art-cli the
+    working profile has no White Balance, Crop or LensProfile keys at all."""
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        dest, result = await partial_dest(tmp_path, image, client, vs="default")
+
+    assert not result.is_error, result.content
+    assert keyfile.loads(dest.read_text()) == {"Exposure": {"Compensation": "1"}}
+
+
+async def test_partial_profile_vs_default_applies_exclude(server, image, preset, tmp_path):
+    async with Client(server) as client:
+        await open_from_preset_and_edit(
+            client, image, preset, edit("Exposure", "Compensation", "2")
+        )
+        dest, one_key = await partial_dest(
+            tmp_path, image, client, vs="default", exclude=["Exposure/Black", "Film Negative"]
+        )
+        _, nothing = await partial_dest(
+            tmp_path, image, client, vs="default", overwrite=True, exclude=["Exposure", "Film Negative"]
+        )
+        _, unknown = await partial_dest(
+            tmp_path, image, client, vs="default", overwrite=True, exclude=["Nonsense"]
+        )
+
+    assert one_key.structured_content["keys"] == ["[Exposure] Enabled", "[Exposure] Compensation"]
+    assert nothing.structured_content["written"] is False
+    assert unknown.is_error and "unknown_key" in text_of(unknown)
+    assert keyfile.loads(dest.read_text()) == {"Exposure": {"Enabled": "false", "Compensation": "2"}}
+
+
+@pytest.mark.parametrize("vs", ["sidecar", "", "Default"])
+async def test_partial_profile_with_another_baseline_is_out_of_range(
+    server, image, preset, tmp_path, vs
+):
+    async with Client(server) as client:
+        await open_from_preset_and_edit(client, image, preset, edit("Exposure", "Compensation", "2"))
+        dest, result = await partial_dest(tmp_path, image, client, vs=vs)
+
+    assert result.is_error and "out_of_range" in text_of(result) and "opened, default" in text_of(result)
+    assert not dest.exists()
+
+
+async def test_the_default_profile_is_only_asked_for_with_vs_default_and_once_per_opened_image(
+    server, image, preset, tmp_path, monkeypatch
+):
+    log = tmp_path / "args.log"
+    monkeypatch.setenv("FAKE_ARGS_LOG", str(log))
+
+    def default_runs():
+        return sum("-d" in json.loads(line) for line in log.read_text().splitlines())
+
+    async with Client(server) as client:
+        await open_from_preset_and_edit(client, image, preset, edit("Exposure", "Compensation", "2"))
+        opened_runs = default_runs()
+        await partial_dest(tmp_path, image, client)
+        assert default_runs() == opened_runs
+
+        await partial_dest(tmp_path, image, client, overwrite=True, vs="default")
+        assert default_runs() == opened_runs + 1
+        await partial_dest(tmp_path, image, client, overwrite=True, vs="default")
+        assert default_runs() == opened_runs + 1

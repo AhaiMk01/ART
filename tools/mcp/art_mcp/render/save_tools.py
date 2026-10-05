@@ -2,17 +2,21 @@
 ``save_ops``; asking the user about a conflict is the MCP tool's part)."""
 
 from pathlib import Path
+from typing import Annotated
 
 import anyio.to_thread
 from mcp.server.mcpserver import Context, MCPServer
 from mcp.shared.exceptions import NoBackChannelError
 from mcp.types import ClientCapabilities, ElicitationCapability
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from art_mcp.render import save_ops as ops
 from art_mcp.render.adapter import as_tool_errors
 from art_mcp.render.save_ops import OnConflict, PartialProfileResult, SaveResult
 from art_mcp.render.session import RenderSession
+
+# The enum lists the values in the schema; a wrong one still gets out_of_range.
+Baseline = Annotated[str, Field(json_schema_extra={"enum": list(ops.PARTIAL_BASELINES)})]
 
 
 class ConflictChoice(BaseModel):
@@ -75,12 +79,24 @@ def register(server: MCPServer, session: RenderSession) -> None:
         dest: str,
         overwrite: bool = False,
         exclude: list[str] = [],  # noqa: B006 - never mutated; the schema shows default []
+        vs: Baseline = "opened",
     ) -> PartialProfileResult:
-        """Write only the values the agent changed since the profile was
-        loaded or last saved to `dest`, as a partial processing profile
-        (.arp) that can be applied on top of other images. Refuses an
-        existing `dest` unless `overwrite`. Nothing is written when nothing
-        changed.
+        """Write a partial processing profile (.arp) to `dest`, that can be
+        applied on top of other images. Refuses an existing `dest` unless
+        `overwrite`. Nothing is written when there is nothing to write.
+
+        `vs` is what the saved keys are measured against; the result's `vs`
+        says which was used and its `keys` lists every `[Group] Key` written.
+        `"opened"` (default): only the values the agent changed since the
+        profile was loaded or last saved; keys the profile came with (from the
+        sidecar, or from open_image's `profile`) are NOT in the file.
+        `"default"`: every value that differs from ART's default profile for
+        this image, so the file describes the whole work whatever the image
+        was opened from: use it for a preset saved from an image opened from
+        another preset (the base settings come along). Keys equal to ART's
+        default and `[Version]` are not written; the first call per opened
+        image runs art-cli to get the default (`render_failed` or `timeout`
+        if that fails). Any other value is `out_of_range`.
 
         `exclude`: `"Group"` or `"Group/Key"` entries left out of the file
         (an unknown group or key is `unknown_key`). Settings that belong to
@@ -90,4 +106,4 @@ def register(server: MCPServer, session: RenderSession) -> None:
         Workflows for film scans: see the film-negative and faded-slide
         skills (tools/mcp/skills)."""
         with as_tool_errors():
-            return ops.save_partial_profile(session, path, dest, overwrite, exclude)
+            return ops.save_partial_profile(session, path, dest, overwrite, exclude, vs)

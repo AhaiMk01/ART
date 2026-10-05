@@ -7,7 +7,7 @@ import pytest
 
 from art_mcp import keyfile
 from art_mcp.colorcorrection import REGION_DEFAULTS, SHAPE_DEFAULTS, is_region_key
-from art_mcp.profile import RawEdit, UnknownKey, WorkingChanges, read_format
+from art_mcp.profile import RawEdit, UnknownKey, WorkingChanges, partial_vs_default, read_format
 from art_mcp.schema import AdjustmentError, describe_adjustments, parse_adjustments
 
 REAL_DEFAULT = (Path(__file__).parent / "data" / "art_default_colorcorrection.arp").read_text()
@@ -306,6 +306,28 @@ def test_a_changed_back_region_is_not_in_the_partial_profile():
     changes.edit(None, [RawEdit(group="ColorCorrection", key="SlopeR_1", value="1")])
 
     assert changes.partial_profile() == {}
+
+
+def test_a_partial_profile_vs_default_carries_every_region_whole_too():
+    default = profile()
+    default["ColorCorrection"].update({f"{k}_1": v for k, v in REGION_DEFAULTS})
+    graded = {group: dict(entries) for group, entries in default.items()}
+    graded["ColorCorrection"]["SlopeR_1"] = "1.3"
+
+    partial = partial_vs_default(graded, default)["ColorCorrection"]
+
+    assert partial["SlopeR_1"] == "1.3"
+    assert keys(partial, 1) == {k for k, _ in REGION_DEFAULTS}
+    assert "Enabled" not in partial
+
+
+def test_a_partial_profile_vs_default_without_region_changes_has_no_regions():
+    default = profile()
+    default["ColorCorrection"].update({f"{k}_1": v for k, v in REGION_DEFAULTS})
+    same_regions = {group: dict(entries) for group, entries in default.items()}
+    same_regions["ColorCorrection"]["Enabled"] = "true"
+
+    assert partial_vs_default(same_regions, default) == {"ColorCorrection": {"Enabled": "true"}}
 
 
 @pytest.mark.parametrize(

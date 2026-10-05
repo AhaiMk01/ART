@@ -10,6 +10,7 @@ from PIL import Image
 
 from art_mcp.contactsheet import HEADER_HEIGHT, LABEL_HEIGHT, PAD
 from art_mcp.preview import PreviewFolder
+from art_mcp.render import sheet_ops
 from art_mcp.render.artcli import ArtCli
 from art_mcp.render.server import build_server
 
@@ -167,7 +168,22 @@ async def test_a_label_with_nothing_to_name_a_file_by_is_refused(server, images,
     assert not (out / "sheets").exists()
 
 
-async def test_the_record_lists_the_keys_changed_since_the_last_pass(server, images, out):
+def black(value):
+    return [{"group": "Exposure", "key": "Black", "value": value}]
+
+
+def record(result):
+    """The pass JSON the result points at: the per-frame detail."""
+    return json.loads(Path(result.structured_content["json_path"]).read_text(encoding="utf-8"))
+
+
+def compensation_change(before, after, images):
+    return {"group": "Exposure", "key": "Compensation", "before": before, "after": after, "images": images}
+
+
+async def test_the_result_summarises_the_keys_changed_since_the_last_pass_and_the_record_has_them_per_frame(
+    server, images, out
+):
     async with Client(server) as client:
         await open_all(client, images)
         first = await sheet(client, images, out)
@@ -175,16 +191,144 @@ async def test_the_record_lists_the_keys_changed_since_the_last_pass(server, ima
         second = await sheet(client, images, out)
         third = await sheet(client, images, out)
 
-    assert all(i["changes"] is None and i["since_pass"] is None for i in first.structured_content["images"])
+    assert all(i["changed"] is None and i["since_pass"] is None for i in first.structured_content["images"])
     one, two, three = second.structured_content["images"]
-    assert one["changes"] == [] and one["since_pass"] == 1
-    assert two["since_pass"] == 1
-    assert two["changes"] == [{"group": "Exposure", "key": "Compensation", "before": "0", "after": "1.5"}]
-    assert all(i["changes"] == [] and i["since_pass"] == 2 for i in third.structured_content["images"])
-    on_disk = json.loads(Path(second.structured_content["json_path"]).read_text())
+    assert (one["changed"], one["since_pass"]) == (0, 1)
+    assert (two["changed"], two["since_pass"]) == (1, 1)
+    assert second.structured_content["changes"] == {
+        "groups": [compensation_change("0", "1.5", ["FILM_2.ARW"])],
+        "more": 0,
+    }
+    assert all(i["changed"] == 0 and i["since_pass"] == 2 for i in third.structured_content["images"])
+    assert third.structured_content["changes"] == {"groups": [], "more": 0}
+    on_disk = record(second)
     assert on_disk["index"] == 2
-    assert on_disk["images"][1]["changes"] == two["changes"]
+    assert on_disk["images"][1]["changes"] == [
+        {"group": "Exposure", "key": "Compensation", "before": "0", "after": "1.5"}
+    ]
+    assert on_disk["images"][0]["changes"] == [] and on_disk["images"][0]["since_pass"] == 1
     assert [i["name"] for i in on_disk["images"]] == ["FILM_1.ARW", "FILM_2.ARW", "FILM_3.ARW"]
+
+
+async def test_the_first_pass_has_nothing_to_compare_with(server, images, out):
+    async with Client(server) as client:
+        await open_all(client, images)
+        first = await sheet(client, images, out)
+
+    data = first.structured_content
+    assert data["changes"] is None
+    assert all(i["changed"] is None and i["since_pass"] is None for i in data["images"])
+    assert all("changes" not in i for i in data["images"])  # the per-frame lists are only in the record
+    assert all(i["changes"] is None and i["since_pass"] is None for i in record(first)["images"])
+
+
+async def test_an_identical_change_on_three_frames_is_one_entry_naming_them_and_the_record_keeps_each(
+    server, images, out
+):
+    async with Client(server) as client:
+        await open_all(client, images)
+        await sheet(client, images, out)
+        for image in images:
+            await client.call_tool("edit_profile", {"path": str(image), "raw_edits": compensation("1.5")})
+        await client.call_tool("edit_profile", {"path": str(images[1]), "raw_edits": black("40")})
+        second = await sheet(client, images, out)
+
+    data = second.structured_content
+    assert data["changes"] == {
+        "groups": [
+            compensation_change("0", "1.5", ["FILM_1.ARW", "FILM_2.ARW", "FILM_3.ARW"]),
+            {"group": "Exposure", "key": "Black", "before": "0", "after": "40", "images": ["FILM_2.ARW"]},
+        ],
+        "more": 0,
+    }
+    assert [i["changed"] for i in data["images"]] == [1, 2, 1]
+    per_frame = [[(c["key"], c["after"]) for c in i["changes"]] for i in record(second)["images"]]
+    assert per_frame == [
+        [("Compensation", "1.5")],
+        [("Compensation", "1.5"), ("Black", "40")],
+        [("Compensation", "1.5")],
+    ]
+
+
+async def test_only_the_most_shared_changes_are_listed_and_the_warning_points_at_the_record(
+    server, images, out, monkeypatch
+):
+    monkeypatch.setattr(sheet_ops, "MAX_SHARED_CHANGES", 2)
+    async with Client(server) as client:
+        await open_all(client, images)
+        await sheet(client, images, out)
+        for image in images:
+            await client.call_tool("edit_profile", {"path": str(image), "raw_edits": compensation("1.5")})
+        await client.call_tool("edit_profile", {"path": str(images[1]), "raw_edits": black("40")})
+        await client.call_tool("edit_profile", {"path": str(images[2]), "raw_edits": black("50")})
+        second = await sheet(client, images, out)
+        third = await sheet(client, images, out)
+
+    data = second.structured_content
+    assert [(g["key"], len(g["images"])) for g in data["changes"]["groups"]] == [("Compensation", 3), ("Black", 1)]
+    assert data["changes"]["more"] == 1
+    assert "1 more" in data["warnings"][0] and data["json_path"] in data["warnings"][0]
+    assert [i["changed"] for i in data["images"]] == [1, 2, 2]  # the counts and the record are complete
+    assert sum(len(i["changes"]) for i in record(second)["images"]) == 5
+    assert third.structured_content["warnings"] == []  # nothing left out, nothing to warn about
+
+
+async def test_numbers_come_out_in_their_shortest_form_in_the_result_and_the_record(server, images, out):
+    async with Client(server) as client:
+        await open_all(client, images[:1])
+        await client.call_tool("edit_profile", {"path": str(images[0]), "raw_edits": compensation("1.355")})
+        await sheet(client, images[:1], out)
+        await client.call_tool(
+            "edit_profile", {"path": str(images[0]), "raw_edits": compensation("1.3700000000000001")}
+        )
+        second = await sheet(client, images[:1], out)
+
+    assert second.structured_content["changes"]["groups"] == [compensation_change("1.355", "1.37", ["FILM_1.ARW"])]
+    assert [(c["before"], c["after"]) for c in record(second)["images"][0]["changes"]] == [("1.355", "1.37")]
+    assert "1.3700000000000001" not in Path(second.structured_content["json_path"]).read_text()
+    # the bookkeeping profile is not a report: it keeps the value as ART wrote it
+    kept = json.loads((out / "sheets" / "profiles.json").read_text())
+    assert [e["profile"]["Exposure"]["Compensation"] for e in kept.values()] == ["1.3700000000000001"]
+
+
+async def test_a_curve_is_shortened_token_by_token(images, out, tmp_path, monkeypatch):
+    default = tmp_path / "default.arp"
+    default.write_text("[Exposure]\nCompensation=0\n\n[ToneCurve]\nEnabled=false\nCurve=0;\n")
+    monkeypatch.setenv("FAKE_DEFAULT_PROFILE", str(default))
+    curve = "1;0.098000000000000004;0;0.59999999999999998;0.59999999999999998;1;1;"
+    async with Client(make_server(tmp_path, "previews")) as client:
+        await open_all(client, images[:1])
+        await sheet(client, images[:1], out)
+        edit = await client.call_tool(
+            "edit_profile",
+            {"path": str(images[0]), "raw_edits": [{"group": "ToneCurve", "key": "Curve", "value": curve}]},
+        )
+        second = await sheet(client, images[:1], out)
+
+    assert not edit.is_error, edit.content
+    [group] = second.structured_content["changes"]["groups"]
+    assert (group["group"], group["key"]) == ("ToneCurve", "Curve")
+    assert (group["before"], group["after"]) == ("0;", "1;0.098;0;0.6;0.6;1;1;")
+    assert record(second)["images"][0]["changes"][0]["after"] == "1;0.098;0;0.6;0.6;1;1;"
+
+
+async def test_a_number_written_differently_is_not_a_change(server, images, out):
+    async with Client(server) as client:
+        await open_all(client, images[:1])
+        await client.call_tool("edit_profile", {"path": str(images[0]), "raw_edits": compensation("-0.0216")})
+        await sheet(client, images[:1], out)
+        await client.call_tool(
+            "edit_profile", {"path": str(images[0]), "raw_edits": compensation("-0.021600000000000001")}
+        )
+        second = await sheet(client, images[:1], out)
+        await client.call_tool("edit_profile", {"path": str(images[0]), "raw_edits": compensation("-0.03")})
+        third = await sheet(client, images[:1], out)
+
+    assert second.structured_content["images"][0]["changed"] == 0
+    assert second.structured_content["changes"] == {"groups": [], "more": 0}
+    assert record(second)["images"][0]["changes"] == []
+    # and the pass after it is measured from what it was, shown short
+    assert third.structured_content["changes"]["groups"] == [compensation_change("-0.0216", "-0.03", ["FILM_1.ARW"])]
 
 
 async def test_changes_are_measured_from_the_last_pass_an_image_was_in(server, images, out):
@@ -192,13 +336,18 @@ async def test_changes_are_measured_from_the_last_pass_an_image_was_in(server, i
         await open_all(client, images)
         await sheet(client, images[:2], out)  # pass 1: frames 1 and 2
         await client.call_tool("edit_profile", {"path": str(images[0]), "raw_edits": compensation("0.5")})
-        await sheet(client, images[1:], out)  # pass 2: frames 2 and 3
+        second = await sheet(client, images[1:], out)  # pass 2: frames 2 and 3
         third = await sheet(client, images, out)
 
+    # frame 3 is new in pass 2: nothing to compare, and it counts for nothing in the summary
+    assert [i["changed"] for i in second.structured_content["images"]] == [0, None]
+    assert second.structured_content["changes"] == {"groups": [], "more": 0}
     one, two, three = third.structured_content["images"]
-    assert one["since_pass"] == 1 and [c["key"] for c in one["changes"]] == ["Compensation"]
-    assert two["since_pass"] == 2 and two["changes"] == []
-    assert three["since_pass"] == 2 and three["changes"] == []
+    assert one["since_pass"] == 1 and one["changed"] == 1
+    assert two["since_pass"] == 2 and two["changed"] == 0
+    assert three["since_pass"] == 2 and three["changed"] == 0
+    assert third.structured_content["changes"]["groups"] == [compensation_change("0", "0.5", ["FILM_1.ARW"])]
+    assert [c["key"] for c in record(third)["images"][0]["changes"]] == ["Compensation"]
 
 
 async def test_changes_survive_a_restart_of_the_server(server, images, out, tmp_path):
@@ -212,8 +361,9 @@ async def test_changes_survive_a_restart_of_the_server(server, images, out, tmp_
         result = await sheet(client, images[:1], out)
 
     entry = result.structured_content["images"][0]
-    assert result.structured_content["index"] == 2 and entry["since_pass"] == 1
-    assert [c["after"] for c in entry["changes"]] == ["2"]
+    assert result.structured_content["index"] == 2 and entry["since_pass"] == 1 and entry["changed"] == 1
+    assert [g["after"] for g in result.structured_content["changes"]["groups"]] == ["2"]
+    assert [c["after"] for c in record(result)["images"][0]["changes"]] == ["2"]
 
 
 async def test_the_folder_defaults_to_where_the_last_batch_was_exported(server, images, out, tmp_path):
@@ -267,7 +417,7 @@ async def test_an_image_that_is_not_open_is_a_placeholder_and_the_others_still_r
     first, second = data["images"]
     assert first["error"] is None and first["box"] is not None
     assert second["error"].startswith("not_open") and second["box"] is None
-    assert second["changes"] is None and second["since_pass"] is None
+    assert second["changed"] is None and second["since_pass"] is None
     assert data["rendered"] == 1 and data["failed"] == 1
     assert (out / "sheets" / "pass-01.jpg").is_file()
 
@@ -286,8 +436,8 @@ async def test_one_failing_render_is_that_images_error(server, images, out):
     assert second["error"].startswith("render_failed") and second["box"] is None
     # its profile was still recorded, so the next pass compares with it
     redone = again.structured_content["images"][1]
-    assert redone["error"] is None and redone["since_pass"] == 1
-    assert [(c["before"], c["after"]) for c in redone["changes"]] == [("0", "1")]
+    assert redone["error"] is None and redone["since_pass"] == 1 and redone["changed"] == 1
+    assert [(c["before"], c["after"]) for c in record(again)["images"][1]["changes"]] == [("0", "1")]
 
 
 async def test_an_image_without_a_profile_has_nothing_to_compare(server, images, out):
@@ -299,7 +449,8 @@ async def test_an_image_without_a_profile_has_nothing_to_compare(server, images,
 
     assert [i["since_pass"] for i in again.structured_content["images"]] == [1, 1]
     assert gone.structured_content["images"][0]["since_pass"] is None
-    assert gone.structured_content["images"][0]["changes"] is None
+    assert gone.structured_content["images"][0]["changed"] is None
+    assert record(gone)["images"][0]["changes"] is None
     assert gone.structured_content["images"][1]["since_pass"] == 2
 
 
@@ -315,7 +466,8 @@ async def test_a_damaged_bookkeeping_file_is_no_earlier_pass(server, images, out
 
     for result in (first, second):
         entry = result.structured_content["images"][0]
-        assert entry["since_pass"] is None and entry["changes"] is None
+        assert entry["since_pass"] is None and entry["changed"] is None
+        assert result.structured_content["changes"] is None
 
 
 async def test_nothing_rendered_fails_the_call_and_saves_no_pass(server, images, out):

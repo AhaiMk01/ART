@@ -23,6 +23,7 @@ from art_mcp.preview import PreviewFolder, default_root, sweep_stale
 from art_mcp.render import (
     export_tools,
     metadata_tools,
+    preset_tools,
     preview_tools,
     profile_tools,
     sampling_tools,
@@ -59,7 +60,8 @@ def build_server(
         lifespan=lifespan,
     )
     for feature in (
-        profile_tools, preview_tools, export_tools, save_tools, metadata_tools, sampling_tools, sheet_tools
+        profile_tools, preset_tools, preview_tools, export_tools, save_tools, metadata_tools, sampling_tools,
+        sheet_tools,
     ):
         feature.register(server, session)
     return server

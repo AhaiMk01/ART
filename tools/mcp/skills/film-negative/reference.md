@@ -77,6 +77,31 @@ mean). Pick a green `g0` (a typical neutral's `g`), then
 `RefInput = (exp(ir + ln g0/RedRatio), g0, exp(ib + ln g0/BlueRatio))`.
 Frames in other light have different `ir`, `ib` on the same slopes.
 
+**Scan exposure moves `ir`, `ib` too.** Scale all of a frame's linear values
+by `s` (longer shutter, higher ISO, wider aperture) and its line shifts:
+`ir' = ir + ln(s) (1 - 1/RedRatio)`, `ib' = ib + ln(s) (1 - 1/BlueRatio)`
+(the slopes stay, so the ratios and the pooled fit are unaffected). So
+normalise the intercepts to one scan exposure before comparing frames or
+judging whether a frame fits a group: `ir_norm = ir - ln(s) (1 - 1/RedRatio)`,
+likewise `ib`, with `s = (t * iso / aperture^2) / (t0 * iso0 / aperture0^2)`
+against the reference frame (`inspect_image` gives `shutter_seconds`, `iso`,
+`aperture`; if only the shutter varies, `s = t / t0`). Example, RedRatio 1.37,
+BlueRatio 0.90: a frame at 0.625 s against 0.5 s (`s` = 1.25) has `ir` higher
+by 0.060 and `ib` lower by 0.025 in the same light, and its measured `ib` of
+-1.45 is -1.425 at 0.5 s. This assumes the scans' camera settings are the only
+exposure difference (same backlight and white balance, nothing clipped). The
+~0.03 threshold in "Lighting groups" applies to the normalised values.
+
+**One `g0` per lighting group.** `L` of `RefOutput` is what the `RefInput`
+point is rendered as, so the same `L` gives two frames the same brightness
+only if their `g0` is the same green at the reference exposure. Choose `g0`
+once per group (a typical neutral's green) and use it on every frame of the
+group, scaled for the scan exposure: `g0_frame = s * g0`, with `RefInput` on
+that frame's own (measured) line at `g0_frame`, which is `s` times the point
+on the normalised line at `g0`. Unscaled, the `s` = 1.25 frame above comes out
+at 1.25^-1.5 = 0.72 of the group's brightness (-0.48 EV); in general a `g0`
+off by a factor `c` changes the brightness by `c^1.5`.
+
 ## Changing white balance without changing brightness
 
 ART's picker rule, which `edit_profile` applies itself when a request sets
@@ -130,9 +155,25 @@ Under bluish light (hangar lamps, shade) the inverted shadows can sit blue
 while mid-tones are neutral: the channels' black levels differ, which
 `ref_input` can't fix (it moves the whole line). Lower that channel's black
 with `color_correction`: one region, RGB mode, an `offset` on that channel
-only (e.g. `b` -0.1), no mask. It works in linear values before the tone
-curve, so set it before the curve's black point, then re-check `image_stats`
-per channel: the channel's percentile 0.1 should come down to the others'.
+only (e.g. `b` -0.1), no mask. It works in linear working-space values (0..1
+= 0..65535) before the tone curve, so set it before the curve's black point,
+then re-check `image_stats` per channel: the channel's percentile 0.1 should
+come down to the others'.
+
+The offset is stored halved: ART computes `v = v*slope + offset/2` per channel.
+To lower a channel's black by the linear amount `D`, set `offset = -2 D` (the
+`b` -0.1 above is `D` = 0.05). It comes off every pixel of that channel, not
+only the shadows: a mid-tone neutral loses the same `D` (an 18% grey, sRGB 117,
+went to `b` 98 with `D` = 0.05, a yellow cast). Keep `D` as small as the black
+needs; if the mid-tones then drift, compensate with a `RefOutput` tint (it
+moves that channel's highlights too: check them) or re-pick `RefInput`.
+To size `D` from `image_stats` (sRGB values): the default working space
+(Rec2020) is wider than sRGB, so a working-space `D` moves the linear output by
+about `k D`, `k` = 1.66 for `r`, 1.13 for `g`, 1.12 for `b`. So
+`D = ((v_c/255)^2.2 - (v_t/255)^2.2) / k`, with `v_c` the channel's percentile
+0.1 before the curve and `v_t` the level to match. Example: `b` 53 against `r`
+49 gives `D` = 0.0050 / 1.12 = 0.0045 and `offset` = -0.009 (the 53 came out
+as 49). Then re-check, as above.
 
 ## Changing L after the black adjustments
 
@@ -141,7 +182,7 @@ but changing `L` scales the linear image. Lowering `L` on one frame (a
 low-key frame) with the roll's offset and black point unchanged crushed it
 (62% of blue at 0). With `k = L_new / L_old`:
 
-- offset: `offset * k` (linear);
+- offset: `offset * k` (the stored value; its shift `offset/2` scales alike);
 - black point: `x0_new = (x0^2.2 * k)^(1/2.2)` (curve x is sRGB-encoded).
 
 Example: L 34000 -> 17000, offset -0.1 -> -0.05, x0 0.25 -> ~0.18. Then
@@ -171,12 +212,15 @@ Group by looking, not by clustering numbers:
 2. Per group, take the representative with good contrast (shadows and
    highlights both present) and neutral objects of independent materials;
    tune it fully (white balance, output level, per-channel black offset,
-   black point) and save it as the group's preset.
+   black point) and save it as the group's preset. Fix the group's `g0` here
+   together with `L` (see "Reference point on the neutral line"): every frame
+   of the group takes its `RefInput` at this `g0`, scaled for its scan
+   exposure, or `L` means a different brightness on each frame.
 3. Apply the preset to the group and look at the sheet again. A frame that
    still stands out (a cast its neighbours don't have) gets its neutrals
    sampled: if they sit off the group's line (intercepts `ir`, `ib`, above,
-   differing by more than ~0.03), it is in other light; move it or give it
-   its own reference.
+   normalised to one scan exposure first, differing by more than ~0.03), it is
+   in other light; move it or give it its own reference.
 4. Per frame, check `image_stats` and adjust `L` (scaling the black
    adjustments, above).
 5. Frames that fit no group (a single warm lamp, mixed light) get their own

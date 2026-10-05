@@ -41,6 +41,18 @@ def resolve_profile_args(
     return ["-O", str(output), "-f", "-Y", "-a", *base, "-c", str(image)]
 
 
+def layer_profile_args(image: Path, output: Path, layers: Sequence[Path]) -> list[str]:
+    """The same ``.arp``-only render for ``layers`` laid over one another in
+    order, with no ART default profile under them: the first is expected to be
+    a complete profile (an image's working profile), so what a later, partial
+    one doesn't set stays as the first has it."""
+    return [
+        "-O", str(output), "-f", "-Y", "-a",
+        *(arg for layer in layers for arg in ("-p", str(layer))),
+        "-c", str(image),
+    ]  # fmt: skip
+
+
 def preview_args(
     image: Path,
     output: Path,

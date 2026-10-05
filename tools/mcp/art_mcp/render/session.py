@@ -26,6 +26,7 @@ from art_mcp.render.artcli import (
     ArtCliTimeout,
     Rect,
     frame_probe_layer,
+    layer_profile_args,
     png_size,
     probe_args,
     resolve_profile_args,
@@ -153,6 +154,28 @@ class RenderSession:
             )
         )
         return origin
+
+    def layered_profile(self, wp: WorkingProfile, preset: Path) -> KeyFile:
+        """``wp``'s working profile with ``preset`` (an ``.arp``, full or
+        partial) laid over it, as art-cli loads ``-p <working> -p <preset>``
+        and writes the complete result: the preset's keys win and the loader's
+        own rules apply, every other key stays. Doesn't change ``wp``; call
+        with the image's lock held."""
+        working = self.previews.new_file("working", ".arp")
+        output = self.previews.new_file("layer", ".jpg")
+        arp = Path(str(output) + ".arp")
+        try:
+            working.write_text(keyfile.dumps(wp.changes.profile), encoding="utf-8")
+            self.run(layer_profile_args(wp.image, output, [working, preset]), output)
+            if not arp.is_file():
+                raise no_profile_written()
+            try:
+                return keyfile.loads(arp.read_text(encoding="utf-8"))
+            except ValueError as e:
+                raise render_error("render_failed", f"art-cli wrote a profile that does not parse: {e}") from e
+        finally:
+            for leftover in (working, output, arp):
+                leftover.unlink(missing_ok=True)
 
     def commit(self, wp: WorkingProfile) -> None:
         """Hand a working profile back to the store after changing it (call

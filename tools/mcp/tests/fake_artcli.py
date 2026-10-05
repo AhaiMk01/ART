@@ -7,7 +7,8 @@
   profile" so tests can see what was rendered.
 - With ``-O``, writes ``<output>.arp``: the last ``-p`` file's text, or a
   small default profile with ``-d``, or with both that profile with every
-  ``-p`` file laid over it key by key.
+  ``-p`` file laid over it key by key; several ``-p`` files without ``-d``
+  are laid over one another in order, the first one over nothing.
 - Every output also embeds the command line (``args: ...``), so tests can see
   which flags were used.
 - A ``.png`` output is a bare PNG header whose size is the fake image
@@ -182,8 +183,8 @@ if "-O" in args:
     default_file = os.environ.get("FAKE_DEFAULT_PROFILE")
     default = Path(default_file).read_text() if default_file else DEFAULT_PROFILE
     arp = layers[-1] if layers else default
-    if "-d" in args and layers:
-        arp = default
+    if layers and ("-d" in args or len(layers) > 1):
+        arp = default if "-d" in args else ""
         for layer in layers:
             arp = layered(arp, layer)
     Path(str(output) + ".arp").write_text(arp)

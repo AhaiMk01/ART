@@ -26,8 +26,16 @@ def register(server: MCPServer, session: RenderSession) -> None:
         name under each frame (`columns` per row, default 6) and save it as
         the next numbered pass, `<folder>/sheets/pass-NN[-label].jpg`, with
         `pass-NN[-label].json` beside it: the images, the label, the time and
-        per image the profile keys that changed since the last pass it was in
-        (`changes`; null the first time). Earlier passes are never
+        per image `changes`, every profile value that differs from the last
+        pass it was in (numbers in their shortest form, a number written
+        differently is no change; null the first time). The result does not
+        repeat those lists: per image `changed` (how many values differ; null
+        the first time) and `changes`, what changed since the last pass
+        grouped by identical change, `{group, key, before, after, images}`
+        with the file names of the frames it was made on, the most shared
+        first (at most 25, `more` counts the rest and the JSON has every
+        change per frame; `changes` is null when no image had an earlier
+        pass, as in the first). Earlier passes are never
         overwritten. `folder` (it must exist) is the roll's output folder, not
         the source images' (default: the folder of the last export_batch). Open
         the returned `path` to look at the sheet. One failing image

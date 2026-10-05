@@ -17,12 +17,18 @@ spots in the picture. A frame without any film base visible is fine.
 
 1. `open_image(path)`.
 2. **Base settings**, one `edit_profile`:
-   - `adjustments`: `exposure` `{enabled: false}`; `tone_curve`
-     `{mode: "Standard", histogram_matching: false, curve1: {type: "linear"},
-     curve2: {type: "linear"}}`; `sharpening` `{enabled: false}`;
-     `film_negative` `{enabled: true, color_space: "working"}` (`sample_spots`
-     must use `space="working"`; with `color_space: "input"` use
-     `space="input"`).
+   - `adjustments`: `exposure` `{enabled: false, hl_recovery: "Off"}`;
+     `tone_curve` `{mode: "Standard", histogram_matching: false, curve1:
+     {type: "linear"}, curve2: {type: "linear"}}`; `sharpening`
+     `{enabled: false}`; `film_negative` `{enabled: true, color_space:
+     "working"}` (`sample_spots` must use `space="working"`; with
+     `color_space: "input"` use `space="input"`).
+   - `hl_recovery: "Off"` goes in the SAME request as `enabled: false`: a
+     preset file with `[Exposure] Enabled=false` loads with highlight recovery
+     Off, a typed `enabled: false` leaves the default `Balanced`, so a frame
+     edited from default and one opened from a preset would differ in a key
+     nobody set. (A typed `exposure` field sent alone on the disabled tool
+     re-enables it, listed under `implied`.)
    - `raw_edits` (a LIST of `{group, key, value}`, value always a string; the
      group and key must already exist): `[RAW Bayer] Method=amaze`,
      `[RAW] CAEnabled=false`. Below, `[Group] Key=value` means one such item,
@@ -89,7 +95,13 @@ spots in the picture. A frame without any film base visible is fine.
    ~5, divide by 255 -> `x0`; set `curve1`
    `{type: "spline", points: [[x0,0],[0.6,0.6],[1,1]]}` (e.g. x0 = 0.24).
    Then `image_stats`: `clipped_low` should stay under ~0.5% per channel
-   (a larger one means x0 is too high). Read the `edit_profile` result's
+   (a larger one means x0 is too high). The rule is a first estimate: a black
+   measured before the curve (or before a later offset, EV or `L` change) can
+   land elsewhere after it (one frame: pre-curve r49 g52 b53 became r7 g0 b13,
+   green clipping 0.9%; with x0 = 0.173 the curve alone gives 49 -> 7, 53 ->
+   13), so `clipped_low` per channel after the curve decides. The channel with
+   the lowest black clips first: when one channel clips more than the others,
+   set x0 lower than the rule gives. Read the `edit_profile` result's
    `drawn` (the line ART draws through the points) and `warnings` (clips,
    reversals). For an S-curve use `tone_curve.contrast`
    (e.g. 20), not curve points. Setting a curve turns `histogram_matching`
@@ -122,14 +134,16 @@ same frames of two passes side by side (a few frames: `images`).
    metal, concrete). A flat or low-key frame, or one without neutrals, makes
    a bad reference. Do the single-frame steps on it (rotation, crop,
    `ref_input`/`ref_output` included).
-2. `save_partial_profile(path, dest="<roll>.arp", exclude=["Coarse
+2. `save_partial_profile(path, dest="<roll>.arp", vs="default", exclude=["Coarse
    Transformation", "Crop", "Film Negative/RefInput", "Film Negative/RefOutput"])`:
-   the roll preset. Exclude the per-frame settings: rotation, crop and the
-   reference spot (`RefOutput` too if you set it per frame). It holds only keys whose value you CHANGED from the
-   opened profile (a key already at the wanted value, e.g. `ColorSpace=1`,
-   is not in it), and it carries this frame's black point and `contrast`;
-   read the returned `keys` and the file. Open each frame from it (step 3), or use
-   it with `art-cli -p` / ART's profile loading.
+   the roll preset (or the group's). Exclude the per-frame settings: rotation, crop and the
+   reference spot (`RefOutput` too if you set it per frame). `vs="default"` writes every key that
+   differs from ART's default profile, so the preset carries the base
+   settings, the roll's ratios, the group's white balance and this frame's black point
+   and `contrast`, whatever the frame was opened from; with the default
+   `vs="opened"` it would hold only what you changed since opening and lack
+   the base settings of a frame opened from another preset. Read the returned `keys` and the file. Open each frame from it
+   (step 3), or use it with `art-cli -p` / ART's profile loading.
 3. Each other frame: `open_image(path, profile="<group preset>.arp")` starts
    its working profile from the preset (laid over ART's default profile; the
    frame's own sidecar is not read, so an old one doesn't leak in), which
@@ -137,7 +151,12 @@ same frames of two passes side by side (a few frames: `images`).
    to repeat those `edit_profile`s. Then per frame: rotation (preview
    first), crop, `ref_input`/`ref_output` from that frame's own neutrals (a few
    spots; `ref_input` = a neutral's `avg` or a point on the roll's line),
-   output level and black point re-checked with `image_stats`.
+   output level and black point re-checked with `image_stats`. To give a
+   frame its group's settings without losing its crop and reference spot
+   (frames already open and set up, a preset changed since), use
+   `apply_preset(paths=[...], profile="<group preset>.arp")` on the open
+   frames, in one call for the whole group, rather than reopening them: the
+   preset's keys win and everything else of the frame stays.
 4. Every frame needs its own white balance, even in one roll: the exponents
    carry over, the light does not (blue offsets ranged +0.04..+0.39 across one
    roll: morning, afternoon, shade, greenhouse). Sample neutrals in the frame,
@@ -147,7 +166,9 @@ same frames of two passes side by side (a few frames: `images`).
    unless the frame is another film or development; fit them pooled over
    frames (reference.md), never from one frame.
 5. Check each frame with `image_stats` and a preview, and the roll with a
-   last `contact_sheet` pass (compare it with the first inversion's).
+   last `contact_sheet` pass (compare it with the first inversion's). Its
+   result lists what changed since the last pass grouped by change; the JSON
+   has it per frame.
    Export the roll with one `export_batch`: `source` = the roll's folder
    (`pattern` for one group's frames) exports each frame's working profile,
    so every frame in it must be open; or `items`, each with its working
@@ -179,6 +200,14 @@ same frames of two passes side by side (a few frames: `images`).
   a fixed ratio in the editor's crop tool).
 - A tone curve implies `histogram_matching` false; a changed brightness after
   setting a curve is that.
+- The neutral-line intercepts `ir`, `ib` move with scan exposure (shutter,
+  ISO, aperture) as well as with the light: normalise them to one exposure
+  before comparing frames. Use one reference green `g0` per lighting group,
+  scaled for each frame's exposure, or one `L` is a different brightness on
+  each frame (reference.md, "Reference point on the neutral line").
+- A `color_correction` offset is stored halved (lowering a black by the linear
+  amount `D` needs `offset = -2 D`) and comes off every pixel of the channel,
+  mid-tones included (reference.md, "Per-channel black point").
 - Edits are in memory until `save_sidecar`; previews and exports never write
   the sidecar.
 - A whole `get_profile` is about 15k tokens: over a roll, never read it

@@ -74,9 +74,11 @@ tools/mcp/
                         #   the Live server uses it too)
       profile_tools.py  # open_image, reset_profile, get/edit_profile,
                         #   describe_adjustments
+      preset_tools.py   # apply_preset
       preview_tools.py  # render_preview
       export_tools.py   # export_image, export_batch
       sheet_tools.py    # contact_sheet, compare_passes
+      sheet_changes.py  # what a pass changed (pure): short numbers, grouping
       save_tools.py     # save_sidecar, save_partial_profile
       metadata_tools.py # inspect_image
     live/           # Live server: control channel client, tools
@@ -360,16 +362,17 @@ on Windows). Any tool except `open_image` on a path not opened returns
 | `get_profile` | `path`, `groups?`, `changed_only=false` | Read format (3.4), whole, of the `groups`, and/or only what differs from ART's default profile |
 | `edit_profile` | `path`, `adjustments?`, `raw_edits?`, `full=false` | The change set (3.5): `changed`, `implied`, `drawn`, `warnings`; `full` adds the touched groups |
 | `reset_profile` | `path`, `to: "sidecar" \| "default"` | Working-profile changes discarded |
+| `apply_preset` | `paths`, `profile` | A preset (`.arp`, partial or complete) laid over the working profile of each open image (6.2). Per image, in request order: `path`, `keys_changed`, `groups`, `error`; counts `applied` and `failed` |
 | `render_preview` | `path`, `max_size=1024`, `region?`, `inline?` | JPEG path (+ `ImageContent` if inline) |
 | `export_image` | `path`, `output`, `format: "jpeg" \| "tiff" \| "png"`, `quality?` (jpeg only, 1..100), `bit_depth?` (jpeg `8`; png `8`\|`16`; tiff `8`\|`16`\|`16f`\|`32`; a number or a string, `16f` only as a string), `write_profile=false`, `profile_name: "output" \| "source"` (default `"output"`), `overwrite=false` | Output path, `.arp` path when written |
 | `export_batch` | `items?` (`{path, profiles?}`) or `source?` (a folder; with `pattern?` and `profiles?`), `folder`, `format`, `quality?`, `bit_depth?`, `name="{stem}"`, `write_profile=false`, `profile_name="output"`, `overwrite=false` | Per image, in request (or file name) order: `path`, `output`, `profile_path`, `error`; counts `exported` and `failed` |
 | `save_sidecar` | `path`, `on_conflict?: "merge" \| "overwrite" \| "cancel"` | `saved`, path, `how` (written/merged/overwritten/cancelled), or conflict + changed keys |
-| `save_partial_profile` | `path`, `dest`, `overwrite=false`, `exclude=[]` | `written`, path, keys written |
+| `save_partial_profile` | `path`, `dest`, `overwrite=false`, `exclude=[]`, `vs: "opened" \| "default"` (default `"opened"`) | `written`, path, keys written, `vs` (the baseline used) |
 | `inspect_image` | `path`, `tags?` | Fixed metadata fields + requested tags. `width`/`height` are what the file records; `frame_width`/`frame_height` the frame ART's `[Crop]` and `sample_spots` address (after coarse rotation and the raw border; a Sony ARW records 6048x4024, its frame is 6016x4016), measured like the crop checks (`whole_frame`), null if that fails |
 | `describe_adjustments` | none | Curated schema + `PPVERSION` warning |
 | `sample_spots` | `path`, `spots`, `size=32`, `space="working"` | Linear spot values (4.1); `unsupported` with a release `art-cli` |
 | `image_stats` | `path`, `max_size=1024`, `histogram=false` | Clipping, percentiles, mean per channel (4.2) |
-| `contact_sheet` | `images`, `folder?`, `label?`, `columns?`, `thumb_size=400` | The next numbered pass (6.5): sheet path, JSON path, per image `box`, `error` and the profile keys `changes` since the last pass it was in |
+| `contact_sheet` | `images`, `folder?`, `label?`, `columns?`, `thumb_size=400` | The next numbered pass (6.5): sheet path, JSON path, per image `box`, `error` and `changed` (the number of profile keys changed since the last pass it was in), and `changes`, those changes grouped by identical change with the frames they were made on (the JSON has them per frame) |
 | `compare_passes` | `first`, `second`, `folder?`, `images?`, `columns=2` | Path of a side-by-side of the same frames of two passes (6.5) |
 
 `region` is `{x, y, w, h}` as fractions of the image as previewed: of the
@@ -409,6 +412,38 @@ From [Sidecar write policy for the Render server](https://github.com/AhaiMk01/AR
   applied to a copy and doesn't). Later renders pass the working profile
   explicitly and never use `-d`. If ART is set to embed parameters in output
   metadata, `-O` writes no `.arp` and `open_image` fails with a hint.
+- `apply_preset(paths, profile)` puts a preset on frames that are already
+  open without losing what each frame has of its own (its crop, its film
+  reference spot, its rotation: whatever was set before). `open_image`'s
+  `profile` can't: it starts the working profile over from the file.
+  The file (partial or complete) is laid over each image's *current* working
+  profile: the file's keys win, every other key stays. This is done by
+  `art-cli` rather than by merging keys in Python, because ART's loader has
+  per-group rules a key merge would miss (a file with `[Exposure]
+  Enabled=false` also turns the highlight recovery off). `-d` is left out:
+  the working profile is complete and goes first, so nothing under it needs
+  ART's default (`-O -f -p <working profile as a temp .arp> -p <preset> -c
+  <image>`, the `.arp` read from beside the throwaway output, as `open_image`
+  does). The complete result replaces the working profile's contents. The
+  bookkeeping is `edit_profile`'s, not `open_image`'s: the sidecar hash and
+  keys (the baseline of `save_sidecar`'s conflict check) stay as loaded, and
+  every value the preset changed is recorded as the agent's change since load
+  (`WorkingChanges.layer`), so `save_sidecar`'s merge and
+  `save_partial_profile` include them. A key the result lacks is dropped (ART
+  replaces Color Correction regions wholesale); a partial profile can't say
+  so, except that region keys are then sent whole. A complete preset sets
+  every key it has, `[Crop]` included; a roll or group preset is a partial
+  profile from `save_partial_profile` with the per-frame settings excluded.
+  Each image is handled under its own lock (the profile art-cli reads is the
+  one that is replaced), up to `max_processes` at once like `export_batch`,
+  with progress per image. A problem with the call is `not_found` (the file
+  is missing or unreadable) or `out_of_range` (`paths` empty); a problem with
+  one image (`not_open`, a render failure) is its result's `error`, its
+  working profile is untouched and the others still apply. A result is a count
+  of the values changed and the groups they are in, not the values (a preset
+  has about a hundred; `get_profile` reads them). The Live server has no
+  equivalent: its `open_image(profile=)` already layers over the editor's
+  current state.
 - Only `save_sidecar` writes the sidecar. Renders and previews never do.
 - **Conflict:** if the sidecar's hash changed since load, the server asks the
   user (merge = agent's changed keys onto the current sidecar / overwrite /
@@ -431,11 +466,33 @@ From [Sidecar write policy for the Render server](https://github.com/AhaiMk01/AR
   `IMG.arp` vs `IMG.CR2.arp`.
 - After a save, the saved sidecar is the new baseline: its hash, and the start
   of change tracking.
-- `save_partial_profile` writes only the keys the agent changed since load or
-  the last `save_sidecar` to `dest`; refuses an existing file unless
-  `overwrite=true`; writes nothing when nothing changed (also when `exclude`
-  removes everything). `exclude` lists `"Group"` or `"Group/Key"` entries left
-  out of the file; a group or key not in the working profile is `unknown_key`.
+- `save_partial_profile` writes a partial profile to `dest`; refuses an
+  existing file unless `overwrite=true`; writes nothing when there is nothing
+  to write (also when `exclude` removes everything). Which keys is `vs`, the
+  baseline they are measured against (the result's `vs` says which was used,
+  its `keys` the `[Group] Key` entries written; any other value is
+  `out_of_range`):
+  - `"opened"` (default): only the keys the agent changed since the profile was
+    loaded or last saved with `save_sidecar`. What the profile came with (its
+    sidecar, or the preset of `open_image`'s `profile`) counts as not
+    changed, so a preset saved from a frame opened from another preset lacks
+    that preset's keys.
+  - `"default"`: the keys whose value differs from ART's default profile for
+    the image (`session.default_profile`, the cached `art-cli -d` run
+    `get_profile`'s `changed_only` uses), whatever the profile was opened from.
+    Values are compared as the strings stored, so a key re-set to the default's
+    value is not written. A key only the default has (the working profile
+    dropped it) is not written either: a partial profile cannot unset a key,
+    ART leaves a key it doesn't list as the image has it. A key only the
+    working profile has is written. `[Version]` is never written: it says which
+    ART wrote the profile, and a partial profile without it is read as the
+    current version, which is what the complete values in it are. As with
+    `"opened"`, one changed `[ColorCorrection]` region key carries every region
+    key. The first call per opened image runs art-cli for the default
+    (`render_failed`, `timeout`); `"opened"` never does.
+
+  `exclude` (either `vs`) lists `"Group"` or `"Group/Key"` entries left out of
+  the file; a group or key not in the working profile is `unknown_key`.
   Settings that belong to one image (e.g. `Crop`) are usually excluded from a
   preset meant for other images; which ones for a film roll is in the
   `film-negative` skill. The tool description says this generically and points
@@ -526,9 +583,34 @@ working profiles live there.
   before, after}`; null the first time. That needs the earlier complete
   profile, which a pass JSON would bloat (hundreds of keys per frame), so
   `sheets/profiles.json` keeps the latest complete working profile per image
-  and is rewritten each pass. It is bookkeeping, not a record; a server
-  restart loses nothing. A frame whose render failed still counts: its profile
-  was recorded.
+  (as ART wrote it) and is rewritten each pass. It is bookkeeping, not a
+  record; a server restart loses nothing. A frame whose render failed still
+  counts: its profile was recorded.
+- **Numbers in `changes`** are shown in their shortest round-trip form. ART
+  writes a double with 17 digits (`1.3700000000000001`, `0.59999999999999998`),
+  which costs context and says no more than `1.37`, `0.6`. A value that is a
+  number, or a `;`-separated list (a curve, `r;g;b;`), has each numeric token
+  shown as `repr(float(token))`; an integer and any other text stay as
+  written (a token is numeric only if it is a plain integer or decimal: not
+  `nan`, `inf`, `1_000`, a token with spaces, or a number too big for a
+  double). Two values are the same when they are the same text or the same
+  tokens with numerically equal numbers (`1` and `1.0`, `-0.0216` and
+  `-0.021600000000000001`), and a same value is never a change. Normalising and
+  comparing are pure functions (`sheet_changes.py`).
+- **The result is a summary** of those changes, not the per-frame lists (in a
+  real 12-frame pass the lists were most of a 10,000-character reply, more than
+  the sheet cost): per image `changed`, the number of changes (null when there
+  is nothing to compare with), and a top-level `changes`, the changes grouped
+  by identical change (same group, key, before and after, after normalising),
+  `{group, key, before, after, images}` with the file names of the frames it was
+  made on in sheet order. Groups are sorted by how many frames share them, then
+  by group, key, before, after, and the first 25 (`MAX_SHARED_CHANGES`) are
+  listed; `more` counts the rest and a `warnings` entry then points at the pass
+  JSON, which always has every change per frame. `changes` is null when no
+  frame had an earlier pass (a first pass); it is `{groups: [], more: 0}` when
+  some did and nothing differs. A frame with nothing to compare with counts for
+  nothing; frames compared with different earlier passes (`since_pass`) are
+  grouped together.
 - **Where.** The caller names `folder` (it must exist; `sheets` is created in
   it). The default is the folder of the last `export_batch` that exported
   something (the roll's output), kept in the session; with none the call is

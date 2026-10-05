@@ -17,7 +17,7 @@ from pydantic import BaseModel
 from art_mcp import artdir, keyfile, sidecar
 from art_mcp.concurrency import image_key
 from art_mcp.live.channel import ArtNotRunning, ChannelError, ChannelTimeout, ControlChannel
-from art_mcp.profile import WorkingChanges
+from art_mcp.profile import WorkingChanges, partial_vs_default
 from art_mcp.render.errors import RenderError, render_error
 from art_mcp.render.session import RenderSession
 
@@ -34,12 +34,26 @@ class SaveResult(BaseModel):
     `cancelled` (nothing saved)."""
 
 
+PartialBaseline = Literal["opened", "default"]
+PARTIAL_BASELINES = ("opened", "default")
+"""What ``save_partial_profile`` measures the saved keys against: the profile
+as loaded (or last saved), or ART's default profile for the image."""
+
+
 class PartialProfileResult(BaseModel):
     written: bool
-    """False when the agent has changed nothing: no file is written."""
+    """False when there is nothing to write (no file then): the agent has
+    changed nothing since the profile was loaded or last saved, or with `vs`
+    `default` nothing differs from ART's default profile."""
     path: str
     keys: list[str]
-    """The `[Group] Key` entries written."""
+    """The `[Group] Key` entries written: the values that differ from the
+    `vs` baseline (and weren't excluded), in the working profile's order. A
+    Color Correction region key brings every region key along."""
+    vs: PartialBaseline
+    """The baseline the keys were measured against: `opened` (the values the
+    agent changed since the profile was loaded or last saved) or `default`
+    (ART's default profile for the image)."""
 
 
 GUARD_TIMEOUT = 5.0
@@ -183,8 +197,14 @@ def save_partial_profile(
     dest: str,
     overwrite: bool = False,
     exclude: list[str] | None = None,
+    vs: str = "opened",
 ) -> PartialProfileResult:
     exclude = exclude or []
+    if vs not in PARTIAL_BASELINES:
+        raise render_error(
+            "out_of_range", f"vs must be one of {', '.join(PARTIAL_BASELINES)}, not {vs!r}"
+        )
+    baseline: PartialBaseline = "default" if vs == "default" else "opened"
     with session.image(path) as wp:
         profile = wp.changes.profile
         for entry in exclude:
@@ -194,7 +214,16 @@ def save_partial_profile(
                     "unknown_key",
                     f"exclude {entry!r}: not in this image's processing profile",
                 )
-        partial = wp.changes.partial_profile()
+        target = Path(dest).resolve()
+        if not target.parent.is_dir():
+            raise render_error("not_found", f"folder {target.parent} does not exist")
+        if target.exists() and not overwrite:
+            raise render_error("exists", f"{target} exists; pass overwrite=true to replace it")
+        if baseline == "default":
+            # The first time for this image this runs art-cli (and may fail).
+            partial = partial_vs_default(profile, session.default_profile(wp))
+        else:
+            partial = wp.changes.partial_profile()
         for entry in exclude:
             group, _, key = entry.partition("/")
             if key:
@@ -202,14 +231,9 @@ def save_partial_profile(
             else:
                 partial.pop(group, None)
         partial = {g: k for g, k in partial.items() if k}
-        target = Path(dest).resolve()
-        if not target.parent.is_dir():
-            raise render_error("not_found", f"folder {target.parent} does not exist")
-        if target.exists() and not overwrite:
-            raise render_error("exists", f"{target} exists; pass overwrite=true to replace it")
         if not partial:
-            return PartialProfileResult(written=False, path=str(target), keys=[])
+            return PartialProfileResult(written=False, path=str(target), keys=[], vs=baseline)
         sidecar.write_atomic(target, keyfile.dumps(partial))
         return PartialProfileResult(
-            written=True, path=str(target), keys=sidecar.changed_keys({}, partial)
+            written=True, path=str(target), keys=sidecar.changed_keys({}, partial), vs=baseline
         )
