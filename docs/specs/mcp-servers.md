@@ -365,7 +365,7 @@ on Windows). Any tool except `open_image` on a path not opened returns
 | `export_batch` | `items?` (`{path, profiles?}`) or `source?` (a folder; with `pattern?` and `profiles?`), `folder`, `format`, `quality?`, `bit_depth?`, `name="{stem}"`, `write_profile=false`, `profile_name="output"`, `overwrite=false` | Per image, in request (or file name) order: `path`, `output`, `profile_path`, `error`; counts `exported` and `failed` |
 | `save_sidecar` | `path`, `on_conflict?: "merge" \| "overwrite" \| "cancel"` | `saved`, path, `how` (written/merged/overwritten/cancelled), or conflict + changed keys |
 | `save_partial_profile` | `path`, `dest`, `overwrite=false`, `exclude=[]` | `written`, path, keys written |
-| `inspect_image` | `path`, `tags?` | Fixed metadata fields + requested tags |
+| `inspect_image` | `path`, `tags?` | Fixed metadata fields + requested tags. `width`/`height` are what the file records; `frame_width`/`frame_height` the frame ART's `[Crop]` and `sample_spots` address (after coarse rotation and the raw border; a Sony ARW records 6048x4024, its frame is 6016x4016), measured like the crop checks (`whole_frame`), null if that fails |
 | `describe_adjustments` | none | Curated schema + `PPVERSION` warning |
 | `sample_spots` | `path`, `spots`, `size=32`, `space="working"` | Linear spot values (4.1); `unsupported` with a release `art-cli` |
 | `image_stats` | `path`, `max_size=1024`, `histogram=false` | Clipping, percentiles, mean per channel (4.2) |
@@ -568,7 +568,7 @@ Assistants. The Live server never launches ART.
 | `queue_start` | none | `running`, `already_running`; `empty_queue` when nothing is queued |
 | `queue_status` | none | `running`, `auto_start`, `entries`: path, `output`, `state` (`queued`/`processing`/`failed`), `progress`, `error` |
 | `describe_adjustments` | none | As Render server |
-| `inspect_image` | `path`, `tags?` | As Render server (Python + exiftool; no C++) |
+| `inspect_image` | `path`, `tags?` | As Render server (Python + exiftool; no C++); `frame_width`/`frame_height` come from `status`, null until the editor has the size |
 | `sample_spots` | `path`, `spots`, `size=32`, `space="working"` | As Render server, from the open editor (4.1) |
 | `image_stats` | `path`, `max_size=1024`, `histogram=false` | As Render server, from the editor's preview (4.2) |
 
@@ -870,7 +870,7 @@ Colour space, aggressiveness, detail and other keys stay raw-edit only.
 | `amount` | int | -100 .. 100 | | 0 |
 | `radius` | int | 0 .. 100 | | 50 |
 | `strength` | int | 1 .. 100 | | 1 |
-| `center_x`, `center_y` | int | -100 .. 100 | % of image width / height, offset from centre (`src/engine/iptransform.cc`) | 0 |
+| `center_x`, `center_y` | int | -100 .. 100 | % of image width / height, offset from centre: the centre is W/2 + x/100 * W, so 100 is a whole width away, outside the frame (unlike mask positions, which are % of half; `src/engine/iptransform.cc`) | 0 |
 
 **lens_profile** -> `[LensProfile]`
 

@@ -429,6 +429,39 @@ async def test_inspect_open_image_returns_fixed_fields_and_requested_tags(tmp_pa
     assert data["tags"] == {"Software": "v1"}
 
 
+async def test_inspect_reports_the_frame_ART_works_in_next_to_the_recorded_size(tmp_path, tagged):
+    """A Sony ARW records 6048 x 4024 but ART's frame, the space crop coordinates are in,
+    is smaller (the fake art-cli's 6000 x 4000)."""
+    tagged.with_name(tagged.name + ".exif.json").write_text(json.dumps({"ImageWidth": 6048, "ImageHeight": 4024}))
+    async with Client(exif_server(tmp_path)) as client:
+        await client.call_tool("open_image", {"path": str(tagged)})
+        result = await client.call_tool("inspect_image", {"path": str(tagged)})
+
+    assert not result.is_error, result.content
+    data = result.structured_content
+    assert (data["width"], data["height"]) == (6048, 4024)
+    assert (data["frame_width"], data["frame_height"]) == (6000, 4000)
+
+
+async def test_inspect_frame_is_null_when_art_cli_cannot_measure_it(tmp_path, tagged, monkeypatch):
+    config = tmp_path / "config"
+    config.mkdir(exist_ok=True)
+    server = build_server(
+        ArtCli((sys.executable, str(FAKE.with_name("fake_artcli_ctl.py")))),
+        config,
+        PreviewFolder(tmp_path / "previews"),
+        exiftool=Exiftool((sys.executable, str(FAKE_EXIFTOOL))),
+    )
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(tagged)})
+        monkeypatch.setenv("FAKE_ARTCLI_EXIT", "1")
+        result = await client.call_tool("inspect_image", {"path": str(tagged)})
+
+    assert not result.is_error, result.content
+    assert result.structured_content["frame_width"] is None and result.structured_content["frame_height"] is None
+    assert result.structured_content["width"] == 6000  # the recorded size is still there
+
+
 async def test_inspect_image_not_opened_is_not_open(tmp_path, tagged):
     async with Client(exif_server(tmp_path)) as client:
         result = await client.call_tool("inspect_image", {"path": str(tagged)})

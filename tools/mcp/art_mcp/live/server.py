@@ -354,16 +354,26 @@ def build_server(
     def inspect_image(path: str, tags: list[str] | None = None) -> Metadata:
         """The metadata of an image open in ART (read with ART's exiftool):
         make, model, lens, ISO, shutter, aperture, focal length, capture
-        date, pixel dimensions and orientation, plus any extra exiftool
-        `tags` named. Fails with not_open if ART doesn't have it open."""
+        date, the pixel dimensions the file records (`width`, `height`) and
+        orientation, plus any extra exiftool `tags` named. `frame_width` and
+        `frame_height` are the size the editor works in (after coarse
+        rotation and the raw border), the space `crop` and `sample_spots`
+        coordinates are in: use them, not `width` and `height`, to size a
+        crop (null until the editor has loaded the image). Fails with
+        not_open if ART doesn't have it open."""
         result = call("status")
         images = result.get("images", []) if isinstance(result, dict) else []
-        if not any(isinstance(i, dict) and same_image(str(i.get("path", "")), path) for i in images):
+        shown = next((i for i in images if isinstance(i, dict) and same_image(str(i.get("path", "")), path)), None)
+        if shown is None:
             raise tool_error("not_open", f"{path} is not open in ART")
         try:
-            return read_metadata(exiftool, Path(art_path(path)), tags or [])
+            metadata = read_metadata(exiftool, Path(art_path(path)), tags or [])
         except MetadataProblem as e:
             raise tool_error(e.code, e.message) from e
+        w, h = shown.get("width"), shown.get("height")
+        if isinstance(w, int) and isinstance(h, int):
+            metadata.frame_width, metadata.frame_height = w, h
+        return metadata
 
     def history_position(op: str, result: object) -> int | None:
         if not isinstance(result, dict) or not isinstance(result.get("history_position"), int):

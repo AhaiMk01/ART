@@ -46,8 +46,24 @@ class Metadata(BaseModel):
     capture_date: str | None = Field(
         default=None, description="local time as recorded, ISO 8601 without zone"
     )
-    width: int | None = None
-    height: int | None = None
+    width: int | None = Field(
+        default=None,
+        description="pixel width the file records (EXIF); NOT the space crop coordinates are in: see frame_width",
+    )
+    height: int | None = Field(
+        default=None,
+        description="pixel height the file records (EXIF); NOT the space crop coordinates are in: see frame_height",
+    )
+    frame_width: int | None = Field(
+        default=None,
+        description="width of the frame ART works in, after coarse rotation and the raw border (a Sony ARW "
+        "records 6048 but ART's frame is 6016): the space `crop` and `sample_spots` coordinates are in; "
+        "null when ART can't tell",
+    )
+    frame_height: int | None = Field(
+        default=None,
+        description="height of the frame ART works in (see frame_width); null when ART can't tell",
+    )
     orientation: int | None = Field(default=None, description="EXIF orientation, 1-8")
     tags: dict[str, Any] = {}
     """The extra tags that were asked for and found, by exiftool tag name."""

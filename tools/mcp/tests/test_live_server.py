@@ -152,6 +152,37 @@ async def test_inspect_image_reads_metadata_of_an_image_open_in_art(art, tmp_pat
     assert other.is_error and "not_open" in other.content[0].text
 
 
+async def test_inspect_reports_the_editors_frame_next_to_the_recorded_size(art, tmp_path):
+    """The size crop coordinates are in is what the editor's status reports, not the file's."""
+    image = tmp_path / "a.ARW"
+    image.write_bytes(b"raw")
+    image.with_name("a.ARW.exif.json").write_text(json.dumps({"ImageWidth": 6048, "ImageHeight": 4024}))
+    art.ops["status"] = answer({"version": "t", "images": [
+        {"path": str(image), "active": True, "width": 6016, "height": 4016}]})  # fmt: skip
+
+    async with Client(live_with_exiftool(art)) as client:
+        result = await client.call_tool("inspect_image", {"path": str(image)})
+
+    assert not result.is_error, result.content
+    data = result.structured_content
+    assert (data["width"], data["height"]) == (6048, 4024)
+    assert (data["frame_width"], data["frame_height"]) == (6016, 4016)
+
+
+async def test_inspect_frame_is_null_until_the_editor_knows_the_size(art, tmp_path):
+    image = tmp_path / "a.ARW"
+    image.write_bytes(b"raw")
+    image.with_name("a.ARW.exif.json").write_text(json.dumps({"ImageWidth": 6048, "ImageHeight": 4024}))
+    art.ops["status"] = answer({"version": "t", "images": [
+        {"path": str(image), "active": True, "width": None, "height": None}]})  # fmt: skip
+
+    async with Client(live_with_exiftool(art)) as client:
+        result = await client.call_tool("inspect_image", {"path": str(image)})
+
+    assert not result.is_error, result.content
+    assert result.structured_content["frame_width"] is None and result.structured_content["frame_height"] is None
+
+
 async def test_no_selected_history_row_is_null(art, tmp_path):
     art.ops["get_profile"] = answer({"profile": SAMPLE_ARP, "history_position": -1})
 

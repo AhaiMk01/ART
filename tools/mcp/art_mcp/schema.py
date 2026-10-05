@@ -212,11 +212,11 @@ class Vignetting(BaseModel):
     strength: int | None = F("Strength", "Strength", ge=1, le=100, default=1)
     center_x: int | None = F(
         "CenterX", "Horizontal centre offset", ge=-100, le=100,
-        unit="% of image width from centre", default=0,
+        unit="% of image width from centre (100 = a whole width: outside the frame)", default=0,
     )  # fmt: skip
     center_y: int | None = F(
         "CenterY", "Vertical centre offset", ge=-100, le=100,
-        unit="% of image height from centre", default=0,
+        unit="% of image height from centre (100 = a whole height: outside the frame)", default=0,
     )  # fmt: skip
 
 
@@ -390,8 +390,10 @@ class ColorCorrection(BaseModel):
     the end appends a region (the error names the next free index); a new
     region and new mask shapes get every key ART writes, with its defaults
     for what is not given. Mask coordinates: the origin is the image centre;
-    x, y are % of the image's width and height from it (-100..100), width,
-    height are % of the image's (100 = the whole image). An inverted mask
+    x, y are % of HALF the image's width and height from it (-100..100, so
+    100 puts the shape's centre on the right or bottom edge, 50 at three
+    quarters of the width), width, height are % of the whole image's (100 =
+    the whole image). An inverted mask
     affects everything outside its shapes: an inverted ellipse of 110% with
     feather 60 spares the middle and grades toward the edges."""
 

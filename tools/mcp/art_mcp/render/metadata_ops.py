@@ -3,7 +3,7 @@
 from pydantic import BaseModel
 
 from art_mcp.metadata import Metadata, MetadataProblem, read_metadata
-from art_mcp.render.errors import render_error
+from art_mcp.render.errors import RenderError, render_error
 from art_mcp.render.session import RenderSession
 
 
@@ -30,7 +30,14 @@ def summarize(m: Metadata) -> MetadataSummary:
 def inspect_image(session: RenderSession, path: str, tags: list[str] | None = None) -> Metadata:
     with session.image(path) as wp:
         image = wp.image
+        try:
+            frame = session.whole_frame(wp)
+        except RenderError:
+            frame = None  # the metadata is still worth returning
     try:
-        return read_metadata(session.exiftool, image, tags or [])
+        metadata = read_metadata(session.exiftool, image, tags or [])
     except MetadataProblem as e:
         raise render_error(e.code, e.message) from e  # type: ignore[arg-type]
+    if frame is not None:
+        metadata.frame_width, metadata.frame_height = frame.w, frame.h
+    return metadata
