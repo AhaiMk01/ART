@@ -131,6 +131,35 @@ Results of `get_profile`, `edit_profile` and `describe_adjustments` carry a
   smaller side of `fastexport_resize_width`/`height` in `options`). `region` previews
   and bigger previews render without it.
 
+## Skills
+
+`skills/` holds Claude skills that teach an agent a workflow with these tools
+(workflow knowledge that would be too long for tool descriptions):
+
+| Skill | For |
+|---|---|
+| `film-negative` | Inverting camera-scanned colour negatives with ART's Film Negative tool: base settings, fitting the colour ratios from `sample_spots`, reference spot, output level, a whole roll |
+
+Install for Claude Code by copying or symlinking the skill folder into your
+user skills (all projects) or a project's skills:
+
+```sh
+# user level
+mkdir -p ~/.claude/skills
+cp -r <repo>/tools/mcp/skills/film-negative ~/.claude/skills/
+# or: ln -s <repo>/tools/mcp/skills/film-negative ~/.claude/skills/film-negative
+
+# one project
+mkdir -p <project>/.claude/skills
+cp -r <repo>/tools/mcp/skills/film-negative <project>/.claude/skills/
+```
+
+On Windows (PowerShell) use `Copy-Item -Recurse` into `$HOME\.claude\skills`
+(a symlink needs developer mode or an admin shell). Restart Claude Code; the
+skill loads when a request matches its description (e.g. "invert this negative
+scan"). The skills need the `art-render` server above (and an ART build with
+`sample_spots`).
+
 ## Development
 
 Layout of the Render server (`art_mcp/render/`): `server.py` only wires
