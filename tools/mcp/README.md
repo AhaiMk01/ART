@@ -131,6 +131,10 @@ Results of `get_profile`, `edit_profile` and `describe_adjustments` carry a
   smaller side of `fastexport_resize_width`/`height` in `options`). `region` previews
   and bigger previews render without it.
 
+## Skills
+
+- [`skills/faded-slide/`](skills/faded-slide/SKILL.md): restore faded colour slides (per-channel power-law fit with `color_correction`).
+
 ## Development
 
 Layout of the Render server (`art_mcp/render/`): `server.py` only wires
