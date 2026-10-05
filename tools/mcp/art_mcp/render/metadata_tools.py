@@ -35,7 +35,8 @@ def register(server: MCPServer, session: RenderSession) -> None:
         paths: list[str], ctx: Context, tags: list[str] | None = None, frame: bool = False
     ) -> ImagesMetadata:
         """inspect_image for many images in one call: `paths` (1 to 100, each
-        an opened image), exiftool run once for all of them. One result per
+        an opened image: wait for `open_image` to return, or the ones not yet
+        open come back `not_open`), exiftool run once for all of them. One result per
         path, in request order: `{path, metadata, error}`, `metadata` as
         inspect_image returns it, or an `error` (`not_open`, a read failure)
         while the others still come back. ISO, shutter and aperture are those

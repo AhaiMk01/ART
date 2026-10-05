@@ -620,7 +620,9 @@ frame position of the candidate mapped into the picture by the `area`. One
 call then tells the caller what each candidate sits on (a poster, a window,
 paint), which the numbers cannot. With a server started with
 `--inline-previews` the image comes with the result as an `ImageContent`, as
-for `render_preview`; there is no per-call `inline`. No extra render: the
+for `render_preview`, and so do the sheets of `contact_sheet` (recorded or a
+quick look) and `compare_passes`, for a client that cannot open image files;
+there is no per-call `inline` for either. No extra render: the
 picture is the one analysed. Without `preview` the result has no
 `preview_path` key at all.
 

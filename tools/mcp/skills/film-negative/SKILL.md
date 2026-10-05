@@ -44,7 +44,10 @@ spots in the picture. A frame without any film base visible is fine.
      (what the server did on its own), `drawn` (curves), `warnings`; `created`
      names a new `color_correction` region or mask shape (the keys ART fills
      in at their defaults are counted there, not listed). It is
-     the check that the edit did what you meant, with one blind spot: a value
+     the check that the edit did what you meant (with `paths` or `items`, each
+     image's `changed` is only a COUNT, to keep a reply for 37 frames small;
+     `implied` and `warnings` are still listed: to see which keys, edit one
+     image with `path`, or `get_profile`), with one blind spot: a value
      already at its default never shows (a linear tone curve, `exposure`
      disabled on a profile that has it disabled). To confirm a base edit took,
      `get_profile(path, groups=["Exposure", "ToneCurve", "Film Negative"])` or
@@ -213,7 +216,12 @@ same frames of two passes side by side (a few frames: `images`).
    frames only after normalising their intercepts to one scan exposure
    (reference.md, "Reference point on the neutral line"); the numbers are the
    scanning camera's `shutter_seconds`, `iso` and `aperture`, for the whole
-   roll in one `inspect_images` call.
+   roll in one `inspect_images` call, made once `open_image` has returned (it
+   reads open images: issued in the same turn as `open_image`, 31 of 37 frames
+   came back `not_open`). Read every frame's values rather than assuming the
+   roll shares them. They describe the SCAN: the same on every frame only
+   means one scanning setup, and says nothing about how the negatives were
+   exposed.
    Brightness per frame: the preset's `L` fits the group's brightest frame;
    darker frames get +EV (exposure), never -EV (reference.md, "Output
    level").

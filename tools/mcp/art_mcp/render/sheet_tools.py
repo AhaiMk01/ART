@@ -1,11 +1,14 @@
 """Contact-sheet tools: contact_sheet, compare_passes (adapters over ``sheet_ops``)."""
 
+from typing import Annotated
+
 import anyio
 import anyio.from_thread
 from mcp.server.mcpserver import Context, MCPServer
+from mcp.types import CallToolResult
 
 from art_mcp.render import sheet_ops as ops
-from art_mcp.render.adapter import as_tool_errors
+from art_mcp.render.adapter import as_tool_errors, result_with_image
 from art_mcp.render.session import RenderSession
 from art_mcp.render.sheet_ops import Comparison, SheetResult
 
@@ -20,7 +23,7 @@ def register(server: MCPServer, session: RenderSession) -> None:
         columns: int | None = None,
         thumb_size: int = ops.DEFAULT_THUMB_SIZE,
         record: bool = True,
-    ) -> SheetResult:
+    ) -> Annotated[CallToolResult, SheetResult]:
         """To just look at several frames pass `record=false`: one image to
         read instead of a preview and a read per frame (details at the end).
         Without it the call renders the open `images` (paths, or a folder
@@ -47,7 +50,9 @@ def register(server: MCPServer, session: RenderSession) -> None:
         the exports folder, the passes would mix with the exports. Without
         `folder` the call is `out_of_range`, unless an earlier contact_sheet
         call in this session used one: that is then the default. Open
-        the returned `path` to look at the sheet. One failing image
+        the returned `path` to look at the sheet (a server started with
+        `--inline-previews` also returns the image in the result, as
+        render_preview does). One failing image
         (`not_open`, a render error) is reported in its entry and shown as a
         placeholder; the others still render. Working profiles are copied when
         the call starts. Progress is reported per finished image.
@@ -72,7 +77,8 @@ def register(server: MCPServer, session: RenderSession) -> None:
                     session, images, folder, label, columns, thumb_size, on_progress=progress, record=record
                 )
 
-        return await anyio.to_thread.run_sync(run)
+        result = await anyio.to_thread.run_sync(run)
+        return result_with_image(result.model_dump(mode="json"), result.path, session.inline_previews)
 
     @server.tool()
     def compare_passes(
@@ -81,7 +87,7 @@ def register(server: MCPServer, session: RenderSession) -> None:
         folder: str | None = None,
         images: list[str] | None = None,
         columns: int = ops.DEFAULT_PAIR_COLUMNS,
-    ) -> Comparison:
+    ) -> Annotated[CallToolResult, Comparison]:
         """Put the same frames of two contact-sheet passes side by side
         (pass `first` left, `second` right; `columns` pairs per row, default
         2) and save that as `compare-NN-MM.jpg` in the sheets folder, next to
@@ -91,6 +97,8 @@ def register(server: MCPServer, session: RenderSession) -> None:
         `sheets` subfolder, the one given to contact_sheet (not `sheets`
         itself); default: the folder the last contact_sheet call in this
         session used, else `out_of_range`. Open the returned `path` to look
-        at it."""
+        at it (a server started with `--inline-previews` also returns the image
+        in the result)."""
         with as_tool_errors():
-            return ops.compare_passes(session, first, second, folder, images, columns)
+            result = ops.compare_passes(session, first, second, folder, images, columns)
+        return result_with_image(result.model_dump(mode="json"), result.path, session.inline_previews)

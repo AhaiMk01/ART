@@ -1,9 +1,15 @@
-"""What the MCP tools add to an operation: errors as MCP tool errors."""
+"""What the MCP tools add to an operation: errors as MCP tool errors, an
+image beside the structured result."""
 
+import base64
+import json
 from collections.abc import Iterator
 from contextlib import contextmanager
+from pathlib import Path
+from typing import Any
 
 from mcp.server.mcpserver.exceptions import ToolError
+from mcp.types import CallToolResult, ContentBlock, ImageContent, TextContent
 
 from art_mcp.render.errors import RenderError
 
@@ -16,3 +22,15 @@ def as_tool_errors() -> Iterator[None]:
         yield
     except RenderError as e:
         raise ToolError(str(e)) from e
+
+
+def result_with_image(data: dict[str, Any], image: str | None, inline: bool) -> CallToolResult:
+    """A tool result: ``data`` as the structured content and, as compact JSON,
+    the text; with ``inline`` (the server's ``--inline-previews``) also the JPEG
+    at ``image`` as an image block, for a client that cannot open the file."""
+    content: list[ContentBlock] = [TextContent(text=json.dumps(data, separators=(",", ":")))]
+    if inline and image:
+        content.append(
+            ImageContent(data=base64.b64encode(Path(image).read_bytes()).decode("ascii"), mime_type="image/jpeg")
+        )
+    return CallToolResult(content=content, structured_content=data)
