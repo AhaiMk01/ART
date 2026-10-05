@@ -392,6 +392,72 @@ class ColorCorrection(BaseModel):
     )
 
 
+def F3(key: str, description: str, *, default: list[Any]) -> Any:
+    """A curated field holding three numbers ``[r, g, b]`` (``rgb`` extra),
+    each at least 0, stored as ``r;g;b``."""
+    return Field(
+        None, min_length=3, max_length=3, description=description,
+        json_schema_extra={"key": key, "art_default": default, "rgb": True},
+    )  # fmt: skip
+
+
+class FilmNegative(BaseModel):
+    """Film Negative: inverts a camera-scanned colour negative. Per channel
+    `out = mult * in ^ exp`, clipped at 65535, with
+    `exp = -(green_exponent * (red_ratio, 1, blue_ratio))` for (r, g, b) and
+    `mult_c = ref_output_c / ref_input_c ^ exp_c`, so a pixel equal to
+    `ref_input` comes out as `ref_output`. `in` is the negative's linear value
+    (higher = a darker part of the scene), 0..65535, in the working space
+    (`color_space` working) or the camera space (input); `sample_spots` reads
+    it. Unset references (`ref_input` 0;0;0) make ART estimate them from the
+    channel medians of the central 60% of the frame and map those to
+    65535/24 (grey, about 4% of full scale): the default look, which depends
+    on the image content. Fit `red_ratio`/`blue_ratio` from neutral spots;
+    `ref_input` is a neutral's measured value, `ref_output` the level it gets
+    (grey `L;L;L` = neutral at level L, about reflectance x 65535; unequal
+    channels = a deliberate tint). When a request changes `ref_input` and
+    gives no `ref_output`, the server sets `ref_output` = (L, L, L) so the
+    image keeps its brightness (ART's own reference-picker rule; listed under
+    `implied`): L is the Rec.709 luminance (0.2126729, 0.7151521, 0.0721750)
+    of what the profile as it is now (before this request) renders the new
+    `ref_input` as. If the current reference is unset, ART's medians are first
+    estimated by sampling (a grid of 64 spots, a warning says so); where
+    sampling is unavailable `ref_output` becomes grey 65535/24 and a warning
+    says brightness may change. Legacy profiles (`BackCompat`, `RedBase`)
+    stay raw: typed edits other than `enabled` are refused on them."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool | None = F("Enabled", "Turn the tool on or off", default=False)
+    color_space: Literal["working", "input"] | None = F(
+        "ColorSpace",
+        "Space the references and `sample_spots` values are in: working (stored 1) or the "
+        "camera's input space (stored 0)",
+        stored_as={"working": "1", "input": "0"}, default="working",
+    )  # fmt: skip
+    red_ratio: float | None = F(
+        "RedRatio", "Red exponent / green exponent", ge=0.3, le=5, default=1.36
+    )
+    green_exponent: float | None = F(
+        "GreenExponent", "Master exponent (the green channel's)", ge=0.3, le=4, default=1.5
+    )
+    blue_ratio: float | None = F(
+        "BlueRatio", "Blue exponent / green exponent", ge=0.3, le=5, default=0.86
+    )
+    ref_input: list[Annotated[float, Field(ge=0)]] | None = F3(
+        "RefInput",
+        "[r, g, b] >= 0: the negative's linear value (0..65535) of the reference spot, "
+        "in the negative's terms; [0, 0, 0] = unset (ART estimates it from channel medians)",
+        default=[0.0, 0.0, 0.0],
+    )
+    ref_output: list[Annotated[float, Field(ge=0)]] | None = F3(
+        "RefOutput",
+        "[r, g, b] >= 0: the linear output (0..65535) the reference gets; grey [L, L, L] = "
+        "neutral at level L, unequal = a deliberate tint; [0, 0, 0] = unset (65535/24 grey)",
+        default=[0.0, 0.0, 0.0],
+    )
+
+
 class Adjustments(BaseModel):
     """Typed changes to curated tools. Set only what should change."""
 
@@ -408,6 +474,7 @@ class Adjustments(BaseModel):
     lens_profile: LensProfile | None = None
     tone_curve: ToneCurve | None = None
     color_correction: ColorCorrection | None = None
+    film_negative: FilmNegative | None = None
 
 
 TOOLS: dict[str, tuple[str, type[BaseModel]]] = {
@@ -422,6 +489,7 @@ TOOLS: dict[str, tuple[str, type[BaseModel]]] = {
     "lens_profile": ("LensProfile", LensProfile),
     "tone_curve": ("ToneCurve", ToneCurve),
     "color_correction": ("ColorCorrection", ColorCorrection),
+    "film_negative": ("Film Negative", FilmNegative),
 }
 """Tool name -> ([Group] in the .arp, its model)."""
 

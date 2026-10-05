@@ -50,7 +50,7 @@ Claude Desktop (`claude_desktop_config.json`):
 | `inspect_image(path, tags?)` | Metadata of an opened image from `exiftool` (`-j -n`; found beside `ART-cli`, else on PATH, else in the system's usual install locations (spec section 5), so a fork build without one still works): make, model, lens, ISO, `shutter_seconds`, `aperture`, `focal_length_mm`, `capture_date` (local, ISO 8601), `width`, `height`, `orientation` (EXIF 1-8), each null when absent; `tags` adds named exiftool tags (e.g. `Software`) that the file has, under `tags` |
 | `render_preview(path, max_size=1024, region?, inline?)` | Renders the working profile to a JPEG and returns its path; see [Previews](#previews) |
 | `get_profile(path)` | The working profile: curated tools typed under `adjustments`, every other value as a string under `raw` (each value once) |
-| `edit_profile(path, adjustments?, raw_edits?)` | Changes the working profile: typed, range-checked `adjustments` (`exposure`, `white_balance`, `crop`, `rotation`, `local_contrast`, `sharpening`, `denoise`, `vignetting`, `lens_profile`, `tone_curve`, `color_correction`; `crop` is checked against the image's size; a free rectangle needs `fixed_ratio: false`, see the crop entry of `describe_adjustments`) and/or `[Group] Key` raw edits; all or nothing. Lists `implied` changes (a disabled tool gets enabled; White Balance switches to `CustomTemp`; `histogram_matching` turned off when a curve is set) |
+| `edit_profile(path, adjustments?, raw_edits?)` | Changes the working profile: typed, range-checked `adjustments` (`exposure`, `white_balance`, `crop`, `rotation`, `local_contrast`, `sharpening`, `denoise`, `vignetting`, `lens_profile`, `tone_curve`, `color_correction`, `film_negative`; `crop` is checked against the image's size; a free rectangle needs `fixed_ratio: false`, see the crop entry of `describe_adjustments`) and/or `[Group] Key` raw edits; all or nothing. Lists `implied` changes (a disabled tool gets enabled; White Balance switches to `CustomTemp`; `histogram_matching` turned off when a curve is set; a computed `RefOutput`, see `film_negative`) |
 | `describe_adjustments()` | The curated adjustments: fields, ranges, units, the `[Group] Key` each sets, and the `PPVERSION` the schema targets |
 | `reset_profile(path, to)` | Reloads the working profile from the `sidecar` or ART's `default` profile |
 | `export_image(path, output, format, quality?, bit_depth?, write_profile=false, overwrite=false)` | Renders the working profile at full size as `jpeg` (quality 1..100, 8 bit), `png` (8/16 bit) or `tiff` (8/16/16f/32 bit) to `output` (its folder must exist); an existing `output` is refused unless `overwrite`; `write_profile` also saves `<output>.arp`, otherwise none is written |
@@ -72,6 +72,23 @@ Regions and shapes are matched by position and the first one past the end
 appends; a new region or shape is written with every key ART saves (ART's loader
 would skip an incomplete one). Setting `r`/`g`/`b` switches the region to RGB mode
 and turns the tool on (listed as `implied`).
+
+`film_negative` has the stored values as fields: `enabled`, `color_space`
+(`working`/`input`), `red_ratio`, `green_exponent`, `blue_ratio` and the
+references `ref_input`/`ref_output` as `[r, g, b]` (linear 0..65535 in the
+negative's terms; `[0, 0, 0]` = unset, ART estimates it from channel medians
+and maps those to 65535/24 grey). Per channel `out = mult * in ^ exp`, `exp =
+-(green_exponent * (red_ratio, 1, blue_ratio))`, `mult_c = ref_output_c /
+ref_input_c ^ exp_c`. Picker rule (ART's own): a request that changes
+`ref_input` without `ref_output` gets `ref_output = (L, L, L)` under `implied`
+so the image keeps its brightness; `L` is the Rec.709 luminance of what the
+profile as it is before the request renders the new `ref_input` as (a ratio
+changed in the same request does not alter it). With an unset current
+reference the medians are estimated by sampling 64 spots in the central 60% of
+the frame (`art-cli -x` on Render, the channel's `sample_spots` on Live), with
+a warning; where sampling is unsupported `ref_output` becomes grey 65535/24
+with a warning. An explicit `ref_output` wins. Legacy profiles (`BackCompat`,
+`RedBase`) stay under `raw`.
 
 `tone_curve` takes `mode`, `mode2` (omitted = same as `mode`; `get_profile`
 always reports the effective one), `histogram_matching`, `contrast` (-100..100: ART's

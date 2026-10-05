@@ -19,6 +19,8 @@ from mcp.types import CallToolResult, ContentBlock, ImageContent, TextContent
 from pydantic import BaseModel
 
 from art_mcp import artdir, keyfile
+from art_mcp.filmnegative import Estimate, SamplingUnsupported, Triple, current_estimate
+from art_mcp.keyfile import KeyFile
 from art_mcp.live.channel import ArtNotRunning, ChannelError, ChannelTimeout, ControlChannel
 from art_mcp.metadata import Exiftool, Metadata, MetadataProblem, read_metadata
 from art_mcp.preview import PreviewFolder, default_root, sweep_stale
@@ -325,14 +327,16 @@ def build_server(
                     problem = crop_problem(changes.profile, parsed.crop, lambda: size)
                     if problem:
                         raise AdjustmentError("out_of_range", problem)
-            outcome = changes.edit(parsed, raw_edits or [])
+            outcome = changes.edit(
+                parsed, raw_edits or [], film_estimate(path, parsed, changes.profile)
+            )
         except AdjustmentError as e:
             raise tool_error(e.code, str(e)) from e
         except UnknownKey as e:
             raise tool_error("unknown_key", str(e)) from e
         except EditConflict as e:
             raise tool_error("conflict", str(e)) from e
-        warnings += edit_warnings(parsed, changes.profile)
+        warnings += edit_warnings(parsed, changes.profile) + outcome.warnings
         partial = changes.partial_profile()
         # ART applies the partial profile over the profile it holds then: a
         # change the user made since get_profile stays, unless it is to one
@@ -430,13 +434,11 @@ def build_server(
             content.append(ImageContent(data=base64.b64encode(jpeg).decode("ascii"), mime_type="image/jpeg"))
         return CallToolResult(content=content, structured_content=preview.model_dump(mode="json"))
 
-    @server.tool(description=SAMPLE_SPOTS_DOC)
-    def sample_spots(
-        path: str, spots: list[Spot], size: int = DEFAULT_SIZE, space: str = "working"
+    def fetch_spots(
+        path: str, points: list[tuple[int, int]], size: int, space: str
     ) -> SpotSamples:
-        points = [(s.x, s.y) for s in spots]
-        check_spots(points, size, space, None, tool_error)
-        check_spots(points, size, space, image_size(path), tool_error)
+        """Sample ``points`` of the open editor's profile (arguments already
+        checked)."""
         # ART answers busy while the editor is processing instead of waiting:
         # retry until it settles, as long as a preview would wait.
         deadline = time.monotonic() + ART_PREVIEW_WAIT
@@ -456,6 +458,31 @@ def build_server(
             return parse_spots_reply(reply, size, space)
         except ValueError as e:
             raise tool_error("bad_reply", f"unexpected sample_spots reply from ART: {reply!r:.300}") from e
+
+    @server.tool(description=SAMPLE_SPOTS_DOC)
+    def sample_spots(
+        path: str, spots: list[Spot], size: int = DEFAULT_SIZE, space: str = "working"
+    ) -> SpotSamples:
+        points = [(s.x, s.y) for s in spots]
+        check_spots(points, size, space, None, tool_error)
+        check_spots(points, size, space, image_size(path), tool_error)
+        return fetch_spots(path, points, size, space)
+
+    def film_estimate(path: str, adjustments: Adjustments | None, profile: KeyFile) -> Estimate | None:
+        """ART's current Film Negative medians, sampled through the channel
+        from the editor's profile (before the edit), when the edit needs them."""
+        tool = adjustments.film_negative if adjustments is not None else None
+
+        def sampler(spots: list[tuple[int, int]], size: int, space: str) -> list[Triple]:
+            try:
+                samples = fetch_spots(path, spots, size, space)
+            except ToolError as e:
+                if str(e).startswith("unsupported:"):
+                    raise SamplingUnsupported(UNSUPPORTED_SPOTS) from e
+                raise
+            return [(v.avg[0], v.avg[1], v.avg[2]) for v in samples.spots]
+
+        return current_estimate(tool, profile.get("Film Negative"), lambda: image_size(path), sampler)
 
     @server.tool(
         description=(

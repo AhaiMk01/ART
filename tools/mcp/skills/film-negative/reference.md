@@ -79,12 +79,17 @@ Frames in other light have different `ir`, `ib` on the same slopes.
 
 ## Changing white balance without changing brightness
 
-ART's picker rule. With `e = (-1.5*RedRatio, -1.5, -1.5*BlueRatio)` and the
-current `mult_c = RefOutput_c / RefInput_c^e_c`:
+ART's picker rule, which `edit_profile` applies itself when a request sets
+`film_negative.ref_input` without `ref_output` (the computed `ref_output` is
+listed under `implied`; this is the formula behind it). With `e = (-G*RedRatio,
+-G, -G*BlueRatio)` as stored now and the current
+`mult_c = RefOutput_c / RefInput_c^e_c` (an unset reference: ART's medians and
+65535/24 grey, estimated by sampling, with a warning):
 
 1. `out_c = mult_c * newRefInput_c^e_c` (what the new reference spot gets now);
 2. `L = 0.2126729*out_r + 0.7151521*out_g + 0.0721750*out_b`;
-3. `RefOutput = "L;L;L"`, `RefInput = newRefInput`.
+3. `RefOutput = "L;L;L"`, `RefInput = newRefInput`. (Output channels clip at
+   65535 first.)
 
 For an absolute level instead, `L` = intended reflectance x 65535.
 

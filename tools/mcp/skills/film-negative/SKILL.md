@@ -19,12 +19,13 @@ spots in the picture. A frame without any film base visible is fine.
 2. **Base settings**, one `edit_profile`:
    - `adjustments`: `exposure` `{enabled: false}`; `tone_curve`
      `{mode: "Standard", histogram_matching: false, curve1: {type: "linear"},
-     curve2: {type: "linear"}}`; `sharpening` `{enabled: false}`.
+     curve2: {type: "linear"}}`; `sharpening` `{enabled: false}`;
+     `film_negative` `{enabled: true, color_space: "working"}` (`sample_spots`
+     must use `space="working"`; with `color_space: "input"` use
+     `space="input"`).
    - `raw_edits` (a LIST of `{group, key, value}`, value always a string; the
      group and key must already exist): `[RAW Bayer] Method=amaze`,
-     `[RAW] CAEnabled=false`, `[Film Negative] Enabled=true`,
-     `[Film Negative] ColorSpace=1` (1 = working space; `sample_spots` must
-     use `space="working"`; with ColorSpace 0 use `space="input"`). Below, `[Group] Key=value` means one such item,
+     `[RAW] CAEnabled=false`. Below, `[Group] Key=value` means one such item,
      e.g. `{"group": "RAW Bayer", "key": "Method", "value": "amaze"}`.
    - If an edit is refused with `unknown_key`, call `get_profile` and use the
      name it shows.
@@ -54,25 +55,30 @@ spots in the picture. A frame without any film base visible is fine.
    `RedRatio = log(clear.r/dense.r) / log(clear.g/dense.g)`, `clear` = the
    higher green; `BlueRatio` likewise). For a roll, fit the exponents pooled
    over several frames (reference.md): one frame spans too little tonal
-   range. Set
-   `[Film Negative] RedRatio` and `BlueRatio`;
-   `GreenExponent` stays 1.5.
-7. **Reference spot** (white balance and level): `[Film Negative] RefInput` = a neutral spot's
-   `avg` as `"r;g;b"` (or a point on the fitted line, reference.md);
-   `RefOutput` = `"L;L;L"` with `L` = the spot's intended reflectance x 65535
-   (18% grey about 11800, a light stone ~0.3 about 19700); it is the linear
-   output level (0..65535, before the tone curve) that spot gets. Without
-   `RefInput` ART estimates from channel medians (20% border cut); ART's
-   default RefOutput 65535/24 (about 2731) matches the image median, not a
-   chosen spot. Taste (warmer/cooler) goes in `RefOutput`, measurement in
-   `RefInput` (reference.md).
+   range. Set `film_negative` `red_ratio` and `blue_ratio`; `green_exponent`
+   stays 1.5. A profile with a legacy Film Negative (`BackCompat` in its
+   `raw` group, `RedBase`) is not typed: use raw edits for it.
+7. **Reference spot** (white balance and level): `film_negative.ref_input` = a
+   neutral spot's `avg` as `[r, g, b]` (or a point on the fitted line,
+   reference.md); `ref_output` = `[L, L, L]` with `L` = the spot's intended
+   reflectance x 65535 (18% grey about 11800, a light stone ~0.3 about
+   19700); it is the linear output level (0..65535, before the tone curve)
+   that spot gets. Without a `ref_input` ART estimates from channel medians
+   (20% border cut); ART's default output 65535/24 (about 2731) matches the
+   image median, not a chosen spot. Taste (warmer/cooler) goes in
+   `ref_output`, measurement in `ref_input` (reference.md). Giving only
+   `ref_input` keeps the image's brightness: `edit_profile` sets
+   `ref_output = (L, L, L)` itself (ART's picker rule, listed under
+   `implied`; with an unset current reference it first estimates ART's
+   medians by sampling and warns). Give `ref_output` too when you want a
+   level.
 8. **Check**: `image_stats` (crop is applied). Raise `L` in steps (11800 ->
    15000 -> ...) until `clipped_high` is about 0 in every channel (a bright
    blue sky may clip a little in `b` first: stay under ~0.05%; raise `L`
    until highlights just don't clip); `lum` p99.9
    of 220-245 is typical. Then `render_preview` and look. Colour cast:
-   re-pick `RefInput` on another neutral, or change white balance WITHOUT
-   changing brightness with the rule in reference.md.
+   re-pick `ref_input` on another neutral and leave `ref_output` out: the
+   server applies the brightness-preserving rule (reference.md).
 9. **Black point and contrast** (`tone_curve`, sRGB-encoded 0..1, roughly
    `image_stats` value / 255): take the lowest of the three channels'
    percentile 0.1 (the lum one hides a channel that sits lower), subtract
@@ -91,7 +97,7 @@ spots in the picture. A frame without any film base visible is fine.
 Ratios are a property of the film and development: fit once, reuse.
 
 1. Do the single-frame steps on one representative frame (rotation, crop,
-   RefInput/RefOutput included).
+   `ref_input`/`ref_output` included).
 2. `save_partial_profile(path, dest="<roll>.arp", exclude=["Coarse
    Transformation", "Crop", "Film Negative/RefInput", "Film Negative/RefOutput"])`:
    the roll preset. Exclude the per-frame settings: rotation, crop and the
@@ -102,15 +108,15 @@ Ratios are a property of the film and development: fit once, reuse.
    profile loading, or re-apply the same edits per frame.
 3. Each other frame: `open_image`, base settings and the roll's ratios (same
    `edit_profile` as step 2 and 6 above), then per frame: rotation (preview
-   first), crop, `RefInput`/`RefOutput` from that frame's own neutrals (a few
-   spots; `RefInput` = a neutral's `avg` or a point on the roll's line),
+   first), crop, `ref_input`/`ref_output` from that frame's own neutrals (a few
+   spots; `ref_input` = a neutral's `avg` or a point on the roll's line),
    output level and black point re-checked with `image_stats`.
 4. Every frame needs its own white balance, even in one roll: the exponents
    carry over, the light does not (blue offsets ranged +0.04..+0.39 across one
    roll: morning, afternoon, shade, greenhouse). Sample neutrals in the frame,
    check that its reliable ones lie on the roll's line (reference.md), keep
-   only spots that agree on the intercepts, set `RefInput` on the line and
-   `RefOutput` by the brightness-preserving rule. Do not refit the ratios
+   only spots that agree on the intercepts, set `ref_input` on the line and
+   leave `ref_output` to the brightness-preserving rule (or give it). Do not refit the ratios
    unless the frame is another film or development; fit them pooled over
    frames (reference.md), never from one frame.
 5. Check each frame with `image_stats` and a preview.

@@ -10,6 +10,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
+from art_mcp.filmnegative import Estimate, SamplingUnsupported, Triple, current_estimate
 from art_mcp.metadata import ExiftoolError
 from art_mcp.profile import Conflict as EditConflict
 from art_mcp.profile import (
@@ -20,11 +21,14 @@ from art_mcp.profile import (
     read_format,
     version_warnings,
 )
-from art_mcp.render.errors import render_error
+from art_mcp.render.errors import RenderError, render_error
 from art_mcp.render.metadata_ops import MetadataSummary, summarize
+from art_mcp.render.sampling_ops import sample_working_profile
 from art_mcp.render.session import ProfileSource, RenderSession
+from art_mcp.render.store import WorkingProfile
 from art_mcp.schema import (
     AdjustmentError,
+    Adjustments,
     AdjustmentsArg,
     AdjustmentsDescription,
     parse_adjustments,
@@ -80,6 +84,31 @@ def get_profile(session: RenderSession, path: str) -> ProfileView:
         return read_format(wp.changes.profile)
 
 
+def film_estimate(
+    session: RenderSession, wp: WorkingProfile, adjustments: Adjustments | None
+) -> Estimate | None:
+    """ART's current Film Negative medians, sampled with art-cli ``-x`` from
+    the working profile as it is before the edit, when the edit needs them."""
+    tool = adjustments.film_negative if adjustments is not None else None
+    if tool is None:
+        return None
+
+    def frame() -> tuple[int, int] | None:
+        whole = session.whole_frame(wp)
+        return whole.w, whole.h
+
+    def sampler(spots: list[tuple[int, int]], size: int, space: str) -> list[Triple]:
+        try:
+            samples = sample_working_profile(session, wp, spots, size, space)
+        except RenderError as e:
+            if e.code == "unsupported":
+                raise SamplingUnsupported(e.message) from e
+            raise
+        return [(v.avg[0], v.avg[1], v.avg[2]) for v in samples.spots]
+
+    return current_estimate(tool, wp.changes.profile.get("Film Negative"), frame, sampler)
+
+
 def edit_profile(
     session: RenderSession,
     path: str,
@@ -91,7 +120,7 @@ def edit_profile(
             parsed = parse_adjustments(adjustments) if adjustments else None
             if parsed is not None and parsed.crop is not None:
                 session.check_crop(wp, parsed.crop)
-            outcome = wp.changes.edit(parsed, raw_edits or [])
+            outcome = wp.changes.edit(parsed, raw_edits or [], film_estimate(session, wp, parsed))
         except AdjustmentError as e:
             raise render_error(e.code, str(e)) from e
         except UnknownKey as e:
@@ -99,7 +128,7 @@ def edit_profile(
         except EditConflict as e:
             raise render_error("conflict", str(e)) from e
         session.commit(wp)
-        warnings = edit_warnings(parsed, wp.changes.profile)
+        warnings = edit_warnings(parsed, wp.changes.profile) + outcome.warnings
     return EditResult(changed=outcome.changed, implied=outcome.implied, warnings=warnings)
 
 

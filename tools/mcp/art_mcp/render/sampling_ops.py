@@ -12,6 +12,7 @@ from art_mcp.render.artcli import (
 from art_mcp.render.errors import render_error
 from art_mcp.render.preview_ops import MAX_PREVIEW_SIZE, PREVIEW_SIZE
 from art_mcp.render.session import RenderSession
+from art_mcp.render.store import WorkingProfile
 from art_mcp.sampling import (
     DEFAULT_SIZE,
     ImageStats,
@@ -32,7 +33,6 @@ def sample_spots(
     size: int = DEFAULT_SIZE,
     space: str = "working",
 ) -> SpotSamples:
-    previews = session.previews
     points = [(s.x, s.y) for s in spots]
     # Cheap checks first; the frame is measured only for a request that
     # could be valid.
@@ -40,21 +40,34 @@ def sample_spots(
     with session.image(path) as wp:
         frame = session.whole_frame(wp)
         check_spots(points, size, space, (frame.w, frame.h), render_error)
-        profile = previews.new_file("profile", ".arp")
+        return sample_working_profile(session, wp, points, size, space)
+
+
+def sample_working_profile(
+    session: RenderSession,
+    wp: WorkingProfile,
+    points: list[tuple[int, int]],
+    size: int,
+    space: str,
+) -> SpotSamples:
+    """Sample ``points`` of an open image's working profile (call with the
+    image's lock held; the request is already checked)."""
+    previews = session.previews
+    profile = previews.new_file("profile", ".arp")
+    try:
+        profile.write_text(keyfile.dumps(wp.changes.profile), encoding="utf-8")
         try:
-            profile.write_text(keyfile.dumps(wp.changes.profile), encoding="utf-8")
-            try:
-                output = session.cli.run(spots_args(wp.image, profile, size, space, points))
-            except ArtCliTimeout as e:
-                raise render_error("timeout", str(e)) from e
-            except ArtCliError as e:
-                # A release art-cli doesn't know -x: it prints its help
-                # and exits -1.
-                if e.returncode == -1 and looks_like_help(str(e)):
-                    raise render_error("unsupported", UNSUPPORTED_SPOTS) from e
-                raise render_error("render_failed", str(e)) from e
-        finally:
-            profile.unlink(missing_ok=True)
+            output = session.cli.run(spots_args(wp.image, profile, size, space, points))
+        except ArtCliTimeout as e:
+            raise render_error("timeout", str(e)) from e
+        except ArtCliError as e:
+            # A release art-cli doesn't know -x: it prints its help
+            # and exits -1.
+            if e.returncode == -1 and looks_like_help(str(e)):
+                raise render_error("unsupported", UNSUPPORTED_SPOTS) from e
+            raise render_error("render_failed", str(e)) from e
+    finally:
+        profile.unlink(missing_ok=True)
     try:
         result = parse_spots_output(output, size, space)
     except ValueError as e:

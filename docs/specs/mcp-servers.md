@@ -108,10 +108,10 @@ Both compile into one partial profile. Rules:
 
 Exposure, White Balance, Crop, Rotation, Local Contrast, Sharpening, Denoise
 (basic amounts), Vignetting Correction, Lens Profile, Tone Curve (curves 1
-and 2), Color Correction (RGB-mode regions with rectangle/gradient area masks). Fields, ranges and units:
+and 2), Color Correction (RGB-mode regions with rectangle/gradient area masks), Film Negative (stored values 1:1; computed `RefOutput`, see Appendix A). Fields, ranges and units:
 see [Appendix A](#appendix-a-curated-adjustment-schema).
 
-All other tools (other curves, equalizers, masks, Spot Removal, Film Negative,
+All other tools (other curves, equalizers, masks, Spot Removal,
 Color Management, RAW settings) are reachable through raw edits only. Typed
 shapes for them are a later, separate effort.
 
@@ -846,3 +846,63 @@ region 1 is in Jzazbz mode, so a fresh profile reads `regions: [null]`. A
 typed edit of such a region (values, or a mask on a region with a supported
 mask) works; changing the mask of a region with an unsupported one is
 `out_of_range` (use raw edits).
+
+**film_negative** -> `[Film Negative]`
+
+Fields mirror the stored values 1:1 (no GUI-slider conversion):
+
+| Field | Key | Type / range | Default |
+|---|---|---|---|
+| `enabled` | `Enabled` | bool | false |
+| `color_space` | `ColorSpace` | `working` (stored `1`) / `input` (`0`) | `working` |
+| `red_ratio` | `RedRatio` | 0.3 .. 5 | 1.36 |
+| `green_exponent` | `GreenExponent` | 0.3 .. 4 | 1.5 |
+| `blue_ratio` | `BlueRatio` | 0.3 .. 5 | 0.86 |
+| `ref_input` | `RefInput` | `[r, g, b]`, each >= 0, linear 0..65535 | `[0, 0, 0]` (unset) |
+| `ref_output` | `RefOutput` | `[r, g, b]`, each >= 0 | `[0, 0, 0]` (unset) |
+
+ART (`src/engine/filmnegativeproc.cc`, `doProcess`): per channel
+`out = min(mult_c * in_c ^ exp_c, 65535)` with
+`exp = -(green_exponent * (red_ratio, 1, blue_ratio))` and
+`mult_c = ref_output_c / max(ref_input_c, 1) ^ exp_c`, so a pixel equal to
+`ref_input` comes out as `ref_output`. `in` is the negative's value (higher =
+a darker part of the scene), in the working space or the camera's input space
+per `color_space`; it is what `sample_spots` returns (same `space`). A
+reference whose green is <= 0 is unset: ART then estimates `ref_input` from
+the channel medians of the central 60% of the input (20% border cut) and uses
+65535/24 grey for `ref_output`. Ranges are the GUI's `Adjuster` ranges
+(`src/gui/filmnegative.cc`). References are written as `r;g;b` (numbers to 10
+significant digits); a `ref_input` equal to the stored one is no change.
+
+**Picker rule** (computed, ART's own: `FilmNegative::button1Pressed`). When a
+request sets `ref_input` to a value different from the stored one (green > 0)
+and gives no `ref_output`, the server sets `RefOutput` = `L;L;L` (listed under
+`implied`) so the image keeps its brightness:
+
+- `L` is the Rec.709 luminance (0.2126729, 0.7151521, 0.0721750) of what the
+  profile **as it is before the request** renders the new `ref_input` as:
+  `out_c = min(mult_c * max(new_c, 1) ^ exp_c, 65535)` with the *stored*
+  exponents, `RefInput` and `RefOutput` (an unset `RefOutput` counts as 65535/24
+  grey). Only the new `ref_input` comes from the request: a ratio or exponent
+  changed in the same request does not alter `L`, since the new reference maps
+  to grey `L` whatever the exponents are.
+- If the stored `RefInput` is unset, ART's medians stand in for it. The server
+  **estimates** them by sampling: a grid of 8 x 8 = 64 `sample_spots` squares
+  of 64 px (4 calls of 16), one per cell of the frame minus the 20% border on
+  each side, in the stored `ColorSpace`; per channel the median of the 64
+  averages (the mean of the two middle ones). A warning says it is an
+  estimate (a median of block means, not of pixels) and lists the medians.
+  Render samples with `art-cli -x` from the working profile, Live through the
+  channel's `sample_spots` op from the editor's profile. This sampling lives
+  in the service layer (`render/profile_ops.py`) and the Live adapter, with
+  the pure maths in `art_mcp/filmnegative.py`; `profile.py` receives the
+  result (`WorkingChanges.edit(..., film_estimate=)`).
+- If sampling is unavailable (a release `art-cli`: `unsupported`; or Live has
+  not reported the image's size), `RefOutput` becomes grey 65535/24
+  (2730.625) and a warning says the brightness may change.
+- An explicit `ref_output` in the request wins and nothing is computed (no
+  sampling). A raw edit of `RefOutput` also wins.
+
+Legacy profiles (`BackCompat` 1/2, `RedBase`/`GreenBase`/`BlueBase`) are not
+typed: `get_profile` leaves all their keys under `raw`, and typed
+`film_negative` edits other than `enabled` are `out_of_range`.

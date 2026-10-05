@@ -15,6 +15,16 @@ from pydantic import BaseModel, TypeAdapter, ValidationError
 from art_mcp.colorcorrection import GROUP as CC_GROUP
 from art_mcp.colorcorrection import compile_edits as compile_color_correction
 from art_mcp.colorcorrection import is_region_key, read_color_correction
+from art_mcp.filmnegative import GROUP as FILM_GROUP
+from art_mcp.filmnegative import (
+    Estimate,
+    check_legacy,
+    format_triple,
+    is_legacy,
+    parse_triple,
+    picker_edits,
+    read_triple_field,
+)
 from art_mcp.curves import LinearCurve, PointCurve, curve_warnings, decode, drawn_points, encode
 from art_mcp.keyfile import KeyFile
 from art_mcp.schema import (
@@ -78,6 +88,8 @@ class EditOutcome(BaseModel):
     implied: list[RawEdit]
     """The changes in ``changed`` the agent didn't ask for: a disabled tool
     enabled because it was adjusted, White Balance switched to CustomTemp."""
+    warnings: list[str] = []
+    """Notes on how the changes were computed (e.g. an estimated reference)."""
 
 
 def _arp_value(value: Any) -> str:
@@ -104,10 +116,14 @@ class WorkingChanges:
     def _value(self, group: str, key: str) -> str | None:
         return self.profile.get(group, {}).get(key)
 
-    def _compile(self, adjustments: Adjustments) -> tuple[list[RawEdit], list[RawEdit]]:
-        """The (explicit, implied) edits an adjustments request amounts to."""
+    def _compile(
+        self, adjustments: Adjustments, film_estimate: Estimate | None = None
+    ) -> tuple[list[RawEdit], list[RawEdit], list[str]]:
+        """The (explicit, implied) edits an adjustments request amounts to,
+        and warnings about how they were computed."""
         explicit: list[RawEdit] = []
         implied: list[RawEdit] = []
+        warnings: list[str] = []
         for name, (group, model) in TOOLS.items():
             tool = getattr(adjustments, name)
             if tool is None:
@@ -120,7 +136,16 @@ class WorkingChanges:
             values = {f: getattr(tool, f) for f in model.model_fields if getattr(tool, f) is not None}
             if not values:
                 continue
+            if name == "film_negative":
+                check_legacy(tool, self.profile.get(group))
             for f, v in values.items():
+                if isinstance(v, list):  # a reference: r;g;b
+                    if parse_triple(self._value(group, field_key(model, f))) == tuple(v):
+                        continue  # already that value: not a change
+                    explicit.append(
+                        RawEdit(group=group, key=field_key(model, f), value=format_triple(v))
+                    )
+                    continue
                 edit = RawEdit(
                     group=field_group(model, f, group),
                     key=field_key(model, f),
@@ -141,7 +166,11 @@ class WorkingChanges:
                 implied.append(RawEdit(group=group, key="Setting", value="CustomTemp"))
             if name == "tone_curve":
                 implied += self._tone_curve_implied(group, values)
-        return explicit, implied
+            if name == "film_negative":
+                picked, notes = picker_edits(tool, self.profile.get(group), film_estimate)
+                implied += [RawEdit(group=group, key=k, value=v) for k, v in picked]
+                warnings += notes
+        return explicit, implied, warnings
 
     def _tone_curve_implied(self, group: str, values: dict[str, Any]) -> list[RawEdit]:
         implied: list[RawEdit] = []
@@ -158,14 +187,21 @@ class WorkingChanges:
             implied.append(RawEdit(group=group, key="CurveMode2", value=values["mode"]))
         return implied
 
-    def edit(self, adjustments: Adjustments | None, raw_edits: list[RawEdit]) -> EditOutcome:
+    def edit(
+        self,
+        adjustments: Adjustments | None,
+        raw_edits: list[RawEdit],
+        film_estimate: Estimate | None = None,
+    ) -> EditOutcome:
         """Apply adjustments and raw edits together, all or nothing.
 
         Raw edits must name an existing group and key (a typo would otherwise
         do nothing in ART, silently); keys an adjustment sets are valid by
         definition (ART omits some, e.g. ``Equal`` at its default). A raw edit
         and an adjustment on the same key conflict, but a raw edit of a key an
-        adjustment only *implies* wins."""
+        adjustment only *implies* wins. ``film_estimate``: ART's current Film
+        Negative medians as sampled, for a request that needs them
+        (``filmnegative.current_estimate``)."""
         versioned = [e for e in raw_edits if e.group == VERSION_GROUP]
         if versioned:
             # Which ART version wrote the profile decides how ART migrates it.
@@ -174,7 +210,9 @@ class WorkingChanges:
         if unknown:
             names = ", ".join(e.name for e in unknown)
             raise UnknownKey(f"not in this image's processing profile: {names}")
-        explicit, implied = self._compile(adjustments) if adjustments else ([], [])
+        explicit, implied, warnings = (
+            self._compile(adjustments, film_estimate) if adjustments else ([], [], [])
+        )
         raw_names = {e.name for e in raw_edits}
         clashes = [e.name for e in explicit if e.name in raw_names]
         if clashes:
@@ -200,7 +238,11 @@ class WorkingChanges:
                     out.append(RawEdit(group=e.group, key=e.key, value=final))
             return out
 
-        return EditOutcome(changed=changed_edits(edits), implied=changed_edits(implied))
+        if any(e.name == f"[{FILM_GROUP}] RefOutput" for e in raw_edits):
+            warnings = []  # a raw RefOutput overrides the computed one
+        return EditOutcome(
+            changed=changed_edits(edits), implied=changed_edits(implied), warnings=warnings
+        )
 
     def apply(self, edits: list[RawEdit]) -> list[RawEdit]:
         """Apply raw ``edits`` only; returns the values that changed."""
@@ -237,6 +279,8 @@ def typed_adjustments(profile: KeyFile) -> tuple[dict[str, dict[str, Any]], set[
             typed[name], cc_consumed = read_color_correction(entries)
             consumed |= cc_consumed
             continue
+        if name == "film_negative" and is_legacy(entries):
+            continue  # legacy forms stay raw
         values: dict[str, Any] = {}
         for field, info in model.model_fields.items():
             key = field_key(model, field)
@@ -244,6 +288,14 @@ def typed_adjustments(profile: KeyFile) -> tuple[dict[str, dict[str, Any]], set[
             stored = profile.get(field_grp, {}).get(key)
             extra = info.json_schema_extra
             assert isinstance(extra, dict)
+            if extra.get("rgb"):
+                triple = read_triple_field(stored) if stored is not None else extra["art_default"]
+                if triple is None:
+                    continue
+                values[field] = triple
+                if stored is not None:
+                    consumed.add((field_grp, key))
+                continue
             if stored is None:
                 source = extra.get("default_from")
                 if source is None:
