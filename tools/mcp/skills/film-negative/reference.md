@@ -199,8 +199,8 @@ stop when highlights begin to clip. Curve x/y are sRGB-encoded 0..1 (about
 becomes `x = 60/255 = 0.235`.
 
 Lamps and speculars in a lit interior clip 0.4 to 1% whatever `L` is, and that
-is fine: judge `clipped_high` on a `region` away from the lamps
-(`image_stats(region=...)`) or accept it; do not lower `L` for them. A bright
+is fine: judge `clipped_high` without the lamps (`image_stats(lum_max=...)`,
+or a `region` away from them) or accept it; do not lower `L` for them. A bright
 sky clipping one channel (blue first) is a trade-off against the level: lean
 to accepting a little when the sky is not the subject (a dusk frame kept 1.4%
 of blue clipped in the sky; clearing it would have taken a much lower `L` for

@@ -187,6 +187,13 @@ request order; one that can't be measured doesn't stop the others) and `failed`;
 the result's top level (`r`, `g`, `b`, `lum`, `width`, `height`, ...); with `paths`
 they are under `items[i].stats` (each item `{path, stats}` or `{path, error}`).
 `width`/`height`: the whole rendered image.
+`lum_min` / `lum_max` (0 to 255, the scale of `lum`; either alone is fine) limit all
+of it to the pixels whose `lum` lies in that band, ends included: `lum_max` leaves
+out lamps and speculars so `clipped_high` judges the rest, `lum_min` leaves out
+a black border, and a band of the shadows or the mid-tones shows the colour cast
+of just that range. `in_band` is the fraction of the pixels measured (the region
+or the whole image) that the band holds, so a thin band shows; at least 16 pixels
+are needed, else out_of_range.
 `max_size`: long edge, 1 to 2576. Anything the image shows counts, including a
 border, a mount or bright lamps: crop first (Render applies the working
 profile's crop; Live's preview is uncropped), or give `region` {x, y, w, h},
@@ -229,6 +236,21 @@ class RegionFractions(Protocol):
 
 class RegionTooSmall(ValueError):
     """A region that covers too few pixels of the rendered image to measure."""
+
+
+class BandTooSmall(RegionTooSmall):
+    """A luminance band that holds too few pixels of the measured part to
+    measure (none at all, for a band between two values nothing has)."""
+
+
+def check_stats_band(lum_min: int | None, lum_max: int | None, error: Callable[[Any, str], Exception]) -> None:
+    """Raise ``error("out_of_range", ...)`` unless the limits of a luminance
+    band are None or values 0 to 255 with ``lum_min`` not above ``lum_max``."""
+    for name, value in (("lum_min", lum_min), ("lum_max", lum_max)):
+        if value is not None and not 0 <= value <= 255:
+            raise error("out_of_range", f"{name} is a luminance from 0 to 255, not {value}")
+    if lum_min is not None and lum_max is not None and lum_min > lum_max:
+        raise error("out_of_range", f"lum_min is above lum_max ({lum_min} > {lum_max}): the band is empty")
 
 
 def check_stats_region(region: RegionFractions | None, error: Callable[[Any, str], Exception]) -> None:
@@ -275,6 +297,8 @@ def check_stats_call(
     region: RegionFractions | None,
     bins: int | None,
     detail: str | None,
+    lum_min: int | None,
+    lum_max: int | None,
     error: Callable[[Any, str], Exception],
 ) -> None:
     """Every check of an image_stats call that needs no image, for both
@@ -285,6 +309,7 @@ def check_stats_call(
     check_stats_region(region, error)
     check_stats_bins(bins, error)
     check_stats_detail(detail, error)
+    check_stats_band(lum_min, lum_max, error)
 
 
 def stats_detail(detail: str | None, several: bool) -> str:
@@ -352,6 +377,10 @@ class ImageStats(OmitNone):
     lum: ChannelStats
     """0.2126 R + 0.7152 G + 0.0722 B per pixel, rounded to the nearest 8-bit
     value (so it bins like the other channels)."""
+    in_band: float | None = None
+    """With `lum_min` / `lum_max`: the fraction of the pixels measured (the
+    region, else the whole image) whose `lum` is in the band; every number
+    above is of those pixels. Left out without a band."""
 
 
 class StatsItem(OmitNone):
@@ -382,6 +411,7 @@ class ImageStatsResult(OmitNone):
     g: ChannelStats | None = None
     b: ChannelStats | None = None
     lum: ChannelStats | None = None
+    in_band: float | None = None
     items: list[StatsItem] | None = None
     failed: int | None = None
 
@@ -440,13 +470,16 @@ def image_stats(
     region: RegionFractions | None = None,
     bins: int | None = None,
     detail: str = "standard",
+    lum_min: int | None = None,
+    lum_max: int | None = None,
 ) -> ImageStats:
     """Statistics of an 8-bit image file (any mode Pillow can turn into RGB),
     of the part ``region`` selects when given (fractions of the image, cut like
-    render_preview's region), at the ``detail`` (one of ``DETAILS``). Raises
-    ValueError if it can't be read, has no pixels or ``detail`` is not one,
-    and ``RegionTooSmall`` (a ValueError) if the region has fewer than
-    ``MIN_REGION_PIXELS``."""
+    render_preview's region) and of the pixels whose luminance is between
+    ``lum_min`` and ``lum_max`` (ends included; None: no limit), at the
+    ``detail`` (one of ``DETAILS``). Raises ValueError if it can't be read, has
+    no pixels or ``detail`` is not one, and ``RegionTooSmall`` (a ValueError)
+    if the region, or the band within it, has fewer than ``MIN_REGION_PIXELS``."""
     from PIL import Image
 
     if detail not in DETAILS:
@@ -469,9 +502,29 @@ def image_stats(
             )
         rgb = rgb.crop((rect.x, rect.y, rect.x + rect.w, rect.y + rect.h))
         part = PixelRegion(x=rect.x, y=rect.y, w=rect.w, h=rect.h)
-    counts = rgb.histogram()
-    lum = rgb.convert("L", (*LUMA, 0)).histogram()
+    luma = rgb.convert("L", (*LUMA, 0))
+    mask = in_band = None
+    if lum_min is not None or lum_max is not None:
+        low, high = 0 if lum_min is None else lum_min, 255 if lum_max is None else lum_max
+        mask = luma.point([255 if low <= value <= high else 0 for value in range(256)])
+        inside = mask.histogram()[255]
+        if inside < MIN_REGION_PIXELS:
+            raise BandTooSmall(
+                f"only {inside} of the {luma.width * luma.height} pixels measured lie in the band "
+                f"lum_min {low} to lum_max {high}; it needs at least {MIN_REGION_PIXELS} pixels: "
+                "widen the band, or raise max_size"
+            )
+        in_band = round(inside / (luma.width * luma.height), 6)
+    counts = rgb.histogram(mask)
+    lum = luma.histogram(mask)
     r, g, b = (channel_stats(counts[i * 256 : (i + 1) * 256], histogram, bins, detail) for i in range(3))
     return ImageStats(
-        width=width, height=height, region=part, r=r, g=g, b=b, lum=channel_stats(lum, histogram, bins, detail)
+        width=width,
+        height=height,
+        region=part,
+        r=r,
+        g=g,
+        b=b,
+        lum=channel_stats(lum, histogram, bins, detail),
+        in_band=in_band,
     )

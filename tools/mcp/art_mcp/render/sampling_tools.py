@@ -50,6 +50,8 @@ def register(server: MCPServer, session: RenderSession) -> None:
         detail: Detail | None = None,
         region: Region | None = None,
         bins: int | None = None,
+        lum_min: int | None = None,
+        lum_max: int | None = None,
     ) -> Annotated[CallToolResult, ImageStatsResult]:
         def progress(done: int, total: int) -> None:
             anyio.from_thread.run(ctx.report_progress, done, total)
@@ -57,7 +59,9 @@ def register(server: MCPServer, session: RenderSession) -> None:
         def run() -> CallToolResult:
             with as_tool_errors():
                 return stats_result(
-                    ops.image_stats(session, path, paths, max_size, histogram, region, bins, detail, progress)
+                    ops.image_stats(
+                        session, path, paths, max_size, histogram, region, bins, detail, lum_min, lum_max, progress
+                    )
                 )
 
         return await anyio.to_thread.run_sync(run)

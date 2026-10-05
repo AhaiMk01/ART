@@ -28,8 +28,9 @@ EDIT_PROFILE_CEILING = 20_000
 """edit_profile's input schema in characters (compact JSON): 29,984 before it
 was compacted, about 16,600 now. The bound leaves room for a few more fields
 and fails if the schema grows back."""
-TOTAL_CEILING = {"render": 26_000, "live": 23_000}
-"""All of a server's input schemas together (about 23,000 and 19,700 now)."""
+TOTAL_CEILING = {"render": 26_500, "live": 23_000}
+"""All of a server's input schemas together (Render about 26,200 now, the luminance band of image_stats the latest).
+Raise it deliberately for an option worth its characters; the bound is there to stop silent growth."""
 
 
 @pytest.fixture

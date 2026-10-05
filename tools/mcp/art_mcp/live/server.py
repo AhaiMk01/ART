@@ -918,7 +918,14 @@ def build_server(
         return estimate_for(adjustments, profile, lambda: image_size(path), fetch)
 
     def preview_stats(
-        path: str, max_size: int, histogram: bool, region: Region | None, bins: int | None, detail: str
+        path: str,
+        max_size: int,
+        histogram: bool,
+        region: Region | None,
+        bins: int | None,
+        detail: str,
+        lum_min: int | None,
+        lum_max: int | None,
     ) -> ImageStats:
         """One image's statistics from the editor's preview (the request is
         already checked)."""
@@ -927,7 +934,7 @@ def build_server(
             args = {"path": art_path(path), "output": str(output), "max_size": max_size}
             call("preview", args, timeout=channel.timeout + ART_PREVIEW_WAIT)
             try:
-                return compute_stats(output, histogram, region, bins, detail)
+                return compute_stats(output, histogram, region, bins, detail, lum_min, lum_max)
             except RegionTooSmall as e:
                 raise tool_error("out_of_range", str(e)) from e
             except ValueError as e:
@@ -953,16 +960,22 @@ def build_server(
         detail: Detail | None = None,
         region: Region | None = None,
         bins: int | None = None,
+        lum_min: int | None = None,
+        lum_max: int | None = None,
     ) -> Annotated[CallToolResult, ImageStatsResult]:
-        check_stats_call(path, paths, max_size, MAX_PREVIEW_SIZE, region, bins, detail, tool_error)
+        check_stats_call(path, paths, max_size, MAX_PREVIEW_SIZE, region, bins, detail, lum_min, lum_max, tool_error)
         level = stats_detail(detail, paths is not None)
         if paths is None:
             assert path is not None  # check_stats_call: one of the two
-            return stats_result(preview_stats(path, max_size, histogram, region, bins, level))
+            return stats_result(preview_stats(path, max_size, histogram, region, bins, level, lum_min, lum_max))
         items = []
         for each in paths:
             try:
-                items.append(StatsItem(path=each, stats=preview_stats(each, max_size, histogram, region, bins, level)))
+                items.append(
+                    StatsItem(
+                        path=each, stats=preview_stats(each, max_size, histogram, region, bins, level, lum_min, lum_max)
+                    )
+                )
             except ToolError as e:
                 if str(e).startswith("art_not_running:"):
                     raise  # no point asking again for every image

@@ -124,9 +124,12 @@ spots in the picture. A frame without any film base visible is fine.
    level, with `paths` they are under `items[i].stats`. Raise `L` in steps
    (11800 -> 15000 -> ...) until `clipped_high` is about 0 in every channel;
    `lum` p99.9 of 220-245 is typical. Lamps and speculars in a lit interior clip 0.4 to 1%
-   at any `L`, and that is fine: judge `clipped_high` on a `region` away from
-   them (`{x, y, w, h}`, fractions of the image as in `render_preview`), or
-   accept it. A bright sky clipping one channel (blue first) is a trade-off
+   at any `L`, and that is fine: judge `clipped_high` without them, with
+   `lum_max` (say 245: the statistics of the pixels at or below it, `in_band`
+   says how many that is) or on a `region` away from them (`{x, y, w, h}`,
+   fractions of the image as in `render_preview`), or accept it. A band of
+   the shadows (`lum_max` about 60) or the mid-tones (70 to 190) gives the
+   colour cast of that range alone. A bright sky clipping one channel (blue first) is a trade-off
    against the level: accept a little when the sky is not the subject, lower
    `L` when it is (reference.md, "Output level"). `bins=16` shows the shape
    of the distribution (is the shadow end clipped, is there a second hump),

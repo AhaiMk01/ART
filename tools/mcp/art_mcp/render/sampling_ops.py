@@ -130,6 +130,8 @@ def image_stats(
     region: Region | None = None,
     bins: int | None = None,
     detail: str | None = None,
+    lum_min: int | None = None,
+    lum_max: int | None = None,
     on_progress: Callable[[int, int], None] | None = None,
 ) -> ImageStats | StatsBatch:
     """Statistics of the working profile's whole-image render of ``path``, or
@@ -142,16 +144,16 @@ def image_stats(
     cut from each render's PNG (fractions of the image as it shows, the
     working crop applied), not rendered separately. ``detail`` defaults to
     "standard" for one image and "compact" for several."""
-    check_stats_call(path, paths, max_size, MAX_PREVIEW_SIZE, region, bins, detail, render_error)
+    check_stats_call(path, paths, max_size, MAX_PREVIEW_SIZE, region, bins, detail, lum_min, lum_max, render_error)
     level = stats_detail(detail, paths is not None)
     if paths is None:
         assert path is not None  # check_stats_call: one of the two
-        return render_stats(session, path, max_size, histogram, region, bins, level)
+        return render_stats(session, path, max_size, histogram, region, bins, level, lum_min, lum_max)
 
     items = [StatsItem(path=p) for p in paths]
 
     def run(item: StatsItem) -> None:
-        item.stats = render_stats(session, item.path, max_size, histogram, region, bins, level)
+        item.stats = render_stats(session, item.path, max_size, histogram, region, bins, level, lum_min, lum_max)
 
     done = 0
     with ThreadPoolExecutor(max_workers=max(1, session.cli.max_processes)) as pool:
@@ -177,6 +179,8 @@ def render_stats(
     region: Region | None,
     bins: int | None,
     detail: str,
+    lum_min: int | None,
+    lum_max: int | None,
 ) -> ImageStats:
     """One image's statistics (the request is already checked)."""
     previews = session.previews
@@ -190,7 +194,7 @@ def render_stats(
             resize.write_text(resize_profile(max_size), encoding="utf-8")
             session.run(stats_args(wp.image, output, profile, resize, fast=fast), output)
             try:
-                return compute_stats(output, histogram, region, bins, detail)
+                return compute_stats(output, histogram, region, bins, detail, lum_min, lum_max)
             except RegionTooSmall as e:
                 raise render_error("out_of_range", str(e)) from e
             except ValueError as e:

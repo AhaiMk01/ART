@@ -18,10 +18,12 @@ from art_mcp.render.artcli import ArtCli, Rect, region_rect
 from art_mcp.render.preview_tools import Region
 from art_mcp.render.server import build_server as build_render
 from art_mcp.sampling import (
+    IMAGE_STATS_DOC,
     MAX_SPOTS,
     MAX_SPOTS_PER_CALL,
     RegionTooSmall,
     check_spots,
+    check_stats_band,
     check_stats_bins,
     check_stats_detail,
     check_stats_paths,
@@ -1638,3 +1640,133 @@ async def test_live_image_stats_documents_detail_and_paths(art):
     assert json.dumps(properties["detail"]).count("compact") == 1 and '"full"' in json.dumps(properties["detail"])
     for needle in ('"compact"', '"standard"', '"full"', "`detail`", "`paths`", "`items`", "request order", "default"):
         assert needle in tool.description
+
+
+# -- a luminance band --------------------------------------------------------------
+# `lamps` (grey, so lum = value): 20 pixels at 255, 80 at 200, 90 at 20, 10 at 0.
+
+
+def test_a_band_below_the_lamps_leaves_them_out_of_every_statistic(lamps):
+    stats = image_stats(lamps, histogram=True, detail="full", lum_max=254)
+    # by hand: (80 * 200 + 90 * 20) / 180 pixels, nothing at 255, 10 of 180 at 0
+    assert stats.r.mean == 98.89 and stats.r.clipped_high == 0 and stats.r.clipped_low == 0.055556
+    assert stats.r.max == 200 and sum(stats.r.histogram) == 180 and sum(stats.lum.histogram) == 180
+    assert stats.in_band == 0.9
+    assert (stats.width, stats.height) == (20, 10) and stats.region is None
+
+
+def test_a_band_above_the_blacks_leaves_them_out(lamps):
+    stats = image_stats(lamps, lum_min=1)
+    assert stats.r.clipped_low == 0 and stats.r.clipped_high == 0.105263  # 20 of 190
+    assert stats.in_band == 0.95
+
+
+def test_a_band_with_both_limits_measures_only_the_values_between_them(lamps):
+    stats = image_stats(lamps, lum_min=100, lum_max=254, detail="full")
+    assert (stats.r.mean, stats.r.std, stats.r.min, stats.r.max) == (200, 0, 200, 200)
+    assert stats.lum.percentiles == {"0.1": 200, "1": 200, "5": 200, "50": 200, "95": 200, "99": 200, "99.9": 200}
+    assert stats.in_band == 0.4
+
+
+@pytest.mark.parametrize("value, pixels", [(200, 80), (20, 90), (255, 20)])
+def test_the_limits_of_a_band_are_inclusive(lamps, value, pixels):
+    stats = image_stats(lamps, lum_min=value, lum_max=value)
+    assert stats.in_band == pixels / 200 and stats.r.percentiles["50"] == value
+
+
+def test_a_band_is_cut_from_the_region_and_in_band_counts_that_part(lamps):
+    stats = image_stats(lamps, region=Region(**LEFT), lum_max=254, detail="full")
+    assert stats.region.model_dump() == LEFT_PIXELS
+    assert stats.r.mean == 200 and stats.r.clipped_high == 0
+    assert stats.in_band == 0.8  # 80 of the 100 pixels of the left half
+
+
+def test_no_band_leaves_in_band_out(lamps):
+    assert "in_band" not in image_stats(lamps).model_dump()
+    assert image_stats(lamps, lum_max=255).in_band == 1.0  # a band that holds everything still says so
+
+
+def test_a_band_with_too_few_pixels_is_too_small(lamps):
+    with pytest.raises(RegionTooSmall, match="band.*at least 16 pixels"):
+        image_stats(lamps, lum_min=21, lum_max=199)  # nothing is there
+    with pytest.raises(RegionTooSmall, match="at least 16 pixels"):
+        image_stats(lamps, lum_max=0)  # 10 pixels
+
+
+@pytest.mark.parametrize(
+    "lum_min, lum_max", [(None, None), (0, 255), (255, 255), (0, 0), (10, 10), (None, 100), (5, None)]
+)
+def test_check_stats_band_accepts_a_band_inside_0_to_255(lum_min, lum_max):
+    check_stats_band(lum_min, lum_max, lambda code, why: AssertionError(why))
+
+
+@pytest.mark.parametrize(
+    "lum_min, lum_max, why",
+    [(-1, None, "0 to 255"), (None, 256, "0 to 255"), (300, None, "0 to 255"), (200, 100, "lum_min is above lum_max")],
+)
+def test_check_stats_band_rejects_anything_else(lum_min, lum_max, why):
+    with pytest.raises(ValueError, match=why) as caught:
+        check_stats_band(lum_min, lum_max, lambda code, message: ValueError(f"{code}: {message}"))
+    assert str(caught.value).startswith("out_of_range:")
+
+
+async def test_render_image_stats_with_a_band_leaves_the_lamps_out(render, image, lamps, monkeypatch):
+    server, log = render
+    monkeypatch.setenv("FAKE_PNG_SOURCE", str(lamps))
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        before = len(logged(log))
+        result = await client.call_tool("image_stats", {"path": str(image), "lum_max": 254, "detail": "full"})
+        assert len(logged(log)) == before + 1  # one render, the band is cut from it
+    assert not result.is_error, result.content
+    stats = result.structured_content
+    assert stats["r"]["clipped_high"] == 0 and stats["r"]["mean"] == 98.89 and stats["in_band"] == 0.9
+
+
+async def test_render_image_stats_many_images_share_the_band(render, image, lamps, monkeypatch):
+    server, _ = render
+    monkeypatch.setenv("FAKE_PNG_SOURCE", str(lamps))
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await client.call_tool("image_stats", {"paths": [str(image)], "lum_min": 100, "lum_max": 254})
+    assert not result.is_error, result.content
+    [item] = result.structured_content["items"]
+    assert item["stats"]["in_band"] == 0.4 and item["stats"]["r"]["clipped_high"] == 0
+
+
+@pytest.mark.parametrize("arguments", [{"lum_min": -1}, {"lum_max": 256}, {"lum_min": 200, "lum_max": 100}])
+async def test_render_image_stats_bad_band_is_out_of_range_before_rendering(render, image, arguments):
+    server, log = render
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        before = len(logged(log))
+        result = await client.call_tool("image_stats", {"path": str(image), **arguments})
+        assert len(logged(log)) == before
+    assert result.is_error and "out_of_range:" in result.content[0].text
+
+
+async def test_render_image_stats_an_empty_band_is_out_of_range(render, image, lamps, monkeypatch, tmp_path):
+    server, _ = render
+    monkeypatch.setenv("FAKE_PNG_SOURCE", str(lamps))
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await client.call_tool("image_stats", {"path": str(image), "lum_min": 21, "lum_max": 199})
+    assert result.is_error and "out_of_range:" in result.content[0].text and "band" in result.content[0].text
+    assert not list((tmp_path / "previews").glob("stats-*"))
+
+
+async def test_live_image_stats_with_a_band_leaves_the_lamps_out(art, tmp_path, lamps):
+    art.ops["preview"] = write_preview(lamps.read_bytes(), width=20, height=10)
+    async with Client(build_live(ControlChannel(art.config_dir), previews=PreviewFolder(tmp_path / "p"))) as client:
+        result = await client.call_tool(
+            "image_stats", {"path": str(tmp_path / "a.ARW"), "lum_max": 254, "detail": "full"}
+        )
+        bad = await client.call_tool("image_stats", {"path": str(tmp_path / "a.ARW"), "lum_min": 256})
+    assert not result.is_error, result.content
+    assert result.structured_content["r"]["clipped_high"] == 0 and result.structured_content["in_band"] == 0.9
+    assert bad.is_error and "out_of_range:" in bad.content[0].text
+    assert len(requests(art, "preview")) == 1  # the bad band was refused before asking ART
+
+
+def test_the_image_stats_doc_explains_the_band():
+    assert "lum_min" in IMAGE_STATS_DOC and "lum_max" in IMAGE_STATS_DOC and "in_band" in IMAGE_STATS_DOC

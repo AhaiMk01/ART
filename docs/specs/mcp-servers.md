@@ -456,7 +456,7 @@ which the server reports as `unsupported`.
 
 ### 4.2 Image statistics (both servers)
 
-`image_stats(path?, paths?, max_size=1024, histogram=false, detail?, region?, bins?)` replaces
+`image_stats(path?, paths?, max_size=1024, histogram=false, detail?, region?, bins?, lum_min?, lum_max?)` replaces
 watching the histogram and the clipping indicator. It renders the image as a
 preview is rendered (Render: `art-cli -n -b8` to a PNG, crop applied, same `-f`
 rule; Live: the editor's preview, saved as PNG: whole frame, uncropped,
@@ -512,16 +512,32 @@ part's pixel rectangle `{x, y, w, h}` in that image (null without a `region`).
 A region outside 0..1 is `out_of_range` before anything runs; one of fewer
 than 16 pixels is `out_of_range` once the render's size is known.
 
+A luminance band, `lum_min` and `lum_max` (integers 0 to 255, the scale of the
+reported `lum`; either alone), limits every statistic to the pixels whose
+`lum` is between them, ends included (Pillow: the histograms are taken
+through a mask of the `lum` image), within the `region` when there is one.
+It answers what a region cannot: `lum_max` leaves out lamps and speculars
+scattered over a frame so `clipped_high` judges the rest, `lum_min` leaves
+out a black border, and a band of the shadows or the mid-tones shows the
+colour cast of just that range. The result's `in_band` is the fraction of
+the measured pixels (the region's, else the whole render's) the band holds,
+so a thin band is visible; it is left out without a band. A limit outside
+0..255 or `lum_min` above `lum_max` is `out_of_range` before anything runs;
+a band that holds fewer than 16 pixels is `out_of_range` once the render is
+measured (an item's error with `paths`). A fixed band on an absolute scale,
+not percentile fractions: a caller who wants "the darkest quarter" reads
+the percentiles first and sets the band from them.
+
 Several images: `paths` (1 to 50, instead of `path`: neither or both, an empty
 list or more than 50 is `out_of_range`) measures many images in one call, with
-the same `max_size`, `histogram`, `detail`, `bins` and `region` for all, and
+the same `max_size`, `histogram`, `detail`, `bins`, `region` and band for all, and
 returns `{items: [{path, stats | error}], failed}`: one item per path in
 request order, `stats` as for one image, or the `error` (`<code>: <message>`)
 of an image that could not be measured while the others still come back.
 The two shapes differ: with `path` the statistics are the result's top level (`r`, `g`, `b`, `lum`, `width`, `height`, ...); with `paths` they are under `items[i].stats` (each item `{path, stats}` or `{path, error}`).
 `detail` defaults to `"compact"` here (and to `"standard"` for one `path`)
 unless the caller gives one. A problem with the call as a whole (`path` and
-`paths`, `max_size`, `region`, `bins`, `detail`) fails it before anything runs.
+`paths`, `max_size`, `region`, `bins`, `detail`, `lum_min`, `lum_max`) fails it before anything runs.
 Render: `not_open`, a render error, or a `region` of fewer than 16 pixels in
 that image's render is that item's error; the renders run through the same
 bounded pool as `inspect_images` and `export_batch` (`session.cli.max_processes`
@@ -675,7 +691,7 @@ on Windows). Any tool except `open_image` on a path not opened returns
 | `inspect_images` | `paths`, `tags?`, `frame=false` | `inspect_image` for 1 to 100 open images in one call (`out_of_range` otherwise): `items`, one `{path, metadata, error}` per path in request order (`metadata` as `inspect_image` returns it, null when that image failed; `error` is `<code>: <message>`: `not_open`, `metadata_failed`) and `failed`; one bad image doesn't stop the others. exiftool runs once for all the files. `frame_width`/`frame_height` cost art-cli runs (two probes per image the first time, cached), so they are measured only with `frame=true`, through the same pool (at most 2 art-cli at once) with progress per image, else null |
 | `describe_adjustments` | none | Curated schema + `PPVERSION` warning |
 | `sample_spots` | `path`, `spots` (1 to 64), `size=32`, `space="working"` | Linear spot values (4.1), more than 16 spots in several `art-cli` runs, one result in request order; `unsupported` with a release `art-cli` |
-| `image_stats` | `path?` or `paths?` (1 to 50), `max_size=1024`, `histogram=false`, `detail?: "compact" \| "standard" \| "full"` (default `standard`; `compact` with `paths`), `region?`, `bins?` | Per channel clipping and percentiles (`compact`), plus mean (`standard`), plus std, min, max, mode (`full`), optional `bins`/`histogram`, of the image or of a `region` of it; no null fields. With `paths`: `items` (`{path, stats \| error}` per image in request order) and `failed` (4.2); with `path` the statistics are the result's top level (`r`, `g`, `b`, `lum`, `width`, `height`, ...); with `paths` they are under `items[i].stats` (each item `{path, stats}` or `{path, error}`). |
+| `image_stats` | `path?` or `paths?` (1 to 50), `max_size=1024`, `histogram=false`, `detail?: "compact" \| "standard" \| "full"` (default `standard`; `compact` with `paths`), `region?`, `bins?`, `lum_min?`, `lum_max?` | Per channel clipping and percentiles (`compact`), plus mean (`standard`), plus std, min, max, mode (`full`), optional `bins`/`histogram`, of the image or of a `region` of it; no null fields. With `paths`: `items` (`{path, stats \| error}` per image in request order) and `failed` (4.2); with `path` the statistics are the result's top level (`r`, `g`, `b`, `lum`, `width`, `height`, ...); with `paths` they are under `items[i].stats` (each item `{path, stats}` or `{path, error}`). |
 | `suggest_neutrals` | `path`, `count=16`, `size=32`, `preview=false` | Candidate spots for neutral references (4.3): per candidate `x`, `y` (frame pixels), `level`, `saturation`, `flatness`, `why`; plus `area`, `size`, `cell`, `warnings`; with `preview` also `preview_path`, the analysed rendering as a JPEG with the candidates boxed and numbered 1..n. Render only |
 | `contact_sheet` | `images`, `folder?`, `label?`, `columns?`, `thumb_size=400`, `record=true` | The next numbered pass in `<folder>/sheets` (6.5; `folder`: any existing folder you choose, not the exports folder; required unless an earlier call used one; with `record=false` a quick look instead, no pass kept: the sheet as a JPEG in the preview folder, `index`, `json_path` and `changes` null): sheet path, JSON path, per image `box`, `error` and `changed` (the number of profile keys changed since the last pass it was in), and `changes`, those changes grouped by identical change with the frames they were made on (the JSON has them per frame) |
 | `compare_passes` | `first`, `second`, `folder?`, `images?`, `columns=2` | Path of a side-by-side of the same frames of two passes (6.5); `folder` is the one that holds `sheets`, as in `contact_sheet` |
@@ -1093,7 +1109,7 @@ Assistants. The Live server never launches ART.
 | `inspect_image` | `path`, `tags?` | As Render server (Python + exiftool; no C++); `frame_width`/`frame_height` come from `status`, null until the editor has the size |
 | `inspect_images` | `paths`, `tags?` | As Render server's (1 to 100 images in one call, one `{path, metadata, error}` each, one exiftool run); the images are matched against one `status` reply (`not_open` per image), `frame_width`/`frame_height` from it, null until the editor has the size (there is no `frame` option: nothing is measured) |
 | `sample_spots` | `path`, `spots` (1 to 64), `size=32`, `space="working"` | As Render server, from the open editor (4.1); more than 16 spots are asked for in several requests, one after the other (the op takes 16) |
-| `image_stats` | `path?` or `paths?` (1 to 50), `max_size=1024`, `histogram=false`, `detail?`, `region?`, `bins?` | As Render server, from the editor's preview; with `paths` one preview per image in turn, a failing image is its item's `error` (4.2) |
+| `image_stats` | `path?` or `paths?` (1 to 50), `max_size=1024`, `histogram=false`, `detail?`, `region?`, `bins?`, `lum_min?`, `lum_max?` | As Render server, from the editor's preview; with `paths` one preview per image in turn, a failing image is its item's `error` (4.2) |
 
 - `get_profile` returns the profile as the editor holds it (`ipc->getParams`,
   as ART's own sidecar save does), so it includes what the engine resolved:
