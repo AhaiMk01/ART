@@ -50,6 +50,11 @@ the candidates go to `sample_spots` as its `spots` unchanged), `level` (the cell
 `saturation`, `flatness`, `why`. Also the analysed `area` [x, y, w, h], the `size` to sample with, the `cell` side
 (larger than `size` when a big frame and a small `size` would give cells of a pixel or two) and `warnings`.
 
+`preview` (default false): also returns `preview_path`, a JPEG of the rendering it analysed (about 1600 px) with
+every candidate boxed and numbered 1..n in the order of the list, so one call shows what each one sits on; with
+a server started with --inline-previews the image comes with the result too. `render_preview(marks=...)` draws
+the same boxes on any preview.
+
 Workflows that use it: see the skills (tools/mcp/skills)."""
 
 DEFAULT_COUNT = 16
@@ -270,6 +275,9 @@ class NeutralCandidates(BaseModel):
     """The side of the analysed cells, in frame pixels."""
     candidates: list[NeutralCandidate]
     warnings: list[str] = []
+    preview_path: str | None = None
+    """With `preview`: the rendering that was analysed, a JPEG, with the
+    candidates marked 1..n in the order of `candidates`."""
 
 
 def check_request(count: int, size: int, error: Callable[[Any, str], Exception]) -> None:

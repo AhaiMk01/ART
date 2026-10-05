@@ -70,7 +70,7 @@ class SheetImage(BaseModel):
     since_pass: int | None
     """The pass `changes` is measured from: the last one this image was in. Null for its first."""
     changes: list[KeyChange] | None
-    """The profile values that differ from that pass, numbers in their shortest form; null for the
+    """The profile values that differ from that pass, numbers with at most 7 significant digits; null for the
     image's first pass (or when its profile couldn't be read)."""
 
 
@@ -134,14 +134,18 @@ def label_slug(label: str) -> str:
 
 def sheets_folder(session: RenderSession, folder: str | None) -> Path:
     """Where the passes go: ``sheets`` in ``folder``, which defaults to the
-    folder of the last ``export_batch`` (never the source images' or the temp
-    folder)."""
+    folder the last recorded ``contact_sheet`` call used. With neither the call
+    fails: it never guesses a folder (not the exports', the source images' or
+    the temp folder)."""
     if folder is None:
-        if session.last_export_folder is None:
+        if session.last_sheets_folder is None:
             raise render_error(
-                "out_of_range", "folder is required: no export_batch has run in this session to default to"
+                "out_of_range",
+                "folder is required: it is where a `sheets` subfolder is created to keep the passes. Give any "
+                "existing folder you choose, for example your work folder; not the exports folder, the passes "
+                "would mix with the exports. Once a contact_sheet call has used a folder, later calls default to it",
             )
-        base = session.last_export_folder
+        base = session.last_sheets_folder
     else:
         base = Path(folder).resolve()
     if not base.is_dir():
@@ -270,9 +274,9 @@ def contact_sheet(
         if sheets is None:
             return save_look(session, frames, label, columns or quick_columns(len(frames), thumb_size), thumb_size)
         with session.locked_folder(sheets):
-            return save_pass(
-                sheets, frames, label, slug, columns or min(len(frames), DEFAULT_COLUMNS), thumb_size
-            )
+            saved = save_pass(sheets, frames, label, slug, columns or min(len(frames), DEFAULT_COLUMNS), thumb_size)
+        session.last_sheets_folder = sheets.parent
+        return saved
     finally:
         for frame in frames:
             if frame.thumbnail is not None:

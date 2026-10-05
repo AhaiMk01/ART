@@ -6,6 +6,7 @@ the tool's result model and raise ``RenderError``. ``profile_tools.py`` wraps
 them as MCP tools.
 """
 
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from pydantic import BaseModel
@@ -14,12 +15,17 @@ from art_mcp.filmnegative import Estimate, SamplingUnsupported, estimate_for
 from art_mcp.metadata import ExiftoolError
 from art_mcp.profile import Conflict as EditConflict
 from art_mcp.profile import (
+    EditBatch,
     EditResult,
+    ImageEdit,
     ProfileView,
     UnknownKey,
+    check_edit_targets,
     check_groups,
+    edit_item,
     edit_result,
     edit_warnings,
+    failed_edit,
     read_format,
     version_warnings,
 )
@@ -117,10 +123,51 @@ def film_estimate(
 
 def edit_profile(
     session: RenderSession,
-    path: str,
+    path: str | None = None,
     adjustments: AdjustmentsArg = None,
     raw_edits: list[RawEdit] | None = None,
     full: bool = False,
+    paths: list[str] | None = None,
+) -> EditResult | EditBatch:
+    """Edit the working profile of the open image ``path``, or the same edit
+    of every open image in ``paths`` (exactly one of the two): the single
+    image's change set, or an ``EditBatch``. With ``paths`` a problem with one
+    image is that image's ``error`` and the others still change, whatever it
+    is (not open, a key it lacks, a crop outside its frame); a problem with the
+    call (``check_edit_targets``) fails it before anything changes."""
+    targets = check_edit_targets(path, paths, full, render_error)
+    if targets is None:
+        assert path is not None
+        return edit_one(session, path, adjustments, raw_edits, full)
+    return edit_many(session, targets, adjustments, raw_edits)
+
+
+def edit_many(
+    session: RenderSession, paths: list[str], adjustments: AdjustmentsArg, raw_edits: list[RawEdit] | None
+) -> EditBatch:
+    """The same edit of each image in ``paths``, up to
+    ``session.cli.max_processes`` at once (an edit may need art-cli to measure
+    the frame or sample the picture); each image is edited under its own lock."""
+
+    def edit(path: str) -> ImageEdit:
+        try:
+            return edit_item(path, edit_one(session, path, adjustments, raw_edits, False))
+        except RenderError as e:
+            return failed_edit(path, str(e))
+        except OSError as e:
+            return failed_edit(path, f"render_failed: {e}")
+
+    with ThreadPoolExecutor(max_workers=max(1, session.cli.max_processes)) as pool:
+        items = list(pool.map(edit, paths))  # in request order
+    return EditBatch(items=items, failed=sum(i.error is not None for i in items))
+
+
+def edit_one(
+    session: RenderSession,
+    path: str,
+    adjustments: AdjustmentsArg,
+    raw_edits: list[RawEdit] | None,
+    full: bool,
 ) -> EditResult:
     with session.image(path) as wp:
         try:

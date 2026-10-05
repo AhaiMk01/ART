@@ -17,7 +17,7 @@ from pydantic import BaseModel
 from art_mcp import artdir, keyfile, sidecar
 from art_mcp.concurrency import image_key
 from art_mcp.live.channel import ArtNotRunning, ChannelError, ChannelTimeout, ControlChannel
-from art_mcp.profile import WorkingChanges, partial_vs_default
+from art_mcp.profile import UnknownKey, WorkingChanges, check_exclusions, drop_excluded, partial_vs_default
 from art_mcp.render.errors import RenderError, render_error
 from art_mcp.render.session import RenderSession
 
@@ -46,10 +46,13 @@ class PartialProfileResult(BaseModel):
     changed nothing since the profile was loaded or last saved, or with `vs`
     `default` nothing differs from ART's default profile."""
     path: str
-    keys: list[str]
-    """The `[Group] Key` entries written: the values that differ from the
-    `vs` baseline (and weren't excluded), in the working profile's order. A
-    Color Correction region key brings every region key along."""
+    keys: dict[str, int] | list[str]
+    """What was written, the values that differ from the `vs` baseline (and
+    weren't excluded), in the working profile's order: how many keys each
+    `[Group]` got, or with `verbose` every `[Group] Key` entry. A Color
+    Correction region key brings every region key along."""
+    total: int
+    """How many keys were written."""
     vs: PartialBaseline
     """The baseline the keys were measured against: `opened` (the values the
     agent changed since the profile was loaded or last saved) or `default`
@@ -198,7 +201,12 @@ def save_partial_profile(
     overwrite: bool = False,
     exclude: list[str] | None = None,
     vs: str = "opened",
+    verbose: bool = False,
 ) -> PartialProfileResult:
+    """Write the working profile's partial profile (see the tool): the keys
+    changed since opened, or those differing from ART's default, less the
+    ``exclude`` entries. The result counts the keys per group, or with
+    ``verbose`` lists them."""
     exclude = exclude or []
     if vs not in PARTIAL_BASELINES:
         raise render_error(
@@ -207,13 +215,10 @@ def save_partial_profile(
     baseline: PartialBaseline = "default" if vs == "default" else "opened"
     with session.image(path) as wp:
         profile = wp.changes.profile
-        for entry in exclude:
-            group, _, key = entry.partition("/")
-            if group not in profile or (key and key not in profile[group]):
-                raise render_error(
-                    "unknown_key",
-                    f"exclude {entry!r}: not in this image's processing profile",
-                )
+        try:
+            check_exclusions(profile, exclude)
+        except UnknownKey as e:
+            raise render_error("unknown_key", str(e)) from e
         target = Path(dest).resolve()
         if not target.parent.is_dir():
             raise render_error("not_found", f"folder {target.parent} does not exist")
@@ -224,16 +229,12 @@ def save_partial_profile(
             partial = partial_vs_default(profile, session.default_profile(wp))
         else:
             partial = wp.changes.partial_profile()
-        for entry in exclude:
-            group, _, key = entry.partition("/")
-            if key:
-                partial.get(group, {}).pop(key, None)
-            else:
-                partial.pop(group, None)
-        partial = {g: k for g, k in partial.items() if k}
-        if not partial:
-            return PartialProfileResult(written=False, path=str(target), keys=[], vs=baseline)
-        sidecar.write_atomic(target, keyfile.dumps(partial))
+        drop_excluded(partial, exclude)
+        written = bool(partial)
+        if written:
+            sidecar.write_atomic(target, keyfile.dumps(partial))
+        counts = {group: len(entries) for group, entries in partial.items()}
+        keys: dict[str, int] | list[str] = sidecar.changed_keys({}, partial) if verbose else counts
         return PartialProfileResult(
-            written=True, path=str(target), keys=sidecar.changed_keys({}, partial), vs=baseline
+            written=written, path=str(target), keys=keys, total=sum(counts.values()), vs=baseline
         )

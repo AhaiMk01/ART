@@ -425,3 +425,202 @@ async def test_describe_and_input_schema_carry_color_correction(server):
     schema = next(t for t in tools.tools if t.name == "edit_profile").input_schema
     text = str(schema)
     assert "roundness" in text and "strength_start" in text and "intersect" in text
+
+
+# -- the result of one image has no `"profile": null` --------------------------------
+
+
+async def test_the_result_of_one_image_has_no_profile_field_unless_full(server, image):
+    async with Client(server) as client:
+        await opened(client, image)
+        plain = await client.call_tool(
+            "edit_profile", {"path": str(image), "adjustments": {"exposure": {"compensation": 0.7}}}
+        )
+        full = await client.call_tool(
+            "edit_profile", {"path": str(image), "adjustments": {"exposure": {"compensation": 0.8}}, "full": True}
+        )
+
+    assert set(plain.structured_content) == {"changed", "implied", "created", "drawn", "warnings"}
+    assert '"profile"' not in plain.content[0].text
+    assert full.structured_content["profile"]["adjustments"]["exposure"]["compensation"] == 0.8
+
+
+# -- edit_profile(paths): the same edit for several images ---------------------------
+
+
+@pytest.fixture
+def images(tmp_path):
+    folder = tmp_path / "photos"
+    folder.mkdir()
+    paths = []
+    for name in ("FILM_1.ARW", "FILM_2.ARW", "FILM_3.ARW"):
+        (folder / name).write_bytes(b"raw")
+        paths.append(folder / name)
+    return paths
+
+
+async def open_all(client, images, sidecar=SIDECAR):
+    for image in images:
+        await opened(client, image, sidecar)
+
+
+async def edit_all(client, images, **args):
+    return await client.call_tool("edit_profile", {"paths": [str(p) for p in images], **args})
+
+
+async def compensation(client, image):
+    profile = await client.call_tool("get_profile", {"path": str(image)})
+    return profile.structured_content["adjustments"]["exposure"]["compensation"]
+
+
+async def test_one_edit_goes_to_every_path_and_the_result_is_one_compact_entry_per_image(server, images):
+    async with Client(server) as client:
+        await open_all(client, images)
+        result = await edit_all(client, images, adjustments={"exposure": {"compensation": 0.7}})
+        values = [await compensation(client, p) for p in images]
+
+    assert not result.is_error, result.content
+    assert set(result.structured_content) == {"items", "failed"}
+    assert result.structured_content["failed"] == 0
+    assert result.structured_content["items"] == [
+        {"path": str(p), "changed": 1, "implied": {"Exposure": {"Enabled": "true"}}, "warnings": [], "error": None}
+        for p in images
+    ]  # in request order, each with the paths as given
+    assert values == [0.7, 0.7, 0.7]
+
+
+async def test_each_image_keeps_its_own_working_profile_and_its_own_changes(server, images, tmp_path):
+    async with Client(server) as client:
+        await open_all(client, images)
+        await edit_all(client, images, adjustments={"exposure": {"compensation": 0.7}})
+        await client.call_tool(
+            "edit_profile", {"path": str(images[1]), "adjustments": {"exposure": {"compensation": 2}}}
+        )
+        values = [await compensation(client, p) for p in images]
+        dest = tmp_path / "frame3.arp"
+        saved = await client.call_tool("save_partial_profile", {"path": str(images[2]), "dest": str(dest)})
+
+    assert values == [0.7, 2.0, 0.7]
+    assert not saved.is_error, saved.content
+    assert keyfile.loads(dest.read_text())["Exposure"]["Compensation"] == "0.7"  # a change of that image like any
+
+
+async def test_an_image_that_already_has_the_values_counts_zero_changed(server, images):
+    async with Client(server) as client:
+        await open_all(client, images)
+        await client.call_tool(
+            "edit_profile", {"path": str(images[0]), "adjustments": {"exposure": {"compensation": 0.7}}}
+        )
+        result = await edit_all(client, images, adjustments={"exposure": {"compensation": 0.7}})
+
+    first, second, third = result.structured_content["items"]
+    assert (first["changed"], first["implied"]) == (0, {})
+    assert (second["changed"], third["changed"]) == (1, 1)
+
+
+async def test_raw_edits_go_to_every_path_too(server, images):
+    async with Client(server) as client:
+        await open_all(client, images)
+        result = await edit_all(client, images, raw_edits=[{"group": "Exposure", "key": "Black", "value": "5"}])
+        profile = await client.call_tool("get_profile", {"path": str(images[2])})
+
+    assert [i["changed"] for i in result.structured_content["items"]] == [1, 1, 1]
+    assert profile.structured_content["adjustments"]["exposure"]["black"] == 5
+
+
+async def test_an_image_that_is_not_open_is_its_own_error_and_the_others_still_change(server, images):
+    async with Client(server) as client:
+        await open_all(client, [images[0], images[2]])  # images[1] was never opened
+        result = await edit_all(client, images, adjustments={"exposure": {"compensation": 0.7}})
+        first, last = await compensation(client, images[0]), await compensation(client, images[2])
+
+    ok1, missing, ok2 = result.structured_content["items"]
+    assert not result.is_error, result.content
+    assert missing["error"].startswith("not_open") and missing["changed"] is None
+    assert (missing["implied"], missing["warnings"]) == ({}, [])
+    assert ok1["error"] is None and ok2["error"] is None and ok1["changed"] == 1
+    assert result.structured_content["failed"] == 1
+    assert (first, last) == (0.7, 0.7)
+
+
+async def test_an_edit_one_image_refuses_is_its_own_error_and_leaves_its_profile_alone(server, images):
+    async with Client(server) as client:
+        await open_all(client, images[:2])
+        await opened(client, images[2], SIDECAR.replace("Black=0\n", ""))  # no [Exposure] Black key
+        result = await edit_all(client, images, raw_edits=[{"group": "Exposure", "key": "Black", "value": "5"}])
+        blacks = []
+        for p in images:
+            profile = await client.call_tool("get_profile", {"path": str(p)})
+            blacks.append(profile.structured_content["adjustments"]["exposure"]["black"])
+
+    items = result.structured_content["items"]
+    assert [i["error"] is None for i in items] == [True, True, False]
+    assert items[2]["error"].startswith("unknown_key") and "[Exposure] Black" in items[2]["error"]
+    assert result.structured_content["failed"] == 1
+    assert blacks == [5, 5, 0]  # the third reads Black as ART's default 0: not changed
+
+
+async def test_an_edit_every_image_refuses_fails_every_item_with_that_error_and_changes_nothing(server, images):
+    async with Client(server) as client:
+        await open_all(client, images)
+        result = await edit_all(client, images, adjustments={"exposure": {"compensation": 99}})
+        values = [await compensation(client, p) for p in images]
+
+    assert not result.is_error, result.content
+    items = result.structured_content["items"]
+    assert [i["error"].startswith("out_of_range") for i in items] == [True, True, True]
+    assert "-12..12" in items[0]["error"] and result.structured_content["failed"] == 3
+    assert values == [0, 0, 0]
+
+
+async def test_a_crop_is_checked_per_image_with_paths(server, images):
+    async with Client(server) as client:
+        await open_all(client, images)
+        result = await edit_all(client, images, adjustments={"crop": {"x": 100, "y": 100, "w": 6000, "h": 3900}})
+
+    assert [i["error"] is not None and "out_of_range" in i["error"] for i in result.structured_content["items"]] == [
+        True, True, True,
+    ]
+
+
+@pytest.mark.parametrize(
+    ("args", "text"),
+    [
+        ({"path": "a.ARW", "paths": ["a.ARW"]}, "not both"),
+        ({}, "path or paths"),
+        ({"paths": []}, "paths is empty"),
+        ({"paths": [f"{i}.ARW" for i in range(51)]}, "51 entries; the most one call takes is 50"),
+        ({"paths": ["a.ARW"], "full": True}, "full"),
+    ],
+)
+async def test_a_bad_choice_of_images_is_out_of_range_before_anything_changes(server, image, args, text):
+    async with Client(server) as client:
+        await opened(client, image)
+        result = await client.call_tool(
+            "edit_profile", {"adjustments": {"exposure": {"compensation": 1}}, **args}
+        )
+        value = await compensation(client, image)
+
+    assert result.is_error and "out_of_range" in error_text(result) and text in error_text(result)
+    assert value == 0
+
+
+async def test_fifty_paths_are_accepted(server, image):
+    async with Client(server) as client:
+        await opened(client, image)
+        result = await edit_all(client, [image] * 50, adjustments={"exposure": {"compensation": 1}})
+
+    assert not result.is_error, result.content
+    assert len(result.structured_content["items"]) == 50
+
+
+async def test_the_tool_describes_paths_and_its_two_result_shapes(server):
+    async with Client(server) as client:
+        tools = await client.list_tools()
+
+    tool = next(t for t in tools.tools if t.name == "edit_profile")
+    assert "path" not in tool.input_schema.get("required", [])  # one of path, paths
+    assert {"type": "array", "items": {"type": "string"}} in tool.input_schema["properties"]["paths"]["anyOf"]
+    assert "`paths`" in tool.description and "50" in tool.description
+    assert {"EditResult", "EditBatch", "ImageEdit"} <= tool.output_schema["$defs"].keys()
+    assert tool.output_schema["type"] == "object"  # a tool's output schema is an object either way

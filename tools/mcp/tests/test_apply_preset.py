@@ -112,8 +112,10 @@ async def edit(client, image, raw_edits):
     assert not result.is_error, result.content
 
 
-async def apply(client, paths, preset):
-    return await client.call_tool("apply_preset", {"paths": [str(p) for p in paths], "profile": str(preset)})
+async def apply(client, paths, preset, **args):
+    return await client.call_tool(
+        "apply_preset", {"paths": [str(p) for p in paths], "profile": str(preset), **args}
+    )
 
 
 async def adjustments_of(client, image):
@@ -333,6 +335,156 @@ async def test_a_reset_forgets_the_preset(server, images, preset):
         exposure = (await adjustments_of(client, images[0]))["exposure"]["compensation"]
 
     assert exposure == 0.0
+
+
+# -- exclude: what of the preset is left out before it is laid over the frames ---------
+
+TWO_EXPOSURE_KEYS = "[Exposure]\nCompensation=1.5\nBlack=0.5\n\n[Film Negative]\nEnabled=true\nRedRatio=1.3\n"
+
+
+async def set_compensation(client, image, value):
+    await edit(client, image, [{"group": "Exposure", "key": "Compensation", "value": value}])
+
+
+async def test_excluding_a_group_leaves_the_frames_own_values_of_it(server, images, preset):
+    async with Client(server) as client:
+        await open_all(client, images[:1])
+        await set_compensation(client, images[0], "3")
+        result = await apply(client, images[:1], preset, exclude=["Exposure"])
+        profile = await adjustments_of(client, images[0])
+
+    assert not result.is_error, result.content
+    assert profile["exposure"]["compensation"] == 3  # the frame's own, not the preset's 1.5
+    assert profile["film_negative"]["red_ratio"] == 1.3  # the rest of the preset landed
+    item = result.structured_content["items"][0]
+    assert (item["keys_changed"], item["groups"], item["error"]) == (2, ["Film Negative"], None)
+    assert result.structured_content["excluded"] == {"Exposure": 1}  # what each entry took out of the preset
+
+
+async def test_excluding_one_key_leaves_the_frames_own_value_of_that_key_only(server, images, tmp_path):
+    two = tmp_path / "two.arp"
+    two.write_text(TWO_EXPOSURE_KEYS)
+    async with Client(server) as client:
+        await open_all(client, images[:1])
+        await set_compensation(client, images[0], "3")
+        result = await apply(client, images[:1], two, exclude=["Exposure/Compensation"])
+        exposure = (await adjustments_of(client, images[0]))["exposure"]
+
+    assert not result.is_error, result.content
+    assert (exposure["compensation"], exposure["black"]) == (3, 0.5)  # Black came from the preset
+    assert result.structured_content["excluded"] == {"Exposure/Compensation": 1}
+
+
+async def test_the_same_exclusions_apply_to_every_frame_and_each_keeps_its_own_values(server, images, preset):
+    async with Client(server) as client:
+        await open_all(client, images)
+        for i, image in enumerate(images):
+            await set_compensation(client, image, str(i + 1))
+        result = await apply(client, images, preset, exclude=["Exposure"])
+        profiles = [await adjustments_of(client, p) for p in images]
+
+    assert [p["exposure"]["compensation"] for p in profiles] == [1, 2, 3]
+    assert [p["film_negative"]["red_ratio"] for p in profiles] == [1.3] * 3
+    assert [i["keys_changed"] for i in result.structured_content["items"]] == [2, 2, 2]
+
+
+async def test_art_cli_layers_a_filtered_copy_and_the_preset_file_is_left_alone(
+    server, images, preset, args_log
+):
+    async with Client(server) as client:
+        await open_all(client, images[:1])
+        args_log.write_text("")
+        await apply(client, images[:1], preset, exclude=["Exposure"])
+
+    (args,) = (json.loads(line) for line in args_log.read_text().splitlines())
+    layers = [args[i + 1] for i, a in enumerate(args) if a == "-p"]
+    assert len(layers) == 2 and layers[1] != str(preset.resolve())
+    assert not Path(layers[1]).exists()  # the copy is gone once the call is over
+    assert preset.read_text() == PRESET
+
+
+async def test_without_exclude_the_preset_itself_is_layered_and_nothing_is_reported_excluded(
+    server, images, preset, args_log
+):
+    async with Client(server) as client:
+        await open_all(client, images[:1])
+        args_log.write_text("")
+        result = await apply(client, images[:1], preset)
+
+    (args,) = (json.loads(line) for line in args_log.read_text().splitlines())
+    assert [args[i + 1] for i, a in enumerate(args) if a == "-p"][1] == str(preset.resolve())
+    assert result.structured_content["excluded"] == {}
+
+
+async def test_an_entry_the_preset_does_not_have_is_a_no_op_reported_with_zero(server, images, preset):
+    async with Client(server) as client:
+        await open_all(client, images[:1])
+        result = await apply(client, images[:1], preset, exclude=["Crop", "Exposure/Black"])  # both in the profile
+
+    assert not result.is_error, result.content
+    assert result.structured_content["excluded"] == {"Crop": 0, "Exposure/Black": 0}
+    assert result.structured_content["items"][0]["keys_changed"] == 3  # the whole preset
+
+
+async def test_an_entry_that_is_nowhere_is_unknown_key_for_every_frame_and_nothing_applies(server, images, preset):
+    async with Client(server) as client:
+        await open_all(client, images[:2])
+        result = await apply(client, images[:2], preset, exclude=["Exposure/Compensaton"])  # a typo
+        values = [(await adjustments_of(client, p))["exposure"]["compensation"] for p in images[:2]]
+
+    assert not result.is_error, result.content
+    items = result.structured_content["items"]
+    assert all(i["error"].startswith("unknown_key") and "Exposure/Compensaton" in i["error"] for i in items)
+    assert (result.structured_content["applied"], result.structured_content["failed"]) == (0, 2)
+    assert values == [0.0, 0.0]
+
+
+async def test_excluding_the_whole_preset_changes_nothing(server, images, tmp_path):
+    only = tmp_path / "only.arp"
+    only.write_text("[Exposure]\nCompensation=1.5\n")
+    async with Client(server) as client:
+        await open_all(client, images[:1])
+        result = await apply(client, images[:1], only, exclude=["Exposure"])
+        exposure = (await adjustments_of(client, images[0]))["exposure"]["compensation"]
+
+    assert not result.is_error, result.content
+    item = result.structured_content["items"][0]
+    assert (item["keys_changed"], item["groups"], item["error"]) == (0, [], None)
+    assert exposure == 0.0
+
+
+async def test_a_complete_profile_without_the_per_frame_groups_is_a_group_preset(server, images, tmp_path):
+    full = tmp_path / "full.arp"
+    full.write_text(FULL)
+    async with Client(server) as client:
+        await open_all(client, images[:1])
+        await edit(client, images[0], CROP)
+        result = await apply(client, images[:1], full, exclude=["Crop", "Version"])
+        profile = await adjustments_of(client, images[0])
+
+    assert not result.is_error, result.content
+    assert profile["exposure"]["compensation"] == -2.0  # the file's
+    crop = profile["crop"]
+    assert (crop["enabled"], crop["x"], crop["w"]) == (True, 100, 3000)  # the frame's own
+
+
+async def test_a_preset_that_is_not_a_profile_cannot_be_filtered(server, images, tmp_path):
+    junk = tmp_path / "junk.arp"
+    junk.write_text("this is not a key file\n")
+    async with Client(server) as client:
+        await open_all(client, images[:1])
+        result = await apply(client, images[:1], junk, exclude=["Exposure"])
+
+    assert result.is_error and "out_of_range: " in text_of(result) and "junk.arp" in text_of(result)
+
+
+async def test_the_tool_describes_exclude(server):
+    async with Client(server) as client:
+        tools = await client.list_tools()
+
+    tool = next(t for t in tools.tools if t.name == "apply_preset")
+    assert "exclude" in tool.input_schema["properties"]
+    assert "`exclude`" in tool.description and "save_partial_profile" in tool.description
 
 
 def test_layering_a_resolved_profile_drops_what_it_lacks_and_a_partial_profile_still_works():

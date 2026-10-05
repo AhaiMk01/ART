@@ -31,8 +31,10 @@ def register(server: MCPServer, session: RenderSession) -> None:
         the next numbered pass, `<folder>/sheets/pass-NN[-label].jpg`, with
         `pass-NN[-label].json` beside it: the images, the label, the time and
         per image `changes`, every profile value that differs from the last
-        pass it was in (numbers in their shortest form, a number written
-        differently is no change; null the first time). The result does not
+        pass it was in (numbers shown with at most 7 significant digits; a
+        number that is the same 32-bit float as before, `6450.7` and
+        `6450.7001953125`, or a list with or without its final `;`, is no
+        change; null the first time). The result does not
         repeat those lists: per image `changed` (how many values differ; null
         the first time) and `changes`, what changed since the last pass
         grouped by identical change, `{group, key, before, after, images}`
@@ -40,8 +42,11 @@ def register(server: MCPServer, session: RenderSession) -> None:
         first (at most 25, `more` counts the rest and the JSON has every
         change per frame; `changes` is null when no image had an earlier
         pass, as in the first). Earlier passes are never
-        overwritten. `folder` (it must exist) is the batch's output folder, not
-        the source images' (default: the folder of the last export_batch). Open
+        overwritten. `folder` is where the `sheets` subfolder is created: any
+        existing folder you choose, for example your work folder. Do not use
+        the exports folder, the passes would mix with the exports. Without
+        `folder` the call is `out_of_range`, unless an earlier contact_sheet
+        call in this session used one: that is then the default. Open
         the returned `path` to look at the sheet. One failing image
         (`not_open`, a render error) is reported in its entry and shown as a
         placeholder; the others still render. Working profiles are copied when
@@ -82,7 +87,10 @@ def register(server: MCPServer, session: RenderSession) -> None:
         2) and save that as `compare-NN-MM.jpg` in the sheets folder, next to
         the passes; nothing is overwritten (a repeat gets `-2`, `-3`).
         `images`: paths or file names of the frames to show (default: every
-        frame rendered in both passes). `folder` as in contact_sheet. Open the
-        returned `path` to look at it."""
+        frame rendered in both passes). `folder` is the folder that holds the
+        `sheets` subfolder, the one given to contact_sheet (not `sheets`
+        itself); default: the folder the last contact_sheet call in this
+        session used, else `out_of_range`. Open the returned `path` to look
+        at it."""
         with as_tool_errors():
             return ops.compare_passes(session, first, second, folder, images, columns)

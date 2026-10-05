@@ -1,16 +1,20 @@
 """What changed between two passes of a contact sheet: the differing profile
-values, with numbers shown in their shortest form, and the changes of many
-frames grouped by identical change.
+values, with numbers shown with at most seven significant digits, and the
+changes of many frames grouped by identical change.
 
 Pure: no ART, no files. ``sheet_ops`` records the per-frame changes in a pass's
 JSON and returns the grouped summary.
 
-ART writes a double with 17 significant digits (``1.3700000000000001``), which
-costs an agent context and says nothing more than ``1.37``. A value that is a
-number, or a ``;``-separated list of tokens (a curve, ``r;g;b;``) some of
-which are, is shown with each numeric token as ``repr(float(token))``; an
-integer and any other text stay as written. Two values that are numerically
-equal are the same value however they were written, so they are never a change.
+ART keeps many numbers as 32-bit floats and writes them back as doubles with 17
+significant digits: the ``6450.7`` an agent typed comes back as
+``6450.7001953125``, ``1.37`` as ``1.3700000047683716``. That says nothing more
+than ``6450.7`` or ``1.37`` and costs context, and it is not a change. So a value
+that is a number, or a ``;``-separated list of tokens (a curve, ``r;g;b;``) some
+of which are, is shown with each decimal token as ``%.7g`` (a float32 has about
+seven digits); an integer and any other text stay as written. Two numbers whose
+difference is below one millionth of the larger are the same value, as are two
+lists of the same tokens with or without the final ``;``, and a same value is
+never a change.
 """
 
 import math
@@ -23,6 +27,14 @@ from art_mcp.keyfile import KeyFile
 
 MAX_SHARED_CHANGES = 25
 """How many groups of identical changes a summary lists."""
+
+SIGNIFICANT_DIGITS = 7
+"""How many digits of a decimal are shown: what a 32-bit float holds."""
+
+SAME_NUMBER = 1e-6
+"""Two numbers are the same value when they differ by less than this fraction of
+the larger one. A float32 is within 6e-8 of the decimal typed for it, so this
+passes that rounding and still sees an edit in the sixth digit."""
 
 _INTEGER = re.compile(r"[+-]?\d+")
 _DECIMAL = re.compile(r"[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?")
@@ -69,30 +81,62 @@ def number(token: str) -> int | float | None:
     return None
 
 
-def _shortest(token: str) -> str:
+def _short(token: str) -> str:
     value = number(token)
-    return repr(value) if isinstance(value, float) else token
+    return f"{value:.{SIGNIFICANT_DIGITS}g}" if isinstance(value, float) else token
 
 
 def normalise_value(value: str | None) -> str | None:
-    """``value`` with each numeric ``;``-separated token in its shortest
-    round-trip form; integers and other text are left as they are."""
+    """``value`` with each decimal ``;``-separated token shown with at most
+    seven significant digits (``6450.7001953125`` as ``6450.7``); integers and
+    other text, and the separators, are left as they are."""
     if value is None:
         return None
-    return ";".join(_shortest(token) for token in value.split(";"))
+    return ";".join(_short(token) for token in value.split(";"))
+
+
+def _tokens(value: str) -> list[str]:
+    """The tokens of a ``;``-separated list. A final ``;`` ends the list and is
+    no token: a key file reads ``a;b`` and ``a;b;`` alike (an agent types the
+    one, art-cli writes the other)."""
+    tokens = value.split(";")
+    if len(tokens) > 1 and tokens[-1] == "":
+        tokens.pop()
+    return tokens
+
+
+def _same_number(x: int | float, y: int | float) -> bool:
+    """Equal, or (unless both are integers, which are exact) closer than
+    ``SAME_NUMBER`` of the larger. A zero is the same only as a zero."""
+    if x == y:
+        return True
+    if isinstance(x, int) and isinstance(y, int):
+        return False
+    try:
+        a, b = float(x), float(y)
+    except OverflowError:  # an integer of hundreds of digits
+        return False
+    return abs(a - b) < SAME_NUMBER * max(abs(a), abs(b))
+
+
+def _same_token(x: str, y: str) -> bool:
+    if x == y:
+        return True
+    m, n = number(x), number(y)
+    return m is not None and n is not None and _same_number(m, n)
 
 
 def same_value(a: str | None, b: str | None) -> bool:
-    """Whether two values are equal: the same text, or the same number of
-    ``;``-separated tokens each the same text or the same number."""
+    """Whether two values are equal: the same text, or lists (a final ``;``
+    does not count) of the same number of tokens each the same text or the same
+    number, numbers being the same when they are the same 32-bit float, within
+    a millionth of each other (``6450.7`` and ``6450.7001953125``)."""
     if a is None or b is None:
         return a is b
     if a == b:
         return True
-    tokens_a, tokens_b = a.split(";"), b.split(";")
-    return len(tokens_a) == len(tokens_b) and all(
-        x == y or ((n := number(x)) is not None and n == number(y)) for x, y in zip(tokens_a, tokens_b, strict=True)
-    )
+    tokens_a, tokens_b = _tokens(a), _tokens(b)
+    return len(tokens_a) == len(tokens_b) and all(_same_token(x, y) for x, y in zip(tokens_a, tokens_b, strict=True))
 
 
 def changes_between(before: KeyFile, after: KeyFile) -> list[KeyChange]:

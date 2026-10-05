@@ -61,9 +61,9 @@ class RenderSession:
         self._locks = ImageLocks()
         self._art_version: str | None = None
         self._version_guard = threading.Lock()
-        self.last_export_folder: Path | None = None
-        """Where the last ``export_batch`` that exported something wrote, the
-        default home of contact sheets."""
+        self.last_sheets_folder: Path | None = None
+        """The ``folder`` the last recorded ``contact_sheet`` saved a pass under
+        (the parent of its ``sheets`` folder): the default of later calls."""
 
     # -- the locking path ------------------------------------------------
 

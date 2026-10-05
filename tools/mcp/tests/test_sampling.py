@@ -1,6 +1,7 @@
 """sample_spots and image_stats on both servers, plus the pure statistics."""
 
 import json
+import random
 import sys
 from pathlib import Path
 
@@ -8,6 +9,7 @@ import pytest
 from fake_live_art import FakeArt, FakeEditor, answer, fail, write_preview
 from mcp.client.client import Client
 from PIL import Image
+from test_artcli_run import peak_overlap
 
 from art_mcp.live.channel import ControlChannel
 from art_mcp.live.server import build_server as build_live
@@ -15,9 +17,10 @@ from art_mcp.preview import PreviewFolder
 from art_mcp.render.artcli import ArtCli, Rect, region_rect
 from art_mcp.render.preview_tools import Region
 from art_mcp.render.server import build_server as build_render
-from art_mcp.sampling import RegionTooSmall, check_stats_bins, image_stats
+from art_mcp.sampling import RegionTooSmall, check_stats_bins, check_stats_detail, check_stats_paths, image_stats
 
 FAKE = Path(__file__).with_name("fake_artcli.py")
+CTL = Path(__file__).with_name("fake_artcli_ctl.py")
 pytestmark = pytest.mark.anyio
 
 EDITOR_PROFILE = "[Exposure]\nCompensation=0\n"
@@ -57,7 +60,9 @@ def check_known_stats(stats, histogram):
         assert (r["histogram"][0], r["histogram"][100], r["histogram"][255]) == (10, 85, 5)
         assert lum["histogram"][143] == 85
     else:
-        assert r["histogram"] is None and lum["histogram"] is None
+        assert "histogram" not in r and "histogram" not in lum
+    assert all("bins" not in channel for channel in (r, g, b, lum))  # not asked for: left out, not null
+    assert "region" not in stats
 
 
 def test_stats_of_a_known_image(known_png):
@@ -75,7 +80,7 @@ def test_percentile_nearest_rank_on_a_ramp(tmp_path):
     # 1%: rank ceil(10.24) = 11 -> value 2
     assert stats.r.percentiles["50"] == 127 and stats.r.percentiles["99.9"] == 255
     assert stats.r.percentiles["1"] == 2
-    assert stats.r.clipped_low == 4 / 1024
+    assert stats.r.clipped_low == 0.003906  # 4 of 1024 pixels, rounded to 6 decimals
 
 
 def test_unreadable_image_is_a_value_error(tmp_path):
@@ -138,20 +143,20 @@ def check_lamp_halves(whole, left, right):
 
 
 def test_stats_of_a_region_are_the_stats_of_that_part_of_the_image(lamps):
-    whole = image_stats(lamps).model_dump()
-    left = image_stats(lamps, region=Region(**LEFT)).model_dump()
-    right = image_stats(lamps, region=Region(**RIGHT)).model_dump()
+    whole = image_stats(lamps, detail="full").model_dump()
+    left = image_stats(lamps, region=Region(**LEFT), detail="full").model_dump()
+    right = image_stats(lamps, region=Region(**RIGHT), detail="full").model_dump()
     check_lamp_halves(whole, left, right)
 
     # width/height stay the whole rendered image's; `region` is the part, in its pixels
     for stats in (whole, left, right):
         assert (stats["width"], stats["height"]) == (20, 10)
-    assert whole["region"] is None
+    assert "region" not in whole  # no region asked for: no null
     assert left["region"] == LEFT_PIXELS and right["region"] == RIGHT_PIXELS
 
 
 def test_a_region_below_the_lamps_measures_without_them(lamps):
-    stats = image_stats(lamps, histogram=True, bins=8, region=Region(**BELOW_THE_LAMPS))
+    stats = image_stats(lamps, histogram=True, bins=8, region=Region(**BELOW_THE_LAMPS), detail="full")
     assert stats.region.model_dump() == {"x": 0, "y": 2, "w": 10, "h": 8}
     assert stats.r.mean == 200 and stats.r.clipped_high == 0 and stats.r.std == 0
     assert stats.r.histogram[200] == 80 and sum(stats.r.histogram) == 80
@@ -210,24 +215,24 @@ def shape(tmp_path):
 
 
 def test_std_min_max_and_mode_of_a_known_histogram(shape):
-    stats = image_stats(shape).model_dump()
+    stats = image_stats(shape, detail="full").model_dump()
     # population standard deviation, worked out by hand with statistics.pstdev
     assert [stats["r"][k] for k in ("mean", "std", "min", "max", "mode")] == [121.4, 77.78, 0, 255, 128]
     assert [stats["g"][k] for k in ("mean", "std", "min", "max", "mode")] == [133.6, 77.78, 0, 255, 127]
     assert [stats["b"][k] for k in ("mean", "std", "min", "max", "mode")] == [50.0, 0.0, 50, 50, 50]
     assert [stats["lum"][k] for k in ("mean", "std", "min", "max", "mode")] == [125.2, 39.06, 58, 186, 122]
     for channel in ("r", "g", "b", "lum"):  # not asked for: not there
-        assert stats[channel]["bins"] is None and stats[channel]["histogram"] is None
+        assert "bins" not in stats[channel] and "histogram" not in stats[channel]
 
 
 def test_mode_is_the_lowest_value_on_a_tie(tmp_path):
     path = save_pixels(tmp_path / "tie.png", (10, 10), lambda x, y: (200,) * 3 if y < 5 else (10,) * 3)
-    stats = image_stats(path)
+    stats = image_stats(path, detail="full")
     assert stats.r.mode == 10 and (stats.r.min, stats.r.max) == (10, 200)
 
 
 def test_a_flat_image_has_no_spread(tmp_path):
-    stats = image_stats(save_pixels(tmp_path / "flat.png", (4, 4), lambda x, y: (7, 7, 7)))
+    stats = image_stats(save_pixels(tmp_path / "flat.png", (4, 4), lambda x, y: (7, 7, 7)), detail="full")
     assert (stats.r.std, stats.r.min, stats.r.max, stats.r.mode) == (0.0, 7, 7, 7)
 
 
@@ -262,7 +267,7 @@ def test_bins_are_the_fractions_of_pixels_in_equal_groups_of_values(shape, bins,
         got = stats[channel]["bins"]
         assert len(got) == bins
         assert {i: v for i, v in enumerate(got) if v} == expected
-        assert stats[channel]["histogram"] is None
+        assert "histogram" not in stats[channel]
 
 
 def test_bins_and_the_raw_histogram_can_come_together(shape):
@@ -290,6 +295,101 @@ def test_check_stats_bins_rejects_anything_else(bins):
     with pytest.raises(ValueError, match="bins must be 8, 16, 32 or 64") as caught:
         check_stats_bins(bins, lambda code, why: ValueError(f"{code}: {why}"))
     assert str(caught.value).startswith("out_of_range: ")
+
+
+# -- detail levels and omitted fields ----------------------------------------------
+
+CHANNELS = ("r", "g", "b", "lum")
+STANDARD_PERCENTILES = ["0.1", "1", "5", "50", "95", "99", "99.9"]
+COMPACT_PERCENTILES = ["0.1", "50", "99.9"]
+
+
+def test_standard_detail_is_what_image_stats_returned_before_the_extras(shape):
+    stats = image_stats(shape).model_dump()
+    assert set(stats) == {"width", "height", "r", "g", "b", "lum"}
+    for channel in CHANNELS:
+        assert set(stats[channel]) == {"mean", "clipped_high", "clipped_low", "percentiles"}
+        assert list(stats[channel]["percentiles"]) == STANDARD_PERCENTILES
+    assert image_stats(shape, detail="standard").model_dump() == stats
+
+
+def test_compact_detail_is_clipping_and_three_percentiles_only(shape):
+    stats = image_stats(shape, detail="compact").model_dump()
+    assert set(stats) == {"width", "height", "r", "g", "b", "lum"}
+    for channel in CHANNELS:
+        assert set(stats[channel]) == {"clipped_high", "clipped_low", "percentiles"}  # no mean
+        assert list(stats[channel]["percentiles"]) == COMPACT_PERCENTILES
+    # by hand (N = 100, nearest rank): r is 10 x 0, 30 x 64, 40 x 128, 20 x 255; g = 255 - r; b is 50
+    # throughout; luminance is 58 (20), 122 (40), 154 (30), 186 (10)
+    assert stats["r"] == {"clipped_high": 0.2, "clipped_low": 0.1, "percentiles": {"0.1": 0, "50": 128, "99.9": 255}}
+    assert stats["g"] == {"clipped_high": 0.1, "clipped_low": 0.2, "percentiles": {"0.1": 0, "50": 127, "99.9": 255}}
+    assert stats["b"] == {"clipped_high": 0, "clipped_low": 0, "percentiles": {"0.1": 50, "50": 50, "99.9": 50}}
+    assert stats["lum"] == {"clipped_high": 0, "clipped_low": 0, "percentiles": {"0.1": 58, "50": 122, "99.9": 186}}
+
+
+def test_full_detail_is_standard_plus_std_min_max_and_mode(shape):
+    standard = image_stats(shape).model_dump()
+    full = image_stats(shape, detail="full").model_dump()
+    for channel in CHANNELS:
+        assert full[channel].keys() - standard[channel].keys() == {"std", "min", "max", "mode"}
+        assert {k: v for k, v in full[channel].items() if k in standard[channel]} == standard[channel]
+    assert [full["r"][k] for k in ("std", "min", "max", "mode")] == [77.78, 0, 255, 128]
+
+
+@pytest.mark.parametrize("detail", ["compact", "standard", "full"])
+def test_bins_and_the_histogram_add_their_fields_at_any_detail(shape, detail):
+    plain = image_stats(shape, detail=detail).model_dump()
+    asked = image_stats(shape, histogram=True, bins=16, detail=detail).model_dump()
+    for channel in CHANNELS:
+        assert asked[channel].keys() - plain[channel].keys() == {"bins", "histogram"}
+        assert len(asked[channel]["bins"]) == 16 and len(asked[channel]["histogram"]) == 256
+        assert {k: v for k, v in asked[channel].items() if k in plain[channel]} == plain[channel]
+    only_bins = image_stats(shape, bins=8, detail=detail).model_dump()
+    assert only_bins["r"].keys() - plain["r"].keys() == {"bins"}
+
+
+def test_a_result_leaves_out_what_carries_nothing_in_every_serialised_form(shape, lamps):
+    for stats in (image_stats(shape), image_stats(shape, detail="full"), image_stats(lamps, region=Region(**LEFT))):
+        assert "null" not in stats.model_dump_json()
+        assert None not in stats.model_dump().values() and None not in stats.model_dump(mode="json").values()
+        for channel in CHANNELS:
+            assert None not in stats.model_dump(mode="json")[channel].values()
+    assert "region" not in image_stats(shape).model_dump()
+    assert image_stats(lamps, region=Region(**LEFT)).model_dump()["region"] == LEFT_PIXELS
+
+
+@pytest.mark.parametrize("detail", ["compact", "standard", "full", None])
+def test_check_stats_detail_accepts_the_three_levels_and_none(detail):
+    check_stats_detail(detail, lambda code, why: AssertionError(why))
+
+
+@pytest.mark.parametrize("detail", ["", "Compact", "huge", "short", "all"])
+def test_check_stats_detail_rejects_anything_else(detail):
+    with pytest.raises(ValueError, match="detail must be compact, standard or full") as caught:
+        check_stats_detail(detail, lambda code, why: ValueError(f"{code}: {why}"))
+    assert str(caught.value).startswith("out_of_range: ")
+
+
+def stats_problem(path, paths):
+    """The refusal check_stats_paths raises for (path, paths), or None."""
+    try:
+        check_stats_paths(path, paths, lambda code, why: ValueError(f"{code}: {why}"))
+    except ValueError as e:
+        return str(e)
+    return None
+
+
+def test_check_stats_paths_takes_exactly_one_of_path_and_paths_of_one_to_fifty():
+    assert stats_problem("a.ARW", None) is None
+    assert stats_problem(None, ["a.ARW"]) is None
+    assert stats_problem(None, [f"{n}.ARW" for n in range(50)]) is None
+    both = stats_problem("a.ARW", ["a.ARW"])
+    assert both.startswith("out_of_range: ") and "not both" in both
+    neither = stats_problem(None, None)
+    assert neither.startswith("out_of_range: ") and "path or paths" in neither and "not both" not in neither
+    assert stats_problem(None, []) == "out_of_range: paths is empty"
+    many = stats_problem(None, [f"{n}.ARW" for n in range(51)])
+    assert many.startswith("out_of_range: ") and "51" in many and "50" in many
 
 
 # -- Render server ---------------------------------------------------------------
@@ -465,7 +565,7 @@ async def test_render_image_stats_of_a_region_is_one_render_cropped_afterwards(
         calls = {}
         for name, arguments in (("whole", {}), ("left", {"region": LEFT}), ("right", {"region": RIGHT})):
             before = len(logged(log))
-            calls[name] = await client.call_tool("image_stats", {"path": str(image), **arguments})
+            calls[name] = await client.call_tool("image_stats", {"path": str(image), "detail": "full", **arguments})
             assert len(logged(log)) == before + 1, name  # one art-cli run: no frame probe, no crop render
 
     for result in calls.values():
@@ -485,7 +585,7 @@ async def test_render_image_stats_region_and_bins_of_a_part(render, image, lamps
     async with Client(server) as client:
         await client.call_tool("open_image", {"path": str(image)})
         result = await client.call_tool(
-            "image_stats", {"path": str(image), "region": BELOW_THE_LAMPS, "bins": 16}
+            "image_stats", {"path": str(image), "region": BELOW_THE_LAMPS, "bins": 16, "detail": "full"}
         )
     assert not result.is_error, result.content
     stats = result.structured_content
@@ -542,9 +642,9 @@ async def test_render_image_stats_summary_numbers_and_bins_of_a_known_image(rend
         default = await client.call_tool("image_stats", {"path": str(image)})
         binned = await client.call_tool("image_stats", {"path": str(image), "bins": 8})
     r = default.structured_content["r"]
-    assert (r["std"], r["min"], r["max"], r["mode"], r["bins"]) == (77.78, 0, 255, 128, None)
+    assert r["mean"] == 121.4 and "bins" not in r  # the default level: no std, min, max or mode
     assert binned.structured_content["r"]["bins"] == [0.1, 0, 0.3, 0, 0.4, 0, 0, 0.2]
-    assert binned.structured_content["region"] is None
+    assert "region" not in binned.structured_content
 
 
 async def test_render_image_stats_documents_region_and_bins(render):
@@ -554,6 +654,326 @@ async def test_render_image_stats_documents_region_and_bins(render):
     assert {"region", "bins"} <= set(tool.input_schema["properties"])
     for needle in ("`region`", "fractions", "render_preview", "`bins`", "16", "std"):
         assert needle in tool.description
+
+
+# -- Render: detail levels and several images -------------------------------------
+
+
+def render_server(tmp_path, *, cli=FAKE, max_processes=2):
+    """A Render server without the argument log (the fake's appends are not safe for several runs at once)."""
+    config = tmp_path / "config"
+    config.mkdir(exist_ok=True)
+    return build_render(
+        ArtCli((sys.executable, str(cli)), max_processes=max_processes), config, PreviewFolder(tmp_path / "previews")
+    )
+
+
+async def open_all(client, frames):
+    for frame in frames:
+        opened = await client.call_tool("open_image", {"path": str(frame)})
+        assert not opened.is_error, opened.content
+
+
+def level(low, high, p01, p50, p999):
+    """A channel at the compact detail."""
+    return {"clipped_low": low, "clipped_high": high, "percentiles": {"0.1": p01, "50": p50, "99.9": p999}}
+
+
+FULL_KEYS = {"mean", "std", "min", "max", "mode", "clipped_high", "clipped_low", "percentiles"}
+STANDARD_KEYS = FULL_KEYS - {"std", "min", "max", "mode"}
+
+
+@pytest.fixture
+def roll(tmp_path, monkeypatch):
+    """Three raws of 10 x 10 pixels, each 'rendered' by the fake art-cli from a PNG of its own:
+    1 is (100, 150, 200) throughout; 2 has 10 black pixels in 100, the rest grey 50; 3 has 5 white
+    pixels in 100, the rest grey 200."""
+    folder, pngs = tmp_path / "roll", tmp_path / "pngs"
+    folder.mkdir()
+    pngs.mkdir()
+    looks = [
+        lambda x, y: (100, 150, 200),
+        lambda x, y: (0, 0, 0) if y == 0 else (50, 50, 50),
+        lambda x, y: (255, 255, 255) if y == 0 and x < 5 else (200, 200, 200),
+    ]
+    frames = []
+    for n, look in enumerate(looks, start=1):
+        frame = folder / f"FILM_{n}.ARW"
+        frame.write_bytes(b"raw")
+        save_pixels(pngs / f"FILM_{n}.png", (10, 10), look)
+        frames.append(frame)
+    monkeypatch.setenv("FAKE_PNG_DIR", str(pngs))
+    return frames
+
+
+def check_roll_compact(items):
+    """What the compact detail says of the three frames of `roll`, worked out by hand (N = 100, nearest rank)."""
+    first, second, third = (item["stats"] for item in items)
+    assert [first[c] for c in CHANNELS] == [
+        level(0, 0, 100, 100, 100), level(0, 0, 150, 150, 150), level(0, 0, 200, 200, 200), level(0, 0, 143, 143, 143)
+    ]  # fmt: skip
+    for channel in CHANNELS:
+        assert second[channel] == level(0.1, 0, 0, 50, 50)
+        assert third[channel] == level(0, 0.05, 200, 200, 255)
+
+
+async def test_render_image_stats_default_is_standard_detail_without_nulls(render, image, known_png, monkeypatch):
+    server, _ = render
+    monkeypatch.setenv("FAKE_PNG_SOURCE", str(known_png))
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await client.call_tool("image_stats", {"path": str(image)})
+
+    assert not result.is_error, result.content
+    stats = result.structured_content
+    assert set(stats) == {"width", "height", "r", "g", "b", "lum"}  # no `region`, `items` or `failed`
+    for channel in CHANNELS:
+        assert set(stats[channel]) == STANDARD_KEYS
+        assert list(stats[channel]["percentiles"]) == STANDARD_PERCENTILES
+    assert "null" not in result.content[0].text  # the text form leaves them out too
+    assert json.loads(result.content[0].text) == stats
+
+
+@pytest.mark.parametrize(
+    "detail, keys, percentiles",
+    [
+        ("compact", {"clipped_high", "clipped_low", "percentiles"}, COMPACT_PERCENTILES),
+        ("standard", STANDARD_KEYS, STANDARD_PERCENTILES),
+        ("full", FULL_KEYS, STANDARD_PERCENTILES),
+    ],
+)
+async def test_render_image_stats_detail_levels(render, image, known_png, monkeypatch, detail, keys, percentiles):
+    server, _ = render
+    monkeypatch.setenv("FAKE_PNG_SOURCE", str(known_png))
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await client.call_tool("image_stats", {"path": str(image), "detail": detail})
+
+    assert not result.is_error, result.content
+    for channel in CHANNELS:
+        assert set(result.structured_content[channel]) == keys
+        assert list(result.structured_content[channel]["percentiles"]) == percentiles
+    assert "null" not in result.content[0].text
+
+
+async def test_render_image_stats_output_schema_keeps_the_omitted_fields_optional(render, image, lamps, monkeypatch):
+    jsonschema = pytest.importorskip("jsonschema")
+    server, _ = render
+    monkeypatch.setenv("FAKE_PNG_SOURCE", str(lamps))
+    everything = {"detail": "full", "bins": 8, "histogram": True, "region": LEFT}
+    async with Client(server) as client:
+        tool = {t.name: t for t in (await client.list_tools()).tools}["image_stats"]
+        await client.call_tool("open_image", {"path": str(image)})
+        results = [
+            await client.call_tool("image_stats", {"path": str(image), **arguments})
+            for arguments in ({}, {"detail": "compact"}, everything)
+        ]
+
+    schema = tool.output_schema
+    jsonschema.Draft202012Validator.check_schema(schema)
+    validator = jsonschema.Draft202012Validator(schema)
+    for result in results:
+        assert not result.is_error, result.content
+        assert not list(validator.iter_errors(result.structured_content))
+    channel = schema["$defs"]["ChannelStats"]
+    for optional in ("mean", "std", "min", "max", "mode", "histogram", "bins"):
+        assert optional in channel["properties"] and optional not in channel.get("required", [])
+    assert {"clipped_high", "clipped_low", "percentiles"} <= set(channel["required"])
+    assert "region" in schema["properties"] and "region" not in schema.get("required", [])
+
+
+async def test_render_image_stats_unknown_detail_is_out_of_range_before_rendering(render, image):
+    server, log = render
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        before = len(logged(log))
+        result = await client.call_tool("image_stats", {"path": str(image), "detail": "huge"})
+        several = await client.call_tool("image_stats", {"paths": [str(image)], "detail": "huge"})
+        assert len(logged(log)) == before
+
+    for refused in (result, several):
+        assert refused.is_error and "out_of_range:" in refused.content[0].text
+        assert "detail must be compact, standard or full" in refused.content[0].text
+
+
+@pytest.mark.parametrize(
+    "arguments, words",
+    [
+        (lambda image: {}, "path or paths"),
+        (lambda image: {"path": str(image), "paths": [str(image)]}, "not both"),
+        (lambda image: {"paths": []}, "paths is empty"),
+        (lambda image: {"paths": [str(image)] * 51}, "51 entries"),
+        (lambda image: {"paths": [str(image)], "max_size": 0}, "max_size"),
+        (lambda image: {"paths": [str(image)], "bins": 7}, "8, 16, 32 or 64"),
+        (lambda image: {"paths": [str(image)], "region": {"x": 0.6, "y": 0, "w": 0.5, "h": 0.5}}, "fractions"),
+    ],
+)
+async def test_render_image_stats_refuses_a_bad_call_before_rendering_anything(render, image, arguments, words):
+    server, log = render
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        before = len(logged(log))
+        result = await client.call_tool("image_stats", arguments(image))
+        assert len(logged(log)) == before
+
+    assert result.is_error and "out_of_range:" in result.content[0].text and words in result.content[0].text
+
+
+async def test_render_image_stats_of_several_images_is_an_item_per_image_in_order_and_compact(tmp_path, roll):
+    async with Client(render_server(tmp_path)) as client:
+        await open_all(client, roll)
+        result = await client.call_tool("image_stats", {"paths": [str(f) for f in roll]})
+
+    assert not result.is_error, result.content
+    data = result.structured_content
+    assert set(data) == {"items", "failed"} and data["failed"] == 0
+    assert [item["path"] for item in data["items"]] == [str(f) for f in roll]
+    for item in data["items"]:
+        assert set(item) == {"path", "stats"}  # no null `error`
+        assert (item["stats"]["width"], item["stats"]["height"]) == (10, 10)
+        assert "region" not in item["stats"]
+    check_roll_compact(data["items"])
+    assert "null" not in result.content[0].text
+    assert json.loads(result.content[0].text) == data
+
+
+@pytest.mark.parametrize("detail, keys", [("standard", STANDARD_KEYS), ("full", FULL_KEYS)])
+async def test_render_image_stats_of_several_images_keeps_a_detail_the_caller_gives(tmp_path, roll, detail, keys):
+    async with Client(render_server(tmp_path)) as client:
+        await open_all(client, roll)
+        result = await client.call_tool("image_stats", {"paths": [str(f) for f in roll], "detail": detail})
+
+    assert not result.is_error, result.content
+    for item in result.structured_content["items"]:
+        for channel in CHANNELS:
+            assert set(item["stats"][channel]) == keys
+
+
+async def test_render_image_stats_of_several_images_gives_each_the_same_options(tmp_path, roll):
+    arguments = {"detail": "standard", "bins": 8, "histogram": True, "region": {"x": 0, "y": 0, "w": 0.5, "h": 1}}
+    async with Client(render_server(tmp_path)) as client:
+        await open_all(client, roll)
+        result = await client.call_tool("image_stats", {"paths": [str(f) for f in roll], **arguments})
+
+    assert not result.is_error, result.content
+    items = result.structured_content["items"]
+    for item in items:
+        stats = item["stats"]
+        assert stats["region"] == {"x": 0, "y": 0, "w": 5, "h": 10}  # each image's own pixels
+        assert (stats["width"], stats["height"]) == (10, 10)
+        assert len(stats["r"]["bins"]) == 8 and len(stats["lum"]["histogram"]) == 256
+    # the left half: the first frame is flat, the second has 5 black and the third 5 white pixels of 50
+    assert items[0]["stats"]["r"]["mean"] == 100 and items[0]["stats"]["r"]["clipped_low"] == 0
+    assert items[1]["stats"]["r"]["clipped_low"] == 0.1 and items[2]["stats"]["r"]["clipped_high"] == 0.1
+
+
+async def test_render_image_stats_one_image_that_fails_is_its_own_error_and_the_others_come_back(tmp_path, roll):
+    unopened = str(roll[0].with_name("FILM_9.ARW"))
+    unreadable = roll[0].with_name("FILM_4.ARW")  # no PNG of its own: the fake's render does not decode
+    unreadable.write_bytes(b"raw")
+    paths = [str(roll[0]), unopened, str(roll[2]), str(unreadable)]
+    async with Client(render_server(tmp_path)) as client:
+        await open_all(client, [roll[0], roll[2], unreadable])
+        result = await client.call_tool("image_stats", {"paths": paths})
+
+    assert not result.is_error, result.content
+    data = result.structured_content
+    assert data["failed"] == 2 and [item["path"] for item in data["items"]] == paths
+    first, missing, third, broken = data["items"]
+    assert set(first) == {"path", "stats"} and set(third) == {"path", "stats"}
+    assert set(missing) == {"path", "error"} and missing["error"].startswith("not_open:")
+    assert set(broken) == {"path", "error"} and broken["error"].startswith("render_failed:")
+    assert first["stats"]["r"]["percentiles"]["50"] == 100 and third["stats"]["r"]["clipped_high"] == 0.05
+
+
+async def test_render_image_stats_a_region_too_small_for_an_image_is_that_images_error(tmp_path, roll):
+    small = {"x": 0, "y": 0, "w": 0.2, "h": 0.2}  # 2 x 2 pixels of a 10 x 10 render
+    async with Client(render_server(tmp_path)) as client:
+        await open_all(client, roll)
+        result = await client.call_tool("image_stats", {"paths": [str(f) for f in roll], "region": small})
+
+    assert not result.is_error, result.content
+    assert result.structured_content["failed"] == 3
+    for item in result.structured_content["items"]:
+        assert item["error"].startswith("out_of_range:") and "at least 16 pixels" in item["error"]
+
+
+async def test_render_image_stats_of_several_images_reports_progress_per_image(tmp_path, roll):
+    seen = []
+
+    async def on_progress(progress, total, message):
+        seen.append((progress, total))
+
+    async with Client(render_server(tmp_path)) as client:
+        await open_all(client, roll)
+        result = await client.call_tool(
+            "image_stats", {"paths": [str(f) for f in roll]}, progress_callback=on_progress
+        )
+
+    assert not result.is_error, result.content
+    assert sorted(seen) == [(1, 3), (2, 3), (3, 3)]
+
+
+async def test_render_image_stats_of_several_images_runs_through_the_bounded_pool(tmp_path, roll, monkeypatch):
+    log = tmp_path / "runs"
+    log.mkdir()
+    many = []
+    for n in range(6):
+        frame = roll[0].with_name(f"FILM_{n + 10}.ARW")
+        frame.write_bytes(b"raw")
+        many.append(frame)
+    monkeypatch.setenv("FAKE_PNG_SOURCE", str(tmp_path / "pngs" / "FILM_1.png"))
+    async with Client(render_server(tmp_path, cli=CTL, max_processes=2)) as client:
+        await open_all(client, many)
+        monkeypatch.setenv("FAKE_ARTCLI_LOG", str(log))
+        monkeypatch.setenv("FAKE_ARTCLI_SLEEP", "0.3")
+        result = await client.call_tool("image_stats", {"paths": [str(f) for f in many]})
+
+    assert not result.is_error, result.content
+    assert result.structured_content["failed"] == 0
+    assert peak_overlap(log) == (6, 2)  # six renders, two at a time: the cap, and in parallel
+
+
+async def test_render_image_stats_documents_detail_and_paths(render):
+    server, _ = render
+    async with Client(server) as client:
+        tool = {t.name: t for t in (await client.list_tools()).tools}["image_stats"]
+    properties = tool.input_schema["properties"]
+    assert {"path", "paths", "detail"} <= set(properties)
+    assert not tool.input_schema.get("required")  # exactly one of path and paths: checked by the tool
+    assert json.dumps(properties["detail"]).count("compact") == 1 and '"full"' in json.dumps(properties["detail"])
+    for needle in ('"compact"', '"standard"', '"full"', "`detail`", "`paths`", "`items`", "request order", "default"):
+        assert needle in tool.description
+
+
+async def test_render_image_stats_results_are_small(tmp_path, monkeypatch):
+    """The default result is about 700 characters, the compact one about 450 (370 with nothing clipped: the
+    fractions are not rounded), twelve compact ones about 5 KB."""
+    rng = random.Random(7)
+    photo = tmp_path / "photo.png"
+    img = Image.new("RGB", (97, 61))  # an awkward pixel count: the fractions have all their decimals
+    img.putdata([tuple(min(255, max(0, int(rng.gauss(mid, 70)))) for mid in (90, 120, 150)) for _ in range(97 * 61)])
+    img.save(photo)
+    monkeypatch.setenv("FAKE_PNG_SOURCE", str(photo))
+    frames = []
+    for n in range(12):
+        frame = tmp_path / "roll" / f"FILM_{n}.ARW"
+        frame.parent.mkdir(exist_ok=True)
+        frame.write_bytes(b"raw")
+        frames.append(frame)
+
+    def size(result):
+        assert not result.is_error, result.content
+        return len(json.dumps(result.structured_content, separators=(",", ":")))
+
+    async with Client(render_server(tmp_path)) as client:
+        await open_all(client, frames)
+        standard = size(await client.call_tool("image_stats", {"path": str(frames[0])}))
+        compact = size(await client.call_tool("image_stats", {"path": str(frames[0]), "detail": "compact"}))
+        twelve = size(await client.call_tool("image_stats", {"paths": [str(f) for f in frames]}))
+
+    assert standard <= 800 and compact <= 560 and compact <= 0.8 * standard
+    assert twelve <= 12 * (compact + len(json.dumps(str(frames[0]))) + 30)  # an item adds its path, not more
 
 
 # -- Live server --------------------------------------------------------------------
@@ -673,7 +1093,7 @@ async def test_live_image_stats_of_a_region_crops_the_one_preview(art, tmp_path,
 
     async with Client(build_live(ControlChannel(art.config_dir), previews=previews)) as client:
         results = {
-            name: await client.call_tool("image_stats", {"path": photo, **arguments})
+            name: await client.call_tool("image_stats", {"path": photo, "detail": "full", **arguments})
             for name, arguments in (("whole", {}), ("left", {"region": LEFT}), ("right", {"region": RIGHT}))
         }
 
@@ -694,7 +1114,7 @@ async def test_live_image_stats_region_and_bins_of_a_part(art, tmp_path, lamps):
     art.ops["preview"] = write_preview(lamps.read_bytes(), width=20, height=10)
     async with Client(build_live(ControlChannel(art.config_dir), previews=PreviewFolder(tmp_path / "p"))) as client:
         result = await client.call_tool(
-            "image_stats", {"path": str(tmp_path / "a.ARW"), "region": LEFT, "bins": 8}
+            "image_stats", {"path": str(tmp_path / "a.ARW"), "region": LEFT, "bins": 8, "detail": "full"}
         )
     assert not result.is_error, result.content
     assert result.structured_content["r"]["bins"] == [0, 0, 0, 0, 0, 0, 0.8, 0.2]
@@ -773,3 +1193,208 @@ async def test_live_sample_spots_unknown_op_is_unsupported(art, tmp_path):
 
     assert result.is_error
     assert "unsupported: needs an ART build with spot sampling" in result.content[0].text
+
+
+# -- Live: detail levels and several images ----------------------------------------
+
+
+def live_stats_server(art, tmp_path):
+    return build_live(ControlChannel(art.config_dir), previews=PreviewFolder(tmp_path / "previews"))
+
+
+def previews_of_the_roll(art, tmp_path, roll):
+    """ART's preview op answering with the PNG of the frame asked for, `not_open` for any other."""
+    pngs = {frame.name: tmp_path / "pngs" / f"{frame.stem}.png" for frame in roll}
+
+    def reply(req):
+        path = req["args"]["path"]
+        png = pngs.get(Path(path).name)
+        if png is None:
+            return fail("not_open", f"{path} is not open in ART")(req)
+        return write_preview(png.read_bytes(), width=10, height=10)(req)
+
+    art.ops["preview"] = reply
+
+
+async def test_live_image_stats_default_is_standard_detail_without_nulls(art, tmp_path, known_png):
+    art.ops["preview"] = write_preview(known_png.read_bytes(), width=10, height=10)
+    async with Client(live_stats_server(art, tmp_path)) as client:
+        result = await client.call_tool("image_stats", {"path": str(tmp_path / "a.ARW")})
+
+    assert not result.is_error, result.content
+    stats = result.structured_content
+    assert set(stats) == {"width", "height", "r", "g", "b", "lum"}
+    for channel in CHANNELS:
+        assert set(stats[channel]) == STANDARD_KEYS
+        assert list(stats[channel]["percentiles"]) == STANDARD_PERCENTILES
+    assert "null" not in result.content[0].text
+    assert json.loads(result.content[0].text) == stats
+
+
+@pytest.mark.parametrize(
+    "detail, keys, percentiles",
+    [
+        ("compact", {"clipped_high", "clipped_low", "percentiles"}, COMPACT_PERCENTILES),
+        ("standard", STANDARD_KEYS, STANDARD_PERCENTILES),
+        ("full", FULL_KEYS, STANDARD_PERCENTILES),
+    ],
+)
+async def test_live_image_stats_detail_levels(art, tmp_path, known_png, detail, keys, percentiles):
+    art.ops["preview"] = write_preview(known_png.read_bytes(), width=10, height=10)
+    async with Client(live_stats_server(art, tmp_path)) as client:
+        result = await client.call_tool("image_stats", {"path": str(tmp_path / "a.ARW"), "detail": detail})
+
+    assert not result.is_error, result.content
+    for channel in CHANNELS:
+        assert set(result.structured_content[channel]) == keys
+        assert list(result.structured_content[channel]["percentiles"]) == percentiles
+    assert "null" not in result.content[0].text
+
+
+async def test_live_image_stats_output_schema_keeps_the_omitted_fields_optional(art, tmp_path, lamps):
+    jsonschema = pytest.importorskip("jsonschema")
+    art.ops["preview"] = write_preview(lamps.read_bytes(), width=20, height=10)
+    everything = {"detail": "full", "bins": 8, "histogram": True, "region": LEFT}
+    async with Client(live_stats_server(art, tmp_path)) as client:
+        tool = {t.name: t for t in (await client.list_tools()).tools}["image_stats"]
+        results = [
+            await client.call_tool("image_stats", {"path": str(tmp_path / "a.ARW"), **arguments})
+            for arguments in ({}, {"detail": "compact"}, everything)
+        ]
+
+    validator = jsonschema.Draft202012Validator(tool.output_schema)
+    for result in results:
+        assert not result.is_error, result.content
+        assert not list(validator.iter_errors(result.structured_content))
+    channel = tool.output_schema["$defs"]["ChannelStats"]
+    for optional in ("mean", "std", "min", "max", "mode", "histogram", "bins"):
+        assert optional not in channel.get("required", [])
+
+
+async def test_live_image_stats_unknown_detail_is_out_of_range_before_asking_art(art, tmp_path):
+    async with Client(live_stats_server(art, tmp_path)) as client:
+        result = await client.call_tool("image_stats", {"path": str(tmp_path / "a.ARW"), "detail": "huge"})
+        several = await client.call_tool("image_stats", {"paths": [str(tmp_path / "a.ARW")], "detail": "huge"})
+
+    for refused in (result, several):
+        assert refused.is_error and "out_of_range:" in refused.content[0].text
+        assert "detail must be compact, standard or full" in refused.content[0].text
+    assert not requests(art, "preview")
+
+
+@pytest.mark.parametrize(
+    "arguments, words",
+    [
+        (lambda photo: {}, "path or paths"),
+        (lambda photo: {"path": photo, "paths": [photo]}, "not both"),
+        (lambda photo: {"paths": []}, "paths is empty"),
+        (lambda photo: {"paths": [photo] * 51}, "51 entries"),
+        (lambda photo: {"paths": [photo], "max_size": 0}, "max_size"),
+        (lambda photo: {"paths": [photo], "bins": 7}, "8, 16, 32 or 64"),
+        (lambda photo: {"paths": [photo], "region": {"x": 0.6, "y": 0, "w": 0.5, "h": 0.5}}, "fractions"),
+    ],
+)
+async def test_live_image_stats_refuses_a_bad_call_before_asking_art(art, tmp_path, arguments, words):
+    async with Client(live_stats_server(art, tmp_path)) as client:
+        result = await client.call_tool("image_stats", arguments(str(tmp_path / "a.ARW")))
+
+    assert result.is_error and "out_of_range:" in result.content[0].text and words in result.content[0].text
+    assert not requests(art, "preview")
+
+
+async def test_live_image_stats_of_several_images_asks_art_for_each_in_order_and_is_compact(art, tmp_path, roll):
+    previews_of_the_roll(art, tmp_path, roll)
+    paths = [str(f) for f in roll]
+    async with Client(live_stats_server(art, tmp_path)) as client:
+        result = await client.call_tool("image_stats", {"paths": paths, "max_size": 800})
+
+    assert not result.is_error, result.content
+    data = result.structured_content
+    assert set(data) == {"items", "failed"} and data["failed"] == 0
+    assert [item["path"] for item in data["items"]] == paths
+    for item in data["items"]:
+        assert set(item) == {"path", "stats"} and (item["stats"]["width"], item["stats"]["height"]) == (10, 10)
+    check_roll_compact(data["items"])
+    asked = requests(art, "preview")
+    assert [req["args"]["path"] for req in asked] == paths
+    assert all(req["args"]["max_size"] == 800 for req in asked)
+    assert "null" not in result.content[0].text and json.loads(result.content[0].text) == data
+    assert not list((tmp_path / "previews").glob("*.png"))
+
+
+@pytest.mark.parametrize("detail, keys", [("standard", STANDARD_KEYS), ("full", FULL_KEYS)])
+async def test_live_image_stats_of_several_images_keeps_a_detail_the_caller_gives(art, tmp_path, roll, detail, keys):
+    previews_of_the_roll(art, tmp_path, roll)
+    async with Client(live_stats_server(art, tmp_path)) as client:
+        result = await client.call_tool("image_stats", {"paths": [str(f) for f in roll], "detail": detail})
+
+    assert not result.is_error, result.content
+    for item in result.structured_content["items"]:
+        for channel in CHANNELS:
+            assert set(item["stats"][channel]) == keys
+
+
+async def test_live_image_stats_of_several_images_gives_each_the_same_options(art, tmp_path, roll):
+    previews_of_the_roll(art, tmp_path, roll)
+    arguments = {"detail": "standard", "bins": 8, "histogram": True, "region": {"x": 0, "y": 0, "w": 0.5, "h": 1}}
+    async with Client(live_stats_server(art, tmp_path)) as client:
+        result = await client.call_tool("image_stats", {"paths": [str(f) for f in roll], **arguments})
+
+    assert not result.is_error, result.content
+    items = result.structured_content["items"]
+    for item in items:
+        assert item["stats"]["region"] == {"x": 0, "y": 0, "w": 5, "h": 10}
+        assert len(item["stats"]["r"]["bins"]) == 8 and len(item["stats"]["lum"]["histogram"]) == 256
+    assert items[0]["stats"]["r"]["mean"] == 100
+    assert items[1]["stats"]["r"]["clipped_low"] == 0.1 and items[2]["stats"]["r"]["clipped_high"] == 0.1
+
+
+async def test_live_image_stats_one_image_that_fails_is_its_own_error_and_the_others_come_back(art, tmp_path, roll):
+    previews_of_the_roll(art, tmp_path, roll)
+    unopened = str(tmp_path / "roll" / "FILM_9.ARW")
+    paths = [str(roll[0]), unopened, str(roll[2])]
+    async with Client(live_stats_server(art, tmp_path)) as client:
+        result = await client.call_tool("image_stats", {"paths": paths})
+
+    assert not result.is_error, result.content
+    data = result.structured_content
+    assert data["failed"] == 1 and [item["path"] for item in data["items"]] == paths
+    first, missing, third = data["items"]
+    assert set(first) == {"path", "stats"} and set(third) == {"path", "stats"}
+    assert set(missing) == {"path", "error"} and missing["error"].startswith("not_open:")
+    assert first["stats"]["r"]["percentiles"]["50"] == 100 and third["stats"]["r"]["clipped_high"] == 0.05
+    assert len(requests(art, "preview")) == 3  # the others were still asked for
+
+
+async def test_live_image_stats_a_preview_that_is_not_an_image_is_that_images_bad_reply(art, tmp_path, roll):
+    previews_of_the_roll(art, tmp_path, roll)
+    good = art.ops["preview"]
+    art.ops["preview"] = lambda req: (
+        write_preview(b"not a png", width=1, height=1)(req) if req["args"]["path"] == str(roll[1]) else good(req)
+    )
+    async with Client(live_stats_server(art, tmp_path)) as client:
+        result = await client.call_tool("image_stats", {"paths": [str(f) for f in roll]})
+
+    assert not result.is_error, result.content
+    data = result.structured_content
+    assert data["failed"] == 1 and data["items"][1]["error"].startswith("bad_reply:")
+    assert "stats" in data["items"][0] and "stats" in data["items"][2]
+    assert not list((tmp_path / "previews").glob("*.png"))
+
+
+async def test_live_image_stats_of_several_images_without_art_fails_the_call(tmp_path, roll):
+    async with Client(build_live(ControlChannel(tmp_path / "no-art"))) as client:
+        result = await client.call_tool("image_stats", {"paths": [str(f) for f in roll]})
+
+    assert result.is_error and "art_not_running:" in result.content[0].text
+
+
+async def test_live_image_stats_documents_detail_and_paths(art):
+    async with Client(build_live(ControlChannel(art.config_dir))) as client:
+        tool = {t.name: t for t in (await client.list_tools()).tools}["image_stats"]
+    properties = tool.input_schema["properties"]
+    assert {"path", "paths", "detail"} <= set(properties)
+    assert not tool.input_schema.get("required")
+    assert json.dumps(properties["detail"]).count("compact") == 1 and '"full"' in json.dumps(properties["detail"])
+    for needle in ('"compact"', '"standard"', '"full"', "`detail`", "`paths`", "`items`", "request order", "default"):
+        assert needle in tool.description

@@ -7,7 +7,8 @@ from pydantic import BaseModel
 
 from art_mcp import artdir, keyfile
 from art_mcp.concurrency import image_key
-from art_mcp.render.artcli import crop_profile, preview_args, region_rect, resize_profile
+from art_mcp.marks import Mark, check_marks, mark_file
+from art_mcp.render.artcli import Rect, crop_profile, preview_args, region_rect, resize_profile
 from art_mcp.render.errors import render_error
 from art_mcp.render.export_ops import move_over
 from art_mcp.render.session import RenderSession
@@ -38,6 +39,8 @@ class Preview(BaseModel):
     path: str
     """JPEG file; open it to look at the preview."""
     max_size: int
+    warnings: list[str] = []
+    """Which marks were not drawn, and why a mark may be misplaced."""
 
 
 def render_jpeg(
@@ -131,6 +134,7 @@ def render_preview(
     region: Region | None = None,
     output: str | None = None,
     overwrite: bool = False,
+    marks: list[Mark] | None = None,
 ) -> Preview:
     if not 1 <= max_size <= MAX_PREVIEW_SIZE:
         raise render_error("out_of_range", f"max_size must be 1 to {MAX_PREVIEW_SIZE}")
@@ -140,20 +144,40 @@ def render_preview(
             "region x, y, w, h are fractions of the image: x, y >= 0, w, h > 0, "
             "x + w <= 1 and y + h <= 1",
         )
+    marks = marks or []
+    check_marks(marks, None, render_error)
     dest = check_output(output, Path(path), overwrite) if output is not None else None
+    warnings: list[str] = []
     with session.image(path) as wp:
         # -f resizes before processing, which approximates sharpening and
         # local effects: only worth it for a whole-image preview that fits the
         # user's fast-export box (-f would shrink anything larger into it).
         fast = region is None and max_size <= artdir.fast_export_box(session.config_dir)
         crop_text = None
+        shown = session.frame_of(wp) if region is not None or marks else None
         if region is not None:
-            rect = region_rect(session.frame_of(wp), x=region.x, y=region.y, w=region.w, h=region.h)
-            crop_text = crop_profile(rect)
+            shown = region_rect(shown, x=region.x, y=region.y, w=region.w, h=region.h)
+            crop_text = crop_profile(shown)
+        if marks:
+            whole = session.whole_frame(wp)
+            check_marks(marks, (whole.w, whole.h), render_error)
         rendered = render_jpeg(
             session, wp.image, keyfile.dumps(wp.changes.profile), max_size, fast=fast, crop_text=crop_text
         )
+        if marks:
+            warnings = mark_rendering(rendered, marks, shown)
     if dest is not None:
         place_output(rendered, dest, overwrite)
         rendered = dest
-    return Preview(path=str(rendered), max_size=max_size)
+    return Preview(path=str(rendered), max_size=max_size, warnings=warnings)
+
+
+def mark_rendering(rendered: Path, marks: list[Mark], shown: Rect) -> list[str]:
+    """Draw ``marks`` on the rendered preview ``rendered``, which shows the
+    ``shown`` area of the frame; its warnings. A rendering that can't be read
+    or marked is ``render_failed`` and the file is removed."""
+    try:
+        return mark_file(rendered, marks, shown)
+    except (ValueError, OSError) as e:
+        rendered.unlink(missing_ok=True)
+        raise render_error("render_failed", str(e)) from e

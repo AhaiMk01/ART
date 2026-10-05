@@ -331,6 +331,35 @@ async def test_a_number_written_differently_is_not_a_change(server, images, out)
     assert third.structured_content["changes"]["groups"] == [compensation_change("-0.0216", "-0.03", ["FILM_1.ARW"])]
 
 
+async def test_values_art_writes_back_as_32_bit_floats_are_not_changes_but_a_real_change_beside_them_is(
+    images, out, tmp_path, monkeypatch
+):
+    default = tmp_path / "default.arp"
+    default.write_text("[Exposure]\nCompensation=0\n\n[Film Negative]\nRefInput=0;0;0;\nRefOutput=0;0;0;\n")
+    monkeypatch.setenv("FAKE_DEFAULT_PROFILE", str(default))
+
+    def reference(compensation_value, ref_input, ref_output):
+        return [
+            {"group": "Exposure", "key": "Compensation", "value": compensation_value},
+            {"group": "Film Negative", "key": "RefInput", "value": ref_input},
+            {"group": "Film Negative", "key": "RefOutput", "value": ref_output},
+        ]
+
+    typed = reference("0.3", "6450.7;3750;2347.9", "6000;6000;6000")
+    written_back = reference("0.4000000059604645", "6450.7001953125;3750;2347.89990234375;", "6000;6000;6000;")
+    async with Client(make_server(tmp_path, "previews")) as client:
+        await open_all(client, images[:1])
+        edits = [await client.call_tool("edit_profile", {"path": str(images[0]), "raw_edits": typed})]
+        await sheet(client, images[:1], out)
+        edits.append(await client.call_tool("edit_profile", {"path": str(images[0]), "raw_edits": written_back}))
+        second = await sheet(client, images[:1], out)
+
+    assert not any(e.is_error for e in edits), [e.content for e in edits]
+    assert second.structured_content["images"][0]["changed"] == 1
+    assert second.structured_content["changes"]["groups"] == [compensation_change("0.3", "0.4", ["FILM_1.ARW"])]
+    assert [(c["key"], c["after"]) for c in record(second)["images"][0]["changes"]] == [("Compensation", "0.4")]
+
+
 async def test_changes_are_measured_from_the_last_pass_an_image_was_in(server, images, out):
     async with Client(server) as client:
         await open_all(client, images)
@@ -366,37 +395,72 @@ async def test_changes_survive_a_restart_of_the_server(server, images, out, tmp_
     assert [c["after"] for c in record(result)["images"][0]["changes"]] == ["2"]
 
 
-async def test_the_folder_defaults_to_where_the_last_batch_was_exported(server, images, out, tmp_path):
-    elsewhere = tmp_path / "elsewhere"
-    elsewhere.mkdir()
+async def export_to(client, image, folder):
+    return await client.call_tool(
+        "export_batch", {"items": [{"path": str(image)}], "folder": str(folder), "format": "jpeg"}
+    )
+
+
+async def test_without_a_folder_the_call_says_what_folder_is_and_never_falls_back_to_an_export_folder(
+    server, images, out
+):
     async with Client(server) as client:
         await open_all(client, images)
+        exported = await export_to(client, images[0], out)
         refused = await sheet(client, images)
-        await client.call_tool(
-            "export_batch",
-            {"items": [{"path": str(images[0])}], "folder": str(elsewhere), "format": "jpeg"},
-        )
-        await client.call_tool(
-            "export_batch",
-            {"items": [{"path": str(images[0])}], "folder": str(out), "format": "jpeg"},
-        )
-        result = await sheet(client, images)
+        refused_compare = await compare(client, 1, 2)
 
-    assert refused.is_error and "out_of_range" in refused.content[0].text
-    assert result.structured_content["path"] == str(out / "sheets" / "pass-01.jpg")
-    assert not (elsewhere / "sheets").exists()
+    assert not exported.is_error, exported.content
+    for result in (refused, refused_compare):
+        text = result.content[0].text
+        assert result.is_error and "out_of_range" in text
+        # what it is, what to give, and what not to give
+        assert "folder" in text and "sheets" in text and "work folder" in text and "exports folder" in text
+    assert not (out / "sheets").exists()
 
 
-async def test_a_batch_that_exported_nothing_does_not_set_the_default_folder(server, images, out):
+async def test_the_folder_of_an_earlier_pass_is_the_default_and_an_export_does_not_change_it(
+    server, images, out, tmp_path
+):
+    exports = tmp_path / "exports"
+    exports.mkdir()
+    async with Client(server) as client:
+        await open_all(client, images)
+        first = await sheet(client, images, out, thumb_size=100)
+        await export_to(client, images[0], exports)
+        second = await sheet(client, images, thumb_size=100)
+        compared = await compare(client, 1, 2)
+
+    assert second.structured_content["path"] == str(out / "sheets" / "pass-02.jpg")
+    assert compared.structured_content["path"] == str(out / "sheets" / "compare-01-02.jpg")
+    assert first.structured_content["index"] == 1 and second.structured_content["index"] == 2
+    assert not (exports / "sheets").exists()
+
+
+async def test_the_folder_a_pass_was_last_made_in_is_the_default(server, images, out, tmp_path):
+    other = tmp_path / "other"
+    other.mkdir()
+    async with Client(server) as client:
+        await open_all(client, images)
+        await sheet(client, images, out, thumb_size=100)
+        await sheet(client, images, other, thumb_size=100)
+        result = await sheet(client, images, thumb_size=100)
+
+    assert result.structured_content["path"] == str(other / "sheets" / "pass-02.jpg")
+    assert not (out / "sheets" / "pass-02.jpg").exists()
+
+
+async def test_a_call_that_saved_no_pass_does_not_set_the_default_folder(server, images, out, tmp_path):
     async with Client(server) as client:
         await open_all(client, images[:1])
-        await client.call_tool(
-            "export_batch",
-            {"items": [{"path": str(images[1])}], "folder": str(out), "format": "jpeg"},  # not open
-        )
+        missing = await sheet(client, images[:1], tmp_path / "nope")
+        nothing_rendered = await sheet(client, images[1:], out)  # not open: no image renders
+        unrecorded = await sheet(client, images[:1], out, record=False, thumb_size=100)
         result = await sheet(client, images[:1])
 
+    assert missing.is_error and nothing_rendered.is_error and not unrecorded.is_error
     assert result.is_error and "out_of_range" in result.content[0].text
+    assert list(out.iterdir()) == []
 
 
 async def test_the_folder_must_exist(server, images, tmp_path):
@@ -589,7 +653,7 @@ async def test_without_record_the_sheet_goes_to_the_preview_folder_and_no_pass_i
     previews = tmp_path / "previews"
     async with Client(server) as client:
         await open_all(client, images)
-        # no folder, and no export_batch to default to: a pass would be refused
+        # no folder, and no pass made yet to default to: a pass would be refused
         result = await sheet(client, images, record=False, thumb_size=700)
         with_folder = await sheet(client, images, out, record=False, thumb_size=100)
         listing = sorted(p.name for p in previews.iterdir())
@@ -752,27 +816,16 @@ async def test_a_frame_that_failed_in_either_pass_is_left_out(server, images, ou
     assert asked_for.is_error and "not_found" in asked_for.content[0].text
 
 
-async def test_comparing_needs_two_existing_passes_and_a_folder(server, images, out):
+async def test_comparing_needs_two_existing_passes_and_a_folder(server, images, out, tmp_path):
     async with Client(server) as client:
         await before_and_after(client, images, out)
         missing = await compare(client, 1, 9, out)
         same = await compare(client, 2, 2, out)
+    async with Client(make_server(tmp_path, "previews2")) as client:  # a new session: no folder used yet
         no_default = await compare(client, 1, 2)
 
     assert missing.is_error and "not_found" in missing.content[0].text
     assert same.is_error and "out_of_range" in same.content[0].text
     assert no_default.is_error and "out_of_range" in no_default.content[0].text
-
-
-async def test_the_folder_defaults_to_the_last_batch_here_too(server, images, out):
-    async with Client(server) as client:
-        await before_and_after(client, images, out)
-        await client.call_tool(
-            "export_batch", {"items": [{"path": str(images[0])}], "folder": str(out), "format": "jpeg"}
-        )
-        result = await compare(client, 1, 2)
-
-    assert not result.is_error, result.content
-    assert result.structured_content["path"] == str(out / "sheets" / "compare-01-02.jpg")
 
 

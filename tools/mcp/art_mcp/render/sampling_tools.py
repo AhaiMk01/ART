@@ -1,7 +1,12 @@
 """Sampling tools: sample_spots and image_stats (adapters over
 ``sampling_ops``)."""
 
-from mcp.server.mcpserver import MCPServer
+from typing import Annotated
+
+import anyio
+import anyio.from_thread
+from mcp.server.mcpserver import Context, MCPServer
+from mcp.types import CallToolResult
 
 from art_mcp.render import sampling_ops as ops
 from art_mcp.render.adapter import as_tool_errors
@@ -11,9 +16,11 @@ from art_mcp.sampling import (
     DEFAULT_SIZE,
     IMAGE_STATS_DOC,
     SAMPLE_SPOTS_DOC,
-    ImageStats,
+    Detail,
+    ImageStatsResult,
     Spot,
     SpotSamples,
+    stats_result,
 )
 
 
@@ -30,15 +37,27 @@ def register(server: MCPServer, session: RenderSession) -> None:
             "Statistics of the working profile as rendered: an 8-bit output image, crop "
             "applied (like a whole-image render_preview). "
             + IMAGE_STATS_DOC
-            + " Downscaling hides clipping in tiny highlights: raise `max_size` to see more."
+            + " Downscaling hides clipping in tiny highlights: raise `max_size` to see more. "
+            "Several images are rendered two at a time, with progress per image."
         )
     )
-    def image_stats(
-        path: str,
+    async def image_stats(
+        ctx: Context,
+        path: str | None = None,
+        paths: list[str] | None = None,
         max_size: int = PREVIEW_SIZE,
         histogram: bool = False,
+        detail: Detail | None = None,
         region: Region | None = None,
         bins: int | None = None,
-    ) -> ImageStats:
-        with as_tool_errors():
-            return ops.image_stats(session, path, max_size, histogram, region, bins)
+    ) -> Annotated[CallToolResult, ImageStatsResult]:
+        def progress(done: int, total: int) -> None:
+            anyio.from_thread.run(ctx.report_progress, done, total)
+
+        def run() -> CallToolResult:
+            with as_tool_errors():
+                return stats_result(
+                    ops.image_stats(session, path, paths, max_size, histogram, region, bins, detail, progress)
+                )
+
+        return await anyio.to_thread.run_sync(run)

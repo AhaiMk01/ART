@@ -272,8 +272,52 @@ async def test_partial_profile_has_only_the_changed_keys(server, image, tmp_path
         dest, result = await partial_dest(tmp_path, image, client)
 
     assert not result.is_error, result.content
-    assert result.structured_content["keys"] == ["[Exposure] Compensation"]
+    assert result.structured_content["keys"] == {"Exposure": 1}  # compact: keys written per group
+    assert result.structured_content["total"] == 1
     assert keyfile.loads(dest.read_text()) == {"Exposure": {"Compensation": "2"}}
+
+
+async def test_partial_profile_result_counts_the_keys_per_group_in_file_order_with_a_total(
+    server, image, preset, tmp_path
+):
+    async with Client(server) as client:
+        await open_from_preset_and_edit(client, image, preset, edit("Exposure", "Compensation", "2"))
+        dest, result = await partial_dest(tmp_path, image, client, vs="default")
+
+    assert not result.is_error, result.content
+    assert result.structured_content["keys"] == {"Exposure": 3, "Film Negative": 2}
+    assert list(result.structured_content["keys"]) == ["Exposure", "Film Negative"]
+    assert result.structured_content["total"] == 5
+    assert "[Exposure] Black" not in text_of(result)  # no list of every key
+    assert sum(len(keys) for keys in keyfile.loads(dest.read_text()).values()) == 5
+
+
+async def test_partial_profile_verbose_lists_every_key_as_before_and_still_has_the_total(
+    server, image, preset, tmp_path
+):
+    async with Client(server) as client:
+        await open_from_preset_and_edit(client, image, preset, edit("Exposure", "Compensation", "2"))
+        dest, result = await partial_dest(tmp_path, image, client, vs="default", verbose=True)
+
+    assert not result.is_error, result.content
+    assert result.structured_content["keys"] == [
+        "[Exposure] Enabled", "[Exposure] Compensation", "[Exposure] Black",
+        "[Film Negative] Enabled", "[Film Negative] RedRatio",
+    ]  # fmt: skip
+    assert result.structured_content["total"] == 5
+
+
+async def test_partial_profile_result_stays_small_for_a_group_of_many_keys(server, image, tmp_path):
+    names = [f"SlopeR_{i}" for i in range(80)]  # a Color Correction region has about 80 keys
+    image.with_name(image.name + ".arp").write_text("[ColorCorrection]\n" + "".join(f"{n}=0\n" for n in names))
+    async with Client(server) as client:
+        await open_and_edit(client, image, *(edit("ColorCorrection", n, "1") for n in names))
+        _, compact = await partial_dest(tmp_path, image, client)
+        _, verbose = await partial_dest(tmp_path, image, client, overwrite=True, verbose=True)
+
+    assert compact.structured_content["keys"] == {"ColorCorrection": 80} and compact.structured_content["total"] == 80
+    assert len(text_of(compact)) < len(text_of(verbose)) / 5  # the full list is what made it large
+    assert len(verbose.structured_content["keys"]) == 80
 
 
 async def test_partial_profile_refuses_an_existing_dest_unless_overwrite(
@@ -389,9 +433,9 @@ async def test_partial_profile_exclude_drops_a_group_or_a_single_key(
             tmp_path, image, client, overwrite=True, exclude=["Exposure"]
         )
 
-    assert one_key.structured_content["keys"] == ["[Exposure] Compensation"]
+    assert one_key.structured_content["keys"] == {"Exposure": 1}
     assert whole_group.structured_content["written"] is False  # nothing left to write
-    assert whole_group.structured_content["keys"] == []
+    assert whole_group.structured_content["keys"] == {} and whole_group.structured_content["total"] == 0
 
 
 async def test_partial_profile_exclude_writes_the_rest(server, image, sidecar, tmp_path):
@@ -451,7 +495,7 @@ async def test_partial_profile_vs_default_carries_the_keys_of_the_preset_the_fra
         _, opened = await partial_dest(tmp_path, image, client)
         dest, default = await partial_dest(tmp_path, image, client, overwrite=True, vs="default")
 
-    assert opened.structured_content["keys"] == ["[Exposure] Compensation"]
+    assert opened.structured_content["keys"] == {"Exposure": 1}
     assert opened.structured_content["vs"] == "opened"
     assert not default.is_error, default.content
     assert keyfile.loads(dest.read_text()) == {
@@ -460,10 +504,7 @@ async def test_partial_profile_vs_default_carries_the_keys_of_the_preset_the_fra
     }
     assert default.structured_content["vs"] == "default"
     assert default.structured_content["written"] is True
-    assert default.structured_content["keys"] == [
-        "[Exposure] Enabled", "[Exposure] Compensation", "[Exposure] Black",
-        "[Film Negative] Enabled", "[Film Negative] RedRatio",
-    ]  # fmt: skip
+    assert default.structured_content["keys"] == {"Exposure": 3, "Film Negative": 2}
 
 
 async def test_partial_profile_vs_default_leaves_out_what_equals_the_default_and_the_version(
@@ -484,9 +525,8 @@ async def test_partial_profile_vs_default_leaves_out_what_equals_the_default_and
         "Exposure": {"Enabled": "false", "Black": "5"},
         "Film Negative": {"Enabled": "true", "RedRatio": "1.5"},
     }  # not White Balance, Crop, LensProfile (all the default's), nor [Version] (the preset's own)
-    assert result.structured_content["keys"] == [
-        "[Exposure] Enabled", "[Exposure] Black", "[Film Negative] Enabled", "[Film Negative] RedRatio",
-    ]  # fmt: skip
+    assert result.structured_content["keys"] == {"Exposure": 2, "Film Negative": 2}
+    assert result.structured_content["total"] == 4
 
 
 async def test_partial_profile_vs_default_of_an_unchanged_default_profile_writes_nothing(
@@ -497,7 +537,8 @@ async def test_partial_profile_vs_default_of_an_unchanged_default_profile_writes
         dest, result = await partial_dest(tmp_path, image, client, vs="default")
 
     assert result.structured_content["written"] is False
-    assert result.structured_content["keys"] == [] and result.structured_content["vs"] == "default"
+    assert result.structured_content["keys"] == {} and result.structured_content["total"] == 0
+    assert result.structured_content["vs"] == "default"
     assert not dest.exists()
 
 
@@ -529,7 +570,7 @@ async def test_partial_profile_vs_default_applies_exclude(server, image, preset,
             tmp_path, image, client, vs="default", overwrite=True, exclude=["Nonsense"]
         )
 
-    assert one_key.structured_content["keys"] == ["[Exposure] Enabled", "[Exposure] Compensation"]
+    assert one_key.structured_content["keys"] == {"Exposure": 2}
     assert nothing.structured_content["written"] is False
     assert unknown.is_error and "unknown_key" in text_of(unknown)
     assert keyfile.loads(dest.read_text()) == {"Exposure": {"Enabled": "false", "Compensation": "2"}}

@@ -1,6 +1,20 @@
+import json
+
 import pytest
 
-from art_mcp.profile import RawEdit, UnknownKey, WorkingChanges, edit_result, read_format
+from art_mcp.profile import (
+    ImageEdit,
+    RawEdit,
+    UnknownKey,
+    WorkingChanges,
+    check_edit_targets,
+    check_exclusions,
+    drop_excluded,
+    edit_item,
+    edit_result,
+    failed_edit,
+    read_format,
+)
 from art_mcp.schema import parse_adjustments
 
 
@@ -184,3 +198,83 @@ def test_full_edit_result_echoes_the_requested_groups_even_when_nothing_changed(
 
     assert result.changed == {}
     assert result.profile is not None and set(result.profile.adjustments) == {"exposure"}
+
+
+def test_an_edit_result_without_the_full_echo_leaves_the_profile_field_out_when_serialised():
+    result = edited({"exposure": {"compensation": 1}})
+
+    assert result.profile is None  # the attribute stays; the wire has no `"profile": null`
+    assert "profile" not in result.model_dump()
+    assert "profile" not in json.loads(result.model_dump_json())
+    assert "profile" in edited({"exposure": {"compensation": 1}}, full=True).model_dump()
+
+
+def test_a_batch_item_counts_the_asked_for_changes_and_keeps_the_implied_ones_and_the_warnings():
+    result = edited({"film_negative": {"red_ratio": 1.4}}, [edit("RAW Bayer", "Method", "amaze")])
+    result.warnings.append("a note")
+
+    item = edit_item("a.ARW", result)
+
+    assert item == ImageEdit(
+        path="a.ARW", changed=2, implied={"Film Negative": {"Enabled": "true"}}, warnings=["a note"], error=None
+    )
+
+
+def test_a_batch_item_of_an_edit_that_changed_nothing_counts_zero():
+    assert edit_item("a.ARW", edited({"exposure": {"compensation": 0}})).changed == 0
+
+
+def test_a_failed_batch_item_has_only_its_error():
+    item = failed_edit("a.ARW", "not_open: a.ARW is not open")
+
+    assert item == ImageEdit(path="a.ARW", changed=None, implied={}, warnings=[], error="not_open: a.ARW is not open")
+
+
+def oops(code, message):
+    return ValueError(f"{code}: {message}")
+
+
+def test_edit_targets_are_one_path_or_a_list_of_up_to_fifty():
+    assert check_edit_targets("a.ARW", None, False, oops) is None
+    assert check_edit_targets(None, ["a.ARW", "b.ARW"], False, oops) == ["a.ARW", "b.ARW"]
+    assert check_edit_targets(None, [f"{i}.ARW" for i in range(50)], False, oops) is not None
+
+
+@pytest.mark.parametrize(
+    ("path", "paths", "full", "text"),
+    [
+        ("a.ARW", ["b.ARW"], False, "not both"),
+        (None, None, False, "path or paths"),
+        (None, [], False, "paths is empty"),
+        (None, [f"{i}.ARW" for i in range(51)], False, "51 entries; the most one call takes is 50"),
+        (None, ["a.ARW"], True, "full"),
+    ],
+)
+def test_bad_edit_targets_are_out_of_range(path, paths, full, text):
+    with pytest.raises(ValueError, match=f"out_of_range: .*{text}"):
+        check_edit_targets(path, paths, full, oops)
+
+
+def test_exclusions_name_a_group_or_a_group_and_key_of_the_profile():
+    check_exclusions(profile(), ["Exposure", "Exposure/Compensation", "Sharpening"])
+
+    for bad in ("Nonsense", "Exposure/Nonsense"):
+        with pytest.raises(UnknownKey, match=f"exclude '{bad}': not in this image's processing profile"):
+            check_exclusions(profile(), [bad])
+
+
+def test_dropping_exclusions_removes_the_group_or_the_key_and_counts_what_went():
+    keys = {"Exposure": {"Compensation": "2", "Black": "5"}, "Film Negative": {"RedRatio": "1.3"}}
+
+    dropped = drop_excluded(keys, ["Exposure/Black", "Film Negative", "Crop", "Exposure/Nope"])
+
+    assert keys == {"Exposure": {"Compensation": "2"}}
+    assert dropped == {"Exposure/Black": 1, "Film Negative": 1, "Crop": 0, "Exposure/Nope": 0}
+
+
+def test_a_group_left_without_keys_by_the_exclusions_goes_too():
+    keys = {"Exposure": {"Black": "5"}, "Crop": {"X": "1"}}
+
+    drop_excluded(keys, ["Exposure/Black"])
+
+    assert keys == {"Crop": {"X": "1"}}

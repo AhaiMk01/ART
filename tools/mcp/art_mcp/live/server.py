@@ -16,12 +16,13 @@ from typing import Annotated, Any, Literal
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import CallToolResult, ContentBlock, ImageContent, TextContent
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, RootModel
 
 from art_mcp import artdir, keyfile
 from art_mcp.filmnegative import Estimate, SamplingUnsupported, estimate_for
 from art_mcp.keyfile import KeyFile
 from art_mcp.live.channel import ArtNotRunning, ChannelError, ChannelTimeout, ControlChannel
+from art_mcp.marks import Mark, check_marks, mark_file
 from art_mcp.metadata import (
     Exiftool,
     ImagesMetadata,
@@ -34,19 +35,24 @@ from art_mcp.metadata import (
 from art_mcp.preview import PreviewFolder, default_root, sweep_stale
 from art_mcp.profile import (
     VERSION_GROUP,
+    EditBatch,
     EditResult,
+    ImageEdit,
     ProfileView,
     UnknownKey,
     WorkingChanges,
+    check_edit_targets,
     check_groups,
     crop_problem,
+    edit_item,
     edit_result,
     edit_warnings,
+    failed_edit,
     read_format,
 )
 from art_mcp.profile import Conflict as EditConflict
 from art_mcp.render.adapter import as_tool_errors
-from art_mcp.render.artcli import ArtCli
+from art_mcp.render.artcli import ArtCli, Rect
 from art_mcp.render.defaults import resolve_default_profile
 from art_mcp.render.errors import render_error
 from art_mcp.render.export_ops import EXPORT_SUFFIXES, output_format, output_name
@@ -58,15 +64,19 @@ from art_mcp.sampling import (
     IMAGE_STATS_DOC,
     SAMPLE_SPOTS_DOC,
     UNSUPPORTED_SPOTS,
+    Detail,
     ImageStats,
+    ImageStatsResult,
     RegionTooSmall,
     Spot,
     SpotSamples,
+    StatsBatch,
+    StatsItem,
     check_spots,
-    check_stats_bins,
-    check_stats_region,
-    check_stats_size,
+    check_stats_call,
     parse_spots_reply,
+    stats_detail,
+    stats_result,
 )
 from art_mcp.sampling import (
     image_stats as compute_stats,
@@ -118,6 +128,22 @@ class LiveEditResult(EditResult):
     history_position: int | None
     """The selected History row afterwards: the new entry (the same row as
     before when nothing changed, as no entry is made then)."""
+
+
+class LiveImageEdit(ImageEdit):
+    history_position: int | None = None
+    """As in the single-image result; null when this image failed."""
+
+
+class LiveEditBatch(EditBatch):
+    items: list[LiveImageEdit]  # type: ignore[assignment]  # the same entries, with the History row
+
+
+class LiveEditOutput(RootModel[LiveEditResult | LiveEditBatch]):
+    """The output schema of ``edit_profile``: one image's result or, with
+    `paths`, one entry per image (see ``EditOutput``)."""
+
+    model_config = ConfigDict(json_schema_extra={"type": "object"})
 
 
 class HistoryStep(BaseModel):
@@ -448,33 +474,10 @@ def build_server(
                 item.metadata.frame_width, item.metadata.frame_height = w, h
         return result
 
-    @server.tool()
-    def edit_profile(
-        path: str,
-        adjustments: AdjustmentsArg = None,
-        raw_edits: list[RawEdit] | None = None,
-        full: bool = False,
+    def edit_one(
+        path: str, adjustments: AdjustmentsArg, raw_edits: list[RawEdit] | None, full: bool
     ) -> LiveEditResult:
-        """Change the processing profile of an image open in ART's editor,
-        with typed `adjustments` of curated tools (range-checked; see
-        describe_adjustments) and/or `raw_edits`, each setting one
-        `[Group] Key` (as shown by get_profile) to a string value; the group
-        and key must already exist. All changes apply, or none do. An
-        adjustment and a raw edit may not set the same key. Adjusting a
-        disabled tool also enables it.
-
-        The user sees the change at once, as one History entry labelled
-        `Agent: <tools>` that undo reverts. Only the changed values are sent,
-        so the user's other settings are left alone. Returns once the History
-        entry exists (the preview may still be processing).
-
-        Returns only what changed: `changed` ([Group] -> Key -> new value),
-        `implied` (changes you did not ask for, such as that enabling, in the
-        same shape), `created` (a new Color Correction region or mask shape:
-        its keys at ART's defaults are counted, not listed), `drawn` (the line
-        ART draws for a tone curve you set), `warnings` and the
-        `history_position`. `full` also returns the groups touched, as
-        get_profile reads them."""
+        """``edit_profile`` of the one image at ``path``."""
         current = get_profile_text(path)
         changes = WorkingChanges(keyfile.loads(current["profile"]))
         warnings: list[str] = []
@@ -517,6 +520,60 @@ def build_server(
             position = history_position("apply_profile", reply)
         result = edit_result(outcome, changes.profile, parsed, raw_edits or [], warnings, full=full)
         return LiveEditResult(**result.model_dump(), history_position=position)
+
+    @server.tool()
+    def edit_profile(
+        path: str | None = None,
+        adjustments: AdjustmentsArg = None,
+        raw_edits: list[RawEdit] | None = None,
+        full: bool = False,
+        paths: list[str] | None = None,
+    ) -> LiveEditOutput:
+        """Change the processing profile of an image open in ART's editor
+        (`path`), or the same change to several images (`paths`: 1 to 50 open
+        images; give one of the two), with typed `adjustments` of curated
+        tools (range-checked; see describe_adjustments) and/or `raw_edits`,
+        each setting one `[Group] Key` (as shown by get_profile) to a string
+        value; the group and key must already exist. All changes apply, or
+        none do. An adjustment and a raw edit may not set the same key.
+        Adjusting a disabled tool also enables it.
+
+        The user sees the change at once, as one History entry labelled
+        `Agent: <tools>` that undo reverts (one per image with `paths`). Only
+        the changed values are sent, so the user's other settings are left
+        alone. Returns once the History entry exists (the preview may still be
+        processing).
+
+        Returns only what changed: `changed` ([Group] -> Key -> new value),
+        `implied` (changes you did not ask for, such as that enabling, in the
+        same shape), `created` (a new Color Correction region or mask shape:
+        its keys at ART's defaults are counted, not listed), `drawn` (the line
+        ART draws for a tone curve you set), `warnings` and the
+        `history_position`. `full` also returns the groups touched, as
+        get_profile reads them.
+
+        With `paths` the result is `{items, failed}` instead: per image, in
+        request order, `{path, changed, implied, warnings, error,
+        history_position}`, where `changed` is how many values the edit
+        changed in that image (0: it had them already, so no History entry;
+        the values are not listed) and `implied` as above. A problem with one
+        image (not open, a key it lacks, a crop outside its frame) is that
+        image's `error`, `<code>: <message>`, and the others still change.
+        `full` is for one image only."""
+        targets = check_edit_targets(path, paths, full, tool_error)
+        if targets is None:
+            assert path is not None
+            return LiveEditOutput(edit_one(path, adjustments, raw_edits, full))
+        items: list[LiveImageEdit] = []
+        for target in targets:
+            try:
+                result = edit_one(target, adjustments, raw_edits, False)
+            except ToolError as e:
+                items.append(LiveImageEdit(**failed_edit(target, str(e)).model_dump()))
+            else:
+                item = edit_item(target, result)
+                items.append(LiveImageEdit(**item.model_dump(), history_position=result.history_position))
+        return LiveEditOutput(LiveEditBatch(items=items, failed=sum(i.error is not None for i in items)))
 
     @server.tool()
     def undo(path: str) -> HistoryStep:
@@ -653,6 +710,7 @@ def build_server(
         inline: bool | None = None,
         output: str | None = None,
         overwrite: bool = False,
+        marks: list[Mark] | None = None,
     ) -> Annotated[CallToolResult, LivePreview]:
         """The image open in ART's editor as the editor shows it now, as a
         JPEG (long edge at most `max_size` px, 1 to 2576; the editor's preview
@@ -667,10 +725,19 @@ def build_server(
         itself in the result, which you see without opening the file; false
         returns the path only. Default: the server's --inline-previews
         setting, which is off unless the server was started with that flag, so
-        normally you get a path and must open the file to look. Fails with
-        not_open if ART doesn't have the image open."""
+        normally you get a path and must open the file to look. `marks` (up to
+        64) [{x, y, size?, label?}] draws a box on the preview at each
+        FRAME-pixel position (the coordinates `sample_spots` and `crop` use;
+        `size`, default 32, is the square `sample_spots` reads), numbered 1..n
+        in request order unless a `label` (at most 4 characters) is given: give
+        it the spots you are about to sample to see where they sit. The preview
+        shows the whole frame, so every mark in the frame is drawn; one outside
+        it is `out_of_range`. Fails with not_open if ART doesn't have the image
+        open."""
         if not 1 <= max_size <= MAX_PREVIEW_SIZE:
             raise tool_error("out_of_range", f"max_size must be 1 to {MAX_PREVIEW_SIZE}")
+        marks = marks or []
+        check_marks(marks, None, tool_error)
         with as_tool_errors():
             dest = check_output(output, Path(art_path(path)), overwrite) if output is not None else None
         rendered = preview_folder.new_file("live", ".jpg")
@@ -686,6 +753,9 @@ def build_server(
                 jpeg = rendered.read_bytes()
             except (KeyError, TypeError, ValueError, OSError) as e:
                 raise tool_error("bad_reply", f"unexpected preview reply from ART: {result!r:.300}") from e
+            if marks:
+                preview.warnings = mark_preview(path, rendered, marks)
+                jpeg = rendered.read_bytes()
             if dest is not None:
                 with as_tool_errors():
                     place_output(rendered, dest, overwrite)
@@ -693,10 +763,24 @@ def build_server(
         except BaseException:
             rendered.unlink(missing_ok=True)
             raise
-        content: list[ContentBlock] = [TextContent(text=preview.model_dump_json())]
+        content: list[ContentBlock] = [TextContent(text=preview.model_dump_json(exclude_defaults=True))]
         if inline if inline is not None else inline_previews:
             content.append(ImageContent(data=base64.b64encode(jpeg).decode("ascii"), mime_type="image/jpeg"))
-        return CallToolResult(content=content, structured_content=preview.model_dump(mode="json"))
+        return CallToolResult(
+            content=content, structured_content=preview.model_dump(mode="json", exclude_defaults=True)
+        )
+
+    def mark_preview(path: str, rendered: Path, marks: list[Mark]) -> list[str]:
+        """Draw ``marks`` on the editor's preview ``rendered`` of the image at
+        ``path``, which shows the whole frame; the warnings."""
+        frame = image_size(path)
+        if frame is None:
+            raise tool_error("bad_reply", f"ART reports no size for {path} yet, so the marks can't be placed")
+        check_marks(marks, frame, tool_error)
+        try:
+            return mark_file(rendered, marks, Rect(0, 0, *frame))
+        except (ValueError, OSError) as e:
+            raise tool_error("bad_reply", f"ART's preview is not a readable image: {e}") from e
 
     def fetch_spots(
         path: str, points: list[tuple[int, int]], size: int, space: str
@@ -750,6 +834,24 @@ def build_server(
 
         return estimate_for(adjustments, profile, lambda: image_size(path), fetch)
 
+    def preview_stats(
+        path: str, max_size: int, histogram: bool, region: Region | None, bins: int | None, detail: str
+    ) -> ImageStats:
+        """One image's statistics from the editor's preview (the request is
+        already checked)."""
+        output = preview_folder.new_file("stats", ".png")
+        try:
+            args = {"path": art_path(path), "output": str(output), "max_size": max_size}
+            call("preview", args, timeout=channel.timeout + ART_PREVIEW_WAIT)
+            try:
+                return compute_stats(output, histogram, region, bins, detail)
+            except RegionTooSmall as e:
+                raise tool_error("out_of_range", str(e)) from e
+            except ValueError as e:
+                raise tool_error("bad_reply", f"ART's preview is not a readable image: {e}") from e
+        finally:
+            output.unlink(missing_ok=True)
+
     @server.tool(
         description=(
             "Statistics of the image open in ART's editor as the editor shows it now "
@@ -757,31 +859,32 @@ def build_server(
             "space, never enlarged beyond the editor's preview). "
             + IMAGE_STATS_DOC
             + " Waits for ART's processing like render_preview. Fails with not_open if "
-            "ART doesn't have the image open."
+            "ART doesn't have the image open (with `paths`, that image's item says so)."
         )
     )
     def image_stats(
-        path: str,
+        path: str | None = None,
+        paths: list[str] | None = None,
         max_size: int = PREVIEW_SIZE,
         histogram: bool = False,
+        detail: Detail | None = None,
         region: Region | None = None,
         bins: int | None = None,
-    ) -> ImageStats:
-        check_stats_size(max_size, MAX_PREVIEW_SIZE, tool_error)
-        check_stats_region(region, tool_error)
-        check_stats_bins(bins, tool_error)
-        output = preview_folder.new_file("stats", ".png")
-        try:
-            args = {"path": art_path(path), "output": str(output), "max_size": max_size}
-            call("preview", args, timeout=channel.timeout + ART_PREVIEW_WAIT)
+    ) -> Annotated[CallToolResult, ImageStatsResult]:
+        check_stats_call(path, paths, max_size, MAX_PREVIEW_SIZE, region, bins, detail, tool_error)
+        level = stats_detail(detail, paths is not None)
+        if paths is None:
+            assert path is not None  # check_stats_call: one of the two
+            return stats_result(preview_stats(path, max_size, histogram, region, bins, level))
+        items = []
+        for each in paths:
             try:
-                return compute_stats(output, histogram, region, bins)
-            except RegionTooSmall as e:
-                raise tool_error("out_of_range", str(e)) from e
-            except ValueError as e:
-                raise tool_error("bad_reply", f"ART's preview is not a readable image: {e}") from e
-        finally:
-            output.unlink(missing_ok=True)
+                items.append(StatsItem(path=each, stats=preview_stats(each, max_size, histogram, region, bins, level)))
+            except ToolError as e:
+                if str(e).startswith("art_not_running:"):
+                    raise  # no point asking again for every image
+                items.append(StatsItem(path=each, error=str(e)))
+        return stats_result(StatsBatch(items=items, failed=sum(item.error is not None for item in items)))
 
     return server
 

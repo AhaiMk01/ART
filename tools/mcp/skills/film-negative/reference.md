@@ -42,11 +42,14 @@ print(red, blue, "kept", keep, "dropped", [i for i in range(len(L)) if i not in 
 Choose by material, not by how grey a spot looks.
 
 - Good: white paint (trim, coping, signs), bare/galvanised metal (flues,
-  poles), concrete, white trainers, overcast sky.
+  poles), concrete, white trainers, midday overcast sky.
 - Risky: natural stone (one "grey" paving was buff sandstone/bluestone and
   pulled a frame 0.4 too cold), black fabric (dyes aren't neutral: hoodie and
   trousers disagreed with white paint by ~0.2), glass/windows (reflections),
-  foliage, painted machinery.
+  foliage, painted machinery, sky at dusk or twilight (bluer than the ground:
+  with the dusk-sky spots in, one roll's blue slope fitted 0.857 against 0.934
+  without them). If dusk-sky spots disagree with the ground neutrals on the
+  intercepts (`ir`, `ib`, below), drop the sky.
 - Agreement only counts between INDEPENDENT materials: three slabs of the same
   stone agreeing prove nothing; white paint + metal + concrete agreeing does.
 
@@ -66,6 +69,46 @@ Pooled fit: each frame gets its own intercept, all frames share one slope
 `RedRatio = 1/slope_r`, `BlueRatio = 1/slope_b`. Use only each frame's reliable
 neutrals (independent materials, small residuals; drop outliers, refit). The
 per-frame intercepts are then that frame's `ir`, `ib` below.
+
+```python
+import math
+# frames: {name: [(r, g, b), ...]}, avg values of each frame's neutral spots
+frames = {...}
+def med(v): return sorted(v)[len(v) // 2]
+pts = [(f, math.log(g), math.log(r), math.log(b))        # (frame, ln g, ln r, ln b)
+       for f, sp in frames.items() for r, g, b in sp]
+keep = set(range(len(pts)))
+for _ in range(6):
+    slope, icpt = {}, {}
+    for c in (2, 3):                                     # ln r, then ln b, against ln g
+        num = den = 0.0
+        for f in frames:                                 # within-frame: frame means removed
+            idx = [i for i in keep if pts[i][0] == f]
+            if len(idx) < 2: continue                    # one spot says nothing about a slope
+            xm = sum(pts[i][1] for i in idx) / len(idx)
+            ym = sum(pts[i][c] for i in idx) / len(idx)
+            num += sum((pts[i][1] - xm) * (pts[i][c] - ym) for i in idx)
+            den += sum((pts[i][1] - xm) ** 2 for i in idx)
+        slope[c] = num / den                             # one slope for all frames
+        for f in frames:                                 # median: an outlier can't pull the frame's line
+            v = [pts[i][c] - slope[c] * pts[i][1] for i in keep if pts[i][0] == f]
+            if v: icpt[c, f] = med(v)
+    res = [max(abs(p[c] - icpt[c, p[0]] - slope[c] * p[1]) for c in (2, 3)) if (2, p[0]) in icpt else 9
+           for p in pts]                                 # residual of EVERY spot
+    new = {i for i in range(len(pts)) if res[i] <= max(3 * med([res[j] for j in keep]), 0.02)}
+    if new == keep: break
+    keep = new
+red, blue = 1 / slope[2], 1 / slope[3]
+print(red, blue, "dropped", sorted(set(range(len(pts))) - keep))
+# per-frame ir, ib: icpt[2, f], icpt[3, f]
+```
+
+Tested as printed on synthetic frames (RedRatio 1.37, BlueRatio 0.93, another
+intercept per frame, noise 0.005 in ln, 4 planted outliers of 0.12 to 0.3 in ln
+among ~40 spots, 300 random draws): 99% of the planted outliers are dropped and
+the ratios come back within 1% in 96% of the draws (median error 0.3% red,
+0.2% blue, worst 1.5%). The draws over 1% are the same with the outliers
+removed by hand: sampling noise of frames with a narrow green range.
 
 ## Reference point on the neutral line
 
@@ -155,6 +198,14 @@ stop when highlights begin to clip. Curve x/y are sRGB-encoded 0..1 (about
 `image_stats` value / 255), so a black point at `lum` percentile 0.1 of 60
 becomes `x = 60/255 = 0.235`.
 
+Lamps and speculars in a lit interior clip 0.4 to 1% whatever `L` is, and that
+is fine: judge `clipped_high` on a `region` away from the lamps
+(`image_stats(region=...)`) or accept it; do not lower `L` for them. A bright
+sky clipping one channel (blue first) is a trade-off against the level: lean
+to accepting a little when the sky is not the subject (a dusk frame kept 1.4%
+of blue clipped in the sky; clearing it would have taken a much lower `L` for
+the whole frame), and lower `L` when it is.
+
 ## Per-channel black point
 
 Under bluish light (hangar lamps, shade) the inverted shadows can sit blue
@@ -184,14 +235,35 @@ as 49). Then re-check, as above.
 ## Changing L after the black adjustments
 
 The colour-correction offset and the curve's black point are fixed amounts,
-but changing `L` scales the linear image. Lowering `L` on one frame (a
+but changing `L` (or EV) scales the linear image. Lowering `L` on one frame (a
 low-key frame) with the roll's offset and black point unchanged crushed it
-(62% of blue at 0). With `k = L_new / L_old`:
+(62% of blue at 0). With `k = L_new / L_old` (`k = 2^EV` for an EV change):
 
 - offset: `offset * k` (the stored value; its shift `offset/2` scales alike);
-- black point: `x0_new = (x0^2.2 * k)^(1/2.2)` (curve x is sRGB-encoded).
+- black point: scale the black the rule measured (`x0 + 5/255`) through the
+  sRGB curve, `x0_new = enc(k * dec(x0 + 5/255)) - 5/255`, with `dec(e) =
+  ((e + 0.055) / 1.055)^2.4` and `enc(v) = 1.055 v^(1/2.4) - 0.055` (curve x
+  is sRGB-encoded). Not `x0 * k^(1/2.2)`: near black the sRGB curve rises
+  like `k^0.55`, not `k^0.45`, so that rule leaves the blacks too high after
+  a brightening (and clips a little after a darkening).
 
-Example: L 34000 -> 17000, offset -0.1 -> -0.05, x0 0.25 -> ~0.18. Then
+Measured on FILM07489 (real art-cli, `image_stats` percentile 0.1, `L` 8000
+unless noted): the black before the curve is r37 g37 b42; at EV +0.8
+(`k` 1.74) r50 g50 b57, x1.35 = `k^0.54` (the 2.2 rule predicts 47); `L`
+16000 gives 54, `L` 4000 gives 24. With `x0` 0.125 the blacks after the curve
+are r7 g7 b4. At EV +0.8 they become r24 g24 b34 with the same `x0`, r13 g13
+b23 with the 2.2 rule (0.161), r7 g7 b18 with the formula (0.177): blue stays
+higher, its black was already above the others (its own offset, scaled by
+`k`). With a red -0.006 and blue -0.016 offset as well, the blacks at EV 0 are
+r5 g14 b0 and after EV +0.8 (offsets x `k`) r13 g23 b14 by the rule, r6 g18 b8
+by the formula. A better first estimate, not exact: `clipped_low` per channel
+decides.
+
+Direction, which is easy to get backwards: raising `x0` makes the blacks
+DARKER (more of the shadows map to 0), lowering it lifts them (x0 0.10, 0.125,
+0.15 gave blacks r14, r7, r0, with 0.4% of red clipped at 0.15).
+
+Example: L 34000 -> 17000, offset -0.1 -> -0.05, x0 0.25 -> ~0.17. Then
 re-check `clipped_low`.
 
 ## Mixed light
@@ -218,10 +290,13 @@ Group by looking, not by clustering numbers:
 2. Per group, take the representative with good contrast (shadows and
    highlights both present) and neutral objects of independent materials;
    tune it fully (white balance, output level, per-channel black offset,
-   black point) and save it as the group's preset. Fix the group's `g0` here
-   together with `L` (see "Reference point on the neutral line"): every frame
-   of the group takes its `RefInput` at this `g0`, scaled for its scan
-   exposure, or `L` means a different brightness on each frame.
+   black point) and save it as the group's preset. The preset carries the
+   ratios, `RefOutput` L, the black offset and black point, not the white
+   balance: that is `RefInput`, per frame, so leave it out of the preset.
+   Fix the group's `g0` here together with `L` (see "Reference point on the
+   neutral line"): every frame of the group takes its `RefInput` at this `g0`,
+   scaled for its scan exposure, or `L` means a different brightness on each
+   frame.
 3. Apply the preset to the group and look at the sheet again. A frame that
    still stands out (a cast its neighbours don't have) gets its neutrals
    sampled: if they sit off the group's line (intercepts `ir`, `ib`, above,
@@ -232,4 +307,7 @@ Group by looking, not by clustering numbers:
 5. Frames that fit no group (a single warm lamp, mixed light) get their own
    settings; say which and why.
 
-The numbers confirm a doubt from looking; they don't replace it.
+The numbers confirm a doubt from looking; they don't replace it. The ~0.03
+is a guide, not a cut-off: in a mixed hangar the intercepts spread by more
+inside one group (about 0.1 in two hangar groups of one roll), which is why
+the split rests on looking first.

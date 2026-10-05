@@ -325,8 +325,6 @@ def export_batch(
                 on_progress(done, len(jobs))
 
     failed = sum(r.error is not None for r in results)
-    if failed < len(results):
-        session.last_export_folder = target
     return BatchResult(items=results, exported=len(results) - failed, failed=failed)
 
 

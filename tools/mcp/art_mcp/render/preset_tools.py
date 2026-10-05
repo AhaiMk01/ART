@@ -12,7 +12,9 @@ from art_mcp.render.session import RenderSession
 
 def register(server: MCPServer, session: RenderSession) -> None:
     @server.tool()
-    async def apply_preset(paths: list[str], profile: str, ctx: Context) -> PresetResult:
+    async def apply_preset(
+        paths: list[str], profile: str, ctx: Context, exclude: list[str] | None = None
+    ) -> PresetResult:
         """Lay a preset, an `.arp` file (partial or complete), over the
         working profile of each image in `paths` (open them first; one that
         isn't open is that image's error and the others still run). The
@@ -26,13 +28,22 @@ def register(server: MCPServer, session: RenderSession) -> None:
         count as yours, like edit_profile's (save_sidecar and
         save_partial_profile see them). Per image: `keys_changed` and the
         `groups` they are in, or an `error`; the values themselves are not
-        listed (get_profile reads them)."""
+        listed (get_profile reads them).
+
+        `exclude`: `"Group"` or `"Group/Key"` entries, as in
+        save_partial_profile's, left out of the preset before it is laid over
+        the frames, so a preset made on one frame can go to the others without
+        that frame's own settings (its exposure, its tone curve): the frames
+        keep theirs. The file is not changed. The result's `excluded` says
+        what each entry took out of the preset (0: it had none of that). An
+        entry that is neither in the preset nor in the image's processing
+        profile is that image's `unknown_key` error."""
 
         def progress(done: int, total: int) -> None:
             anyio.from_thread.run(ctx.report_progress, done, total)
 
         def run() -> PresetResult:
             with as_tool_errors():
-                return ops.apply_preset(session, paths, profile, on_progress=progress)
+                return ops.apply_preset(session, paths, profile, exclude, on_progress=progress)
 
         return await anyio.to_thread.run_sync(run)

@@ -7,15 +7,19 @@ description: Invert camera-scanned colour negative film (photographed or scanned
 
 Needs the `art-render` MCP server (and an ART build whose `art-cli` supports
 `sample_spots`; otherwise that tool says `unsupported`). The fit and
-white-balance formulas are in [reference.md](reference.md) (with a Python
-snippet for the fit).
+white-balance formulas are in [reference.md](reference.md) (with Python
+snippets for the single-frame and the pooled fit).
 
 ART's Film Negative tool needs no film-base sample: ratios come from neutral
 spots in the picture. A frame without any film base visible is fine.
 
 ## Single frame
 
-1. `open_image(path)`.
+1. `open_image(path)` and look at `profile_from`: `"sidecar"` means the frame
+   loaded the user's OLD sidecar and its edits (7 of 12 frames of a test roll
+   did), which would leak into everything below. Start from a known state:
+   `reset_profile(path, to="default")` (or `open_image(path, profile=<base
+   preset>)`), then step 2.
 2. **Base settings**, one `edit_profile`:
    - `adjustments`: `exposure` `{enabled: false, hl_recovery: "Off"}`;
      `tone_curve` `{mode: "Standard", histogram_matching: false, curve1:
@@ -42,7 +46,8 @@ spots in the picture. A frame without any film base visible is fine.
      in at their defaults are counted there, not listed). It is
      the check that the edit did what you meant; no `get_profile` is needed.
 3. **Orientation.** Coarse rotation is per frame (frames of one roll differed:
-   90 vs 270). `render_preview(max_size=1024)`, look at it (Read the JPEG).
+   90 vs 270). `render_preview(max_size=1024, inline=true)` returns the image
+   in the result, nothing to read (without `inline` it returns a JPEG path: Read it).
    For several frames, one `contact_sheet(images, record=false, thumb_size=700)`
    and one read show them all (see Pitfalls).
    If wrong, set `[Coarse Transformation] Rotate=90` (0, 90, 180, 270) and preview again.
@@ -55,8 +60,10 @@ spots in the picture. A frame without any film base visible is fine.
 5. **Sample neutrals** with `sample_spots(spots, size=32..64)`, 16 per call, in
    frame pixels, several calls (aim for 20+ candidates). Choose neutrals by
    MATERIAL, not by how grey they look (list in reference.md): white paint,
-   bare/galvanised metal, concrete, white trainers, overcast sky are good;
-   natural stone, black fabric, glass, foliage, painted machinery are risky.
+   bare/galvanised metal, concrete, white trainers, midday overcast sky are good;
+   natural stone, black fabric, glass, foliage, painted machinery, and sky at
+   dusk or twilight (bluer than the ground, it biased a blue slope) are risky:
+   if dusk-sky spots disagree with the ground neutrals on the intercepts, drop the sky.
    Agreement only counts between INDEPENDENT materials. Values are the
    NEGATIVE's (transmitted light): higher = darker scene part. Use `avg`.
    Spread the spots over dark and light areas; the fit needs a range of green
@@ -69,7 +76,10 @@ spots in the picture. A frame without any film base visible is fine.
    tell the material: look at the preview, drop what is not white paint, metal
    or concrete, and fit only from what `sample_spots` shows agreeing across
    independent materials (in mixed light its candidates can agree with each
-   other and still be off the frame's line).
+   other and still be off the frame's line). Before fitting from candidates
+   or spots, look at where they sit: `render_preview(marks=[...])` draws
+   numbered boxes at frame-pixel spots, and `suggest_neutrals(preview=true)`
+   returns the picture with its candidates marked.
 6. **Fit** (reference.md): `RedRatio = 1/slope` of ln r vs ln g, `BlueRatio`
    likewise with b, least squares over the neutrals; drop spots with large
    residuals (coloured objects: foliage showed up in blue), refit. Real
@@ -77,8 +87,8 @@ spots in the picture. A frame without any film base visible is fine.
    alone gave 1.17..1.48 depending on the pair, so fit, don't pair (a pair:
    `RedRatio = log(clear.r/dense.r) / log(clear.g/dense.g)`, `clear` = the
    higher green; `BlueRatio` likewise). For a roll, fit the exponents pooled
-   over several frames (reference.md): one frame spans too little tonal
-   range. Set `film_negative` `red_ratio` and `blue_ratio`; `green_exponent`
+   over several frames (reference.md, with a snippet): one frame spans too
+   little tonal range. Set `film_negative` `red_ratio` and `blue_ratio`; `green_exponent`
    stays 1.5. A profile with a legacy Film Negative (`BackCompat` in its
    `raw` group, `RedBase`) is not typed: use raw edits for it.
 7. **Reference spot** (white balance and level): `film_negative.ref_input` = a
@@ -95,15 +105,18 @@ spots in the picture. A frame without any film base visible is fine.
    `implied`; with an unset current reference it first estimates ART's
    medians by sampling and warns). Give `ref_output` too when you want a
    level.
-8. **Check**: `image_stats` (crop is applied). Raise `L` in steps (11800 ->
-   15000 -> ...) until `clipped_high` is about 0 in every channel (a bright
-   blue sky may clip a little in `b` first: stay under ~0.05%; raise `L`
-   until highlights just don't clip); `lum` p99.9
-   of 220-245 is typical. When lamps or a border dominate, measure a
-   `region` instead (`{x, y, w, h}`, fractions of the image as in
-   `render_preview`). `bins=16` shows the shape of the distribution (is the
-   shadow end clipped, is there a second hump), which the percentiles alone
-   do not. Then `render_preview` and look. Colour cast:
+8. **Check**: `image_stats` (crop is applied; `paths` takes a whole roll in one
+   call, and `detail="compact"` keeps just clipping and the percentiles 0.1, 50,
+   99.9). Raise `L` in steps (11800 ->
+   15000 -> ...) until `clipped_high` is about 0 in every channel; `lum` p99.9
+   of 220-245 is typical. Lamps and speculars in a lit interior clip 0.4 to 1%
+   at any `L`, and that is fine: judge `clipped_high` on a `region` away from
+   them (`{x, y, w, h}`, fractions of the image as in `render_preview`), or
+   accept it. A bright sky clipping one channel (blue first) is a trade-off
+   against the level: accept a little when the sky is not the subject, lower
+   `L` when it is (reference.md, "Output level"). `bins=16` shows the shape
+   of the distribution (is the shadow end clipped, is there a second hump),
+   which the percentiles alone do not. Then `render_preview` and look. Colour cast:
    re-pick `ref_input` on another neutral and leave `ref_output` out: the
    server applies the brightness-preserving rule (reference.md).
 9. **Black point and contrast** (`tone_curve`, sRGB-encoded 0..1, roughly
@@ -112,8 +125,13 @@ spots in the picture. A frame without any film base visible is fine.
    ~5, divide by 255 -> `x0`; set `curve1`
    `{type: "spline", points: [[x0,0],[0.6,0.6],[1,1]]}` (e.g. x0 = 0.24).
    Then `image_stats`: `clipped_low` should stay under ~0.5% per channel
-   (a larger one means x0 is too high). The rule is a first estimate: a black
-   measured before the curve (or before a later offset, EV or `L` change) can
+   (a larger one means x0 is too high). Direction: raising `x0` makes the
+   blacks DARKER (more of the shadows map to 0), lowering it lifts them (one
+   frame: x0 0.10 / 0.125 / 0.15 gave blacks 14 / 7 / 0). After an EV or `L`
+   change, measure the blacks again: scaling `x0` by `k^(1/2.2)` leaves them
+   too high (reference.md, "Changing L after the black adjustments"). The
+   rule is a first estimate: a black measured before the curve (or before a
+   later offset, EV or `L` change) can
    land elsewhere after it (one frame: pre-curve r49 g52 b53 became r7 g0 b13,
    green clipping 0.9%; with x0 = 0.173 the curve alone gives 49 -> 7, 53 ->
    13), so `clipped_low` per channel after the curve decides. The channel with
@@ -130,8 +148,23 @@ spots in the picture. A frame without any film base visible is fine.
 
 Ratios are a property of the film and development: fit once, reuse.
 
-Keep a record with `contact_sheet(images, folder=<the roll's output folder>,
-label=...)`: one call per pass over the open frames (after the first
+Do each thing once, not per frame: the base settings are identical for every
+frame, the ratios for the whole roll once fitted, and a group's output level
+and black adjustments within the group. So reset any frame that loaded a
+sidecar (step 3; a preset sets only the keys it holds, old ones would stay),
+and after the first frame's base edit `save_partial_profile(path,
+dest="base.arp", vs="default")` and give it to the others in one call,
+`apply_preset(paths=[the rest], profile="base.arp")` (one identical one-off
+edit: `edit_profile(paths=[...], adjustments=...)`); after the fit, apply the
+ratios the same way. What stays per frame: rotation, crop, `RefInput` (the
+white balance, on that frame's own neutral line) and fine tuning.
+`apply_preset(..., exclude=[...])` drops groups or `Group/Key` entries of the
+preset first: use it (for example `Exposure/Compensation`, `ToneCurve`) when a
+group preset must not overwrite a frame's own EV or curve.
+
+Keep a record with `contact_sheet(images, folder=<a work folder for the roll,
+not the exports folder>, label=...)` (it creates `sheets/` in `folder`): one
+call per pass over the open frames (after the first
 inversion, after the group presets, after per-frame white balance, after the
 black-point fixes), each saved as `sheets/pass-NN-<label>.jpg` with a JSON of
 the profile keys that changed since the last pass; earlier passes are kept.
@@ -141,8 +174,11 @@ same frames of two passes side by side (a few frames: `images`).
 0. Group the frames by light, by looking at a contact sheet of a first
    inversion (reference.md, "Lighting groups"): daylight, overcast, dusk,
    each kind of indoor lamp. One preset per group; a frame that fits no
-   group is handled on its own. Look at the sheet again after applying the
-   presets; sample neutrals in any frame that still stands out. Compare
+   group is handled on its own. The intercept spread inside a group can
+   exceed 0.03 in a mixed hangar (about 0.1 in two hangar groups of one roll):
+   split by LOOKING first, use the numbers only to confirm. Look at the sheet
+   again after applying the presets; sample neutrals in any frame that still
+   stands out. Compare
    frames only after normalising their intercepts to one scan exposure
    (reference.md, "Reference point on the neutral line"); the numbers are the
    scanning camera's `shutter_seconds`, `iso` and `aperture`, for the whole
@@ -155,24 +191,35 @@ same frames of two passes side by side (a few frames: `images`).
    metal, concrete). A flat or low-key frame, or one without neutrals, makes
    a bad reference. Do the single-frame steps on it (rotation, crop,
    `ref_input`/`ref_output` included).
-2. `save_partial_profile(path, dest="<roll>.arp", vs="default", exclude=["Coarse
-   Transformation", "Crop", "Film Negative/RefInput", "Film Negative/RefOutput"])`:
-   the roll preset (or the group's). Exclude the per-frame settings: rotation, crop and the
-   reference spot (`RefOutput` too if you set it per frame). `vs="default"` writes every key that
-   differs from ART's default profile, so the preset carries the base
-   settings, the roll's ratios, the group's white balance and this frame's black point
-   and `contrast`, whatever the frame was opened from; with the default
-   `vs="opened"` it would hold only what you changed since opening and lack
-   the base settings of a frame opened from another preset. Read the returned `keys` and the file. Open each frame from it
-   (step 3), or use it with `art-cli -p` / ART's profile loading.
-3. Each other frame: `open_image(path, profile="<group preset>.arp")` starts
-   its working profile from the preset (laid over ART's default profile; the
-   frame's own sidecar is not read, so an old one doesn't leak in), which
-   carries the base settings, the roll's ratios and the black point: no need
-   to repeat those `edit_profile`s. Then per frame: rotation (preview
-   first), crop, `ref_input`/`ref_output` from that frame's own neutrals (a few
-   spots; `ref_input` = a neutral's `avg` or a point on the roll's line),
-   output level and black point re-checked with `image_stats`. To give a
+2. `save_partial_profile(path, dest="<group>.arp", vs="default", exclude=["Coarse
+   Transformation", "Crop", "Film Negative/RefInput"])`: the group's preset
+   (the roll's, when the light is one). `vs="default"` writes every key that
+   differs from ART's default profile, so the preset is complete whatever the
+   frame was opened from; with the default `vs="opened"` it would hold only
+   what you changed since opening and lack the base settings of a frame opened
+   from another preset. It carries the base settings, the roll's ratios, the
+   group's output level (`RefOutput` L), the per-channel black offset and
+   black point, `contrast` and `hl_recovery`. It cannot carry the white
+   balance, which is per frame: `RefInput` on the frame's own neutral line at
+   the group's reference green (step 4; reference.md, "Reference point on the
+   neutral line"). So exclude `RefInput`, rotation and crop; the
+   representative's EV (`Exposure/Compensation`) is in it too, exclude it when
+   frames get their own. Read the returned `keys` (per-group counts; `verbose=true` lists them) and the file. Open each
+   frame from it (step 3), or use it with `art-cli -p` / ART's profile loading.
+3. Each other frame: look at `profile_from` of every `open_image` result:
+   `"sidecar"` means the user's old edits came along. Start every frame of the
+   roll from the same known state: `open_image(path, profile="<group
+   preset>.arp")` starts its working profile from the preset (laid over ART's
+   default profile; the frame's own sidecar is not read, so an old one doesn't
+   leak in), or `reset_profile(path, to="default")` on a frame that did load a
+   sidecar, never whatever was lying there. The preset carries the base
+   settings, the roll's ratios, the group's output level and the black
+   adjustments: no need to repeat those `edit_profile`s. Then per frame:
+   rotation (preview first), crop, `ref_input` from that frame's own neutrals
+   (a few spots; a neutral's `avg` or a point on the roll's line) with
+   `ref_output = [L, L, L]` of the group in the same request (`ref_input`
+   alone re-derives the level from the frame's current look, not the group's
+   `L`), output level and black point re-checked with `image_stats`. To give a
    frame its group's settings without losing its crop and reference spot
    (frames already open and set up, a preset changed since), use
    `apply_preset(paths=[...], profile="<group preset>.arp")` on the open
@@ -182,8 +229,9 @@ same frames of two passes side by side (a few frames: `images`).
    carry over, the light does not (blue offsets ranged +0.04..+0.39 across one
    roll: morning, afternoon, shade, greenhouse). Sample neutrals in the frame,
    check that its reliable ones lie on the roll's line (reference.md), keep
-   only spots that agree on the intercepts, set `ref_input` on the line and
-   leave `ref_output` to the brightness-preserving rule (or give it). Judge
+   only spots that agree on the intercepts, set `ref_input` on the line (at
+   the group's reference green) and give the group's `ref_output` (a frame
+   outside any group: leave it to the brightness-preserving rule). Judge
    the intercepts after normalising to one scan exposure (reference.md,
    "Reference point on the neutral line"; shutter, ISO and aperture of the
    scanning camera, from `inspect_images`). Do not refit the ratios
@@ -193,10 +241,12 @@ same frames of two passes side by side (a few frames: `images`).
    last `contact_sheet` pass (compare it with the first inversion's). Its
    result lists what changed since the last pass grouped by change; the JSON
    has it per frame.
-   Export the roll with one `export_batch`: `source` = the roll's folder
-   (`pattern` for one group's frames) exports each frame's working profile,
-   so every frame in it must be open; or `items`, each with its working
-   profile or `profiles: [<group preset>.arp, <frame>.arp]`. `source` with
+   Export the roll with one `export_batch`: `source` = the roll's folder, with
+   a `pattern` limiting it to the frames of the roll (or of one group; without
+   one, every image of the folder is exported) exports each frame's working
+   profile, so every frame it matches must be open; `items` is for an explicit
+   list, each with its working profile or `profiles: [<group preset>.arp,
+   <frame>.arp]`. `source` with
    `profiles: [<group preset>.arp]` renders every frame from the preset
    alone, without per-frame rotation, crop or reference spot. To keep each
    frame's settings with its export, add `write_profile: true,
@@ -236,7 +286,8 @@ same frames of two passes side by side (a few frames: `images`).
   amount `D` needs `offset = -2 D`) and comes off every pixel of the channel,
   mid-tones included (reference.md, "Per-channel black point").
 - A preview plus a file read per frame adds up (a roll took 28 previews and 32
-  reads). To look at several frames, one `contact_sheet(images, record=false,
+  reads). `render_preview(inline=true)` saves the read. To look at several
+  frames, one `contact_sheet(images, record=false,
   thumb_size=700)` is one labelled image and one read; 2 to 6 frames at 700 to
   1000 px stay readable, and nothing is recorded as a pass.
 - Edits are in memory until `save_sidecar`; previews and exports never write

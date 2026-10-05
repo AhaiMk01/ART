@@ -80,13 +80,19 @@ def register(server: MCPServer, session: RenderSession) -> None:
         overwrite: bool = False,
         exclude: list[str] = [],  # noqa: B006 - never mutated; the schema shows default []
         vs: Baseline = "opened",
+        verbose: bool = False,
     ) -> PartialProfileResult:
         """Write a partial processing profile (.arp) to `dest`, that can be
         applied on top of other images. Refuses an existing `dest` unless
         `overwrite`. Nothing is written when there is nothing to write.
 
+        The result's `keys` says how many keys were written to each `[Group]`
+        and `total` how many in all; with `verbose` `keys` is instead the list
+        of every `[Group] Key` written (about 80 per Color Correction region,
+        so it can be long: read the file, or get_profile, to see values).
+
         `vs` is what the saved keys are measured against; the result's `vs`
-        says which was used and its `keys` lists every `[Group] Key` written.
+        says which was used.
         `"opened"` (default): only the values the agent changed since the
         profile was loaded or last saved; keys the profile came with (from the
         sidecar, or from open_image's `profile`) are NOT in the file.
@@ -106,4 +112,4 @@ def register(server: MCPServer, session: RenderSession) -> None:
         Step-by-step workflows (film negatives, faded slides): see the
         skills in tools/mcp/skills."""
         with as_tool_errors():
-            return ops.save_partial_profile(session, path, dest, overwrite, exclude, vs)
+            return ops.save_partial_profile(session, path, dest, overwrite, exclude, vs, verbose)

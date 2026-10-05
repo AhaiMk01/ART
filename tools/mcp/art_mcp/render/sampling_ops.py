@@ -1,5 +1,8 @@
 """Sampling operations: sample_spots (art-cli's fork-only ``-x``) and image_stats."""
 
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from art_mcp import artdir, keyfile
 from art_mcp.render.artcli import (
     ArtCliError,
@@ -9,7 +12,7 @@ from art_mcp.render.artcli import (
     spots_args,
     stats_args,
 )
-from art_mcp.render.errors import render_error
+from art_mcp.render.errors import RenderError, render_error
 from art_mcp.render.preview_ops import MAX_PREVIEW_SIZE, PREVIEW_SIZE, Region
 from art_mcp.render.session import RenderSession
 from art_mcp.render.store import WorkingProfile
@@ -20,11 +23,12 @@ from art_mcp.sampling import (
     RegionTooSmall,
     Spot,
     SpotSamples,
+    StatsBatch,
+    StatsItem,
     check_spots,
-    check_stats_bins,
-    check_stats_region,
-    check_stats_size,
+    check_stats_call,
     parse_spots_output,
+    stats_detail,
 )
 from art_mcp.sampling import image_stats as compute_stats
 
@@ -82,19 +86,63 @@ def sample_working_profile(
 
 def image_stats(
     session: RenderSession,
-    path: str,
+    path: str | None = None,
+    paths: list[str] | None = None,
     max_size: int = PREVIEW_SIZE,
     histogram: bool = False,
     region: Region | None = None,
     bins: int | None = None,
+    detail: str | None = None,
+    on_progress: Callable[[int, int], None] | None = None,
+) -> ImageStats | StatsBatch:
+    """Statistics of the working profile's whole-image render of ``path``, or
+    of every image in ``paths`` (exactly one of them; 1 to 50): then one item
+    per image, in request order, each its statistics or its own error (not
+    open, a render error, a region too small for that render) while the
+    others still come back, up to ``session.cli.max_processes`` renders at
+    once; ``on_progress(done, total)`` is called as each finishes. A problem
+    with the call as a whole fails it before anything renders. ``region`` is
+    cut from each render's PNG (fractions of the image as it shows, the
+    working crop applied), not rendered separately. ``detail`` defaults to
+    "standard" for one image and "compact" for several."""
+    check_stats_call(path, paths, max_size, MAX_PREVIEW_SIZE, region, bins, detail, render_error)
+    level = stats_detail(detail, paths is not None)
+    if paths is None:
+        assert path is not None  # check_stats_call: one of the two
+        return render_stats(session, path, max_size, histogram, region, bins, level)
+
+    items = [StatsItem(path=p) for p in paths]
+
+    def run(item: StatsItem) -> None:
+        item.stats = render_stats(session, item.path, max_size, histogram, region, bins, level)
+
+    done = 0
+    with ThreadPoolExecutor(max_workers=max(1, session.cli.max_processes)) as pool:
+        futures = {pool.submit(run, item): item for item in items}
+        for future in as_completed(futures):
+            try:
+                future.result()
+            except RenderError as e:
+                futures[future].error = str(e)
+            except OSError as e:
+                futures[future].error = f"render_failed: {e}"
+            done += 1
+            if on_progress:
+                on_progress(done, len(items))
+    return StatsBatch(items=items, failed=sum(item.error is not None for item in items))
+
+
+def render_stats(
+    session: RenderSession,
+    path: str,
+    max_size: int,
+    histogram: bool,
+    region: Region | None,
+    bins: int | None,
+    detail: str,
 ) -> ImageStats:
-    """Statistics of the working profile's whole-image render; ``region`` is
-    cut from that one render's PNG (fractions of the image as it shows, the
-    working crop applied), not rendered separately."""
+    """One image's statistics (the request is already checked)."""
     previews = session.previews
-    check_stats_size(max_size, MAX_PREVIEW_SIZE, render_error)
-    check_stats_region(region, render_error)
-    check_stats_bins(bins, render_error)
     with session.image(path) as wp:
         fast = max_size <= artdir.fast_export_box(session.config_dir)
         profile = previews.new_file("profile", ".arp")
@@ -105,7 +153,7 @@ def image_stats(
             resize.write_text(resize_profile(max_size), encoding="utf-8")
             session.run(stats_args(wp.image, output, profile, resize, fast=fast), output)
             try:
-                return compute_stats(output, histogram, region, bins)
+                return compute_stats(output, histogram, region, bins, detail)
             except RegionTooSmall as e:
                 raise render_error("out_of_range", str(e)) from e
             except ValueError as e:

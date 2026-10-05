@@ -3,7 +3,7 @@ edit_profile, describe_adjustments (adapters over ``profile_ops``)."""
 
 from mcp.server.mcpserver import MCPServer
 
-from art_mcp.profile import EditResult, ProfileView
+from art_mcp.profile import EditOutput, ProfileView
 from art_mcp.render import profile_ops as ops
 from art_mcp.render.adapter import as_tool_errors
 from art_mcp.render.profile_ops import OpenedImage, ResetResult
@@ -44,26 +44,37 @@ def register(server: MCPServer, session: RenderSession) -> None:
 
     @server.tool()
     def edit_profile(
-        path: str,
+        path: str | None = None,
         adjustments: AdjustmentsArg = None,
         raw_edits: list[RawEdit] | None = None,
         full: bool = False,
-    ) -> EditResult:
-        """Change values of the working profile, with typed `adjustments` of
-        curated tools (range-checked; see describe_adjustments) and/or
-        `raw_edits`, each setting one `[Group] Key` (as shown by get_profile)
-        to a string value; the group and key must already exist. All changes
-        apply, or none do. An adjustment and a raw edit may not set the same
-        key. Adjusting a disabled tool also enables it.
+        paths: list[str] | None = None,
+    ) -> EditOutput:
+        """Change values of the working profile of an image (`path`), or the
+        same change to several images at once (`paths`: 1 to 50 open images;
+        give one of the two), with typed `adjustments` of curated tools
+        (range-checked; see describe_adjustments) and/or `raw_edits`, each
+        setting one `[Group] Key` (as shown by get_profile) to a string
+        value; the group and key must already exist. All changes apply, or
+        none do. An adjustment and a raw edit may not set the same key.
+        Adjusting a disabled tool also enables it.
 
         Returns only what changed: `changed` ([Group] -> Key -> new value),
         `implied` (changes you did not ask for, such as that enabling, in the
         same shape), `created` (a new Color Correction region or mask shape:
         its keys at ART's defaults are counted, not listed), `drawn` (the line
         ART draws for a tone curve you set) and `warnings`. `full` also
-        returns the groups touched, as get_profile reads them."""
+        returns the groups touched, as get_profile reads them.
+
+        With `paths` the result is `{items, failed}` instead: per image, in
+        request order, `{path, changed, implied, warnings, error}`, where
+        `changed` is how many values the edit changed in that image (0: it had
+        them already; the values are not listed) and `implied` as above. A
+        problem with one image (not open, a key it lacks, a crop outside its
+        frame) is that image's `error`, `<code>: <message>`, and the others
+        still change. `full` is for one image only."""
         with as_tool_errors():
-            return ops.edit_profile(session, path, adjustments, raw_edits, full)
+            return EditOutput(ops.edit_profile(session, path, adjustments, raw_edits, full, paths))
 
     @server.tool()
     def describe_adjustments() -> AdjustmentsDescription:

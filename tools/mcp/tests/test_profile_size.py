@@ -196,7 +196,7 @@ async def test_edit_profile_reports_the_change_set_and_nothing_else(render, imag
         "RAW": {"CAEnabled": "false"},
     }
     assert out["implied"] == {} and out["drawn"] == {} and out["warnings"] == []
-    assert out["profile"] is None
+    assert "profile" not in out  # only with `full`
 
 
 async def test_implied_changes_are_listed_apart_with_their_values(render, image):
@@ -347,7 +347,7 @@ async def test_live_edit_profile_reports_the_change_set_and_the_history_position
     assert out["changed"]["Film Negative"] == {
         "Enabled": "true", "ColorSpace": "1", "RedRatio": "1.335", "BlueRatio": "0.759",
     }  # fmt: skip
-    assert out["implied"] == {} and out["warnings"] == [] and out["profile"] is None
+    assert out["implied"] == {} and out["warnings"] == [] and "profile" not in out
     assert out["history_position"] == 1
 
 

@@ -1,8 +1,9 @@
 """Spot sampling and image statistics, shared by both servers.
 
 Pure code: spot validation, the spots result models, parsing of art-cli's
-``ART-SPOTS`` line, and the statistics of an 8-bit PNG. Running art-cli or
-talking to ART stays in the servers.
+``ART-SPOTS`` line, and the statistics of an 8-bit PNG (with the models and the
+tool result that carry them). Running art-cli or talking to ART stays in the
+servers.
 """
 
 import io
@@ -10,9 +11,10 @@ import json
 import math
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Annotated, Any, Protocol
 
-from pydantic import BaseModel, ValidationError
+from mcp.types import CallToolResult, TextContent
+from pydantic import BaseModel, Field, SerializerFunctionWrapHandler, ValidationError, model_serializer
 
 from art_mcp.render.artcli import Rect, region_rect
 
@@ -42,7 +44,8 @@ out_of_range. `space`: "working" = the working profile's working space,
 Mapping a preview pixel (px, py) to the frame: a Render whole-image preview
 shows the crop when one is enabled, so x = crop.x + px * crop.w / preview_w
 (no crop: px * frame_w / preview_w; same for y); a Live preview always shows
-the whole frame.
+the whole frame. To see where spots sit instead, `render_preview(marks=[...])`
+draws them on a preview.
 
 Returns the frame `width`/`height` and per spot `avg` and `max` as [r, g, b]:
 linear, 0..65535, white-balanced, taken before any film inversion.
@@ -145,29 +148,40 @@ def parse_spots_reply(reply: Any, size: int, space: str) -> SpotSamples:
 # -- statistics ---------------------------------------------------------------
 
 IMAGE_STATS_DOC = """Per channel r, g, b and lum (0.2126 R + 0.7152 G + 0.0722 B of the 8-bit
-values): `mean`, `std` (standard deviation), `min` / `max` (lowest / highest
-value that occurs), `mode` (most frequent value, the lowest on a tie),
-`clipped_high` / `clipped_low` (fraction of pixels at 255 / 0), `percentiles`
-(0.1, 1, 5, 50, 95, 99, 99.9 %). `bins` (8, 16, 32 or 64) adds per channel
-`bins`: the fraction of pixels in that many equal groups of values, dark to
-light; 16 is enough to see the shape (a clipped shoulder, a second hump, a
-flat toe), where the percentiles alone do not. `histogram` adds the 256 raw
-counts. `width`/`height`: the whole rendered image. `max_size`: long edge, 1 to
-2576. Anything the image shows counts, including a border, a mount or
-bright lamps: crop first (Render applies the working profile's crop; Live's
-preview is uncropped), or give `region` {x, y, w, h}, fractions 0 to 1 of the
-image as this tool shows it (x, y the top-left corner; the same rectangle as
-Render's render_preview `region`): all of the above is then of that part only,
-and the result's `region` is its pixel rectangle {x, y, w, h} in the
-`width` x `height` image. The region is cut from the same render, so a small
-one has few pixels (at least 16 are needed, else out_of_range): raise
+values): `clipped_high` / `clipped_low` (fraction of pixels at 255 / 0) and
+`percentiles`. `detail`: "compact" (percentiles 0.1, 50, 99.9 %; about 450
+characters), "standard" (default for one `path`: adds `mean` and percentiles 1,
+5, 95, 99; about 700), "full" (adds `std`, `min` / `max` (lowest / highest value
+that occurs) and `mode` (most frequent value, the lowest on a tie)). `bins` (8,
+16, 32 or 64) adds per channel `bins`: the fraction of pixels in that many equal
+groups of values, dark to light; 16 shows what the percentiles don't (a clipped
+shoulder, a second hump, a flat toe). `histogram` adds the 256 raw counts. A
+field with nothing to say (`bins`, `histogram`, `region`) is left out. `paths`
+(1 to 50, instead of `path`): many images in one call, the other arguments the
+same for all; returns `items` (`{path, stats}` or `{path, error}` per image, in
+request order; one that can't be measured doesn't stop the others) and `failed`;
+`detail` then defaults to "compact". `width`/`height`: the whole rendered image.
+`max_size`: long edge, 1 to 2576. Anything the image shows counts, including a
+border, a mount or bright lamps: crop first (Render applies the working
+profile's crop; Live's preview is uncropped), or give `region` {x, y, w, h},
+fractions 0 to 1 of the image as this tool shows it (x, y the top-left corner;
+the same rectangle as Render's render_preview `region`): all of the above is then
+of that part only, and the result's `region` is its pixel rectangle {x, y, w, h}
+in the `width` x `height` image. The region is cut from the same render, so a
+small one has few pixels (at least 16 are needed, else out_of_range): raise
 `max_size` for more. """ + SKILLS_POINTER
 
 PERCENTILES = ("0.1", "1", "5", "50", "95", "99", "99.9")
+COMPACT_PERCENTILES = ("0.1", "50", "99.9")
 _PERMILLE = {p: round(float(p) * 10) for p in PERCENTILES}
 LUMA = (0.2126, 0.7152, 0.0722)
 BIN_COUNTS = (8, 16, 32, 64)
 """The `bins` that divide the 256 values evenly."""
+DETAILS = ("compact", "standard", "full")
+Detail = Annotated[str, Field(json_schema_extra={"enum": list(DETAILS)})]
+"""The enum lists the values in the schema; a wrong one still gets out_of_range."""
+MAX_STATS_PATHS = 50
+"""The most images one image_stats call takes."""
 MIN_REGION_PIXELS = 16
 REGION_OUTSIDE = (
     "region x, y, w, h are fractions of the image: x, y >= 0, w, h > 0, "
@@ -205,23 +219,84 @@ def check_stats_bins(bins: int | None, error: Callable[[Any, str], Exception]) -
         raise error("out_of_range", "bins must be 8, 16, 32 or 64")
 
 
-class ChannelStats(BaseModel):
-    mean: float
-    """Mean of the 8-bit values (0..255), 2 decimals."""
-    std: float
-    """Standard deviation of the values, 2 decimals."""
-    min: int
-    """Lowest value that occurs."""
-    max: int
-    """Highest value that occurs."""
-    mode: int
-    """Most frequent value (the lowest on a tie)."""
+def check_stats_detail(detail: str | None, error: Callable[[Any, str], Exception]) -> None:
+    """Raise ``error("out_of_range", ...)`` unless ``detail`` is None (the
+    default) or one of ``DETAILS``."""
+    if detail is not None and detail not in DETAILS:
+        raise error("out_of_range", "detail must be compact, standard or full")
+
+
+def check_stats_paths(
+    path: str | None, paths: list[str] | None, error: Callable[[Any, str], Exception]
+) -> None:
+    """Raise ``error("out_of_range", ...)`` unless exactly one of ``path`` and
+    ``paths`` is given, and ``paths`` holds 1 to ``MAX_STATS_PATHS`` entries."""
+    if (path is None) == (paths is None):
+        raise error("out_of_range", "give path or paths" + (", not both" if path is not None else ""))
+    if paths is not None and not paths:
+        raise error("out_of_range", "paths is empty")
+    if paths is not None and len(paths) > MAX_STATS_PATHS:
+        raise error(
+            "out_of_range", f"paths has {len(paths)} entries; the most one call takes is {MAX_STATS_PATHS}"
+        )
+
+
+def check_stats_call(
+    path: str | None,
+    paths: list[str] | None,
+    max_size: int,
+    limit: int,
+    region: RegionFractions | None,
+    bins: int | None,
+    detail: str | None,
+    error: Callable[[Any, str], Exception],
+) -> None:
+    """Every check of an image_stats call that needs no image, for both
+    servers (``limit``: the largest ``max_size``): raise ``error("out_of_range",
+    ...)`` for the first that fails."""
+    check_stats_paths(path, paths, error)
+    check_stats_size(max_size, limit, error)
+    check_stats_region(region, error)
+    check_stats_bins(bins, error)
+    check_stats_detail(detail, error)
+
+
+def stats_detail(detail: str | None, several: bool) -> str:
+    """The detail to measure at: the caller's, else "standard" for one image
+    and "compact" for several (``paths``)."""
+    if detail is not None:
+        return detail
+    return "compact" if several else "standard"
+
+
+class OmitNone(BaseModel):
+    """A model whose serialised form (``model_dump``, JSON, a tool's structured
+    output and the text made of it) leaves out the fields that are None: they
+    carry nothing. They stay optional in the JSON schema, as their defaults say."""
+
+    @model_serializer(mode="wrap")
+    def _without_none(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        return {name: value for name, value in handler(self).items() if value is not None}
+
+
+class ChannelStats(OmitNone):
+    mean: float | None = None
+    """Mean of the 8-bit values (0..255), 2 decimals; not at `compact`."""
+    std: float | None = None
+    """Standard deviation of the values, 2 decimals; `full` only."""
+    min: int | None = None
+    """Lowest value that occurs; `full` only."""
+    max: int | None = None
+    """Highest value that occurs; `full` only."""
+    mode: int | None = None
+    """Most frequent value (the lowest on a tie); `full` only."""
     clipped_high: float
     """Fraction of pixels at 255."""
     clipped_low: float
     """Fraction of pixels at 0."""
     percentiles: dict[str, int]
-    """Value (0..255) at 0.1, 1, 5, 50, 95, 99, 99.9 % (nearest rank)."""
+    """Value (0..255) at 0.1, 1, 5, 50, 95, 99, 99.9 % (nearest rank); at
+    `compact` only 0.1, 50 and 99.9."""
     histogram: list[int] | None = None
     """256 counts, only when asked."""
     bins: list[float] | None = None
@@ -238,13 +313,13 @@ class PixelRegion(BaseModel):
     h: int
 
 
-class ImageStats(BaseModel):
+class ImageStats(OmitNone):
     width: int
     height: int
     """The whole rendered image's size, also when a region was measured."""
     region: PixelRegion | None = None
-    """The part measured, in the pixels of `width` x `height`; None for the
-    whole image."""
+    """The part measured, in the pixels of `width` x `height`; left out for
+    the whole image."""
     r: ChannelStats
     g: ChannelStats
     b: ChannelStats
@@ -253,15 +328,58 @@ class ImageStats(BaseModel):
     value (so it bins like the other channels)."""
 
 
-def channel_stats(counts: list[int], histogram: bool, bins: int | None = None) -> ChannelStats:
+class StatsItem(OmitNone):
+    path: str
+    """The path as requested."""
+    stats: ImageStats | None = None
+    """As image_stats returns it for one image; left out when this image failed."""
+    error: str | None = None
+    """`<code>: <message>` when this image failed (the others still come
+    back); left out otherwise."""
+
+
+class StatsBatch(OmitNone):
+    items: list[StatsItem]
+    """One per requested path, in request order."""
+    failed: int
+
+
+class ImageStatsResult(OmitNone):
+    """With `path`: `width` to `lum` of that image; with `paths`: `items` and `failed`."""
+
+    # Only the published shape of the result: the tools build theirs from
+    # ``ImageStats`` or ``StatsBatch``, and this one lets the schema allow both.
+    width: int | None = None
+    height: int | None = None
+    region: PixelRegion | None = None
+    r: ChannelStats | None = None
+    g: ChannelStats | None = None
+    b: ChannelStats | None = None
+    lum: ChannelStats | None = None
+    items: list[StatsItem] | None = None
+    failed: int | None = None
+
+
+def stats_result(stats: ImageStats | StatsBatch) -> CallToolResult:
+    """The tool result for ``stats``: compact JSON as text and the same as
+    structured content, neither with the fields that are None."""
+    return CallToolResult(
+        content=[TextContent(text=stats.model_dump_json())], structured_content=stats.model_dump(mode="json")
+    )
+
+
+def channel_stats(
+    counts: list[int], histogram: bool, bins: int | None = None, detail: str = "standard"
+) -> ChannelStats:
     """Statistics from a 256-bin histogram. A percentile is the smallest value
     whose cumulative count reaches ceil(p/100 * N) (nearest rank). ``bins``
     (one of ``BIN_COUNTS``) adds the fractions of pixels in that many equal
-    groups of values."""
+    groups of values; ``detail`` (one of ``DETAILS``) says which of the other
+    numbers are given."""
     total = sum(counts)
     percentiles: dict[str, int] = {}
-    for name, permille in _PERMILLE.items():
-        rank = max(1, -(-permille * total // 1000))
+    for name in COMPACT_PERCENTILES if detail == "compact" else PERCENTILES:
+        rank = max(1, -(-_PERMILLE[name] * total // 1000))
         running = 0
         for value, n in enumerate(counts):
             running += n
@@ -269,16 +387,21 @@ def channel_stats(counts: list[int], histogram: bool, bins: int | None = None) -
                 percentiles[name] = value
                 break
     mean = sum(v * n for v, n in enumerate(counts)) / total
-    present = [v for v, n in enumerate(counts) if n]
+    spread: dict[str, float | int] = {}
+    if detail == "full":
+        present = [v for v, n in enumerate(counts) if n]
+        spread = {
+            "std": round(math.sqrt(sum(n * (v - mean) ** 2 for v, n in enumerate(counts)) / total), 2),
+            "min": present[0],
+            "max": present[-1],
+            "mode": counts.index(max(counts)),  # the first of equals: the lowest
+        }
     group = 256 // bins if bins else 0
     return ChannelStats(
-        mean=round(mean, 2),
-        std=round(math.sqrt(sum(n * (v - mean) ** 2 for v, n in enumerate(counts)) / total), 2),
-        min=present[0],
-        max=present[-1],
-        mode=counts.index(max(counts)),  # the first of equals: the lowest
-        clipped_high=counts[255] / total,
-        clipped_low=counts[0] / total,
+        mean=None if detail == "compact" else round(mean, 2),
+        **spread,
+        clipped_high=round(counts[255] / total, 6),
+        clipped_low=round(counts[0] / total, 6),
         percentiles=percentiles,
         histogram=counts if histogram else None,
         bins=[round(sum(counts[i : i + group]) / total, 4) for i in range(0, 256, group)] if bins else None,
@@ -290,14 +413,18 @@ def image_stats(
     histogram: bool = False,
     region: RegionFractions | None = None,
     bins: int | None = None,
+    detail: str = "standard",
 ) -> ImageStats:
     """Statistics of an 8-bit image file (any mode Pillow can turn into RGB),
     of the part ``region`` selects when given (fractions of the image, cut like
-    render_preview's region). Raises ValueError if it can't be read or has no
-    pixels, and ``RegionTooSmall`` (a ValueError) if the region has fewer than
+    render_preview's region), at the ``detail`` (one of ``DETAILS``). Raises
+    ValueError if it can't be read, has no pixels or ``detail`` is not one,
+    and ``RegionTooSmall`` (a ValueError) if the region has fewer than
     ``MIN_REGION_PIXELS``."""
     from PIL import Image
 
+    if detail not in DETAILS:
+        raise ValueError(f"detail must be compact, standard or full, not {detail!r}")
     try:
         with Image.open(io.BytesIO(png) if isinstance(png, bytes) else png) as opened:
             rgb = opened.convert("RGB")
@@ -318,8 +445,7 @@ def image_stats(
         part = PixelRegion(x=rect.x, y=rect.y, w=rect.w, h=rect.h)
     counts = rgb.histogram()
     lum = rgb.convert("L", (*LUMA, 0)).histogram()
-    r, g, b = (channel_stats(counts[i * 256 : (i + 1) * 256], histogram, bins) for i in range(3))
+    r, g, b = (channel_stats(counts[i * 256 : (i + 1) * 256], histogram, bins, detail) for i in range(3))
     return ImageStats(
-        width=width, height=height, region=part, r=r, g=g, b=b, lum=channel_stats(lum, histogram, bins)
+        width=width, height=height, region=part, r=r, g=g, b=b, lum=channel_stats(lum, histogram, bins, detail)
     )
-

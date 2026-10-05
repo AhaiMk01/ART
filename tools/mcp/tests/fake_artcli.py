@@ -21,14 +21,19 @@
   ``FAKE_SPOTS=release`` it acts like a release art-cli (help, exit -1);
   with ``FAKE_SPOTS=silent`` it exits 0 printing nothing.
 - With ``FAKE_PNG_SOURCE`` set, an 8-bit PNG output (``-n -b8``) is a copy of
-  that file, so a test chooses the pixels ``image_stats`` sees.
+  that file, so a test chooses the pixels ``image_stats`` sees. With
+  ``FAKE_PNG_DIR`` set to a folder, the copy is of ``<image stem>.png`` in it
+  when that exists (so each image has its own pixels, whatever the
+  ``FAKE_PNG_SOURCE``); an image with neither gets a bare PNG header, which
+  does not decode.
 - With ``FAKE_ARGS_LOG`` set, the command line is appended there as a JSON line.
 - With ``FAKE_DEFAULT_PROFILE`` set, ``-d`` stands for that file's text instead
   of the small default profile.
 - With ``FAKE_REAL_JPEG`` set, a JPEG output is a decodable image: the fake
-  6000x4000 frame fitted into the last ``[Resize]`` layer's Width x Height (60x40
-  without one), in a flat colour taken from a hash of the layers, so a
-  different profile gives different pixels.
+  6000x4000 frame, clamped to the last ``[Crop]`` layer's W/H like a PNG's size,
+  fitted into the last ``[Resize]`` layer's Width x Height (60x40 without one),
+  in a flat colour taken from a hash of the layers, so a different profile
+  gives different pixels.
 """
 
 import hashlib
@@ -109,7 +114,8 @@ output = Path(value("-o") or value("-O"))
 FAKE_SIZE = (6000, 4000)
 
 
-def png_header():
+def shown_size():
+    """The fake frame's size clamped to the crop the layers leave."""
     crop = {}
     for layer in layers:
         in_crop = False
@@ -121,8 +127,11 @@ def png_header():
                 crop[k] = int(v) if v.lstrip("-").isdigit() else v
     if crop.get("Enabled") != "true" or crop.get("W", 0) <= 0 or crop.get("H", 0) <= 0:
         crop = {}  # like ART: a disabled or empty crop is no crop
-    w = min(FAKE_SIZE[0], crop.get("W", FAKE_SIZE[0]))
-    h = min(FAKE_SIZE[1], crop.get("H", FAKE_SIZE[1]))
+    return min(FAKE_SIZE[0], crop.get("W", FAKE_SIZE[0])), min(FAKE_SIZE[1], crop.get("H", FAKE_SIZE[1]))
+
+
+def png_header():
+    w, h = shown_size()
     return (
         b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR" + w.to_bytes(4, "big") + h.to_bytes(4, "big")
     )
@@ -141,16 +150,23 @@ def real_jpeg():
                 k, _, v = line.partition("=")
                 resize[k] = v
     if resize.get("Enabled") == "true":
-        scale = min(int(resize["Width"]) / FAKE_SIZE[0], int(resize["Height"]) / FAKE_SIZE[1])
-        size = (max(1, round(FAKE_SIZE[0] * scale)), max(1, round(FAKE_SIZE[1] * scale)))
+        shown = shown_size()
+        scale = min(int(resize["Width"]) / shown[0], int(resize["Height"]) / shown[1])
+        size = (max(1, round(shown[0] * scale)), max(1, round(shown[1] * scale)))
     else:
         size = (60, 40)
     colour = tuple(hashlib.md5("\n".join(layers).encode()).digest()[:3])
     Image.new("RGB", size, colour).save(output, "JPEG", quality=95)
 
 
-if output.suffix == ".png" and "-b8" in args and os.environ.get("FAKE_PNG_SOURCE"):
-    shutil.copyfile(os.environ["FAKE_PNG_SOURCE"], output)
+def png_source():
+    """The file an 8-bit PNG output copies (FAKE_PNG_DIR's file of this image, else FAKE_PNG_SOURCE)."""
+    own = Path(os.environ.get("FAKE_PNG_DIR", "")) / (image.stem + ".png")
+    return str(own) if os.environ.get("FAKE_PNG_DIR") and own.is_file() else os.environ.get("FAKE_PNG_SOURCE")
+
+
+if output.suffix == ".png" and "-b8" in args and png_source():
+    shutil.copyfile(png_source(), output)
 elif os.environ.get("FAKE_REAL_JPEG") and output.suffix == ".jpg" and "-t" not in args and "-n" not in args:
     real_jpeg()
 elif output.suffix == ".png":

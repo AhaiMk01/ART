@@ -10,7 +10,15 @@ partial profile.
 from collections.abc import Callable
 from typing import Any
 
-from pydantic import BaseModel, TypeAdapter, ValidationError
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    RootModel,
+    SerializerFunctionWrapHandler,
+    TypeAdapter,
+    ValidationError,
+    model_serializer,
+)
 
 from art_mcp.colorcorrection import GROUP as CC_GROUP
 from art_mcp.colorcorrection import Created, is_region_key, read_color_correction
@@ -114,6 +122,87 @@ class EditResult(BaseModel):
     profile: ProfileView | None = None
     """Only with `full`: the groups this call touched, as `get_profile` reads
     them after the change."""
+
+    @model_serializer(mode="wrap")
+    def _without_null_profile(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        """The field is there only with `full`: leave it out rather than send
+        `"profile": null` with every result."""
+        data: dict[str, Any] = handler(self)
+        if data.get("profile") is None:
+            data.pop("profile", None)
+        return data
+
+
+MAX_EDIT_PATHS = 50
+"""The most images one ``edit_profile`` call takes."""
+
+
+class ImageEdit(BaseModel):
+    """One image's part of an ``edit_profile`` call with `paths`."""
+
+    path: str
+    """The path as requested."""
+    changed: int | None
+    """How many of the values asked for this edit changed (as many as the
+    single-image result lists in `changed`; 0: it had them all already); null
+    when this image failed."""
+    implied: dict[str, dict[str, str]] = {}
+    """The changes that were not asked for, as in the single-image result."""
+    warnings: list[str] = []
+    error: str | None
+    """`<code>: <message>` when this image failed; its profile is then
+    untouched and the others still change."""
+
+
+class EditBatch(BaseModel):
+    """What an ``edit_profile`` call with `paths` reports: one entry per image,
+    not each one's change set."""
+
+    items: list[ImageEdit]
+    """One per requested path, in request order."""
+    failed: int
+
+
+class EditOutput(RootModel[EditResult | EditBatch]):
+    """The output schema of ``edit_profile``: a single image's ``EditResult``
+    (with `path`) or an ``EditBatch`` (with `paths`). It is an object either
+    way, which is what a tool's output schema must be."""
+
+    model_config = ConfigDict(json_schema_extra={"type": "object"})
+
+
+def edit_item(path: str, result: EditResult) -> ImageEdit:
+    """``result``, the change set of the edit of ``path``, as its entry in an
+    ``EditBatch``."""
+    changed = sum(len(keys) for keys in result.changed.values())
+    return ImageEdit(path=path, changed=changed, implied=result.implied, warnings=result.warnings, error=None)
+
+
+def failed_edit(path: str, error: str) -> ImageEdit:
+    """The entry of an image whose edit failed with ``error``."""
+    return ImageEdit(path=path, changed=None, error=error)
+
+
+def check_edit_targets(
+    path: str | None, paths: list[str] | None, full: bool, error: Callable[[Any, str], Exception]
+) -> list[str] | None:
+    """The images an ``edit_profile`` call is for: ``paths``, or None for the
+    one ``path``. Raises ``error("out_of_range", ...)`` unless exactly one of
+    the two is given, ``paths`` holds 1 to ``MAX_EDIT_PATHS`` entries and
+    ``full`` isn't asked of several images."""
+    if path is not None and paths is not None:
+        raise error("out_of_range", "give path or paths, not both")
+    if path is None and paths is None:
+        raise error("out_of_range", "give path or paths: one image or several")
+    if paths is None:
+        return None
+    if full:
+        raise error("out_of_range", "full is for one image: use path, not paths")
+    if not paths:
+        raise error("out_of_range", "paths is empty")
+    if len(paths) > MAX_EDIT_PATHS:
+        raise error("out_of_range", f"paths has {len(paths)} entries; the most one call takes is {MAX_EDIT_PATHS}")
+    return paths
 
 
 def _arp_value(value: Any) -> str:
@@ -354,6 +443,42 @@ def partial_vs_default(profile: KeyFile, default: KeyFile) -> KeyFile:
             if was.get(key) != value:
                 partial.setdefault(group, {})[key] = value
     return _with_whole_regions(partial, profile)
+
+
+def split_exclusion(entry: str) -> tuple[str, str]:
+    """The ``(group, key)`` of an exclusion entry, ``"Group"`` or
+    ``"Group/Key"`` (key ``""`` for a whole group)."""
+    group, _, key = entry.partition("/")
+    return group, key
+
+
+def check_exclusions(profile: KeyFile, exclude: list[str]) -> None:
+    """``UnknownKey`` for an exclusion entry naming a group or key ``profile``
+    (an image's complete processing profile) doesn't have."""
+    for entry in exclude:
+        group, key = split_exclusion(entry)
+        if group not in profile or (key and key not in profile[group]):
+            raise UnknownKey(f"exclude {entry!r}: not in this image's processing profile")
+
+
+def drop_excluded(keys: KeyFile, exclude: list[str]) -> dict[str, int]:
+    """Remove what the ``exclude`` entries name from ``keys`` (a partial
+    profile, changed in place), and any group that is left without keys;
+    returns, per entry, how many keys it dropped (0: ``keys`` had none of
+    them)."""
+    dropped: dict[str, int] = {}
+    for entry in exclude:
+        group, key = split_exclusion(entry)
+        entries = keys.get(group, {})
+        if key:
+            count = 1 if entries.pop(key, None) is not None else 0
+        else:
+            count = len(entries)
+            keys.pop(group, None)
+        dropped[entry] = dropped.get(entry, 0) + count  # an entry given twice drops its keys once
+    for group in [g for g, entries in keys.items() if not entries]:
+        del keys[group]
+    return dropped
 
 
 def typed_adjustments(profile: KeyFile) -> tuple[dict[str, dict[str, Any]], set[tuple[str, str]]]:

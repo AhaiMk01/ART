@@ -180,12 +180,14 @@ async def test_the_compact_schema_is_a_valid_schema_that_agrees_with_the_server_
         assert list(validator.iter_errors({"path": "a.ARW", "adjustments": adjustments})), adjustments
 
 
-async def test_edit_profile_names_the_fields_of_its_result_including_created(tools):
+async def test_edit_profile_names_the_fields_of_its_result_including_created(tools, server_name):
     edit_profile = tools["edit_profile"]
+    # The result is one image's change set or, with `paths`, a list of one entry per image.
+    single = edit_profile.output_schema["$defs"]["LiveEditResult" if server_name == "live" else "EditResult"]
 
     for field in ("changed", "implied", "created", "drawn", "warnings"):
         assert f"`{field}`" in edit_profile.description
-        assert field in edit_profile.output_schema["properties"]
+        assert field in single["properties"]
     assert "counted, not listed" in edit_profile.description
 
 
