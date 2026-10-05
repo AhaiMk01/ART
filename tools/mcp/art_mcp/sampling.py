@@ -23,14 +23,18 @@ UNSUPPORTED_SPOTS = (
     "needs an ART build with spot sampling (the fork); point --art-dir/ART_DIR at it"
 )
 
-SAMPLE_SPOTS_DOC = """Read what ART's own pickers read: linear values of square spots of the image,
-for a film negative made from a camera-scanned negative.
+SKILLS_POINTER = (
+    "Workflows for film scans: see the film-negative and faded-slide skills "
+    "(tools/mcp/skills)."
+)
+
+SAMPLE_SPOTS_DOC = """Read what ART's own pickers read: linear values of square spots of the image.
 
 `spots`: 1 to 16 {x, y} in whole pixels of the frame (the raw image after
 coarse rotation and the raw border; the same coordinates as [Crop]), each
 the centre of a `size` x `size` square (2 to 256). Outside the frame is
-out_of_range. `space`: "working" or "input" (camera space); use the one
-matching `[Film Negative] ColorSpace` (1 = working, 0 = input).
+out_of_range. `space`: "working" or "input" (camera space); these are the two
+values of `[Film Negative] ColorSpace` (1 = working, 0 = input).
 
 Mapping a preview pixel (px, py) to the frame: a Render whole-image preview
 shows the crop when one is enabled, so x = crop.x + px * crop.w / preview_w
@@ -38,28 +42,13 @@ shows the crop when one is enabled, so x = crop.x + px * crop.w / preview_w
 the whole frame.
 
 Returns the frame `width`/`height` and per spot `avg` and `max` as [r, g, b]:
-linear, 0..65535, white-balanced, taken before the film negative tool. On a
-film negative these are the NEGATIVE's values (transmitted light): a higher
-value is a darker part of the scene. Ratios and the formulas below are
-unaffected.
-
-Film negative maths. Neutral spots: pick two neutral areas, the clearer one
-(`clear`) has the higher green, the other is `dense`. RedRatio =
-log(clear.r/dense.r) / log(clear.g/dense.g); BlueRatio likewise with b;
-GreenExponent unchanged. Set them with raw edits of `[Film Negative]
-RedRatio` and `BlueRatio`. Better than one pair: sample many candidate
-neutrals, fit ln r against ln g by least squares (RedRatio = 1/slope; BlueRatio
-likewise with b), and drop spots with large residuals (coloured objects).
-
-Reference spot: `[Film Negative] RefInput` = avg as "r;g;b". `RefOutput` is
-the linear output level (0..65535, before the tone curve) that spot gets, grey:
-"L;L;L" with L = the spot's intended reflectance x 65535 (18% grey is about
-11800; a light stone, ~0.3, about 19700). ART's default 65535/24 (about 2731)
-matches the image median, not a chosen spot. Then check `image_stats`
-clipped_high and adjust: raise L until the highlights just don't clip.
+linear, 0..65535, white-balanced, taken before the film negative tool (on a
+film negative these are the negative's values).
 
 Render server: needs an ART build with spot sampling (else `unsupported`).
-Live server: samples the open editor's profile, unsaved edits included."""
+Live server: samples the open editor's profile, unsaved edits included.
+
+""" + SKILLS_POINTER
 
 
 def _spot_problem(
@@ -157,10 +146,9 @@ IMAGE_STATS_DOC = """Per channel r, g, b and lum (0.2126 R + 0.7152 G + 0.0722 B
 values): `mean`, `clipped_high` / `clipped_low` (fraction of pixels at 255 /
 0), `percentiles` (0.1, 1, 5, 50, 95, 99, 99.9 %), and with `histogram` the
 256 counts; plus the width/height analysed. `max_size`: long edge, 1 to 2576.
-
-Film scans include the holder/border, which dominates clipping and
-percentiles: crop first (Render applies the working profile's crop; Live's
-preview is uncropped)."""
+Anything the image shows counts, including a scanner holder or border: crop
+first (Render applies the working profile's crop; Live's preview is
+uncropped). """ + SKILLS_POINTER
 
 PERCENTILES = ("0.1", "1", "5", "50", "95", "99", "99.9")
 _PERMILLE = {p: round(float(p) * 10) for p in PERCENTILES}

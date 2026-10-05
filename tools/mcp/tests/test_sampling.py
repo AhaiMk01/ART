@@ -191,13 +191,15 @@ async def test_render_sample_spots_not_open(render, image):
     assert result.is_error and "not_open" in result.content[0].text
 
 
-async def test_sample_spots_description_carries_the_film_negative_maths(render):
+async def test_sample_spots_description_is_generic_and_points_at_the_skills(render):
     server, _ = render
     async with Client(server) as client:
         tools = {t.name: t for t in (await client.list_tools()).tools}
     text = tools["sample_spots"].description
-    for needle in ("RedRatio", "BlueRatio", "RefInput", "RefOutput", "65535/24", "crop.x", "ColorSpace"):
+    for needle in ("crop.x", "ColorSpace", "0..65535", "film-negative and faded-slide skills"):
         assert needle in text
+    for gone in ("RedRatio", "RefInput", "RefOutput", "65535/24"):
+        assert gone not in text
 
 
 @pytest.mark.parametrize("histogram", [False, True])

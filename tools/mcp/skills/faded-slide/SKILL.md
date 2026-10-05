@@ -25,13 +25,16 @@ ratio that changes with brightness. ART's `color_correction` applies exactly tha
    it is not a plain cast: continue. If the ratios match, `white_balance` is enough.
    Keep these numbers for the before/after report.
 2. **Sample neutrals.** `render_preview`, look at it, pick 14 to 16 spots that should be
-   neutral grey across the whole tonal range (sky or haze, gravel, concrete, black
-   steel, roof tiles, road markers). Skip coloured objects (wood, brick, red plates,
-   painted machinery: a "blue" snowplough really was painted grey-blue). Convert preview
+   neutral grey across the whole tonal range. Choose by material, not by how grey
+   it looks: white paint, bare/galvanised metal, concrete, overcast sky or haze are
+   good; natural stone, black fabric (dyes aren't neutral), glass, foliage, wood,
+   brick, red plates and painted machinery are risky (a "blue" snowplough really
+   was painted grey-blue). Agreement only counts between INDEPENDENT materials:
+   several spots of the same stone agreeing prove nothing. Convert preview
    pixels to frame pixels (`sample_spots` takes frame coordinates; with no crop,
    `x = px * frame_w / preview_w`, frame size is in the `sample_spots` result; with a
-   crop, `x = crop.x + px * crop.w / preview_w`). Call `sample_spots` (max 16 per call,
-   size 32 default; use a small `size` on small objects) and use `avg`.
+   crop, `x = crop.x + px * crop.w / preview_w`). Call `sample_spots` (max 16 per call; values are linear 0..65535,
+   white-balanced, before any film negative tool; size 32 default; use a small `size` on small objects) and use `avg`.
 3. **Fit.** For each channel `c` in {r, b} against green, least squares of
    `ln(g/65535) = a + k * ln(c/65535)` over the spots (script in reference.md). Then
    set `power = 1/k` and `slope = exp(a)^(1/k)` (NOT `exp(a)`: slope acts before the
@@ -53,7 +56,8 @@ ratio that changes with brightness. ART's `color_correction` applies exactly tha
 5. **Spatial faults (edge fading).** If the preview still has bands or corners with a
    different cast, add region 2 with a mask: see "Spatial faults" in reference.md.
 6. **Crop the mount** (`crop` adjustment: `x, y, w, h` in frame pixels, all four
-   together, `fixed_ratio: false` for a free rectangle; the mount edge in the preview
+   together; give `fixed_ratio: false` for a free rectangle (ART's default keeps a
+   fixed ratio in the editor's crop tool); the mount edge in the preview
    is at preview px x frame_w / preview_w, add a small margin). Render and check the
    edges: a thin yellow line at the top means start the crop lower. Then re-run
    `image_stats`: the mount dominated p0.1..p5 before (blue p1 was 4 after the colour

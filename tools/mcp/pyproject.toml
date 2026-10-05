@@ -24,3 +24,6 @@ packages = ["art_mcp"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Integration tests copy raws and export full-size TIFFs (~800 MB a run);
+# keep tmp_path folders only for failed tests.
+tmp_path_retention_policy = "failed"

@@ -37,6 +37,36 @@ red, blue = 1 / fits[0][0], 1 / fits[2][0]
 print(red, blue, "kept", keep, "dropped", [i for i in range(len(L)) if i not in keep])
 ```
 
+## Choosing neutral references
+
+Choose by material, not by how grey a spot looks.
+
+- Good: white paint (trim, coping, signs), bare/galvanised metal (flues,
+  poles), concrete, white trainers, overcast sky.
+- Risky: natural stone (one "grey" paving was buff sandstone/bluestone and
+  pulled a frame 0.4 too cold), black fabric (dyes aren't neutral: hoodie and
+  trousers disagreed with white paint by ~0.2), glass/windows (reflections),
+  foliage, painted machinery.
+- Agreement only counts between INDEPENDENT materials: three slabs of the same
+  stone agreeing prove nothing; white paint + metal + concrete agreeing does.
+
+## Roll exponents: pooled fit
+
+A single frame spans too little tonal range: one frame's whites-only fit gave
+RedRatio 1.575, a pooled fit (25 reliable spots in 8 frames) gave 1.334 and
+BlueRatio 0.737. With wrong exponents a per-frame white balance can make only
+one brightness neutral (whites neutral, mid-tones yellow).
+
+Pooled fit: each frame gets its own intercept, all frames share one slope
+(within-frame regression). For channel c (r or b) against green, with
+`x = ln g`, `y = ln c` and per-frame means `xm_f`, `ym_f`:
+
+    slope = sum_f sum_i (x_fi - xm_f)(y_fi - ym_f) / sum_f sum_i (x_fi - xm_f)^2
+
+`RedRatio = 1/slope_r`, `BlueRatio = 1/slope_b`. Use only each frame's reliable
+neutrals (independent materials, small residuals; drop outliers, refit). The
+per-frame intercepts are then that frame's `ir`, `ib` below.
+
 ## Reference point on the neutral line
 
 For a fixed roll ratio, neutrals lie on
@@ -57,6 +87,17 @@ current `mult_c = RefOutput_c / RefInput_c^e_c`:
 3. `RefOutput = "L;L;L"`, `RefInput = newRefInput`.
 
 For an absolute level instead, `L` = intended reflectance x 65535.
+
+## Taste goes in RefOutput
+
+Measurement stays in `RefInput` (the measured neutral). To make a frame
+warmer or cooler without touching it, set
+`RefOutput = k * (e^(0.035 s), 1, e^(-0.07 s))` with `s` = steps (negative =
+cooler) and `k` chosen so the luminance
+`0.2126729 r + 0.7151521 g + 0.0721750 b` equals the neutral's `L`. `L;L;L` =
+the measured neutral. Offer the user a few variants side by side (e.g. Cool 2
+.. Warm 2, plus the previous one): users judged by skin tones and sky (warm
+shifts turn blue sky violet-grey).
 
 ## Output level
 

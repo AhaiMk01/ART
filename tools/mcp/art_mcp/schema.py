@@ -103,7 +103,13 @@ CropRatio = Literal[
 
 class Crop(BaseModel):
     """Crop rectangle in the pixels of the image frame (the raw image after
-    coarse rotation and the raw border); checked against the image's size."""
+    coarse rotation and the raw border); checked against the image's size.
+
+    ART's defaults keep a fixed aspect ratio (`fixed_ratio` true, `ratio`
+    "As Image"): the editor's crop tool then re-fits the rectangle to the
+    ratio whenever it is edited, so a free rectangle needs `fixed_ratio:
+    false`. Headless renders (art-cli) use x, y, w, h as given and ignore the
+    ratio; it only shapes the default rectangle when none is set."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -112,7 +118,7 @@ class Crop(BaseModel):
     y: int | None = F("Y", "Top edge", ge=0, unit="px", default=-1)
     w: int | None = F("W", "Width", ge=1, unit="px", default=-1)
     h: int | None = F("H", "Height", ge=1, unit="px", default=-1)
-    fixed_ratio: bool | None = F("FixedRatio", "Keep `ratio` when resizing", default=True)
+    fixed_ratio: bool | None = F("FixedRatio", "Keep `ratio` when the rectangle is edited in ART; false = free rectangle", default=True)
     ratio: CropRatio | None = F("Ratio", "Aspect ratio", default="As Image")
     orientation: Literal["Landscape", "Portrait", "As Image"] | None = F(
         "Orientation", "Orientation of the ratio", default="As Image"

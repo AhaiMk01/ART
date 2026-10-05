@@ -80,9 +80,11 @@ def register(server: MCPServer, session: RenderSession) -> None:
         changed.
 
         `exclude`: `"Group"` or `"Group/Key"` entries left out of the file
-        (an unknown group or key is `unknown_key`). For a roll preset exclude
-        the per-frame settings: `Coarse Transformation`, `Crop`,
-        `Film Negative/RefInput` (and `Film Negative/RefOutput` if set per
-        frame)."""
+        (an unknown group or key is `unknown_key`). Settings that belong to
+        one image (e.g. `Crop`) are usually excluded from a preset meant for
+        other images.
+
+        Workflows for film scans: see the film-negative and faded-slide
+        skills (tools/mcp/skills)."""
         with as_tool_errors():
             return ops.save_partial_profile(session, path, dest, overwrite, exclude)

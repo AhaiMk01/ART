@@ -24,7 +24,7 @@ spots in the picture. A frame without any film base visible is fine.
      group and key must already exist): `[RAW Bayer] Method=amaze`,
      `[RAW] CAEnabled=false`, `[Film Negative] Enabled=true`,
      `[Film Negative] ColorSpace=1` (1 = working space; `sample_spots` must
-     use `space="working"`). Below, `[Group] Key=value` means one such item,
+     use `space="working"`; with ColorSpace 0 use `space="input"`). Below, `[Group] Key=value` means one such item,
      e.g. `{"group": "RAW Bayer", "key": "Method", "value": "amaze"}`.
    - If an edit is refused with `unknown_key`, call `get_profile` and use the
      name it shows.
@@ -38,27 +38,38 @@ spots in the picture. A frame without any film base visible is fine.
    from any `sample_spots` result (`width`, `height`); the preview of an
    uncropped image shows the whole frame, so `x = px * scale`. Re-preview.
 5. **Sample neutrals** with `sample_spots(spots, size=32..64)`, 16 per call, in
-   frame pixels, several calls (aim for 20+ candidates). Candidates: stone,
-   paving, concrete, grey clothing, white paint. NOT sky, foliage, painted or
-   coloured objects. Values are the NEGATIVE's (transmitted light): higher =
-   darker scene part. Use `avg`. Spread the spots over dark and light areas;
-   the fit needs a range of green values.
+   frame pixels, several calls (aim for 20+ candidates). Choose neutrals by
+   MATERIAL, not by how grey they look (list in reference.md): white paint,
+   bare/galvanised metal, concrete, white trainers, overcast sky are good;
+   natural stone, black fabric, glass, foliage, painted machinery are risky.
+   Agreement only counts between INDEPENDENT materials. Values are the
+   NEGATIVE's (transmitted light): higher = darker scene part. Use `avg`.
+   Spread the spots over dark and light areas; the fit needs a range of green
+   values. To map a preview pixel to frame pixels, see Pitfalls.
 6. **Fit** (reference.md): `RedRatio = 1/slope` of ln r vs ln g, `BlueRatio`
    likewise with b, least squares over the neutrals; drop spots with large
    residuals (coloured objects: foliage showed up in blue), refit. Real
    example: 11 neutrals gave RedRatio 1.335, BlueRatio 0.759; any two spots
-   alone gave 1.17..1.48 depending on the pair, so fit, don't pair. Set
+   alone gave 1.17..1.48 depending on the pair, so fit, don't pair (a pair:
+   `RedRatio = log(clear.r/dense.r) / log(clear.g/dense.g)`, `clear` = the
+   higher green; `BlueRatio` likewise). For a roll, fit the exponents pooled
+   over several frames (reference.md): one frame spans too little tonal
+   range. Set
    `[Film Negative] RedRatio` and `BlueRatio`;
    `GreenExponent` stays 1.5.
 7. **Reference spot** (white balance and level): `[Film Negative] RefInput` = a neutral spot's
    `avg` as `"r;g;b"` (or a point on the fitted line, reference.md);
-   `RefOutput` = `"L;L;L"` with `L` = intended reflectance x 65535 (18% grey
-   about 11800, light stone ~0.3 about 19700). Without `RefInput` ART
-   estimates from channel medians (20% border cut); ART's default
-   RefOutput 65535/24 (about 2731) is that median case.
+   `RefOutput` = `"L;L;L"` with `L` = the spot's intended reflectance x 65535
+   (18% grey about 11800, a light stone ~0.3 about 19700); it is the linear
+   output level (0..65535, before the tone curve) that spot gets. Without
+   `RefInput` ART estimates from channel medians (20% border cut); ART's
+   default RefOutput 65535/24 (about 2731) matches the image median, not a
+   chosen spot. Taste (warmer/cooler) goes in `RefOutput`, measurement in
+   `RefInput` (reference.md).
 8. **Check**: `image_stats` (crop is applied). Raise `L` in steps (11800 ->
    15000 -> ...) until `clipped_high` is about 0 in every channel (a bright
-   blue sky may clip a little in `b` first: stay under ~0.05%); `lum` p99.9
+   blue sky may clip a little in `b` first: stay under ~0.05%; raise `L`
+   until highlights just don't clip); `lum` p99.9
    of 220-245 is typical. Then `render_preview` and look. Colour cast:
    re-pick `RefInput` on another neutral, or change white balance WITHOUT
    changing brightness with the rule in reference.md.
@@ -83,7 +94,8 @@ Ratios are a property of the film and development: fit once, reuse.
    RefInput/RefOutput included).
 2. `save_partial_profile(path, dest="<roll>.arp", exclude=["Coarse
    Transformation", "Crop", "Film Negative/RefInput", "Film Negative/RefOutput"])`:
-   the roll preset. It holds only keys whose value you CHANGED from the
+   the roll preset. Exclude the per-frame settings: rotation, crop and the
+   reference spot (`RefOutput` too if you set it per frame). It holds only keys whose value you CHANGED from the
    opened profile (a key already at the wanted value, e.g. `ColorSpace=1`,
    is not in it), and it carries this frame's black point and `contrast`;
    read the returned `keys` and the file. Use it with `art-cli -p` / ART's
@@ -93,18 +105,29 @@ Ratios are a property of the film and development: fit once, reuse.
    first), crop, `RefInput`/`RefOutput` from that frame's own neutrals (a few
    spots; `RefInput` = a neutral's `avg` or a point on the roll's line),
    output level and black point re-checked with `image_stats`.
-4. A frame in different light (greenhouse, indoor, flash) needs its own white
-   balance: sample neutrals in that frame, keep only spots that agree on the
-   intercepts against the roll's line (reference.md), set `RefInput` on the
-   line and `RefOutput` by the brightness-preserving rule. Do not refit the
-   ratios unless the frame is another film or development.
+4. Every frame needs its own white balance, even in one roll: the exponents
+   carry over, the light does not (blue offsets ranged +0.04..+0.39 across one
+   roll: morning, afternoon, shade, greenhouse). Sample neutrals in the frame,
+   check that its reliable ones lie on the roll's line (reference.md), keep
+   only spots that agree on the intercepts, set `RefInput` on the line and
+   `RefOutput` by the brightness-preserving rule. Do not refit the ratios
+   unless the frame is another film or development; fit them pooled over
+   frames (reference.md), never from one frame.
 5. Check each frame with `image_stats` and a preview.
 
 ## Pitfalls
 
 - `sample_spots` coordinates are frame pixels, not preview pixels, and ignore
-  the crop's origin: they are the same system as `[Crop]`.
-- `image_stats` before cropping is dominated by the holder.
+  the crop's origin: they are the same system as `[Crop]`. A Render
+  whole-image preview shows the crop when one is enabled, so
+  `x = crop.x + px * crop.w / preview_w` (no crop: `px * frame_w /
+  preview_w`; same for y); a Live preview always shows the whole frame.
+- `sample_spots` returns values before the film negative tool, so on a negative
+  they are the negative's; ratios and the formulas here are unaffected.
+- `image_stats` before cropping is dominated by the holder/border (Render
+  applies the working profile's crop; Live's preview is uncropped).
+- `crop` needs `fixed_ratio: false` for a free rectangle (ART's default keeps
+  a fixed ratio in the editor's crop tool).
 - A tone curve implies `histogram_matching` false; a changed brightness after
   setting a curve is that.
 - Edits are in memory until `save_sidecar`; previews and exports never write

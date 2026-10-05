@@ -168,8 +168,8 @@ and [Render server tool list and signatures](https://github.com/AhaiMk01/ART/iss
 ### 4.1 Spot sampling (both servers)
 
 What ART's own pickers read, so an agent can do what a human does with them
-(the film negative tool's neutral-spot and reference-spot pickers, from a
-camera-scanned negative). Exact: both servers call the engine code the GUI
+(e.g. the film negative tool's neutral-spot and reference-spot pickers).
+Exact: both servers call the engine code the GUI
 pickers use, not an approximation from a rendered file.
 
 `sample_spots(path, spots, size=32, space="working")`:
@@ -181,7 +181,7 @@ pickers use, not an approximation from a rendered file.
   its default).
 - `space`: `"working"` (the profile's working space) or `"input"` (camera
   space). These are the film negative tool's two `ColorSpace` values
-  (`[Film Negative] ColorSpace` 1 and 0); use the one the profile has.
+  (`[Film Negative] ColorSpace` 1 and 0).
 - Returns the frame's `width`/`height`, `space`, `size`, and per spot `x`,
   `y`, `avg` and `max` as `[r, g, b]`: linear values on ART's 0..65535 scale,
   white-balanced with the profile's white balance, before the film negative
@@ -196,23 +196,18 @@ pickers use, not an approximation from a rendered file.
   the crop when one is enabled, so `x = crop.x + px * crop.w / preview_w`
   (no crop: `x = px * frame_w / preview_w`); a Live preview always shows the
   whole frame.
-- The tool description carries the film negative maths, so the agent doesn't
-  have to read ART's source. Neutral spots `a` and `b` (the clearer one has
-  the higher green): `RedRatio = log(clear.r/dense.r) / log(clear.g/dense.g)`,
-  `BlueRatio` likewise with blue, `GreenExponent` unchanged. Reference spot:
-  `RefInput = avg`; `RefOutput = (L, L, L)`: the linear output level
-  (0..65535, before the tone curve) the reference spot gets, since the
-  engine computes `out = RefOutput * (in / RefInput)^exponent`, clipped at
-  65535. Choose `L` = the spot's intended reflectance x 65535 (18% grey about
-  11800; ~0.3 about 19700), then check `image_stats` `clipped_high` and raise
-  `L` until highlights just don't clip. ART's default 65535/24 corresponds to
-  the image median, not a chosen spot (the GUI picks `L` so that the previous
-  reference spot keeps its luminance, which the agent may do or not).
-- On a film negative the sampled values are the negative's (transmitted
-  light): higher is a darker part of the scene; ratios are unaffected. The
-  description also recommends fitting `RedRatio = 1/slope` of ln r against
-  ln g (and `BlueRatio` with b) over many neutral spots, dropping those with
-  large residuals, instead of trusting one pair.
+- The tool description is generic (what it reads, coordinates, scale,
+  errors) and ends with one line pointing at the skills for scan workflows
+  (`tools/mcp/skills`). The film negative maths and the workflow around it
+  live in the `film-negative` skill and its `reference.md`: the two-spot
+  formulas, the least-squares fit of `RedRatio`/`BlueRatio` over many neutral
+  spots (and the pooled fit over a roll), `RefInput = avg`,
+  `RefOutput = (L, L, L)` (the engine computes
+  `out = RefOutput * (in / RefInput)^exponent`, clipped at 65535; `L` = the
+  spot's intended reflectance x 65535, then checked against `image_stats`
+  `clipped_high`), the default 65535/24 matching the image median, and that
+  on a film negative the sampled values are the negative's (transmitted
+  light; higher is a darker part of the scene).
 
 Render server: a new `art-cli` option in the fork,
 `-x <size>,<space>,<x1>,<y1>[,<x2>,<y2>...]`, given with the usual `-p`
@@ -245,9 +240,10 @@ output-referred 8-bit image, and returns per channel `r`, `g`, `b` and `lum`
 - `mean`;
 - `histogram` (only when asked): 256 counts.
 
-Film scans include the holder/border, which dominates clipping and
-percentiles: crop first (Render applies the working profile's crop; Live's
-preview is uncropped). Plus the rendered `width`/`height`. Downscaling hides clipping in tiny
+A holder or border in the image counts in the clipping and percentiles: crop
+first (Render applies the working profile's crop; Live's preview is
+uncropped). The description ends with the same skills pointer as 4.1 (the
+film scan workflow is in the skills). Plus the rendered `width`/`height`. Downscaling hides clipping in tiny
 highlights. Render: raise `max_size` (up to 2576) to see more. Live: `max_size`
 can only shrink the ~600 px editor preview, never enlarge it.
 
@@ -368,9 +364,10 @@ From [Sidecar write policy for the Render server](https://github.com/AhaiMk01/AR
   `overwrite=true`; writes nothing when nothing changed (also when `exclude`
   removes everything). `exclude` lists `"Group"` or `"Group/Key"` entries left
   out of the file; a group or key not in the working profile is `unknown_key`.
-  For a roll preset the per-frame settings should be excluded: `Coarse
-  Transformation`, `Crop`, `Film Negative/RefInput` (and `Film Negative/RefOutput`
-  if set per frame). The Live server has no `save_partial_profile`.
+  Settings that belong to one image (e.g. `Crop`) are usually excluded from a
+  preset meant for other images; which ones for a film roll is in the
+  `film-negative` skill. The tool description says this generically and points
+  at the skills. The Live server has no `save_partial_profile`.
 - `export_image` renders the working profile as it is, saved or not. It writes
   a `.arp` beside the output only with `write_profile=true` (art-cli `-O`).
 
@@ -634,9 +631,17 @@ raw-edit only.
 |---|---|---|---|---|
 | `x`, `y` | int | 0 .. image width-1 / height-1 | px | -1 (unset) |
 | `w`, `h` | int | 1 .. image width / height | px | -1 (unset) |
-| `fixed_ratio` | bool | | | true |
+| `fixed_ratio` | bool | | | true (keeps `ratio` when the rectangle is edited in ART; `false` = free rectangle) |
 | `ratio` | enum | ART's ratio list (`3:2`, `4:3`, `16:9`, `1:1`, ... see `crop_ratios` in `src/gui/crop.cc`) | | `As Image` |
 | `orientation` | enum | `Landscape`, `Portrait`, `As Image` | | `As Image` |
+
+ART's defaults (`fixed_ratio` true, `ratio` `As Image`) keep a fixed aspect
+ratio: the editor's crop tool re-fits the rectangle to the ratio when it is
+edited (`Crop::adjustCropToRatio`, `src/gui/crop.cc`), so a free rectangle
+needs `fixed_ratio: false`. The engine does not enforce it: `art-cli` (and the
+Render server) use a complete x, y, w, h as given; the ratio only shapes the
+default rectangle when none is set (`CropParams::setDefaultGeometry`,
+`src/engine/procparams.cc`) and the perspective auto-crop.
 
 Pixel bounds are checked against the image's frame (measured as in 6.1, cached).
 A partial rectangle on an image with no crop yet is rejected: give x, y, w
