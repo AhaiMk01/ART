@@ -2108,3 +2108,5 @@ ZOOMPANEL_ZOOM100;Ingrandimento al 100%.\nScorciatoia: <b>z</b>
 ZOOMPANEL_ZOOMFITSCREEN;Adatta allo schermo.\nScorciatoia: <b>f</b>
 ZOOMPANEL_ZOOMIN;Ingrandisci.\nScorciatoia: <b>+</b>
 ZOOMPANEL_ZOOMOUT;Rimpicciolisci.\nScorciatoia: <b>-</b>
+PROGRESSBAR_READY_TIME;Pronto - %1
+QUEUE_LASTEXPORT_TIME;Ultima esportazione: %1
