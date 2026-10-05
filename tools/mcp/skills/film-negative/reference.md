@@ -110,3 +110,35 @@ shifts turn blue sky violet-grey).
 stop when highlights begin to clip. Curve x/y are sRGB-encoded 0..1 (about
 `image_stats` value / 255), so a black point at `lum` percentile 0.1 of 60
 becomes `x = 60/255 = 0.235`.
+
+## Per-channel black point
+
+Under bluish light (hangar lamps, shade) the inverted shadows can sit blue
+while mid-tones are neutral: the channels' black levels differ, which
+`ref_input` can't fix (it moves the whole line). Lower that channel's black
+with `color_correction`: one region, RGB mode, an `offset` on that channel
+only (e.g. `b` -0.1), no mask. It works in linear values before the tone
+curve, so set it before the curve's black point, then re-check `image_stats`
+per channel: the channel's percentile 0.1 should come down to the others'.
+
+## Changing L after the black adjustments
+
+The colour-correction offset and the curve's black point are fixed amounts,
+but changing `L` scales the linear image. Lowering `L` on one frame (a
+low-key frame) with the roll's offset and black point unchanged crushed it
+(62% of blue at 0). With `k = L_new / L_old`:
+
+- offset: `offset * k` (linear);
+- black point: `x0_new = (x0^2.2 * k)^(1/2.2)` (curve x is sRGB-encoded).
+
+Example: L 34000 -> 17000, offset -0.1 -> -0.05, x0 0.25 -> ~0.18. Then
+re-check `clipped_low`.
+
+## Mixed light
+
+With several light sources in a frame (lamps plus daylight, coloured
+spotlights), no single balance is right everywhere: balance on the subject's
+neutrals (white paint on the aircraft, not the floor under another lamp) and
+leave the rest. Keep a cast that is the real colour of the light (a warm lamp
+lighting a bomb bay): neutralising it looks wrong. Say which frames you left
+warm or cool, and why.

@@ -120,6 +120,11 @@ Ratios are a property of the film and development: fit once, reuse.
    unless the frame is another film or development; fit them pooled over
    frames (reference.md), never from one frame.
 5. Check each frame with `image_stats` and a preview.
+6. Blue (or another channel's) shadows with neutral mid-tones: a per-channel
+   black offset in `color_correction`. When a frame's `L` differs from the
+   frame the offset and black point were set on, scale both (reference.md,
+   "Changing L after the black adjustments"). Mixed light: balance on the
+   subject (reference.md).
 
 ## Pitfalls
 
