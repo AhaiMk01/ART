@@ -908,7 +908,10 @@ From [Sidecar write policy for the Render server](https://github.com/AhaiMk01/AR
   folder, items and source together, names that collide) fails it before
   anything renders; a problem with one image is that image's result and the
   others still run, up to `max_processes` art-cli at once. An image is never
-  exported over itself.
+  exported over itself. A full-size render takes about a second (24 MP, test
+  machine): 37 images in one call outlasted a client's 30 s tool timeout (the
+  call kept running and wrote every file), so the description advises 10 to 15
+  images per call where the client's timeout is short.
 
 ### 6.3 art-cli backend
 

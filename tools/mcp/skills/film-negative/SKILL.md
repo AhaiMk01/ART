@@ -139,7 +139,11 @@ spots in the picture. A frame without any film base visible is fine.
    ~5, divide by 255 -> `x0`; set `curve1`
    `{type: "spline", points: [[x0,0],[0.6,0.6],[1,1]]}` (e.g. x0 = 0.24).
    Then `image_stats`: `clipped_low` should stay under ~0.5% per channel
-   (a larger one means x0 is too high). Direction: raising `x0` makes the
+   (a larger one means x0 is too high), and the lowest channel's percentile 0.1
+   should now be small (about 5 to 10): `clipped_low` cannot see the opposite
+   error, a frame whose blacks stay at 20 or more is hazy, often tinted, and
+   needs a higher `x0` (frames brightened with +EV after their black point was
+   set were the ones left like that on one roll). Direction: raising `x0` makes the
    blacks DARKER (more of the shadows map to 0), lowering it lifts them (one
    frame: x0 0.10 / 0.125 / 0.15 gave blacks 14 / 7 / 0). After an EV or `L`
    change, measure the blacks again: scaling `x0` by `k^(1/2.2)` leaves them
@@ -276,7 +280,9 @@ same frames of two passes side by side (a few frames: `images`).
    last `contact_sheet` pass (compare it with the first inversion's). Its
    result lists what changed since the last pass grouped by change; the JSON
    has it per frame.
-   Export the roll with one `export_batch`: `source` = the roll's folder, with
+   Export the roll with `export_batch` (a render takes about a second per
+   frame: if the client's tool timeout is short, 30 s say, export 10 to 15
+   frames per call, by `pattern` or `items`): `source` = the roll's folder, with
    a `pattern` limiting it to the frames of the roll (or of one group; without
    one, every image of the folder is exported) exports each frame's working
    profile, so every frame it matches must be open; `items` is for an explicit

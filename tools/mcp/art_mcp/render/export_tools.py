@@ -80,7 +80,11 @@ def register(server: MCPServer, session: RenderSession) -> None:
         its result and the others still run; names that collide fail the
         whole call before anything renders; an image is never exported over
         itself. Working profiles are copied when the call starts. Progress is
-        reported per finished image."""
+        reported per finished image. A full-size render takes about a second
+        (24 MP, test machine), so dozens of images in one call run for tens of
+        seconds: where the client's tool timeout is short (37 images hit a 30 s
+        one), export 10 to 15 images per call. A call the client gave up on
+        keeps running and still writes its files."""
 
         def progress(done: int, total: int) -> None:
             anyio.from_thread.run(ctx.report_progress, done, total)
