@@ -27,8 +27,12 @@ spots in the picture. A frame without any film base visible is fine.
      group and key must already exist): `[RAW Bayer] Method=amaze`,
      `[RAW] CAEnabled=false`. Below, `[Group] Key=value` means one such item,
      e.g. `{"group": "RAW Bayer", "key": "Method", "value": "amaze"}`.
-   - If an edit is refused with `unknown_key`, call `get_profile` and use the
-     name it shows.
+   - If an edit is refused with `unknown_key`, call `get_profile` with
+     `groups: [<the group>]` and use the name it shows.
+   - The result lists only what changed, as `{Group: {Key: value}}`:
+     `changed` (what you set; a value already there is not listed), `implied`
+     (what the server did on its own), `drawn` (curves), `warnings`. It is
+     the check that the edit did what you meant; no `get_profile` is needed.
 3. **Orientation.** Coarse rotation is per frame (frames of one roll differed:
    90 vs 270). `render_preview(max_size=1024)`, look at it (Read the JPEG).
    If wrong, set `[Coarse Transformation] Rotate=90` (0, 90, 180, 270) and preview again.
@@ -85,8 +89,9 @@ spots in the picture. A frame without any film base visible is fine.
    ~5, divide by 255 -> `x0`; set `curve1`
    `{type: "spline", points: [[x0,0],[0.6,0.6],[1,1]]}` (e.g. x0 = 0.24).
    Then `image_stats`: `clipped_low` should stay under ~0.5% per channel
-   (a larger one means x0 is too high). Read the result's `drawn` and
-   `warnings` (clips, reversals). For an S-curve use `tone_curve.contrast`
+   (a larger one means x0 is too high). Read the `edit_profile` result's
+   `drawn` (the line ART draws through the points) and `warnings` (clips,
+   reversals). For an S-curve use `tone_curve.contrast`
    (e.g. 20), not curve points. Setting a curve turns `histogram_matching`
    off (listed under `implied`), which can change brightness a lot: re-run
    `image_stats` after every tone change.
@@ -95,6 +100,14 @@ spots in the picture. A frame without any film base visible is fine.
 ## A whole roll
 
 Ratios are a property of the film and development: fit once, reuse.
+
+Keep a record with `contact_sheet(images, folder=<the roll's output folder>,
+label=...)`: one call per pass over the open frames (after the first
+inversion, after the group presets, after per-frame white balance, after the
+black-point fixes), each saved as `sheets/pass-NN-<label>.jpg` with a JSON of
+the profile keys that changed since the last pass; earlier passes are kept.
+Open the returned `path` and look. `compare_passes(first, second)` shows the
+same frames of two passes side by side (a few frames: `images`).
 
 0. Group the frames by light, by looking at a contact sheet of a first
    inversion (reference.md, "Lighting groups"): daylight, overcast, dusk,
@@ -115,10 +128,13 @@ Ratios are a property of the film and development: fit once, reuse.
    reference spot (`RefOutput` too if you set it per frame). It holds only keys whose value you CHANGED from the
    opened profile (a key already at the wanted value, e.g. `ColorSpace=1`,
    is not in it), and it carries this frame's black point and `contrast`;
-   read the returned `keys` and the file. Use it with `art-cli -p` / ART's
-   profile loading, or re-apply the same edits per frame.
-3. Each other frame: `open_image`, base settings and the roll's ratios (same
-   `edit_profile` as step 2 and 6 above), then per frame: rotation (preview
+   read the returned `keys` and the file. Open each frame from it (step 3), or use
+   it with `art-cli -p` / ART's profile loading.
+3. Each other frame: `open_image(path, profile="<group preset>.arp")` starts
+   its working profile from the preset (laid over ART's default profile; the
+   frame's own sidecar is not read, so an old one doesn't leak in), which
+   carries the base settings, the roll's ratios and the black point: no need
+   to repeat those `edit_profile`s. Then per frame: rotation (preview
    first), crop, `ref_input`/`ref_output` from that frame's own neutrals (a few
    spots; `ref_input` = a neutral's `avg` or a point on the roll's line),
    output level and black point re-checked with `image_stats`.
@@ -130,9 +146,18 @@ Ratios are a property of the film and development: fit once, reuse.
    leave `ref_output` to the brightness-preserving rule (or give it). Do not refit the ratios
    unless the frame is another film or development; fit them pooled over
    frames (reference.md), never from one frame.
-5. Check each frame with `image_stats` and a preview.
-   Export the roll with one `export_batch`: each frame's working profile,
-   or `profiles: [<group preset>.arp, <frame>.arp]` per frame.
+5. Check each frame with `image_stats` and a preview, and the roll with a
+   last `contact_sheet` pass (compare it with the first inversion's).
+   Export the roll with one `export_batch`: `source` = the roll's folder
+   (`pattern` for one group's frames) exports each frame's working profile,
+   so every frame in it must be open; or `items`, each with its working
+   profile or `profiles: [<group preset>.arp, <frame>.arp]`. `source` with
+   `profiles: [<group preset>.arp]` renders every frame from the preset
+   alone, without per-frame rotation, crop or reference spot. To keep each
+   frame's settings with its export, add `write_profile: true,
+   profile_name: "source"`: the output folder then holds `<raw name>.arp`
+   next to every JPEG, ready to copy beside the raws; their own sidecars are
+   never touched.
 6. Blue (or another channel's) shadows with neutral mid-tones: a per-channel
    black offset in `color_correction`. When a frame's `L` differs from the
    frame the offset and black point were set on, scale both (reference.md,
@@ -156,3 +181,10 @@ Ratios are a property of the film and development: fit once, reuse.
   setting a curve is that.
 - Edits are in memory until `save_sidecar`; previews and exports never write
   the sidecar.
+- A whole `get_profile` is about 15k tokens: over a roll, never read it
+  whole. `get_profile(path, groups: ["Film Negative", "Crop", "Coarse
+  Transformation", "ToneCurve"])` shows a frame's settings,
+  `get_profile(path, changed_only: true)` everything that differs from ART's
+  default profile (the frame's whole state: what the sidecar and your edits
+  changed), and `edit_profile`'s own result already says what it changed (`full:
+  true` echoes the groups it touched, rarely needed).

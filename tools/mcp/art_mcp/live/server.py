@@ -24,16 +24,22 @@ from art_mcp.keyfile import KeyFile
 from art_mcp.live.channel import ArtNotRunning, ChannelError, ChannelTimeout, ControlChannel
 from art_mcp.metadata import Exiftool, Metadata, MetadataProblem, read_metadata
 from art_mcp.preview import PreviewFolder, default_root, sweep_stale
-from art_mcp.profile import Conflict as EditConflict
 from art_mcp.profile import (
+    VERSION_GROUP,
+    EditResult,
     ProfileView,
     UnknownKey,
     WorkingChanges,
+    check_groups,
     crop_problem,
+    edit_result,
     edit_warnings,
     read_format,
 )
+from art_mcp.profile import Conflict as EditConflict
 from art_mcp.render.adapter import as_tool_errors
+from art_mcp.render.artcli import ArtCli
+from art_mcp.render.defaults import resolve_default_profile
 from art_mcp.render.errors import render_error
 from art_mcp.render.export_ops import EXPORT_SUFFIXES, output_format, output_name
 from art_mcp.render.export_tools import Format
@@ -96,14 +102,7 @@ class Status(BaseModel):
     """The images open in ART's editor."""
 
 
-class LiveEditResult(BaseModel):
-    changed: list[RawEdit]
-    """Each [Group] Key whose value this call changed, with its new value
-    (re-setting a value is not a change)."""
-    implied: list[RawEdit]
-    """The part of `changed` that was not asked for: a disabled tool enabled
-    because it was adjusted, White Balance switched to CustomTemp."""
-    warnings: list[str]
+class LiveEditResult(EditResult):
     history_position: int | None
     """The selected History row afterwards: the new entry (the same row as
     before when nothing changed, as no entry is made then)."""
@@ -118,6 +117,9 @@ class OpenedInEditor(BaseModel):
     path: str
     """The image, as ART names it."""
     already_open: bool
+    profile_applied: str | None = None
+    """The `.arp` file applied over the editor's profile; null when none was
+    given."""
 
 
 class SidecarSaved(BaseModel):
@@ -208,6 +210,21 @@ def same_image(a: str, b: str) -> bool:
     return os.path.normcase(art_path(a)) == os.path.normcase(art_path(b))
 
 
+def profile_to_apply(profile: str) -> tuple[Path, str]:
+    """The `.arp` file at ``profile`` and its text as ART's apply_profile
+    takes it: without ``[Version]``, which ART refuses in an edit but a
+    complete profile (a sidecar) has."""
+    layer = Path(profile).resolve()
+    if not layer.is_file():
+        raise tool_error("not_found", f"profile {layer} does not exist")
+    try:
+        values = keyfile.loads(layer.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        raise tool_error("bad_request", f"{layer} is not a processing profile (.arp): {e}") from e
+    values.pop(VERSION_GROUP, None)
+    return layer, keyfile.dumps(values)
+
+
 def sample_spots_args(
     path: str, spots: list[tuple[int, int]], size: int, space: str
 ) -> dict[str, Any]:
@@ -223,9 +240,16 @@ def build_server(
     open_timeout: float = 60.0,
     previews: PreviewFolder | None = None,
     inline_previews: bool = False,
+    cli: ArtCli | None = None,
 ) -> MCPServer:
-    """``open_timeout``: how long open_image waits for ART to load an image."""
+    """``open_timeout``: how long open_image waits for ART to load an image.
+    ``cli``: ART's ``ART-cli``, which resolves ART's default profile for
+    ``get_profile``'s ``changed_only`` (without it that fails with
+    ``unsupported``)."""
     preview_folder = previews or PreviewFolder(default_root())
+    # ART's default profile per image (art_path, case-folded on Windows),
+    # resolved on first need and kept for the life of the server.
+    default_profiles: dict[str, KeyFile] = {}
 
     @asynccontextmanager
     async def lifespan(_: MCPServer) -> AsyncIterator[None]:
@@ -271,23 +295,53 @@ def build_server(
         except (KeyError, TypeError, ValueError) as e:
             raise tool_error("bad_reply", f"unexpected status from ART: {result!r}") from e
 
+    def default_profile(path: str) -> KeyFile:
+        """ART's default profile for an image open in ART, resolved with
+        ART-cli the first time it is asked for."""
+        if cli is None:
+            raise tool_error(
+                "unsupported",
+                "changed_only compares with ART's default profile, which the Live server resolves "
+                "with ART-cli, and none was found: pass --art-dir or set ART_DIR (the folder holding it)",
+            )
+        key = os.path.normcase(art_path(path))
+        if key not in default_profiles:
+            with as_tool_errors():
+                default_profiles[key] = resolve_default_profile(cli, preview_folder, Path(art_path(path)))
+        return default_profiles[key]
+
     @server.tool()
-    def get_profile(path: str) -> LiveProfile:
+    def get_profile(path: str, groups: list[str] | None = None, changed_only: bool = False) -> LiveProfile:
         """The processing profile of an image open in ART's editor, as the
         editor has it now: curated tools typed under `adjustments`, every
         other `[Group] Key` as a string under `raw`, plus the selected
-        History row. Fails with not_open if ART doesn't have it open."""
+        History row. A whole profile is large (about 15k tokens): `groups`
+        (`[Group]` names as in `raw`, e.g. `["Film Negative", "ToneCurve"]`;
+        an unknown one is unknown_key and lists the valid ones) reads only
+        those groups, and `changed_only` only the values that differ from
+        ART's default profile for the image (whatever is not listed equals
+        it; the editor's resolved values, such as the camera white balance's
+        temperature and the full-frame rectangle of a disabled crop, differ
+        from the default's, so they are listed). Fails with not_open if ART
+        doesn't have it open."""
         result = call("get_profile", {"path": art_path(path)})
         try:
             if not isinstance(result, dict):
                 raise TypeError("not an object")
-            view = read_format(keyfile.loads(result["profile"]))
+            profile = keyfile.loads(result["profile"])
             position = result["history_position"]
             if not isinstance(position, int):
                 raise TypeError("history_position is not a number")
-            return LiveProfile(**view.model_dump(), history_position=position if position >= 0 else None)
         except (KeyError, TypeError, ValueError) as e:
             raise tool_error("bad_reply", f"unexpected get_profile reply from ART: {result!r:.300}") from e
+        try:
+            if groups is not None:
+                check_groups(profile, groups)  # before art-cli is asked for the default
+            default = default_profile(path) if changed_only else None
+            view = read_format(profile, groups=groups, default=default)
+        except UnknownKey as e:
+            raise tool_error("unknown_key", str(e)) from e
+        return LiveProfile(**view.model_dump(), history_position=position if position >= 0 else None)
 
     @server.tool()
     def describe_adjustments() -> AdjustmentsDescription:
@@ -342,6 +396,7 @@ def build_server(
         path: str,
         adjustments: AdjustmentsArg = None,
         raw_edits: list[RawEdit] | None = None,
+        full: bool = False,
     ) -> LiveEditResult:
         """Change the processing profile of an image open in ART's editor,
         with typed `adjustments` of curated tools (range-checked; see
@@ -349,12 +404,18 @@ def build_server(
         `[Group] Key` (as shown by get_profile) to a string value; the group
         and key must already exist. All changes apply, or none do. An
         adjustment and a raw edit may not set the same key. Adjusting a
-        disabled tool also enables it (listed under `implied`).
+        disabled tool also enables it.
 
         The user sees the change at once, as one History entry labelled
         `Agent: <tools>` that undo reverts. Only the changed values are sent,
         so the user's other settings are left alone. Returns once the History
-        entry exists (the preview may still be processing)."""
+        entry exists (the preview may still be processing).
+
+        Returns only what changed: `changed` ([Group] -> Key -> new value),
+        `implied` (changes you did not ask for, such as that enabling, in the
+        same shape), `drawn` (the line ART draws for a tone curve you set),
+        `warnings` and the `history_position`. `full` also returns the groups
+        touched, as get_profile reads them."""
         current = get_profile_text(path)
         changes = WorkingChanges(keyfile.loads(current["profile"]))
         warnings: list[str] = []
@@ -395,10 +456,8 @@ def build_server(
                 "label": history_label(parsed, raw_edits or []),
             })  # fmt: skip
             position = history_position("apply_profile", reply)
-        return LiveEditResult(
-            changed=outcome.changed, implied=outcome.implied, warnings=warnings,
-            history_position=position,
-        )  # fmt: skip
+        result = edit_result(outcome, changes.profile, parsed, raw_edits or [], warnings, full=full)
+        return LiveEditResult(**result.model_dump(), history_position=position)
 
     @server.tool()
     def undo(path: str) -> HistoryStep:
@@ -412,12 +471,26 @@ def build_server(
         the user's Redo does). At the newest entry nothing changes."""
         return HistoryStep(history_position=history_position("redo", call("redo", {"path": art_path(path)})))
 
+    def apply_preset(path: str, layer: Path, text: str) -> None:
+        try:
+            call("apply_profile", {"path": art_path(path), "profile": text, "label": f"Agent: {layer.name}"})
+        except ToolError as e:
+            raise ToolError(f"{e} (the image is open; its profile was not changed)") from e
+
     @server.tool()
-    def open_image(path: str) -> OpenedInEditor:
+    def open_image(path: str, profile: str | None = None) -> OpenedInEditor:
         """Open an image in ART's editor (or bring it to the front if it is
         open already), as opening it from ART's file browser does. Returns
         once ART has loaded it. Fails with not_found if there is no such
-        file."""
+        file.
+
+        `profile`: an `.arp` file, a complete profile or a partial one, that
+        is applied once the image is loaded, over the profile the editor
+        holds (the image's sidecar or ART's default, plus any changes if the
+        image was open already). It is one History entry, `Agent: <file
+        name>`, that undo reverts; the sidecar is not written. The file is
+        checked before the image is opened."""
+        preset = profile_to_apply(profile) if profile is not None else None
         reply = call("open", {"path": art_path(path)})
         already = isinstance(reply, dict) and reply.get("already_open") is True
         deadline = time.monotonic() + open_timeout
@@ -425,7 +498,11 @@ def build_server(
             for image in open_images():
                 listed = str(image.get("path", ""))
                 if same_image(listed, path) and image.get("width") is not None:
-                    return OpenedInEditor(path=listed, already_open=already)
+                    if preset is not None:
+                        apply_preset(path, *preset)
+                    return OpenedInEditor(
+                        path=listed, already_open=already, profile_applied=str(preset[0]) if preset else None
+                    )
             if time.monotonic() >= deadline:
                 raise tool_error(
                     "timeout",
@@ -633,8 +710,9 @@ def main() -> None:
     )  # fmt: skip
     parser.add_argument(
         "--art-dir",
-        help="ART's install folder, only to find the settings of a portable "
-        "(MultiUser=false) install (default: ART_DIR, PATH, newest install)",
+        help="ART's install folder: its ART-cli (resolves ART's default profile for "
+        "get_profile's changed_only) and the settings of a portable (MultiUser=false) "
+        "install (default: ART_DIR, PATH, newest install)",
     )
     parser.add_argument(
         "--inline-previews",
@@ -647,10 +725,12 @@ def main() -> None:
     art_dir = artdir.find_art_dir(args.art_dir, os.environ, program_files)
     channel = ControlChannel(artdir.user_config_dir(os.environ, art_dir=art_dir), timeout=args.timeout)
     exiftool_path = artdir.locate_exiftool(art_dir, os.environ, program_files)
+    cli_path = artdir.find_cli(art_dir) if art_dir else None
     sweep_stale()
     build_server(
         channel,
         exiftool=Exiftool((str(exiftool_path),)) if exiftool_path else None,
         previews=PreviewFolder(default_root()),
         inline_previews=args.inline_previews,
+        cli=ArtCli((str(cli_path),)) if cli_path else None,
     ).run()

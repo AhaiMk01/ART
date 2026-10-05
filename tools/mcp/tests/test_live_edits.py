@@ -4,7 +4,7 @@ editor, through an in-process MCP client."""
 import json
 
 import pytest
-from fake_live_art import FakeArt, FakeEditor
+from fake_live_art import FakeArt, FakeEditor, fail
 from mcp.client.client import Client
 
 from art_mcp import keyfile
@@ -83,9 +83,7 @@ async def test_edit_sends_only_the_changed_keys_as_one_labelled_entry(art, edito
         })  # fmt: skip
 
     assert not result.is_error, result.content
-    assert result.structured_content["changed"] == [
-        {"group": "Exposure", "key": "Compensation", "value": "1"}
-    ]
+    assert result.structured_content["changed"] == {"Exposure": {"Compensation": "1"}}
     assert result.structured_content["history_position"] == 1
     assert len(editor.applied) == 1
     sent = editor.applied[0]
@@ -103,9 +101,9 @@ async def test_implied_changes_are_sent_and_reported(art, editor, image):
         })  # fmt: skip
 
     assert not result.is_error, result.content
-    implied = result.structured_content["implied"]
-    assert {"group": "White Balance", "key": "Setting", "value": "CustomTemp"} in implied
-    assert {"group": "Local Contrast", "key": "Enabled", "value": "true"} in implied
+    assert result.structured_content["implied"] == {
+        "White Balance": {"Setting": "CustomTemp"}, "Local Contrast": {"Enabled": "true"},
+    }
     sent = keyfile.loads(editor.applied[0]["profile"])
     assert sent["White Balance"] == {"Temperature": "6500", "Setting": "CustomTemp"}
     assert sent["Local Contrast"] == {"Contrast": "20", "Enabled": "true"}
@@ -181,7 +179,7 @@ async def test_an_edit_that_changes_nothing_makes_no_history_entry(art, editor, 
         })  # fmt: skip
 
     assert not result.is_error, result.content
-    assert result.structured_content["changed"] == []
+    assert result.structured_content["changed"] == {}
     assert result.structured_content["history_position"] == 0
     assert editor.applied == []
 
@@ -227,14 +225,89 @@ async def test_open_image_waits_until_art_lists_it(art, editor, tmp_path):
         result = await client.call_tool("open_image", {"path": path})
 
     assert not result.is_error, result.content
-    assert result.structured_content == {"path": path, "already_open": False}
+    assert result.structured_content == {"path": path, "already_open": False, "profile_applied": None}
 
 
 async def test_open_image_of_an_open_image_says_so(art, editor, image):
     async with Client(live(art)) as client:
         result = await client.call_tool("open_image", {"path": image})
 
-    assert result.structured_content == {"path": image, "already_open": True}
+    assert result.structured_content == {"path": image, "already_open": True, "profile_applied": None}
+    assert editor.applied == []
+
+
+async def test_open_image_with_a_profile_applies_it_once_art_has_loaded_the_image(art, editor, tmp_path):
+    path = str(tmp_path / "new.ARW")
+    editor.loadable.add(path)
+    editor.open_delay = 0.3
+    preset = tmp_path / "roll.arp"
+    preset.write_text("[Exposure]\nCompensation=1.5\n")
+    async with Client(live(art)) as client:
+        result = await client.call_tool("open_image", {"path": path, "profile": str(preset)})
+
+    assert not result.is_error, result.content
+    assert result.structured_content == {"path": path, "already_open": False, "profile_applied": str(preset)}
+    assert len(editor.applied) == 1
+    assert keyfile.loads(editor.applied[0]["profile"]) == {"Exposure": {"Compensation": "1.5"}}
+    assert editor.applied[0]["label"] == "Agent: roll.arp"
+    assert editor.labels(path) == ["Photo loaded", "Agent: roll.arp"]  # one History entry: undo reverts it
+    assert editor.profile(path)["Exposure"]["Compensation"] == "1.5"
+
+
+async def test_a_full_profile_is_applied_without_its_version_group(art, editor, tmp_path):
+    path = str(tmp_path / "new.ARW")
+    editor.loadable.add(path)
+    full = tmp_path / "full.arp"
+    full.write_text(PROFILE.replace("Compensation=0", "Compensation=-2"))  # a sidecar: [Version] and all
+    async with Client(live(art)) as client:
+        result = await client.call_tool("open_image", {"path": path, "profile": str(full)})
+
+    assert not result.is_error, result.content  # ART refuses an edit with [Version]
+    sent = keyfile.loads(editor.applied[0]["profile"])
+    assert "Version" not in sent
+    assert sent["Exposure"]["Compensation"] == "-2" and sent["White Balance"]["Setting"] == "Camera"
+    assert editor.profile(path)["Exposure"]["Compensation"] == "-2"
+
+
+async def test_a_profile_is_applied_over_an_image_already_open(art, editor, image, tmp_path):
+    preset = tmp_path / "roll.arp"
+    preset.write_text("[Exposure]\nBlack=5\n")
+    async with Client(live(art)) as client:
+        result = await client.call_tool("open_image", {"path": image, "profile": str(preset)})
+
+    assert result.structured_content["already_open"] is True
+    assert editor.profile(image)["Exposure"] == {"Enabled": "true", "Compensation": "0", "Black": "5"}
+
+
+async def test_a_profile_art_refuses_leaves_the_image_open_and_says_so(art, editor, tmp_path):
+    path = str(tmp_path / "new.ARW")
+    editor.loadable.add(path)
+    preset = tmp_path / "roll.arp"
+    preset.write_text("[Exposure]\nCompensation=1.5\n")
+    art.ops["apply_profile"] = fail("bad_request", "ART could not load these values; nothing was changed")
+    async with Client(live(art)) as client:
+        result = await client.call_tool("open_image", {"path": path, "profile": str(preset)})
+        status = await client.call_tool("status", {})
+
+    assert result.is_error and "bad_request:" in text_of(result)
+    assert "the image is open" in text_of(result)
+    assert path in [i["path"] for i in status.structured_content["images"]]
+
+
+@pytest.mark.parametrize(("text", "code"), [(None, "not_found"), ("not a profile", "bad_request")])
+async def test_an_unusable_profile_fails_before_the_image_is_opened(art, editor, tmp_path, text, code):
+    path = str(tmp_path / "new.ARW")
+    editor.loadable.add(path)
+    preset = tmp_path / "roll.arp"
+    if text is not None:
+        preset.write_text(text)
+    async with Client(live(art)) as client:
+        result = await client.call_tool("open_image", {"path": path, "profile": str(preset)})
+        status = await client.call_tool("status", {})
+
+    assert result.is_error and f"{code}:" in text_of(result), text_of(result)
+    assert status.structured_content["images"][0]["path"] != path  # only a.ARW is open
+    assert editor.applied == []
 
 
 async def test_open_image_of_a_missing_file_is_not_found(art, editor, tmp_path):
@@ -285,7 +358,8 @@ async def test_tone_curve_edit_sends_the_curve_keys(art, editor, image):
     assert sent == {
         "ToneCurve": {"Curve": "1;0;0;0.25;0.2;1;1;", "CurveMode": "Standard", "Enabled": "true"}
     }
-    assert {"group": "ToneCurve", "key": "Enabled", "value": "true"} in result.structured_content["implied"]
+    assert result.structured_content["implied"]["ToneCurve"] == {"Enabled": "true"}
+    assert len(result.structured_content["drawn"]["curve1"]) == 9
     assert editor.applied[0]["label"] == "Agent: Tone Curve"
 
 
@@ -309,8 +383,9 @@ async def test_color_correction_regions_are_sent_whole_and_read_back_typed(art, 
         profile = await client.call_tool("get_profile", {"path": path})
 
     assert not result.is_error, result.content
-    implied = {(c["key"], c["value"]) for c in result.structured_content["implied"]}
-    assert implied == {("Mode_1", "RGB"), ("Enabled", "true"), ("AreaMaskEnabled_2", "true")}
+    assert result.structured_content["implied"] == {
+        "ColorCorrection": {"Mode_1": "RGB", "Enabled": "true", "AreaMaskEnabled_2": "true"}
+    }
     sent = keyfile.loads(editor.applied[0]["profile"])["ColorCorrection"]
     assert sent["Mode_2"] == "RGB" and sent["AreaMaskType_2"] == "rectangle"
     assert sent["SlopeR_1"] == "1" and sent["HSLGamma_1"] == "2.3999999999999999"  # region 1 whole

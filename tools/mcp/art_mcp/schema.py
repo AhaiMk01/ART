@@ -528,6 +528,12 @@ def field_group(model: type[BaseModel], name: str, tool_group: str) -> str:
     return str(_extra(model, name).get("group", tool_group))
 
 
+def tool_groups(tool_group: str, model: type[BaseModel]) -> set[str]:
+    """Every [Group] a curated tool's fields live in: its own, and the group
+    of each field that names another."""
+    return {tool_group} | {field_group(model, name, tool_group) for name in model.model_fields}
+
+
 def stored_value(model: type[BaseModel], name: str, value: str) -> str:
     """How ART stores a field's value (Denoise's method is a number)."""
     return str(_extra(model, name).get("stored_as", {}).get(value, value))

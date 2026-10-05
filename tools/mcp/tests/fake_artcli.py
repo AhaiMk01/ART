@@ -6,7 +6,8 @@
   the text of every ``-p`` layer, standing in for "the pixels reflect the
   profile" so tests can see what was rendered.
 - With ``-O``, writes ``<output>.arp``: the last ``-p`` file's text, or a
-  small default profile with ``-d``.
+  small default profile with ``-d``, or with both that profile with every
+  ``-p`` file laid over it key by key.
 - Every output also embeds the command line (``args: ...``), so tests can see
   which flags were used.
 - A ``.png`` output is a bare PNG header whose size is the fake image
@@ -21,8 +22,15 @@
 - With ``FAKE_PNG_SOURCE`` set, an 8-bit PNG output (``-n -b8``) is a copy of
   that file, so a test chooses the pixels ``image_stats`` sees.
 - With ``FAKE_ARGS_LOG`` set, the command line is appended there as a JSON line.
+- With ``FAKE_DEFAULT_PROFILE`` set, ``-d`` stands for that file's text instead
+  of the small default profile.
+- With ``FAKE_REAL_JPEG`` set, a JPEG output is a decodable image: the fake
+  6000x4000 frame fitted into the last ``[Resize]`` layer's Width x Height (60x40
+  without one), in a flat colour taken from a hash of the layers, so a
+  different profile gives different pixels.
 """
 
+import hashlib
 import json
 import os
 import shutil
@@ -119,8 +127,31 @@ def png_header():
     )
 
 
+def real_jpeg():
+    from PIL import Image
+
+    resize = {}
+    for layer in layers:
+        in_resize = False
+        for line in layer.splitlines():
+            if line.startswith("["):
+                in_resize = line == "[Resize]"
+            elif in_resize and "=" in line:
+                k, _, v = line.partition("=")
+                resize[k] = v
+    if resize.get("Enabled") == "true":
+        scale = min(int(resize["Width"]) / FAKE_SIZE[0], int(resize["Height"]) / FAKE_SIZE[1])
+        size = (max(1, round(FAKE_SIZE[0] * scale)), max(1, round(FAKE_SIZE[1] * scale)))
+    else:
+        size = (60, 40)
+    colour = tuple(hashlib.md5("\n".join(layers).encode()).digest()[:3])
+    Image.new("RGB", size, colour).save(output, "JPEG", quality=95)
+
+
 if output.suffix == ".png" and "-b8" in args and os.environ.get("FAKE_PNG_SOURCE"):
     shutil.copyfile(os.environ["FAKE_PNG_SOURCE"], output)
+elif os.environ.get("FAKE_REAL_JPEG") and output.suffix == ".jpg" and "-t" not in args and "-n" not in args:
+    real_jpeg()
 elif output.suffix == ".png":
     output.write_bytes(png_header())
 else:
@@ -128,5 +159,31 @@ else:
     output.write_bytes(
         magic + "\n".join(layers).encode() + b"\nargs: " + " ".join(args).encode() + b"\xff\xd9"
     )
+
+
+def layered(base, over):
+    """``over``'s keys set in ``base`` (both KeyFile text)."""
+    groups = {}
+    for text in (base, over):
+        group = None
+        for line in text.splitlines():
+            if line.startswith("["):
+                group = groups.setdefault(line[1:-1], {})
+            elif "=" in line and group is not None:
+                key, _, val = line.partition("=")
+                group[key] = val
+    lines = []
+    for name, keys in groups.items():
+        lines += [f"[{name}]", *(f"{key}={val}" for key, val in keys.items()), ""]
+    return "\n".join(lines)
+
+
 if "-O" in args:
-    Path(str(output) + ".arp").write_text(layers[-1] if layers else DEFAULT_PROFILE)
+    default_file = os.environ.get("FAKE_DEFAULT_PROFILE")
+    default = Path(default_file).read_text() if default_file else DEFAULT_PROFILE
+    arp = layers[-1] if layers else default
+    if "-d" in args and layers:
+        arp = default
+        for layer in layers:
+            arp = layered(arp, layer)
+    Path(str(output) + ".arp").write_text(arp)

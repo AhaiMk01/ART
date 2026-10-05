@@ -16,6 +16,7 @@ from typing import Literal
 
 from art_mcp import artdir, keyfile, sidecar
 from art_mcp.concurrency import ImageLocks, image_key
+from art_mcp.keyfile import KeyFile
 from art_mcp.metadata import Exiftool
 from art_mcp.preview import PreviewFolder
 from art_mcp.profile import WorkingChanges, crop_problem, crop_rect, ppversion_of
@@ -29,11 +30,15 @@ from art_mcp.render.artcli import (
     probe_args,
     resolve_profile_args,
 )
+from art_mcp.render.defaults import resolve_default_profile
 from art_mcp.render.errors import no_profile_written, render_error
 from art_mcp.render.store import MemoryStore, ProfileStore, WorkingProfile
 from art_mcp.schema import Crop as CropAdjustment
 
 ProfileSource = Literal["sidecar", "default"]
+OpenSource = Literal["sidecar", "default", "profile"]
+"""Where ``open`` took the working profile from; ``profile`` is the file given
+to it."""
 
 
 class RenderSession:
@@ -55,6 +60,9 @@ class RenderSession:
         self._locks = ImageLocks()
         self._art_version: str | None = None
         self._version_guard = threading.Lock()
+        self.last_export_folder: Path | None = None
+        """Where the last ``export_batch`` that exported something wrote, the
+        default home of contact sheets."""
 
     # -- the locking path ------------------------------------------------
 
@@ -66,16 +74,27 @@ class RenderSession:
         with self._locks.hold(path):
             yield self._opened(path)
 
-    def open(self, image: Path) -> ProfileSource:
+    @contextmanager
+    def locked_folder(self, folder: Path) -> Iterator[None]:
+        """Hold the lock of ``folder``, for writing a numbered file into it
+        without two calls taking the same number. Never taken while an
+        image's lock is held."""
+        with self._locks.hold(folder):
+            yield
+
+    def open(self, image: Path, profile: Path | None = None) -> OpenSource:
         """Load ``image``'s profile (its sidecar, else ART's default) as its
-        working profile, replacing any it had."""
+        working profile, replacing any it had. With ``profile`` (an ``.arp``,
+        full or partial) it is that file over ART's default profile instead,
+        and the image's own sidecar is not read."""
         with self._locks.hold(image):
-            return self._load(image, None)
+            return self._load(image, None, profile)
 
     def reset(self, path: str, to: ProfileSource) -> ProfileSource:
         """Reload the open image's working profile from ``to``."""
         with self.image(path) as wp:
-            return self._load(wp.image, to)
+            self._load(wp.image, to)
+        return to
 
     def open_ppversions(self) -> list[int | None]:
         """The profile versions of the open images. Not locked: it reads one
@@ -88,15 +107,22 @@ class RenderSession:
             raise render_error("not_open", f"{path} is not open; call open_image first")
         return wp
 
-    def _load(self, image: Path, source: ProfileSource | None) -> ProfileSource:
+    def _load(
+        self, image: Path, source: ProfileSource | None, preset: Path | None = None
+    ) -> OpenSource:
         """Resolve ``image``'s complete processing profile with one art-cli
         run and make it the working profile. ``source`` None means the sidecar
-        if there is one, else ART's default profile. Caller holds the lock."""
-        sidecar_file = artdir.sidecar_path(image, self.config_dir)
-        sidecar_bytes = sidecar.read(sidecar_file)
-        if source == "sidecar" and sidecar_bytes is None:
-            raise render_error("not_found", f"{image.name} has no sidecar ({sidecar_file})")
-        source = source or ("sidecar" if sidecar_bytes is not None else "default")
+        if there is one, else ART's default profile; ``preset`` (an ``.arp``)
+        means that file over ART's default profile, without looking at the
+        sidecar (so none is the baseline for saving). Caller holds the lock."""
+        sidecar_bytes = None
+        origin: OpenSource = "profile"
+        if preset is None:
+            sidecar_file = artdir.sidecar_path(image, self.config_dir)
+            sidecar_bytes = sidecar.read(sidecar_file)
+            if source == "sidecar" and sidecar_bytes is None:
+                raise render_error("not_found", f"{image.name} has no sidecar ({sidecar_file})")
+            origin = source or ("sidecar" if sidecar_bytes is not None else "default")
 
         output = self.previews.new_file("resolve", ".jpg")
         arp = Path(str(output) + ".arp")
@@ -105,10 +131,10 @@ class RenderSession:
         sidecar_copy = self.previews.new_file("sidecar", ".arp")
         try:
             base = None
-            if source == "sidecar" and sidecar_bytes is not None:
+            if origin == "sidecar" and sidecar_bytes is not None:
                 sidecar_copy.write_bytes(sidecar_bytes)
                 base = sidecar_copy
-            self.run(resolve_profile_args(image, output, base), output)
+            self.run(resolve_profile_args(image, output, base, preset), output)
             if not arp.is_file():
                 raise no_profile_written()
             profile = keyfile.loads(arp.read_text(encoding="utf-8"))
@@ -126,12 +152,21 @@ class RenderSession:
                 token=uuid.uuid4().hex,
             )
         )
-        return source
+        return origin
 
     def commit(self, wp: WorkingProfile) -> None:
         """Hand a working profile back to the store after changing it (call
         with the image's lock held)."""
         self.store.put(wp)
+
+    def default_profile(self, wp: WorkingProfile) -> KeyFile:
+        """ART's default profile for the open image, resolved with art-cli the
+        first time and kept with its working profile after that (call with
+        the image's lock held)."""
+        if wp.default is None:
+            wp.default = resolve_default_profile(self.cli, self.previews, wp.image)
+            self.commit(wp)
+        return wp.default
 
     # -- art-cli ---------------------------------------------------------
 

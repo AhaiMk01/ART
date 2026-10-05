@@ -38,6 +38,7 @@ from art_mcp.schema import (
     field_key,
     named_value,
     stored_value,
+    tool_groups,
 )
 from art_mcp.schema import Crop as CropAdjustment
 
@@ -82,6 +83,26 @@ class EditOutcome(BaseModel):
     enabled because it was adjusted, White Balance switched to CustomTemp."""
     warnings: list[str] = []
     """Notes on how the changes were computed (e.g. an estimated reference)."""
+
+
+class EditResult(BaseModel):
+    """What an ``edit_profile`` call reports: the change set, not the profile."""
+
+    changed: dict[str, dict[str, str]]
+    """The values this call changed that were asked for, as [Group] -> Key ->
+    new value (re-setting a value is not a change)."""
+    implied: dict[str, dict[str, str]]
+    """The changes that were not asked for, in the same shape and not repeated
+    in `changed`: a disabled tool enabled because it was adjusted, White
+    Balance switched to CustomTemp, a computed film reference."""
+    drawn: dict[str, list[list[float]]] = {}
+    """For each tone curve this call set (`curve1`, `curve2`), the line ART's
+    curve editor draws through it, as `get_profile` reads it back (nothing for
+    a linear curve or a NURBS with 3+ points)."""
+    warnings: list[str]
+    profile: ProfileView | None = None
+    """Only with `full`: the groups this call touched, as `get_profile` reads
+    them after the change."""
 
 
 def _arp_value(value: Any) -> str:
@@ -379,12 +400,125 @@ def edit_warnings(adjustments: Adjustments | None, profile: KeyFile) -> list[str
     return warnings
 
 
+def _grouped(edits: list[RawEdit]) -> dict[str, dict[str, str]]:
+    grouped: dict[str, dict[str, str]] = {}
+    for e in edits:
+        grouped.setdefault(e.group, {})[e.key] = e.value
+    return grouped
+
+
+def drawn_readback(adjustments: Adjustments | None, profile: KeyFile) -> dict[str, list[list[float]]]:
+    """The drawn line (``curves.drawn_points``) of each tone curve the request
+    set, as the profile holds it now."""
+    tone = adjustments.tone_curve if adjustments is not None else None
+    if tone is None:
+        return {}
+    group, model = TOOLS["tone_curve"]
+    drawn: dict[str, list[list[float]]] = {}
+    for field in ("curve1", "curve2"):
+        stored = profile.get(group, {}).get(field_key(model, field))
+        curve = decode(stored) if getattr(tone, field) is not None and stored is not None else None
+        points = drawn_points(curve) if curve is not None and curve["type"] != "linear" else None
+        if points is not None:
+            drawn[field] = points
+    return drawn
+
+
+def edit_result(
+    outcome: EditOutcome,
+    profile: KeyFile,
+    adjustments: Adjustments | None,
+    raw_edits: list[RawEdit],
+    warnings: list[str],
+    *,
+    full: bool = False,
+) -> EditResult:
+    """The result of an edit just applied to ``profile``. ``full`` adds the
+    groups the request touched (those it names and those it changed) in the
+    read format."""
+    implied = {e.name for e in outcome.implied}
+    view = None
+    if full:
+        touched = {e.group for e in outcome.changed} | {e.group for e in raw_edits}
+        for name, (group, model) in TOOLS.items():
+            if adjustments is not None and getattr(adjustments, name) is not None:
+                touched |= tool_groups(group, model)
+        view = read_format(profile, groups=sorted(touched & profile.keys()))
+    return EditResult(
+        changed=_grouped([e for e in outcome.changed if e.name not in implied]),
+        implied=_grouped(outcome.implied),
+        drawn=drawn_readback(adjustments, profile),
+        warnings=warnings,
+        profile=view,
+    )
+
+
 def ppversion_of(profile: KeyFile) -> int | None:
     version = profile.get(VERSION_GROUP, {}).get("Version")
     return int(version) if version and version.isdigit() else None
 
 
-def read_format(profile: KeyFile) -> ProfileView:
+def check_groups(profile: KeyFile, groups: list[str]) -> None:
+    """``UnknownKey`` naming the valid groups when ``groups`` has one the
+    profile lacks."""
+    valid = sorted(g for g in profile if g != VERSION_GROUP)
+    unknown = [g for g in groups if g not in valid]
+    if unknown:
+        raise UnknownKey(
+            f"not a group of this image's processing profile: {', '.join(unknown)}; "
+            f"its groups: {', '.join(valid)}"
+        )
+
+
+def read_format(
+    profile: KeyFile, groups: list[str] | None = None, default: KeyFile | None = None
+) -> ProfileView:
+    """The profile in the read format. ``groups``: only those ``[Group]``s
+    (``check_groups``); a curated tool is in when any group its fields live in
+    is. ``default``: only what differs from that profile (ART's default): the
+    typed fields with another value, the raw keys with another value or
+    missing there."""
+    if groups is not None:
+        check_groups(profile, groups)
+    view = _read_all(profile)
+    if default is not None:
+        view = _differing(view, _read_all(default))
+    if groups is not None:
+        view = _only_groups(view, set(groups))
+    return view
+
+
+_MISSING = object()
+
+
+def _differing(view: ProfileView, base: ProfileView) -> ProfileView:
+    """``view`` without what ``base`` says the same."""
+    adjustments: dict[str, dict[str, Any]] = {}
+    for name, values in view.adjustments.items():
+        was = base.adjustments.get(name, {})
+        differ = {f: v for f, v in values.items() if was.get(f, _MISSING) != v}
+        if differ:
+            adjustments[name] = differ
+    raw: dict[str, dict[str, str]] = {}
+    for group, entries in view.raw.items():
+        was_raw = base.raw.get(group, {})
+        differ_raw = {k: v for k, v in entries.items() if was_raw.get(k, _MISSING) != v}
+        if differ_raw:
+            raw[group] = differ_raw
+    return view.model_copy(update={"adjustments": adjustments, "raw": raw})
+
+
+def _only_groups(view: ProfileView, groups: set[str]) -> ProfileView:
+    adjustments = {
+        name: values
+        for name, values in view.adjustments.items()
+        if groups & tool_groups(*TOOLS[name])
+    }
+    raw = {group: entries for group, entries in view.raw.items() if group in groups}
+    return view.model_copy(update={"adjustments": adjustments, "raw": raw})
+
+
+def _read_all(profile: KeyFile) -> ProfileView:
     ppversion = ppversion_of(profile)
     typed, consumed = typed_adjustments(profile)
     raw: dict[str, dict[str, str]] = {}

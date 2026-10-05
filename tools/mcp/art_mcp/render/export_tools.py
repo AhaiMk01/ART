@@ -14,6 +14,7 @@ from art_mcp.render.session import RenderSession
 
 # The enum lists the values in the schema; a wrong one still gets out_of_range.
 Format = Annotated[str, Field(json_schema_extra={"enum": ["jpeg", "tiff", "png"]})]
+ProfileName = Annotated[str, Field(json_schema_extra={"enum": list(ops.PROFILE_NAMES)})]
 
 
 def register(server: MCPServer, session: RenderSession) -> None:
@@ -25,6 +26,7 @@ def register(server: MCPServer, session: RenderSession) -> None:
         quality: int | None = None,
         bit_depth: int | str | None = None,
         write_profile: bool = False,
+        profile_name: ProfileName = "output",
         overwrite: bool = False,
     ) -> ExportResult:
         """Render the working profile (saved or not) at full size to `output`.
@@ -32,34 +34,52 @@ def register(server: MCPServer, session: RenderSession) -> None:
         png, 8|16|"16f"|32 for tiff (default: ART's). An existing `output` (or
         `.arp`) is refused with `exists` unless `overwrite`. With
         `write_profile`, the working profile is also saved as `<output>.arp`;
-        otherwise no `.arp` is written. The folder of `output` must exist."""
+        otherwise no `.arp` is written. `profile_name: "source"` (needs
+        `write_profile`) names it after the image instead, as ART would its
+        sidecar (`IMG.ARW.arp`, or `IMG.arp` with ART's strip-extension
+        option), in the folder of `output`, ready to use beside a copy of the
+        image; the image's own sidecar is never written (an `output` in the
+        image's own folder is `out_of_range`, even with `overwrite`). The
+        folder of `output` must exist."""
         with as_tool_errors():
             return ops.export_image(
-                session, path, output, format, quality, bit_depth, write_profile, overwrite
+                session, path, output, format, quality, bit_depth, write_profile, profile_name, overwrite
             )
 
     @server.tool()
     async def export_batch(
-        items: list[BatchItem],
         folder: str,
         format: Format,
         ctx: Context,
+        items: list[BatchItem] | None = None,
+        source: str | None = None,
+        pattern: str | None = None,
+        profiles: list[str] | None = None,
         quality: int | None = None,
         bit_depth: int | str | None = None,
         name: str = "{stem}",
         write_profile: bool = False,
+        profile_name: ProfileName = "output",
         overwrite: bool = False,
     ) -> BatchResult:
         """Export many images at full size into `folder` (it must exist), as
         `<name><suffix>` with `{stem}` = the image's file name without
-        extension. Each item exports its working profile (open it first), or
-        with `profiles` the given `.arp` files layered over ART's default
-        profile (e.g. a roll preset then the frame's partial profile; no need
-        to open it). Format, `quality`, `bit_depth`, `write_profile` and
-        `overwrite` as in export_image. One failing item (not open, `exists`,
-        a render error) is reported in its result and the others still run;
-        names that collide fail the whole call before anything renders.
-        Working profiles are copied when the call starts. Progress is
+        extension. Give `items`, or `source`: a folder (not its subfolders)
+        whose raw, jpeg and tiff images are all exported, in file name order,
+        optionally only those whose name matches `pattern` (a glob, any
+        case, e.g. `FILM_*`). Each item exports its working profile (open it
+        first), or with `profiles` the given `.arp` files layered over ART's
+        default profile (e.g. a roll preset then the frame's partial profile;
+        no need to open it). With `source`, the top-level `profiles` do the
+        same for every image, else each is exported with its working profile.
+        Format, `quality`, `bit_depth`, `write_profile`, `profile_name`
+        (`"source"` leaves each image's `.arp` in `folder` under its sidecar
+        name, a ready-to-use set) and `overwrite` as in export_image. One
+        failing image (not open, `exists`, an image whose own folder is
+        `folder` with `profile_name: "source"`, a render error) is reported in
+        its result and the others still run; names that collide fail the
+        whole call before anything renders; an image is never exported over
+        itself. Working profiles are copied when the call starts. Progress is
         reported per finished image."""
 
         def progress(done: int, total: int) -> None:
@@ -69,7 +89,7 @@ def register(server: MCPServer, session: RenderSession) -> None:
             with as_tool_errors():
                 return ops.export_batch(
                     session, items, folder, format, quality, bit_depth, name,
-                    write_profile, overwrite, on_progress=progress,
+                    write_profile, profile_name, overwrite, source, pattern, profiles, on_progress=progress,
                 )  # fmt: skip
 
         return await anyio.to_thread.run_sync(run)

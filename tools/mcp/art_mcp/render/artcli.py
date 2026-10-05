@@ -25,12 +25,19 @@ EXPORT_BIT_DEPTHS = {
 """Export formats and the bit depths art-cli takes for each."""
 
 
-def resolve_profile_args(image: Path, output: Path, sidecar: Path | None) -> list[str]:
+def resolve_profile_args(
+    image: Path, output: Path, sidecar: Path | None, preset: Path | None = None
+) -> list[str]:
     """A fast render whose only purpose is the ``.arp`` that ``-O`` writes
     beside ``output``: the image's complete processing profile, built from its
-    sidecar or, without one, from ART's default profile. No other layer is
-    added, so nothing leaks into that profile."""
-    base = ["-p", str(sidecar)] if sidecar else ["-d"]
+    sidecar or, without one, from ART's default profile. With ``preset`` (an
+    ``.arp``, full or partial) it is that file layered over ART's default
+    profile instead, as art-cli does for ``-d -p``; ``sidecar`` is then not
+    passed. No other layer is added, so nothing leaks into that profile."""
+    if preset:
+        base = ["-d", "-p", str(preset)]
+    else:
+        base = ["-p", str(sidecar)] if sidecar else ["-d"]
     return ["-O", str(output), "-f", "-Y", "-a", *base, "-c", str(image)]
 
 

@@ -391,7 +391,7 @@ async def test_render_estimates_the_medians_through_art_cli_x(tmp_path, monkeypa
 
     assert not result.is_error, result.content
     out = result.structured_content
-    assert triple({e["key"]: e["value"] for e in out["implied"]}["RefOutput"]) == pytest.approx([SERVER_L] * 3)
+    assert triple(out["implied"]["Film Negative"]["RefOutput"]) == pytest.approx([SERVER_L] * 3)
     assert len(out["warnings"]) == 1 and "estimat" in out["warnings"][0]
     assert sampling_calls(log) == [["64", "working"]] * 4
     typed = profile_after.structured_content["adjustments"]["film_negative"]
@@ -417,7 +417,7 @@ async def test_render_with_a_set_reference_does_not_sample(tmp_path, monkeypatch
         result = await edit_ref_input(client, image, [200, 50, 400])
 
     out = result.structured_content
-    assert triple({e["key"]: e["value"] for e in out["implied"]}["RefOutput"]) == pytest.approx([SET_L] * 3)
+    assert triple(out["implied"]["Film Negative"]["RefOutput"]) == pytest.approx([SET_L] * 3)
     assert out["warnings"] == [] and sampling_calls(log) == []
 
 
@@ -430,7 +430,7 @@ async def test_render_falls_back_to_grey_when_art_cli_cannot_sample(tmp_path, mo
 
     assert not result.is_error, result.content
     out = result.structured_content
-    assert {e["key"]: e["value"] for e in out["implied"]}["RefOutput"] == "2730.625;2730.625;2730.625"
+    assert out["implied"]["Film Negative"]["RefOutput"] == "2730.625;2730.625;2730.625"
     assert "brightness may change" in out["warnings"][0]
 
 
@@ -440,7 +440,7 @@ async def test_render_with_an_explicit_ref_output_does_not_sample(tmp_path, monk
     async with Client(server) as client:
         result = await edit_ref_input(client, image, [3000, 4000, 64], ref_output=[900, 900, 900])
 
-    assert result.structured_content["implied"] == [] and sampling_calls(log) == []
+    assert result.structured_content["implied"] == {} and sampling_calls(log) == []
 
 
 # -- Live server (fake ART) ------------------------------------------------------------

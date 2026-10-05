@@ -163,7 +163,8 @@ indoor lamps. A single "indoor" balance left one hangar frame visibly green.
 Group by looking, not by clustering numbers:
 
 1. Make a contact sheet of the whole roll after a first inversion (roll
-   ratios, one rough reference) and look at it: sort the frames by the light
+   ratios, one rough reference; `contact_sheet`, which keeps each pass) and
+   look at it: sort the frames by the light
    you can see (sun, overcast, dusk, tungsten, fluorescent/LED, mixed, a
    single coloured lamp). Casts that differ between frames of the same scene
    point at different light even when the place is the same.

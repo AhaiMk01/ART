@@ -114,7 +114,9 @@ def prepare_save(session: RenderSession, path: str) -> SavePlan:
 def conflict_error(plan: SavePlan) -> RenderError:
     return render_error(
         "conflict",
-        "the sidecar changed since it was loaded. Changed in the sidecar: "
+        "the sidecar is not the one the working profile was loaded against (it changed "
+        "since, or the profile came from open_image's `profile`, which doesn't read it). "
+        "Changed in the sidecar: "
         f"{', '.join(plan.theirs) or '(nothing that parses)'}. Changed by the agent: "
         f"{', '.join(plan.ours) or '(nothing)'}. Ask the user, then call again with "
         "on_conflict: merge (agent's changes onto the current sidecar), "

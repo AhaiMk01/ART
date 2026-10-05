@@ -75,9 +75,7 @@ async def test_exposure_adjustment_changes_the_render_and_reads_back_typed(serve
         preview = await client.call_tool("render_preview", {"path": str(image)})
 
         assert not result.is_error, result.content
-        assert {"group": "Exposure", "key": "Compensation", "value": "0.7"} in (
-            result.structured_content["changed"]
-        )
+        assert result.structured_content["changed"]["Exposure"] == {"Compensation": "0.7"}
         assert profile.structured_content["adjustments"]["exposure"]["compensation"] == 0.7
         assert "Compensation" not in profile.structured_content["raw"].get("Exposure", {})
         assert b"Compensation=0.7" in Path(preview.structured_content["path"]).read_bytes()
@@ -134,9 +132,7 @@ async def test_adjusting_a_disabled_tool_lists_the_implied_enable(server, image)
         )
         profile = await client.call_tool("get_profile", {"path": str(image)})
 
-    assert result.structured_content["implied"] == [
-        {"group": "Exposure", "key": "Enabled", "value": "true"}
-    ]
+    assert result.structured_content["implied"] == {"Exposure": {"Enabled": "true"}}
     assert profile.structured_content["adjustments"]["exposure"]["enabled"] is True
 
 
@@ -149,7 +145,7 @@ async def test_explicit_disable_wins(server, image):
         )
         profile = await client.call_tool("get_profile", {"path": str(image)})
 
-    assert result.structured_content["implied"] == []
+    assert result.structured_content["implied"] == {}
     assert profile.structured_content["adjustments"]["exposure"]["enabled"] is False
 
 
@@ -161,9 +157,7 @@ async def test_white_balance_temperature_implies_custom_temp(server, image):
             {"path": str(image), "adjustments": {"white_balance": {"temperature": 5200}}},
         )
 
-    assert result.structured_content["implied"] == [
-        {"group": "White Balance", "key": "Setting", "value": "CustomTemp"}
-    ]
+    assert result.structured_content["implied"] == {"White Balance": {"Setting": "CustomTemp"}}
 
 
 async def test_describe_adjustments_lists_both_tools_with_ranges_and_units(server):
@@ -290,15 +284,12 @@ async def test_tone_curve_edit_writes_art_keys_and_lists_what_it_implied(server,
         profile = await client.call_tool("get_profile", {"path": str(image)})
 
     assert not edit.is_error, edit.content
-    changed = {(c["key"], c["value"]) for c in edit.structured_content["changed"]}
-    assert changed == {
-        ("CurveMode", "Luminance"), ("Curve", "1;0;0;0.5;0.6;1;1;"),
-        ("Curve2", "4;0;0;0.5;0.4;1;1;"), ("Contrast", "10"), ("Enabled", "true"), ("HistogramMatching", "false"),
-    }  # fmt: skip
-    assert {(c["key"], c["value"]) for c in edit.structured_content["implied"]} == {
-        ("Enabled", "true"), ("HistogramMatching", "false"),
-    }  # fmt: skip
+    assert edit.structured_content["changed"] == {"ToneCurve": {
+        "CurveMode": "Luminance", "Curve": "1;0;0;0.5;0.6;1;1;", "Curve2": "4;0;0;0.5;0.4;1;1;", "Contrast": "10",
+    }}  # fmt: skip
+    assert edit.structured_content["implied"] == {"ToneCurve": {"Enabled": "true", "HistogramMatching": "false"}}
     tone = profile.structured_content["adjustments"]["tone_curve"]
+    assert edit.structured_content["drawn"] == {"curve1": tone["curve1"]["drawn"], "curve2": tone["curve2"]["drawn"]}
     drawn = tone["curve1"].pop("drawn")
     assert tone["curve1"] == {"type": "spline", "points": [[0, 0], [0.5, 0.6], [1, 1]]}
     assert len(drawn) == 9 and drawn[0] == [0, 0] and drawn[4] == [0.5, 0.6]
@@ -370,12 +361,12 @@ async def test_color_correction_regions_edit_render_and_read_back_typed(server, 
         rendered = Path(preview.structured_content["path"]).read_bytes()
 
     assert not edit.is_error, edit.content
-    changed = {(c["key"], c["value"]) for c in edit.structured_content["changed"]}
-    assert {("Mode_1", "RGB"), ("SlopeR_1", "1.1844"), ("PowerB_1", "0.6241"), ("Enabled", "true")} <= changed
-    assert {("Mode_2", "RGB"), ("MaskInverted_2", "true"), ("AreaMaskRoundness_2", "100"),
-            ("AreaMaskShapeFeather_2", "60")} <= changed  # fmt: skip
-    implied = {(c["key"], c["value"]) for c in edit.structured_content["implied"]}
-    assert implied == {("Mode_1", "RGB"), ("Enabled", "true"), ("AreaMaskEnabled_2", "true")}
+    changed = edit.structured_content["changed"]["ColorCorrection"]
+    assert {"SlopeR_1": "1.1844", "PowerB_1": "0.6241", "Mode_2": "RGB", "MaskInverted_2": "true",
+            "AreaMaskRoundness_2": "100", "AreaMaskShapeFeather_2": "60"}.items() <= changed.items()  # fmt: skip
+    implied = edit.structured_content["implied"]["ColorCorrection"]
+    assert implied == {"Mode_1": "RGB", "Enabled": "true", "AreaMaskEnabled_2": "true"}
+    assert not implied.keys() & changed.keys()  # each value once
     typed = profile.structured_content["adjustments"]["color_correction"]
     assert typed["enabled"] is True
     assert typed["regions"][0]["b"] == {"slope": 0.9239, "offset": 0.0, "power": 0.6241}

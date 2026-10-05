@@ -42,7 +42,7 @@ From [Implementation language and SDK](https://github.com/AhaiMk01/ART/issues/7)
   `render_failed`, `timeout` (art-cli or exiftool), `metadata_unavailable` (no
   exiftool found, 5), `metadata_failed`, `invalid_tag`, `open_in_editor`,
   `art_not_running`, `write_failed`, `busy`, `unsupported` (the ART
-  build lacks a fork feature). Live server only: `timeout` also covers ART not answering
+  build lacks a fork feature; the Live server found no ART-cli for `changed_only`). Live server only: `timeout` also covers ART not answering
   on the control channel; `bad_reply` (ART's answer isn't the protocol); ART's
   own codes pass through (`bad_request`, `unknown_op`), except that for
   `sample_spots` ART's `unknown_op` (a fork build without spot sampling) becomes
@@ -52,7 +52,7 @@ From [Implementation language and SDK](https://github.com/AhaiMk01/ART/issues/7)
   -12..12 EV` or `tone_curve.mode='x' is not one of: Standard, ...`; several
   problems are joined with `; `.
 - **Dependencies:** Pillow is a runtime dependency (`image_stats` decodes the
-  rendered PNG with it).
+  rendered PNG with it, `contact_sheet` composes the sheets).
 
 ```
 tools/mcp/
@@ -63,16 +63,20 @@ tools/mcp/
     profile.py      # read format, adjustments+raw edits -> partial profile
     preview.py      # temp folder, JPEG files, inline ImageContent
     metadata.py     # exiftool wrapper
+    contactsheet.py # contact-sheet composition (Pillow)
     artdir.py       # locating ART-cli.exe / exiftool.exe / config dir
     render/         # Render server
       server.py         # build_server: wiring only; main() entry point
       session.py        # RenderSession: working profiles, per-image locks,
                         #   frame cache, art-cli runs; the only locking path
       artcli.py         # art-cli runner and argument builders
+      defaults.py       # ART's default profile for an image (changed_only;
+                        #   the Live server uses it too)
       profile_tools.py  # open_image, reset_profile, get/edit_profile,
                         #   describe_adjustments
       preview_tools.py  # render_preview
-      export_tools.py   # export_image
+      export_tools.py   # export_image, export_batch
+      sheet_tools.py    # contact_sheet, compare_passes
       save_tools.py     # save_sidecar, save_partial_profile
       metadata_tools.py # inspect_image
     live/           # Live server: control channel client, tools
@@ -102,7 +106,7 @@ Both compile into one partial profile. Rules:
 - An unknown curated tool or field: `unknown_key`. Any other bad adjustment
   value (wrong type, bad enum value): `out_of_range`.
 - An adjustment on a disabled tool also enables it (White Balance: switches
-  to `CustomTemp`); implied changes are listed in the result. See Appendix A.
+  to `CustomTemp`); implied changes are listed in the result (3.5). See Appendix A.
 
 ### 3.2 Curated tools (v1)
 
@@ -143,6 +147,58 @@ Curated tools appear typed under `adjustments`; every other group/key appears
 as strings under `raw`. Each value appears once. A value that doesn't fit the
 schema (e.g. White Balance `CustomMultLegacy`) stays under `raw`. `warnings`
 carries the `PPVERSION` warning (3.3).
+
+A whole profile is large (about 15k tokens for a raw: ART writes over 500
+keys), so `get_profile` can read less:
+
+- `groups` (list of `[Group]` names as `raw` and raw edits name them, e.g.
+  `["Film Negative", "ToneCurve"]`): only those groups. A curated tool is in
+  when any group its fields live in is (Rotation's `auto_fill` lives in
+  `Common Properties for Transformations`). A name the profile doesn't have is
+  `unknown_key`, and the message lists the valid ones (`Version` is not one:
+  `ppversion` is always returned).
+- `changed_only`: only what differs from ART's default profile for the image
+  (the one `open_image` starts an image without a sidecar from): the typed
+  fields with another value, the raw keys with another value or missing from
+  the default. Whatever is not listed equals the default. Both together
+  combine.
+
+The default profile comes from one `art-cli -d` run (the same `-O` resolve as
+`open_image`), made the first time `changed_only` needs it for an opened image
+(Render: kept with the working profile until the image is reopened or reset; Live: kept
+per image for the life of the server) and never for a read without
+`changed_only`. A Live server without `ART-cli` found (7.1) answers
+`changed_only` with `unsupported`.
+
+### 3.5 Edit result
+
+`edit_profile` returns the change set, not the profile:
+
+```json
+{
+  "changed":  { "Film Negative": { "RedRatio": "1.335" }, "RAW Bayer": { "Method": "amaze" } },
+  "implied":  { "Film Negative": { "Enabled": "true" } },
+  "drawn":    { "curve1": [[0, 0], [0.125, 0.0112], "...", [1, 1]] },
+  "warnings": []
+}
+```
+
+- `changed`: `[Group]` -> `Key` -> new value (the shape of `raw`) for every
+  value the request set and that changed; re-setting a value is not a change.
+- `implied`: the changes the request didn't ask for (a disabled tool enabled,
+  White Balance to `CustomTemp`, `histogram_matching` off, a computed film
+  `RefOutput`, see 3.1), in the same shape. A key is in `changed` or in
+  `implied`, never both (a raw edit of a key an adjustment only implies is in
+  `changed`).
+- `drawn`: for each tone curve the request set (`curve1`, `curve2`), the line
+  ART's curve editor draws, as `get_profile` reads it back (not for a linear
+  curve or a NURBS with 3+ points). It saves a `get_profile` after every
+  curve.
+- `warnings`: as before; the Live server adds `history_position` (7.1).
+- `full=true` also returns `profile`: the groups the request touched (those it
+  names and those it changed) in the read format, as the profile is after the
+  edit. Meant for checking what a tool ended up as; it is several times the
+  size of the rest.
 
 ## 4. Preview delivery (both servers)
 
@@ -252,7 +308,8 @@ can only shrink the ~600 px editor preview, never enlarge it.
 `--art-dir` flag or `ART_DIR` env (the folder with the ART-cli binary), else
 PATH, else the system's usual install locations below. The Render server
 fails at startup if none is found; the Live server needs it only to find the
-config folder of a portable install and exiftool.
+config folder of a portable install and exiftool, and (optionally) ART-cli
+itself, to resolve ART's default profile for `get_profile`'s `changed_only`.
 
 The binary is `ART-cli.exe` on Windows and `ART-cli` elsewhere (ART's CMake
 `OUTPUT_NAME`; a lowercase `art-cli` is also accepted on macOS and Linux).
@@ -299,18 +356,21 @@ on Windows). Any tool except `open_image` on a path not opened returns
 
 | Tool | Args | Returns |
 |---|---|---|
-| `open_image` | `path` | Working profile loaded; metadata summary; ART version |
-| `get_profile` | `path` | Read format (3.4) |
-| `edit_profile` | `path`, `adjustments?`, `raw_edits?` | Keys changed |
+| `open_image` | `path`, `profile?` | Working profile loaded (`profile_from`: `sidecar`, `default` or `profile`); metadata summary; ART version |
+| `get_profile` | `path`, `groups?`, `changed_only=false` | Read format (3.4), whole, of the `groups`, and/or only what differs from ART's default profile |
+| `edit_profile` | `path`, `adjustments?`, `raw_edits?`, `full=false` | The change set (3.5): `changed`, `implied`, `drawn`, `warnings`; `full` adds the touched groups |
 | `reset_profile` | `path`, `to: "sidecar" \| "default"` | Working-profile changes discarded |
 | `render_preview` | `path`, `max_size=1024`, `region?`, `inline?` | JPEG path (+ `ImageContent` if inline) |
-| `export_image` | `path`, `output`, `format: "jpeg" \| "tiff" \| "png"`, `quality?` (jpeg only, 1..100), `bit_depth?` (jpeg `8`; png `8`\|`16`; tiff `8`\|`16`\|`16f`\|`32`; a number or a string, `16f` only as a string), `write_profile=false`, `overwrite=false` | Output path, `.arp` path when written |
+| `export_image` | `path`, `output`, `format: "jpeg" \| "tiff" \| "png"`, `quality?` (jpeg only, 1..100), `bit_depth?` (jpeg `8`; png `8`\|`16`; tiff `8`\|`16`\|`16f`\|`32`; a number or a string, `16f` only as a string), `write_profile=false`, `profile_name: "output" \| "source"` (default `"output"`), `overwrite=false` | Output path, `.arp` path when written |
+| `export_batch` | `items?` (`{path, profiles?}`) or `source?` (a folder; with `pattern?` and `profiles?`), `folder`, `format`, `quality?`, `bit_depth?`, `name="{stem}"`, `write_profile=false`, `profile_name="output"`, `overwrite=false` | Per image, in request (or file name) order: `path`, `output`, `profile_path`, `error`; counts `exported` and `failed` |
 | `save_sidecar` | `path`, `on_conflict?: "merge" \| "overwrite" \| "cancel"` | `saved`, path, `how` (written/merged/overwritten/cancelled), or conflict + changed keys |
 | `save_partial_profile` | `path`, `dest`, `overwrite=false`, `exclude=[]` | `written`, path, keys written |
 | `inspect_image` | `path`, `tags?` | Fixed metadata fields + requested tags |
 | `describe_adjustments` | none | Curated schema + `PPVERSION` warning |
 | `sample_spots` | `path`, `spots`, `size=32`, `space="working"` | Linear spot values (4.1); `unsupported` with a release `art-cli` |
 | `image_stats` | `path`, `max_size=1024`, `histogram=false` | Clipping, percentiles, mean per channel (4.2) |
+| `contact_sheet` | `images`, `folder?`, `label?`, `columns?`, `thumb_size=400` | The next numbered pass (6.5): sheet path, JSON path, per image `box`, `error` and the profile keys `changes` since the last pass it was in |
+| `compare_passes` | `first`, `second`, `folder?`, `images?`, `columns=2` | Path of a side-by-side of the same frames of two passes (6.5) |
 
 `region` is `{x, y, w, h}` as fractions of the image as previewed: of the
 working profile's crop when it has an enabled one, else of the whole frame
@@ -329,9 +389,20 @@ From [Sidecar write policy for the Render server](https://github.com/AhaiMk01/AR
 - `open_image` seeds it from the image's sidecar, else from ART's default
   profile for that image type (same as the editor). A content hash of the
   sidecar is kept.
+- `open_image(path, profile)` seeds it from an `.arp` file instead
+  (`profile_from` `profile`), complete or partial: art-cli draws no line
+  between the two, `-p` loads whatever keys the file has over the profile
+  built so far, so the file goes over ART's default profile (`-d -p <file>`).
+  A complete profile sets every value and so replaces; a partial one changes
+  only its own. It is the profile `export_batch` renders for the same file in
+  `profiles`. The image's sidecar is not read, written or hashed: with no
+  baseline, a later `save_sidecar` finds an existing sidecar changed and
+  raises the usual conflict (merge applies only the edits made after the
+  open, not the file's values; overwrite replaces the sidecar). A missing
+  file is `not_found`.
 - To get the resolved, complete processing profile (default profile, dynamic
   rules, sidecar), `open_image` runs `art-cli` once (`-p <sidecar>` or `-d`,
-  `-f`, `-O`) to a throwaway output and reads the `.arp` written beside it.
+  or `-d -p <profile>`; `-f`, `-O`) to a throwaway output and reads the `.arp` written beside it.
   The sidecar is passed with `-p` (not `-s`) so the file read is the file the
   server hashes and later saves. No resize layer is added: `-O` saves the
   layered profile, so a resize would leak into it (`-f`'s own resize is
@@ -371,6 +442,25 @@ From [Sidecar write policy for the Render server](https://github.com/AhaiMk01/AR
   at the skills. The Live server has no `save_partial_profile`.
 - `export_image` renders the working profile as it is, saved or not. It writes
   a `.arp` beside the output only with `write_profile=true` (art-cli `-O`).
+  `profile_name="source"` (with `write_profile`; also on `export_batch`) names
+  that file after the image instead, in the output's folder, the way ART
+  names the image's sidecar (`IMG.ARW.arp`, or `IMG.arp` with the user's
+  strip-extension option; `artdir.sidecar_path`), so a folder of exports can
+  double as a sidecar set. The same `overwrite` rule covers it. The sidecar
+  next to the image is never written: an output folder that is the image's
+  own is `out_of_range` (even with `overwrite`; per item in a batch). Two
+  batch items cannot name the same sidecar without also naming the same
+  output, which already fails the call before rendering.
+- `export_batch` exports many images in one call: `items` (each its working
+  profile, or `.arp` layers over ART's default, which needs no open image),
+  or `source`, a folder whose raw, jpeg and tiff images (ART's default parsed
+  extensions, no subfolders) are taken in file name order, narrowed by
+  `pattern` (a glob on the file name, any case), each with the call's
+  `profiles` layers or its working profile. A problem with the call (format,
+  folder, items and source together, names that collide) fails it before
+  anything renders; a problem with one image is that image's result and the
+  others still run, up to `max_processes` art-cli at once. An image is never
+  exported over itself.
 
 ### 6.3 art-cli backend
 
@@ -403,6 +493,54 @@ with `-j -n`. Fixed fields: make, model, lens, ISO, shutter, aperture, focal
 length, capture date, pixel dimensions, orientation. `tags` adds named exiftool
 tags. `art-cli` has no metadata output; Pillow can't read most raws.
 
+### 6.5 Contact sheets
+
+From [Contact sheets of a batch, kept per pass](https://github.com/AhaiMk01/ART/issues/45).
+
+Judging a roll means looking at all its frames together, over several passes
+(inversion, roll ratios, per-frame white balance, black points), and the
+agent and the user want to see what each pass changed. `contact_sheet` renders
+the frames and keeps every pass; it is a Render-server tool because the
+working profiles live there.
+
+- **Thumbnails** go through the preview path (`art-cli -f`, a resize layer,
+  JPEG), not the full-size export of `export_batch`, because they are small;
+  the pool is the batch's: up to `max_processes` at once, a failing image is
+  that image's `error` (a placeholder on the sheet), progress per finished
+  image. Working profiles are copied when the call starts. A call where no
+  image renders saves nothing.
+- **The sheet** is composed with Pillow (`contactsheet.py`, no ART): each
+  frame fitted and centred in a `thumb_size` box, cells as high as the tallest
+  frame, the file name under it, a title line (pass, label, time), a neutral
+  dark grey ground. `images` entries are paths or a folder, which stands for
+  the open images directly in it. The result warns when the sheet is longer
+  than Claude shows (2576 px).
+- **Passes** are `<folder>/sheets/pass-NN[-label].jpg` and `.json`, `NN` one
+  more than the highest in the folder (so numbering survives a restart), the
+  label slugged for the file name and kept as given in the JSON. Files are
+  created exclusively under a lock on the folder: a pass is never overwritten
+  and overlapping calls get different numbers; a pass that cannot be written
+  completely leaves nothing.
+- **What changed.** Per image the JSON has `changes`: every profile value that
+  differs from the last pass the image was in (`since_pass`), as `{group, key,
+  before, after}`; null the first time. That needs the earlier complete
+  profile, which a pass JSON would bloat (hundreds of keys per frame), so
+  `sheets/profiles.json` keeps the latest complete working profile per image
+  and is rewritten each pass. It is bookkeeping, not a record; a server
+  restart loses nothing. A frame whose render failed still counts: its profile
+  was recorded.
+- **Where.** The caller names `folder` (it must exist; `sheets` is created in
+  it). The default is the folder of the last `export_batch` that exported
+  something (the roll's output), kept in the session; with none the call is
+  `out_of_range`, so a sheet never lands next to the source images or in the
+  temp folder by default.
+- **`compare_passes(first, second)`** cuts the frames out of the two passes'
+  sheets (the JSON's `box` says where each sits), puts each pair side by side
+  (first left) at the smaller `thumb_size` and saves `compare-NN-MM.jpg` in
+  `sheets`, `-2`, `-3` for a repeat. `images` (paths or file names) picks the
+  frames; the default is every frame rendered in both passes. A named frame
+  that was not is `not_found`.
+
 ## 7. Live server
 
 From [Live server capabilities and control channel](https://github.com/AhaiMk01/ART/issues/10),
@@ -420,11 +558,11 @@ Assistants. The Live server never launches ART.
 | Tool | Args | Returns |
 |---|---|---|
 | `status` | none | ART version, open images: path, `active`, width/height (the editor's full image size before crop; null until known) |
-| `get_profile` | `path` | Read format (3.4) + `history_position` (selected History row, 0 = oldest; null if none) |
-| `edit_profile` | `path`, `adjustments?`, `raw_edits?` | Keys changed; returns once the undo entry exists |
+| `get_profile` | `path`, `groups?`, `changed_only=false` | Read format (3.4), whole, of the `groups`, and/or only what differs from ART's default profile, + `history_position` (selected History row, 0 = oldest; null if none) |
+| `edit_profile` | `path`, `adjustments?`, `raw_edits?`, `full=false` | The change set (3.5) + `history_position`; returns once the undo entry exists |
 | `undo` / `redo` | `path` | New History position |
 | `render_preview` | `path`, `max_size=1024`, `inline?` | JPEG path + width/height; waits until ART's processing queue drains (30 s, else `timeout`). The editor's preview (~600 px wide, whole frame, uncropped) shrunk to fit `max_size`, never enlarged |
-| `open_image` | `path` | ART's name for it, `already_open`; returns once ART has loaded it (60 s, else `timeout`) |
+| `open_image` | `path`, `profile?` | ART's name for it, `already_open`, `profile_applied`; returns once ART has loaded it (60 s, else `timeout`) and, with `profile`, applied it |
 | `save_sidecar` | `path` | The sidecar written (editor's own save), null when ART keeps profiles in its cache only; `write_failed` when nothing was written |
 | `queue_export` | `path`, `folder?`, `format?`, `name?`, `quality?`, `bit_depth?`, `profile?` | `queued` (entries in ART's export queue), `running`. Queues the open image through the GUI's own batch queue with its current profile (no sidecar written); output as `export_image` (named `-1`, `-2` when taken: ART's rule), `profile` an `.arp` over the working profile |
 | `queue_start` | none | `running`, `already_running`; `empty_queue` when nothing is queued |
@@ -439,7 +577,11 @@ Assistants. The Live server never launches ART.
   the camera white balance's temperature/green, the automatic deconvolution
   radius, the disabled crop filled with the full frame. These can differ from
   the Render server's values for the same file, which come from the saved
-  profile. Paths go to ART absolute but unresolved (links and `subst` drives
+  profile. `changed_only` compares this profile with ART's default profile
+  (3.4), which the Live server resolves with `ART-cli` (found like the Render
+  server's, `--art-dir`/`ART_DIR`; without one `changed_only` is
+  `unsupported`), so those resolved values are listed as changed even when the
+  user changed nothing. Paths go to ART absolute but unresolved (links and `subst` drives
   as given), because ART matches the name it opened the file under.
 - History: one entry per `edit_profile`; ART shows it as
   `ARP changed | Agent: <tools touched>` (its paste-entry prefix). A raw
@@ -543,6 +685,15 @@ Assistants. The Live server never launches ART.
 - `open_image` opens through the file browser as a command-line file does
   (`FileCatalog::dirSelected`, so the browser shows its folder) and returns
   once `status` lists the image with its size (60 s, else `timeout`).
+  With `profile` (an `.arp`, complete or partial) it then sends the file as
+  `apply_profile`, labelled `Agent: <file name>`: one History entry over what
+  the editor holds (the sidecar's or default profile; the current one, with
+  the user's changes, if the image was open already), which undo reverts and
+  which doesn't write the sidecar. ART refuses `[Version]` in an applied
+  profile, which a complete one carries, so the Python side drops it. The
+  file is read and parsed before ART is asked to open anything
+  (`not_found`, `bad_request`); if ART then refuses the values the image
+  stays open and the error says so.
   `save_sidecar` is `EditorPanel::saveProfile` and returns the sidecar path
   (null when ART keeps profiles in its cache only).
 - The queue ops use the GUI's `BatchQueue` as it is: `queue_add` makes the
@@ -766,8 +917,8 @@ rounded to 4 decimals. ART clamps only below 0 (`CLIPD`), so a spline or
 Catmull-Rom can show y above 1. Every NURBS curve with three or more points (an identity one too) is not
 computed (`drawn: null`); a two-point NURBS is a line and is drawn; `linear` has no `drawn`. `drawn` is read-only: input
 that carries it (a `get_profile` curve sent back) is accepted and ignored.
-`edit_profile` adds a warning for each `curve1`/`curve2` it set whose drawn line
-clips to 0 (`curve2 clips to 0 for x 0.02-0.07`), goes above 1, or reverses
+`edit_profile` returns the `drawn` line of each `curve1`/`curve2` it set (3.5)
+and adds a warning for each one whose drawn line clips to 0 (`curve2 clips to 0 for x 0.02-0.07`), goes above 1, or reverses
 (decreases; `curve2 reverses for x 0.86-0.95`), scanned at 1001 x values; a NURBS
 gets one warning that it can't be checked. ART resamples the drawn curve before
 applying it (`src/engine/iptonecurve.cc`: about 30 samples, dense below 0.25 in

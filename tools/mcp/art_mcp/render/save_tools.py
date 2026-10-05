@@ -29,7 +29,7 @@ async def ask_user(
         return None
     try:
         answer = await ctx.elicit(
-            f"{target.name} was changed since the agent loaded it "
+            f"{target.name} differs from what the agent loaded "
             f"(changed there: {', '.join(theirs) or 'unknown'}). The agent changed: "
             f"{', '.join(ours) or 'nothing'}. Merge = keep the sidecar's values and "
             "apply only the agent's changes; overwrite = replace the sidecar with "

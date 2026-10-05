@@ -46,15 +46,17 @@ Claude Desktop (`claude_desktop_config.json`):
 
 | Tool | Does |
 |---|---|
-| `open_image(path)` | Loads the image's processing profile (sidecar, else ART's default profile) as its working profile; also returns a short `metadata` summary (camera, lens, capture date, pixel size), or null if exiftool is unavailable or can't read the file |
+| `open_image(path, profile?)` | Loads the image's processing profile (sidecar, else ART's default profile) as its working profile (`profile_from`: `sidecar` or `default`); also returns a short `metadata` summary (camera, lens, capture date, pixel size), or null if exiftool is unavailable or can't read the file. `profile`: an `.arp` file, complete or partial, to start from instead (`profile_from` `profile`; `not_found` if there is no such file): it is laid over ART's default profile as art-cli's `-d -p` does (so a complete profile gives all its values, a partial one only its own, and `export_batch`'s `profiles` render the same), for opening every frame of a roll from its preset. The image's own sidecar is neither read nor written; a later `save_sidecar` therefore finds an existing sidecar changed and asks (`conflict`). Live: opens the image in ART, then applies the file over the editor's profile (the sidecar's or default, or the current one if the image was already open) as one History entry `Agent: <file name>` that `undo` reverts; `[Version]` is left out; the result's `profile_applied` is the file |
 | `inspect_image(path, tags?)` | Metadata of an opened image from `exiftool` (`-j -n`; found beside `ART-cli`, else on PATH, else in the system's usual install locations (spec section 5), so a fork build without one still works): make, model, lens, ISO, `shutter_seconds`, `aperture`, `focal_length_mm`, `capture_date` (local, ISO 8601), `width`, `height`, `orientation` (EXIF 1-8), each null when absent; `tags` adds named exiftool tags (e.g. `Software`) that the file has, under `tags` |
 | `render_preview(path, max_size=1024, region?, inline?)` | Renders the working profile to a JPEG and returns its path; see [Previews](#previews) |
-| `get_profile(path)` | The working profile: curated tools typed under `adjustments`, every other value as a string under `raw` (each value once) |
-| `edit_profile(path, adjustments?, raw_edits?)` | Changes the working profile: typed, range-checked `adjustments` (`exposure`, `white_balance`, `crop`, `rotation`, `local_contrast`, `sharpening`, `denoise`, `vignetting`, `lens_profile`, `tone_curve`, `color_correction`, `film_negative`; `crop` is checked against the image's size; a free rectangle needs `fixed_ratio: false`, see the crop entry of `describe_adjustments`) and/or `[Group] Key` raw edits; all or nothing. Lists `implied` changes (a disabled tool gets enabled; White Balance switches to `CustomTemp`; `histogram_matching` turned off when a curve is set; a computed `RefOutput`, see `film_negative`) |
+| `get_profile(path, groups?, changed_only=false)` | The working profile: curated tools typed under `adjustments`, every other value as a string under `raw` (each value once). A whole profile is about 15k tokens: `groups` (`[Group]` names as in `raw`, e.g. `["Film Negative", "ToneCurve"]`; an unknown one is `unknown_key` listing the valid ones) reads only those, `changed_only` only the values that differ from ART's default profile for the image (details below the table) |
+| `edit_profile(path, adjustments?, raw_edits?, full=false)` | Changes the working profile: typed, range-checked `adjustments` (`exposure`, `white_balance`, `crop`, `rotation`, `local_contrast`, `sharpening`, `denoise`, `vignetting`, `lens_profile`, `tone_curve`, `color_correction`, `film_negative`; `crop` is checked against the image's size; a free rectangle needs `fixed_ratio: false`, see the crop entry of `describe_adjustments`) and/or `[Group] Key` raw edits; all or nothing. Returns the change set only (`changed`, `implied`, `drawn`, `warnings`; `full` adds the touched groups); `implied` lists the changes not asked for (a disabled tool gets enabled; White Balance switches to `CustomTemp`; `histogram_matching` turned off when a curve is set; a computed `RefOutput`, see `film_negative`) |
 | `describe_adjustments()` | The curated adjustments: fields, ranges, units, the `[Group] Key` each sets, and the `PPVERSION` the schema targets |
 | `reset_profile(path, to)` | Reloads the working profile from the `sidecar` or ART's `default` profile |
-| `export_image(path, output, format, quality?, bit_depth?, write_profile=false, overwrite=false)` | Renders the working profile at full size as `jpeg` (quality 1..100, 8 bit), `png` (8/16 bit) or `tiff` (8/16/16f/32 bit) to `output` (its folder must exist); an existing `output` is refused unless `overwrite`; `write_profile` also saves `<output>.arp`, otherwise none is written |
-| `export_batch(items, folder, format, quality?, bit_depth?, name="{stem}", write_profile=false, overwrite=false)` | Exports many images into `folder` as `<name>` (`{stem}` = image file name without extension). Each item `{path, profiles?}` exports its working profile (must be open), or the `profiles` `.arp` files layered over ART's default (no need to open). Per-image results: one failing item doesn't stop the others; colliding names fail the call before rendering. Runs up to two art-cli processes at once and reports progress per image |
+| `export_image(path, output, format, quality?, bit_depth?, write_profile=false, profile_name="output", overwrite=false)` | Renders the working profile at full size as `jpeg` (quality 1..100, 8 bit), `png` (8/16 bit) or `tiff` (8/16/16f/32 bit) to `output` (its folder must exist); an existing `output` is refused unless `overwrite`; `write_profile` also saves `<output>.arp`, otherwise none is written; `profile_name="source"` names that profile after the image instead (`IMG.ARW.arp`, or `IMG.arp` with ART's strip-extension option) in the output's folder, ready to reopen the image with; the image's own sidecar is never written (an output in the image's own folder is `out_of_range`, even with `overwrite`) |
+| `export_batch(items?, source?, pattern?, profiles?, folder, format, quality?, bit_depth?, name="{stem}", write_profile=false, profile_name="output", overwrite=false)` | Exports many images into `folder` as `<name>` (`{stem}` = image file name without extension). Give `items` or `source`. Each item `{path, profiles?}` exports its working profile (must be open), or the `profiles` `.arp` files layered over ART's default (no need to open). `source` is a folder: every raw, jpeg or tiff image directly in it (ART's default parsed extensions; not subfolders), in file name order, narrowed by `pattern` (a glob on the file name, any case); the top-level `profiles` are layered over ART's default for each, else each is exported with its working profile (must be open). Per-image results: one failing image doesn't stop the others; colliding names fail the call before rendering; an image is never exported over itself (`exists`). With `write_profile` and `profile_name="source"` the folder ends up holding a ready-to-use sidecar set (`IMG.ARW.arp` beside each image's export); an image that lives in `folder` itself fails on its own (its real sidecar is never written). Runs up to two art-cli processes at once and reports progress per image |
+| `contact_sheet(images, folder?, label?, columns?, thumb_size=400)` | Renders the open `images` (paths, or a folder standing for the open images in it) from their working profiles as small thumbnails and saves a labelled grid (file name under each frame) as the next numbered pass, `<folder>/sheets/pass-NN[-label].jpg`, with `pass-NN[-label].json` beside it: the images, label, time and per image the profile keys changed since the last pass it was in. Earlier passes are never overwritten, so any two can be compared. `folder` (must exist; default: where the last `export_batch` wrote, never the source images' folder or the temp folder) holds the `sheets` subfolder; the result's `path` is the sheet to open. One failing image is a placeholder and an error in its entry. Same render pool and progress as `export_batch`; see [Contact sheets](#contact-sheets) |
+| `compare_passes(first, second, folder?, images?, columns=2)` | Puts the same frames of two passes side by side (cut from their sheets; `images`: paths or file names, default every frame rendered in both) and saves `compare-NN-MM.jpg` beside the passes (a repeat gets `-2`, `-3`); returns its `path` |
 | `queue_export(path, folder?, format?, name="{stem}", quality?, bit_depth?, profile?)` | Live only. Puts an image open in ART into ART's own export queue (the Queue tab) with its current profile (the sidecar is not saved); with `folder` and `format` the output is `<folder>/<name><suffix>`, else the queue's own folder, template and format apply. ART never replaces a file: a taken name gets `-1`, `-2` (unless its Preferences overwrite). `profile`: an `.arp` file layered over the working profile for this export. Starts by itself when the queue's "auto start" is on |
 | `queue_start()` | Live only. Starts ART's export queue (`empty_queue` when it has no entries) |
 | `queue_status()` | Live only. `running`, `auto_start`, and the entries in order with `state` (`queued`, `processing`, `failed`), `progress` and `error`. Exported entries leave the queue; a failed one goes to the end and the queue carries on with the others (it stops when only failed ones are left); `queue_start` tries them again |
@@ -62,6 +64,36 @@ Claude Desktop (`claude_desktop_config.json`):
 | `save_partial_profile(path, dest, overwrite?, exclude?)` | Writes only the keys the agent changed since load or the last save to `dest`; `exists` error if `dest` exists unless `overwrite`; writes nothing if nothing changed. `exclude`: `"Group"` or `"Group/Key"` entries left out (unknown name: `unknown_key`); settings that belong to one image (e.g. `Crop`) are usually excluded from a preset for other images; roll presets: see the `film-negative` skill |
 | `sample_spots(path, spots, size=32, space="working")` | What ART's own spot pickers read: for 1 to 16 `{x, y}` frame pixels (the coordinates of `[Crop]`), `avg` and `max` `[r, g, b]` of the `size` x `size` square (2 to 256), linear 0..65535, white-balanced, before any film inversion; `space` `working` or `input`. Out-of-frame spots are `out_of_range`; `space` `working` is the working profile's working space, `input` camera space. Workflows for film scans (neutral-spot fits, reference spot): see the skills below. Needs an ART build with spot sampling (`art-cli -x`; a release `art-cli` gives `unsupported`: point `--art-dir`/`ART_DIR` at the fork) |
 | `image_stats(path, max_size=1024, histogram=false)` | Renders like a whole-image preview (8-bit PNG, crop applied; a holder or border in the image counts in clipping and percentiles, so crop first; Live's preview is uncropped) and returns per channel `r`, `g`, `b`, `lum` (0.2126 R + 0.7152 G + 0.0722 B, rounded to the nearest 8-bit value): `mean`, `clipped_high`/`clipped_low` (fraction at 255/0), `percentiles` (0.1, 1, 5, 50, 95, 99, 99.9 %, nearest rank on the 256-bin histogram), `histogram` (256 counts, only when asked), and the rendered `width`/`height` |
+
+A whole `get_profile` is about 15k tokens (over 500 keys), which adds up over a
+roll. `groups` returns only the named `[Group]`s (a curated tool is in when a
+group its fields live in is), and `changed_only` only what differs from ART's
+default profile for the image (the one `open_image` starts from without a
+sidecar; whatever is not listed equals it); together they combine. The default
+is resolved with one `art-cli -d` run the first time `changed_only` needs it
+for an opened image, then kept (Render: until the image is reopened or reset; Live: for
+the life of the server, and only if `ART-cli` was found through `--art-dir`,
+`ART_DIR`, `PATH` or the install location, else `unsupported`). The Live
+editor's resolved values (the camera white balance's temperature and green, the
+full-frame rectangle of a disabled crop) are not in the default, so they show
+up as changed there.
+
+`edit_profile` returns the change set, not the profile:
+
+```json
+{"changed": {"Film Negative": {"RedRatio": "1.335"}, "RAW Bayer": {"Method": "amaze"}},
+ "implied": {"Film Negative": {"Enabled": "true"}},
+ "drawn": {"curve1": [[0, 0], [0.125, 0.0112], "...", [1, 1]]},
+ "warnings": []}
+```
+
+`changed` and `implied` are `[Group]` -> `Key` -> new value (the shape of
+`raw`); a key is in one of them, never both (`implied`: not asked for; re-setting
+a value is not a change). `drawn` is the line ART draws for each tone curve the
+call set (as `get_profile` reads it back, so no read is needed after a curve).
+`full=true` adds `profile`, the groups the call touched in the `get_profile`
+format; it is several times the rest of the result. The Live server adds
+`history_position`.
 
 `color_correction` grades RGB-mode regions (`regions[0]` is ART's region 1; a
 `null` entry is a region that isn't typed, other modes and non-area masks stay
@@ -106,7 +138,8 @@ points in 0..1, x strictly increasing) or `{"type": "linear"}`. x and y are sRGB
 own `DiagonalCurve`): `[x, y]` at x = 0, 0.125, ..., 1, y to 4 decimals (`null`
 for a NURBS with 3+ points, which isn't computed; omitted for `linear`). It is
 read-only: sending it back is allowed and ignored, so `get_profile` output
-round-trips. A spline can wiggle or overshoot, so `edit_profile` warns for a
+round-trips; `edit_profile` returns the `drawn` line of each curve it set. A
+spline can wiggle or overshoot, so `edit_profile` warns for a
 curve it set that clips to 0 or goes above 1 (ART clamps only below 0) or
 reverses, with the x range (e.g. `curve2 reverses for x 0.86-0.95`). ART
 resamples the curve before applying it, so `drawn` is close, not bit-exact, to
@@ -154,6 +187,47 @@ Results of `get_profile`, `edit_profile` and `describe_adjustments` carry a
   smaller side of `fastexport_resize_width`/`height` in `options`). `region` previews
   and bigger previews render without it.
 
+## Contact sheets
+
+`contact_sheet` is for judging a whole roll at a glance and keeping a record of
+how it got there. Each call is one *pass*:
+
+```
+<folder>/sheets/
+  pass-01-first-inversion.jpg      the grid (JPEG, quality 85)
+  pass-01-first-inversion.json     what the pass holds
+  pass-02-roll-ratios.jpg / .json
+  compare-01-02.jpg                compare_passes(1, 2)
+  profiles.json                    bookkeeping (below)
+```
+
+- Frames are rendered like a whole-image preview (`art-cli -f`, long edge
+  `thumb_size`, 32 to 1024, default 400) from the working profiles as they are
+  when the call starts, up to two at a time. `columns` frames per row (default
+  6, at most 20); the sheet gets a title line (pass, label, time) and each frame
+  its file name. Claude shows at most 2576 px on the long edge: a bigger sheet
+  carries a `warnings` entry, and fewer images or a smaller `thumb_size` keeps
+  the frames full size.
+- Numbers come from the files already in `sheets` (highest + 1), so a new
+  server process carries on. The label becomes part of the file name
+  (letters, digits and `_`; anything else turns into `-`) and is kept as given
+  in the JSON.
+- The JSON: `index`, `label`, `time` (local, ISO 8601), `sheet`, `thumb_size`,
+  `columns`, `width`, `height` and `images`, each with `path`, `name`, `box`
+  (`[x, y, w, h]` of its frame on the sheet), `error`, `since_pass` and
+  `changes`: the `{group, key, before, after}` of every profile value that
+  differs from the last pass this image was in (`[]` when none, null the first
+  time). `profiles.json` holds each image's complete working profile as of
+  that pass, which is what the next pass is compared with; it is rewritten each
+  pass and is not a pass record.
+- A pass is never overwritten: files are created exclusively and an
+  unwritable pass leaves nothing behind. Two overlapping calls get different
+  numbers.
+- Where: `folder` is the caller's choice. Without it the sheets go beside the
+  last `export_batch` output; with no batch run yet the call fails with
+  `out_of_range` rather than writing next to the source images or into the
+  temp folder.
+
 ## Skills
 
 `skills/` holds Claude skills that teach an agent a workflow with these tools
@@ -188,7 +262,8 @@ scan", "fix the colour of this faded slide"). The skills need the `art-render` s
 
 The typed curated-tool modules (`curves.py`, `colorcorrection.py`, `filmnegative.py`)
 live at the package root next to `schema.py`/`profile.py` and hold the tool-specific
-compile/read/maths, while `profile.py` stays pure.
+compile/read/maths, while `profile.py` stays pure. `contactsheet.py` composes the
+sheets (Pillow only).
 
 Layout of the Render server (`art_mcp/render/`), in three layers:
 
@@ -198,7 +273,7 @@ Layout of the Render server (`art_mcp/render/`), in three layers:
   loaded baseline for save's conflict check and the frame-size cache in the
   process, another store can keep them elsewhere). The `*_ops.py` modules
   (`profile_ops`, `preview_ops`, `export_ops`, `save_ops`, `metadata_ops`,
-  `sampling_ops`) hold one function per tool, taking the session first and the
+  `sampling_ops`, `sheet_ops`) hold one function per tool, taking the session first and the
   tool's arguments, returning the tool's Pydantic result and raising
   `RenderError(code, message)` (`errors.py`). Callable without MCP.
 - **Tools**: the `*_tools.py` modules each have a `register(server, session)`

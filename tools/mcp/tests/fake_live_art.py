@@ -177,6 +177,8 @@ class FakeEditor:
         image = self._image(req)
         if image is None:
             return self._not_open(req)
+        if "Version" in keyfile.loads(req["args"]["profile"]):
+            return fail("bad_request", "[Version] can't be changed by an edit")(req)
         self.applied.append(req["args"])
         merged = {g: dict(keys) for g, keys in image["history"][image["position"]][1].items()}
         for group, keys in keyfile.loads(req["args"]["profile"]).items():

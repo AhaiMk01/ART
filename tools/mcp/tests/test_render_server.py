@@ -123,7 +123,7 @@ async def test_raw_edit_changes_the_working_profile_and_the_next_render(server, 
         preview = await client.call_tool("render_preview", {"path": str(image)})
 
         assert not result.is_error, result.content
-        assert result.structured_content["changed"] == [edit]
+        assert result.structured_content["changed"] == {"Exposure": {"Compensation": "1.5"}}
         assert profile.structured_content["adjustments"]["exposure"]["compensation"] == 1.5
         assert b"Compensation=1.5" in Path(preview.structured_content["path"]).read_bytes()
 
@@ -236,6 +236,91 @@ async def test_write_profile_respects_overwrite_for_the_arp(server, image, tmp_p
         without = await export(client, image, out)
         assert not without.is_error, without.content
         assert (tmp_path / "final.jpg.arp").read_text() == "mine"
+
+
+async def test_profile_name_source_writes_the_profile_under_the_images_name_in_the_output_folder(
+    server, image, tmp_path
+):
+    out = tmp_path / "out"
+    out.mkdir()
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        await client.call_tool("edit_profile", {"path": str(image), "raw_edits": [set_compensation("1.5")]})
+        result = await export(client, image, out / "final.jpg", write_profile=True, profile_name="source")
+
+    assert not result.is_error, result.content
+    sidecar = out / "IMG_1.ARW.arp"
+    assert result.structured_content["profile_path"] == str(sidecar)
+    assert "Compensation=1.5" in sidecar.read_text()
+    assert sorted(p.name for p in out.iterdir()) == ["IMG_1.ARW.arp", "final.jpg"]
+    assert [p.name for p in image.parent.iterdir()] == ["IMG_1.ARW"]
+
+
+async def test_profile_name_source_honours_the_strip_extension_option(server, image, tmp_path):
+    (tmp_path / "config" / "options").write_text("[Profiles]\nParamsSidecarStripExtension=true\n")
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await export(client, image, tmp_path / "final.jpg", write_profile=True, profile_name="source")
+
+    assert not result.is_error, result.content
+    assert result.structured_content["profile_path"] == str(tmp_path / "IMG_1.arp")
+    assert (tmp_path / "IMG_1.arp").is_file()
+    assert not (tmp_path / "final.jpg.arp").exists()
+
+
+@pytest.mark.parametrize("overwrite", [False, True])
+async def test_profile_name_source_never_writes_the_images_own_sidecar(server, image, overwrite):
+    real = image.parent / "IMG_1.ARW.arp"
+    real.write_text("[Exposure]\nCompensation=-3\n")
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await export(
+            client, image, image.parent / "final.jpg", write_profile=True, profile_name="source", overwrite=overwrite
+        )
+
+    assert result.is_error and "out_of_range" in result.content[0].text
+    assert real.read_text() == "[Exposure]\nCompensation=-3\n"
+    assert not (image.parent / "final.jpg").exists()
+
+
+async def test_profile_name_source_respects_overwrite_for_the_arp(server, image, tmp_path):
+    out = tmp_path / "out"
+    out.mkdir()
+    (out / "IMG_1.ARW.arp").write_text("mine")
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        refused = await export(client, image, out / "final.jpg", write_profile=True, profile_name="source")
+
+        assert refused.is_error and "exists" in refused.content[0].text
+        assert not (out / "final.jpg").exists()
+        assert (out / "IMG_1.ARW.arp").read_text() == "mine"
+
+        replaced = await export(
+            client, image, out / "final.jpg", write_profile=True, profile_name="source", overwrite=True
+        )
+        assert not replaced.is_error, replaced.content
+        assert (out / "IMG_1.ARW.arp").read_text() != "mine"
+
+
+async def test_profile_name_source_needs_write_profile(server, image, tmp_path):
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await export(client, image, tmp_path / "final.jpg", profile_name="source")
+
+    assert result.is_error and "out_of_range" in result.content[0].text
+    assert not (tmp_path / "final.jpg").exists()
+
+
+async def test_profile_name_is_output_or_source(server, image, tmp_path):
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        tools = await client.list_tools()
+        result = await export(client, image, tmp_path / "final.jpg", write_profile=True, profile_name="raw")
+
+    schema = next(t for t in tools.tools if t.name == "export_image").input_schema
+    assert schema["properties"]["profile_name"]["enum"] == ["output", "source"]
+    assert result.is_error and "out_of_range" in result.content[0].text
+    assert not (tmp_path / "final.jpg").exists()
 
 
 @pytest.mark.parametrize(

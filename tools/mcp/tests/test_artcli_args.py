@@ -20,6 +20,12 @@ def test_resolve_run_uses_default_profile_without_sidecar():
     assert args == ["-O", str(OUT), "-f", "-Y", "-a", "-d", "-c", str(IMG)]
 
 
+def test_resolve_run_with_a_preset_layers_it_over_the_default_profile():
+    args = artcli.resolve_profile_args(IMG, OUT, sidecar=None, preset=Path("D:/roll/roll.arp"))
+
+    assert args == ["-O", str(OUT), "-f", "-Y", "-a", "-d", "-p", str(Path("D:/roll/roll.arp")), "-c", str(IMG)]
+
+
 def test_preview_run_layers_working_profile_then_resize():
     args = artcli.preview_args(
         IMG, OUT, profile=Path("C:/tmp/w.arp"), resize=Path("C:/tmp/r.arp"), fast=True

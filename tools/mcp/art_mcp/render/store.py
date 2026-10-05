@@ -37,6 +37,9 @@ class WorkingProfile:
     token: str
     """Identifies one load (open or reset) of the image; a save compares it to
     notice that the image was reloaded meanwhile."""
+    default: KeyFile | None = None
+    """ART's default profile for this image, once a read has needed it
+    (``RenderSession.default_profile``); kept until the image is reloaded."""
 
 
 class ProfileStore(Protocol):

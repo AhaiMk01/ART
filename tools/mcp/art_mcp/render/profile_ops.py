@@ -14,8 +14,11 @@ from art_mcp.filmnegative import Estimate, SamplingUnsupported, estimate_for
 from art_mcp.metadata import ExiftoolError
 from art_mcp.profile import Conflict as EditConflict
 from art_mcp.profile import (
+    EditResult,
     ProfileView,
     UnknownKey,
+    check_groups,
+    edit_result,
     edit_warnings,
     read_format,
     version_warnings,
@@ -23,7 +26,7 @@ from art_mcp.profile import (
 from art_mcp.render.errors import RenderError, render_error
 from art_mcp.render.metadata_ops import MetadataSummary, summarize
 from art_mcp.render.sampling_ops import sample_working_profile
-from art_mcp.render.session import ProfileSource, RenderSession
+from art_mcp.render.session import OpenSource, ProfileSource, RenderSession
 from art_mcp.render.store import WorkingProfile
 from art_mcp.sampling import SpotSamples
 from art_mcp.schema import (
@@ -39,7 +42,9 @@ from art_mcp.schema import describe_adjustments as schema_description
 
 class OpenedImage(BaseModel):
     path: str
-    profile_from: ProfileSource
+    profile_from: OpenSource
+    """Where the working profile came from: the image's `sidecar`, ART's
+    `default` profile, or the `profile` file given (over ART's default)."""
     art_version: str
     metadata: MetadataSummary | None = None
     """None when exiftool is unavailable or couldn't read the file; call
@@ -50,21 +55,16 @@ class ResetResult(BaseModel):
     profile_from: ProfileSource
 
 
-class EditResult(BaseModel):
-    changed: list[RawEdit]
-    """Each [Group] Key whose value this call changed, with its new value
-    (re-setting a value is not a change)."""
-    implied: list[RawEdit]
-    """The part of `changed` that was not asked for: a disabled tool enabled
-    because it was adjusted, White Balance switched to CustomTemp."""
-    warnings: list[str]
-
-
-def open_image(session: RenderSession, path: str) -> OpenedImage:
+def open_image(session: RenderSession, path: str, profile: str | None = None) -> OpenedImage:
     image = Path(path).resolve()
     if not image.is_file():
         raise render_error("not_found", f"{image} does not exist")
-    source = session.open(image)
+    preset = None
+    if profile is not None:
+        preset = Path(profile).resolve()
+        if not preset.is_file():
+            raise render_error("not_found", f"profile {preset} does not exist")
+    source = session.open(image, preset)
     summary = None
     if session.exiftool is not None:
         try:
@@ -80,9 +80,18 @@ def reset_profile(session: RenderSession, path: str, to: ProfileSource) -> Reset
     return ResetResult(profile_from=session.reset(path, to))
 
 
-def get_profile(session: RenderSession, path: str) -> ProfileView:
+def get_profile(
+    session: RenderSession, path: str, groups: list[str] | None = None, changed_only: bool = False
+) -> ProfileView:
     with session.image(path) as wp:
-        return read_format(wp.changes.profile)
+        profile = wp.changes.profile
+        try:
+            if groups is not None:
+                check_groups(profile, groups)  # before art-cli is asked for the default
+            default = session.default_profile(wp) if changed_only else None
+            return read_format(profile, groups=groups, default=default)
+        except UnknownKey as e:
+            raise render_error("unknown_key", str(e)) from e
 
 
 def film_estimate(
@@ -111,6 +120,7 @@ def edit_profile(
     path: str,
     adjustments: AdjustmentsArg = None,
     raw_edits: list[RawEdit] | None = None,
+    full: bool = False,
 ) -> EditResult:
     with session.image(path) as wp:
         try:
@@ -126,7 +136,7 @@ def edit_profile(
             raise render_error("conflict", str(e)) from e
         session.commit(wp)
         warnings = edit_warnings(parsed, wp.changes.profile) + outcome.warnings
-    return EditResult(changed=outcome.changed, implied=outcome.implied, warnings=warnings)
+        return edit_result(outcome, wp.changes.profile, parsed, raw_edits or [], warnings, full=full)
 
 
 def describe_adjustments(session: RenderSession) -> AdjustmentsDescription:
