@@ -101,6 +101,16 @@ CropRatio = Literal[
 """ART's crop ratios (``crop_ratios`` in src/gui/crop.cc)."""
 
 
+class RawEdit(BaseModel):
+    group: str
+    key: str
+    value: str
+
+    @property
+    def name(self) -> str:
+        return f"[{self.group}] {self.key}"
+
+
 class Crop(BaseModel):
     """Crop rectangle in the pixels of the image frame (the raw image after
     coarse rotation and the raw border); checked against the image's size.
@@ -328,10 +338,11 @@ class AreaMaskAdjustment(BaseModel):
     )
     feather: float | None = Field(None, ge=0, le=100, description="Feather of the whole mask")
     blur: float | None = Field(None, ge=0, le=500, description="Blur of the whole mask")
-    shapes: list[MaskShape] | None = Field(
+    shapes: list[MaskShape | None] | None = Field(
         None,
         description="Shapes by position: an entry edits the shape at its index (same type) or "
-        "replaces it (other type); an index one past the end appends",
+        "replaces it (other type); an index one past the end appends (null leaves a "
+        "position as it is; a position further past the end is out_of_range)",
     )
 
 
@@ -392,7 +403,7 @@ class ColorCorrection(BaseModel):
     )
 
 
-def F3(key: str, description: str, *, default: list[Any]) -> Any:
+def rgb_field(key: str, description: str, *, default: list[Any]) -> Any:
     """A curated field holding three numbers ``[r, g, b]`` (``rgb`` extra),
     each at least 0, stored as ``r;g;b``."""
     return Field(
@@ -444,13 +455,13 @@ class FilmNegative(BaseModel):
     blue_ratio: float | None = F(
         "BlueRatio", "Blue exponent / green exponent", ge=0.3, le=5, default=0.86
     )
-    ref_input: list[Annotated[float, Field(ge=0)]] | None = F3(
+    ref_input: list[Annotated[float, Field(ge=0)]] | None = rgb_field(
         "RefInput",
         "[r, g, b] >= 0: the negative's linear value (0..65535) of the reference spot, "
         "in the negative's terms; [0, 0, 0] = unset (ART estimates it from channel medians)",
         default=[0.0, 0.0, 0.0],
     )
-    ref_output: list[Annotated[float, Field(ge=0)]] | None = F3(
+    ref_output: list[Annotated[float, Field(ge=0)]] | None = rgb_field(
         "RefOutput",
         "[r, g, b] >= 0: the linear output (0..65535) the reference gets; grey [L, L, L] = "
         "neutral at level L, unequal = a deliberate tint; [0, 0, 0] = unset (65535/24 grey)",

@@ -813,8 +813,9 @@ of `Width`..`Roundness`).
 Editing:
 
 - Regions and shapes are matched **by position**; an entry changes only the
-  keys it gives. A `null` region skips that position. The first entry past the
-  end appends a region (further is `out_of_range`, naming the next free index).
+  keys it gives. A `null` region or shape skips that position. The first entry
+  past the end appends a region or shape (further is `out_of_range`, naming the
+  next free index: ART's loader drops a shape whose keys are incomplete).
   A shape entry whose `type` differs from the stored shape replaces it. There
   is no deleting a region or shape (raw edits).
 - Setting `r`/`g`/`b` on a region not in RGB mode switches it to RGB (`Mode_n`,

@@ -33,8 +33,8 @@ SAMPLE_SPOTS_DOC = """Read what ART's own pickers read: linear values of square 
 `spots`: 1 to 16 {x, y} in whole pixels of the frame (the raw image after
 coarse rotation and the raw border; the same coordinates as [Crop]), each
 the centre of a `size` x `size` square (2 to 256). Outside the frame is
-out_of_range. `space`: "working" or "input" (camera space); these are the two
-values of `[Film Negative] ColorSpace` (1 = working, 0 = input).
+out_of_range. `space`: "working" = the working profile's working space,
+"input" = camera space.
 
 Mapping a preview pixel (px, py) to the frame: a Render whole-image preview
 shows the crop when one is enabled, so x = crop.x + px * crop.w / preview_w
@@ -42,8 +42,7 @@ shows the crop when one is enabled, so x = crop.x + px * crop.w / preview_w
 the whole frame.
 
 Returns the frame `width`/`height` and per spot `avg` and `max` as [r, g, b]:
-linear, 0..65535, white-balanced, taken before the film negative tool (on a
-film negative these are the negative's values).
+linear, 0..65535, white-balanced, taken before any film inversion.
 
 Render server: needs an ART build with spot sampling (else `unsupported`).
 Live server: samples the open editor's profile, unsaved edits included.

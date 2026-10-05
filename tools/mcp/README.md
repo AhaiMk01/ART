@@ -56,7 +56,7 @@ Claude Desktop (`claude_desktop_config.json`):
 | `export_image(path, output, format, quality?, bit_depth?, write_profile=false, overwrite=false)` | Renders the working profile at full size as `jpeg` (quality 1..100, 8 bit), `png` (8/16 bit) or `tiff` (8/16/16f/32 bit) to `output` (its folder must exist); an existing `output` is refused unless `overwrite`; `write_profile` also saves `<output>.arp`, otherwise none is written |
 | `save_sidecar(path, on_conflict?)` | The only tool that writes the sidecar (named per ART's strip-extension option): atomic, previous one kept as `<sidecar>.bak`. If the sidecar changed on disk since it was loaded, asks the user (merge / overwrite / cancel) when the client supports elicitation; else fails with `conflict` listing the changed keys, and the agent calls again with `on_conflict`. `merge` applies only the agent's changed keys onto the current sidecar. Afterwards the saved file is the new baseline |
 | `save_partial_profile(path, dest, overwrite?, exclude?)` | Writes only the keys the agent changed since load or the last save to `dest`; `exists` error if `dest` exists unless `overwrite`; writes nothing if nothing changed. `exclude`: `"Group"` or `"Group/Key"` entries left out (unknown name: `unknown_key`); settings that belong to one image (e.g. `Crop`) are usually excluded from a preset for other images; roll presets: see the `film-negative` skill |
-| `sample_spots(path, spots, size=32, space="working")` | What ART's own spot pickers read: for 1 to 16 `{x, y}` frame pixels (the coordinates of `[Crop]`), `avg` and `max` `[r, g, b]` of the `size` x `size` square (2 to 256), linear 0..65535, white-balanced, before the film negative tool; `space` `working` or `input`. Out-of-frame spots are `out_of_range`; `space` matches `[Film Negative] ColorSpace` (1 = `working`, 0 = `input`). Workflows for film scans (neutral-spot fits, reference spot): see the skills below. Needs an ART build with spot sampling (`art-cli -x`; a release `art-cli` gives `unsupported`: point `--art-dir`/`ART_DIR` at the fork) |
+| `sample_spots(path, spots, size=32, space="working")` | What ART's own spot pickers read: for 1 to 16 `{x, y}` frame pixels (the coordinates of `[Crop]`), `avg` and `max` `[r, g, b]` of the `size` x `size` square (2 to 256), linear 0..65535, white-balanced, before any film inversion; `space` `working` or `input`. Out-of-frame spots are `out_of_range`; `space` `working` is the working profile's working space, `input` camera space. Workflows for film scans (neutral-spot fits, reference spot): see the skills below. Needs an ART build with spot sampling (`art-cli -x`; a release `art-cli` gives `unsupported`: point `--art-dir`/`ART_DIR` at the fork) |
 | `image_stats(path, max_size=1024, histogram=false)` | Renders like a whole-image preview (8-bit PNG, crop applied; a holder or border in the image counts in clipping and percentiles, so crop first; Live's preview is uncropped) and returns per channel `r`, `g`, `b`, `lum` (0.2126 R + 0.7152 G + 0.0722 B, rounded to the nearest 8-bit value): `mean`, `clipped_high`/`clipped_low` (fraction at 255/0), `percentiles` (0.1, 1, 5, 50, 95, 99, 99.9 %, nearest rank on the 256-bin histogram), `histogram` (256 counts, only when asked), and the rendered `width`/`height` |
 
 `color_correction` grades RGB-mode regions (`regions[0]` is ART's region 1; a
@@ -181,6 +181,10 @@ scan", "fix the colour of this faded slide"). The skills need the `art-render` s
 `sample_spots`).
 
 ## Development
+
+The typed curated-tool modules (`curves.py`, `colorcorrection.py`, `filmnegative.py`)
+live at the package root next to `schema.py`/`profile.py` and hold the tool-specific
+compile/read/maths, while `profile.py` stays pure.
 
 Layout of the Render server (`art_mcp/render/`), in three layers:
 

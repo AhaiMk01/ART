@@ -19,7 +19,7 @@ from mcp.types import CallToolResult, ContentBlock, ImageContent, TextContent
 from pydantic import BaseModel
 
 from art_mcp import artdir, keyfile
-from art_mcp.filmnegative import Estimate, SamplingUnsupported, Triple, current_estimate
+from art_mcp.filmnegative import Estimate, SamplingUnsupported, estimate_for
 from art_mcp.keyfile import KeyFile
 from art_mcp.live.channel import ArtNotRunning, ChannelError, ChannelTimeout, ControlChannel
 from art_mcp.metadata import Exiftool, Metadata, MetadataProblem, read_metadata
@@ -41,7 +41,6 @@ from art_mcp.sampling import (
 from art_mcp.profile import Conflict as EditConflict
 from art_mcp.profile import (
     ProfileView,
-    RawEdit,
     UnknownKey,
     WorkingChanges,
     crop_problem,
@@ -54,6 +53,7 @@ from art_mcp.schema import (
     Adjustments,
     AdjustmentsArg,
     AdjustmentsDescription,
+    RawEdit,
     parse_adjustments,
 )
 from art_mcp.schema import describe_adjustments as schema_description
@@ -471,18 +471,16 @@ def build_server(
     def film_estimate(path: str, adjustments: Adjustments | None, profile: KeyFile) -> Estimate | None:
         """ART's current Film Negative medians, sampled through the channel
         from the editor's profile (before the edit), when the edit needs them."""
-        tool = adjustments.film_negative if adjustments is not None else None
 
-        def sampler(spots: list[tuple[int, int]], size: int, space: str) -> list[Triple]:
+        def fetch(spots: list[tuple[int, int]], size: int, space: str) -> SpotSamples:
             try:
-                samples = fetch_spots(path, spots, size, space)
+                return fetch_spots(path, spots, size, space)
             except ToolError as e:
                 if str(e).startswith("unsupported:"):
                     raise SamplingUnsupported(UNSUPPORTED_SPOTS) from e
                 raise
-            return [(v.avg[0], v.avg[1], v.avg[2]) for v in samples.spots]
 
-        return current_estimate(tool, profile.get("Film Negative"), lambda: image_size(path), sampler)
+        return estimate_for(adjustments, profile, lambda: image_size(path), fetch)
 
     @server.tool(
         description=(

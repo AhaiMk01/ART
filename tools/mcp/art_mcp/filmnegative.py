@@ -18,7 +18,9 @@ import statistics
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from art_mcp.schema import AdjustmentError, FilmNegative
+from art_mcp.keyfile import KeyFile
+from art_mcp.sampling import SpotSamples
+from art_mcp.schema import Adjustments, AdjustmentError, FilmNegative, RawEdit
 
 GROUP = "Film Negative"
 MAXVALF = 65535.0
@@ -194,6 +196,23 @@ def current_estimate(
         return Estimate(None, str(e))
 
 
+def estimate_for(
+    adjustments: Adjustments | None,
+    profile: KeyFile,
+    frame: Callable[[], tuple[int, int] | None],
+    fetch: Callable[[list[tuple[int, int]], int, str], SpotSamples],
+) -> Estimate | None:
+    """ART's current Film Negative medians for an edit that needs them (None
+    when it needs none), sampled through ``fetch(points, size, space)``, which
+    returns the spots' samples and raises ``SamplingUnsupported`` itself."""
+    tool = adjustments.film_negative if adjustments is not None else None
+
+    def sampler(spots: list[tuple[int, int]], size: int, space: str) -> list[Triple]:
+        return [(v.avg[0], v.avg[1], v.avg[2]) for v in fetch(spots, size, space).spots]
+
+    return current_estimate(tool, profile.get(GROUP), frame, sampler)
+
+
 def luminance(rgb: Triple) -> float:
     return LUMA[0] * rgb[0] + LUMA[1] * rgb[1] + LUMA[2] * rgb[2]
 
@@ -210,9 +229,13 @@ def rendered(entries: Group, reference: Triple, current_in: Triple, current_out:
     return out[0], out[1], out[2]
 
 
+def _ref_output(value: Triple) -> RawEdit:
+    return RawEdit(group=GROUP, key="RefOutput", value=format_triple(value))
+
+
 def picker_edits(
     tool: FilmNegative, entries: Group | None, estimate: Estimate | None
-) -> tuple[list[tuple[str, str]], list[str]]:
+) -> tuple[list[RawEdit], list[str]]:
     """ART's picker rule as implied edits: the ``RefOutput`` (and warnings)
     that keep the image's brightness when ``ref_input`` changes without a
     ``ref_output``. ``L`` is the Rec.709 luminance of what the profile *as it
@@ -248,9 +271,9 @@ def picker_edits(
                 f"({why}): ref_output is set to grey 65535/24 = {DEFAULT_OUTPUT:.1f}, so the "
                 "image's brightness may change"
             )
-            return [("RefOutput", format_triple((DEFAULT_OUTPUT,) * 3))], warnings
+            return [_ref_output((DEFAULT_OUTPUT,) * 3)], warnings
     level = luminance(rendered(entries, new, current_in, current_out))
-    return [("RefOutput", format_triple((level,) * 3))], warnings
+    return [_ref_output((level,) * 3)], warnings
 
 
 def read_triple_field(stored: str | None) -> list[float] | None:

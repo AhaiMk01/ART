@@ -29,6 +29,7 @@ from art_mcp.curves import LinearCurve, PointCurve, curve_warnings, decode, draw
 from art_mcp.keyfile import KeyFile
 from art_mcp.schema import (
     PPVERSION,
+    RawEdit,
     TOOLS,
     Adjustments,
     crop_bounds_problem,
@@ -61,16 +62,6 @@ class ProfileView(BaseModel):
     raw: dict[str, dict[str, str]]
     """Every other [Group] -> Key -> value, as stored in the .arp."""
     warnings: list[str] = []
-
-
-class RawEdit(BaseModel):
-    group: str
-    key: str
-    value: str
-
-    @property
-    def name(self) -> str:
-        return f"[{self.group}] {self.key}"
 
 
 class UnknownKey(Exception):
@@ -130,8 +121,8 @@ class WorkingChanges:
                 continue
             if name == "color_correction":
                 cc_explicit, cc_implied = compile_color_correction(tool, self.profile.get(group))
-                explicit += [RawEdit(group=group, key=k, value=v) for k, v in cc_explicit]
-                implied += [RawEdit(group=group, key=k, value=v) for k, v in cc_implied]
+                explicit += cc_explicit
+                implied += cc_implied
                 continue
             values = {f: getattr(tool, f) for f in model.model_fields if getattr(tool, f) is not None}
             if not values:
@@ -168,7 +159,7 @@ class WorkingChanges:
                 implied += self._tone_curve_implied(group, values)
             if name == "film_negative":
                 picked, notes = picker_edits(tool, self.profile.get(group), film_estimate)
-                implied += [RawEdit(group=group, key=k, value=v) for k, v in picked]
+                implied += picked
                 warnings += notes
         return explicit, implied, warnings
 

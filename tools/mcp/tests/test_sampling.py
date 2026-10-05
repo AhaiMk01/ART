@@ -196,7 +196,7 @@ async def test_sample_spots_description_is_generic_and_points_at_the_skills(rend
     async with Client(server) as client:
         tools = {t.name: t for t in (await client.list_tools()).tools}
     text = tools["sample_spots"].description
-    for needle in ("crop.x", "ColorSpace", "0..65535", "film-negative and faded-slide skills"):
+    for needle in ("crop.x", "camera space", "0..65535", "film-negative and faded-slide skills"):
         assert needle in text
     for gone in ("RedRatio", "RefInput", "RefOutput", "65535/24"):
         assert gone not in text

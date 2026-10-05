@@ -23,6 +23,7 @@ from art_mcp.schema import (
     ColorCorrection,
     ColorCorrectionRegion,
     GradientShape,
+    RawEdit,
     RectangleShape,
 )
 
@@ -264,18 +265,26 @@ def _problem(where: str, message: str) -> AdjustmentError:
 
 
 def _edit_shapes(
-    mask_shapes: list[RectangleShape | GradientShape],
+    mask_shapes: list[RectangleShape | GradientShape | None],
     group: Group,
     region: int,
     explicit: dict[str, str],
     existing: int,
+    where: str,
 ) -> None:
     """Shapes by position into ``explicit``: an entry edits the shape at its
-    index, replaces it when the type differs, or appends after the last one
-    (so positions can't leave a gap)."""
+    index, replaces it when the type differs, or appends at the end. A gap is
+    refused: ART stops reading shapes at the first one missing a key."""
     count = existing
     for j, shape in enumerate(mask_shapes):
+        if shape is None:
+            continue
         kind = shape.type
+        if j > count:
+            raise _problem(
+                f"{where}.shapes.{j}",
+                f"region {region}'s mask has {count} shape(s), so a new shape goes at index {count}",
+            )
         if j == count or group.get(_shape_key("Type", j, region)) != kind:
             for base, default in SHAPE_DEFAULTS[kind]:
                 explicit[_shape_key(base, j, region)] = default
@@ -288,9 +297,9 @@ def _edit_shapes(
 
 def compile_edits(
     cc: ColorCorrection, group: Group | None
-) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
-    """The ``(key, value)`` edits of the ``[ColorCorrection]`` group a
-    ``color_correction`` request amounts to: (explicit, implied). A region
+) -> tuple[list[RawEdit], list[RawEdit]]:
+    """The edits of the ``[ColorCorrection]`` group a ``color_correction``
+    request amounts to: (explicit, implied). A region
     past the end is appended with every key ART writes; raises
     ``AdjustmentError`` for a position that would leave a gap or a mask edit
     on a mask that isn't typed."""
@@ -343,10 +352,16 @@ def compile_edits(
         else:
             implied[f"AreaMaskEnabled_{n}"] = "true"
         if mask.shapes:
-            _edit_shapes(mask.shapes, current, n, explicit, 0 if new else shape_count(current, n))
+            _edit_shapes(
+                mask.shapes, current, n, explicit, 0 if new else shape_count(current, n),
+                f"regions.{idx}.mask",
+            )
     touched = any(r is not None for r in regions)
     if cc.enabled is not None:
         explicit["Enabled"] = _text(cc.enabled)
     elif touched and current.get("Enabled") != "true":
         implied["Enabled"] = "true"
-    return list(explicit.items()), list(implied.items())
+    return (
+        [RawEdit(group=GROUP, key=k, value=v) for k, v in explicit.items()],
+        [RawEdit(group=GROUP, key=k, value=v) for k, v in implied.items()],
+    )

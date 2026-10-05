@@ -220,6 +220,33 @@ def test_a_shape_of_another_type_replaces_the_shape_with_a_complete_key_set():
     assert group["AreaMaskShapeFeather_2"] == "25"
 
 
+def test_a_shape_past_the_end_is_refused_rather_than_silently_dropped_by_ART():
+    changes = WorkingChanges(profile())
+    changes.edit(adj(color_correction={"regions": [None, {"mask": ELLIPSE}]}), [])
+    before = {g: dict(v) for g, v in changes.profile.items()}
+
+    with pytest.raises(AdjustmentError) as e:
+        changes.edit(adj(color_correction={"regions": [None, {"mask": {"shapes": [
+            None, None, {"type": "gradient"}]}}]}), [])  # fmt: skip
+
+    assert e.value.code == "out_of_range"
+    assert "1 shape(s)" in str(e.value) and "index 1" in str(e.value)
+    assert changes.profile == before
+
+
+def test_a_shape_at_the_count_is_appended_with_the_complete_key_set():
+    changes = WorkingChanges(profile())
+    changes.edit(adj(color_correction={"regions": [None, {"mask": ELLIPSE}]}), [])
+
+    changes.edit(adj(color_correction={"regions": [None, {"mask": {"shapes": [
+        {"type": "rectangle"}, {"type": "gradient", "x": 5}]}}]}), [])  # fmt: skip
+
+    group = changes.profile["ColorCorrection"]
+    appended = {k for k in group if k.startswith("AreaMask_1_")}
+    assert appended == {f"AreaMask_1_{base}_2" for base, _ in SHAPE_DEFAULTS["gradient"]}
+    assert group["AreaMask_1_X_2"] == "5"
+
+
 def test_a_region_past_the_end_must_be_the_next_one():
     changes = WorkingChanges(profile())
 

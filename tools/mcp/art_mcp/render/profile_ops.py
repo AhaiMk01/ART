@@ -10,12 +10,12 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from art_mcp.filmnegative import Estimate, SamplingUnsupported, Triple, current_estimate
+from art_mcp.filmnegative import Estimate, SamplingUnsupported, estimate_for
+from art_mcp.sampling import SpotSamples
 from art_mcp.metadata import ExiftoolError
 from art_mcp.profile import Conflict as EditConflict
 from art_mcp.profile import (
     ProfileView,
-    RawEdit,
     UnknownKey,
     edit_warnings,
     read_format,
@@ -31,6 +31,7 @@ from art_mcp.schema import (
     Adjustments,
     AdjustmentsArg,
     AdjustmentsDescription,
+    RawEdit,
     parse_adjustments,
 )
 from art_mcp.schema import describe_adjustments as schema_description
@@ -89,24 +90,20 @@ def film_estimate(
 ) -> Estimate | None:
     """ART's current Film Negative medians, sampled with art-cli ``-x`` from
     the working profile as it is before the edit, when the edit needs them."""
-    tool = adjustments.film_negative if adjustments is not None else None
-    if tool is None:
-        return None
 
     def frame() -> tuple[int, int] | None:
         whole = session.whole_frame(wp)
         return whole.w, whole.h
 
-    def sampler(spots: list[tuple[int, int]], size: int, space: str) -> list[Triple]:
+    def fetch(spots: list[tuple[int, int]], size: int, space: str) -> SpotSamples:
         try:
-            samples = sample_working_profile(session, wp, spots, size, space)
+            return sample_working_profile(session, wp, spots, size, space)
         except RenderError as e:
             if e.code == "unsupported":
                 raise SamplingUnsupported(e.message) from e
             raise
-        return [(v.avg[0], v.avg[1], v.avg[2]) for v in samples.spots]
 
-    return current_estimate(tool, wp.changes.profile.get("Film Negative"), frame, sampler)
+    return estimate_for(adjustments, wp.changes.profile, frame, fetch)
 
 
 def edit_profile(
