@@ -83,7 +83,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    program_files = Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "ART"
+    program_files = artdir.windows_install_root(os.environ)
     folder = artdir.find_art_dir(args.art_dir, os.environ, program_files)
     cli_path = artdir.find_cli(folder) if folder else None
     if cli_path is None:

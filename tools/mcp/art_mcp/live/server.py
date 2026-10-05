@@ -503,7 +503,7 @@ def main() -> None:
         "render_preview's `inline` argument overrides this per call",
     )
     args = parser.parse_args()
-    program_files = Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "ART"
+    program_files = artdir.windows_install_root(os.environ)
     art_dir = artdir.find_art_dir(args.art_dir, os.environ, program_files)
     channel = ControlChannel(artdir.user_config_dir(os.environ, art_dir=art_dir), timeout=args.timeout)
     exiftool_path = artdir.locate_exiftool(art_dir, os.environ, program_files)

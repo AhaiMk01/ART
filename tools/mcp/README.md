@@ -14,8 +14,10 @@ Design: [`docs/specs/mcp-servers.md`](../../docs/specs/mcp-servers.md).
   fails with `art_not_running`.
 
 Requires Python 3.11+, [uv](https://docs.astral.sh/uv/) and an ART install
-(found via `--art-dir`, `ART_DIR`, `PATH`, or the newest
-`C:\Program Files\ART\<version>`).
+(found via `--art-dir`, `ART_DIR`, `PATH`, then the usual install location:
+the newest `C:\Program Files\ART\<version>` on Windows, `ART.app` in
+`/Applications` or `~/Applications` on macOS, `/usr/local/bin`, `/usr/bin`,
+`~/.local/bin` or `/opt/ART*` on Linux; details in spec section 5).
 
 ## Install
 
@@ -45,7 +47,7 @@ Claude Desktop (`claude_desktop_config.json`):
 | Tool | Does |
 |---|---|
 | `open_image(path)` | Loads the image's processing profile (sidecar, else ART's default profile) as its working profile; also returns a short `metadata` summary (camera, lens, capture date, pixel size), or null if exiftool is unavailable or can't read the file |
-| `inspect_image(path, tags?)` | Metadata of an opened image from `exiftool` (`-j -n`; found beside `ART-cli`, else on PATH, else in the newest `C:\Program Files\ART\<version>`, so a fork build without one still works): make, model, lens, ISO, `shutter_seconds`, `aperture`, `focal_length_mm`, `capture_date` (local, ISO 8601), `width`, `height`, `orientation` (EXIF 1-8), each null when absent; `tags` adds named exiftool tags (e.g. `Software`) that the file has, under `tags` |
+| `inspect_image(path, tags?)` | Metadata of an opened image from `exiftool` (`-j -n`; found beside `ART-cli`, else on PATH, else in the system's usual install locations (spec section 5), so a fork build without one still works): make, model, lens, ISO, `shutter_seconds`, `aperture`, `focal_length_mm`, `capture_date` (local, ISO 8601), `width`, `height`, `orientation` (EXIF 1-8), each null when absent; `tags` adds named exiftool tags (e.g. `Software`) that the file has, under `tags` |
 | `render_preview(path, max_size=1024, region?, inline?)` | Renders the working profile to a JPEG and returns its path; see [Previews](#previews) |
 | `get_profile(path)` | The working profile: curated tools typed under `adjustments`, every other value as a string under `raw` (each value once) |
 | `edit_profile(path, adjustments?, raw_edits?)` | Changes the working profile: typed, range-checked `adjustments` (`exposure`, `white_balance`, `crop`, `rotation`, `local_contrast`, `sharpening`, `denoise`, `vignetting`, `lens_profile`, `tone_curve`, `color_correction`; `crop` is checked against the image's size) and/or `[Group] Key` raw edits; all or nothing. Lists `implied` changes (a disabled tool gets enabled; White Balance switches to `CustomTemp`; `histogram_matching` turned off when a curve is set) |
