@@ -66,6 +66,29 @@ def test_adjusting_a_disabled_tool_enables_it_as_an_implied_change():
     assert edit("Exposure", "Enabled", "true") in result.changed
 
 
+def test_a_tool_whose_enabled_key_is_missing_is_off_by_arts_default_and_gets_enabled():
+    # ART's built-in Vignetting Correction is off: a group without the key is off too.
+    profile = full_profile()
+    profile["Vignetting Correction"] = {"Amount": "0"}
+    changes = WorkingChanges(profile)
+
+    result = changes.edit(adj(vignetting={"amount": 20}), [])
+
+    assert result.implied == [edit("Vignetting Correction", "Enabled", "true")]
+    assert profile["Vignetting Correction"]["Enabled"] == "true"
+
+
+def test_a_tool_on_by_arts_default_with_no_enabled_key_is_not_re_enabled():
+    # ART's built-in Exposure is on: a group without the key needs no implied enable.
+    profile = full_profile()
+    del profile["Exposure"]["Enabled"]
+    changes = WorkingChanges(profile)
+
+    result = changes.edit(adj(exposure={"black": 0.5}), [])
+
+    assert result.implied == []
+
+
 def test_explicit_enabled_false_wins_over_the_implied_enable():
     profile = full_profile()
     profile["Exposure"]["Enabled"] = "false"

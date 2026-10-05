@@ -128,7 +128,7 @@ def decode(stored: str) -> dict[str, Any] | None:
         return None
     # ART writes doubles, so 1 can come back as 1.0000000000000002.
     numbers = [_snap(v) for v in numbers]
-    points = list(zip(numbers[0::2], numbers[1::2]))
+    points = list(zip(numbers[0::2], numbers[1::2], strict=True))
     if _points_problem(points):
         return None
     return {"type": name, "points": [[x, y] for x, y in points]}

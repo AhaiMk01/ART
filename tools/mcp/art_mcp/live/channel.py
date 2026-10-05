@@ -107,7 +107,9 @@ class ControlChannel:
         try:
             sock = socket.create_connection((self.host, found.port), timeout=self.timeout)
         except TimeoutError:
-            raise ArtNotRunning(f"ART (pid {found.pid}) did not accept a connection on port {found.port}; {START_HINT}") from None
+            raise ArtNotRunning(
+                f"ART (pid {found.pid}) did not accept a connection on port {found.port}; {START_HINT}"
+            ) from None
         except OSError as e:
             raise ArtNotRunning(f"can't connect to ART on port {found.port} ({e}); {START_HINT}") from None
         refused = ArtNotRunning(

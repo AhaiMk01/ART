@@ -15,6 +15,7 @@ from pydantic import BaseModel, TypeAdapter, ValidationError
 from art_mcp.colorcorrection import GROUP as CC_GROUP
 from art_mcp.colorcorrection import compile_edits as compile_color_correction
 from art_mcp.colorcorrection import is_region_key, read_color_correction
+from art_mcp.curves import LinearCurve, PointCurve, curve_warnings, decode, drawn_points, encode
 from art_mcp.filmnegative import GROUP as FILM_GROUP
 from art_mcp.filmnegative import (
     Estimate,
@@ -25,13 +26,13 @@ from art_mcp.filmnegative import (
     picker_edits,
     read_triple_field,
 )
-from art_mcp.curves import LinearCurve, PointCurve, curve_warnings, decode, drawn_points, encode
 from art_mcp.keyfile import KeyFile
 from art_mcp.schema import (
     PPVERSION,
-    RawEdit,
     TOOLS,
     Adjustments,
+    RawEdit,
+    art_default,
     crop_bounds_problem,
     field_group,
     field_key,
@@ -107,6 +108,16 @@ class WorkingChanges:
     def _value(self, group: str, key: str) -> str | None:
         return self.profile.get(group, {}).get(key)
 
+    def _disabled(self, group: str, model: type[BaseModel]) -> bool:
+        """Whether the tool is off: its stored `Enabled`, or ART's default for
+        it when the key is missing (as the read format reads it)."""
+        if "enabled" not in model.model_fields:
+            return False
+        stored = self._value(group, "Enabled")
+        if stored is None:
+            return art_default(model, "enabled") is False
+        return stored == "false"
+
     def _compile(
         self, adjustments: Adjustments, film_estimate: Estimate | None = None
     ) -> tuple[list[RawEdit], list[RawEdit], list[str]]:
@@ -146,7 +157,7 @@ class WorkingChanges:
                 )
                 explicit.append(edit)
             own_group = any(field_group(model, f, group) == group for f in values)
-            if "enabled" not in values and own_group and self._value(group, "Enabled") == "false":
+            if "enabled" not in values and own_group and self._disabled(group, model):
                 implied.append(RawEdit(group=group, key="Enabled", value="true"))
             if (
                 name == "white_balance"
@@ -338,9 +349,9 @@ def crop_problem(
     if all(v is None for v in given):
         return None
     current = crop_rect(profile)
-    if any(v is None and c < 0 for v, c in zip(given, current)):
+    if any(v is None and c < 0 for v, c in zip(given, current, strict=True)):
         return "the image has no crop rectangle yet: give x, y, w and h together"
-    x, y, w, h = (v if v is not None else c for v, c in zip(given, current))
+    x, y, w, h = (v if v is not None else c for v, c in zip(given, current, strict=True))
     frame_w, frame_h = frame()
     return crop_bounds_problem(x, y, w, h, frame_w=frame_w, frame_h=frame_h)
 

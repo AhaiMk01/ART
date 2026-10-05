@@ -3,12 +3,12 @@ import sys
 from pathlib import Path
 
 import pytest
+from fake_live_art import FakeArt, answer, fail
 from mcp.client.client import Client
 
 from art_mcp.live.channel import ControlChannel
 from art_mcp.live.server import build_server
 from art_mcp.metadata import Exiftool
-from fake_live_art import FakeArt, answer, fail
 
 pytestmark = pytest.mark.anyio
 

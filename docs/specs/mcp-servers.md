@@ -272,8 +272,9 @@ extracted one).
 **exiftool** is located separately from ART-cli, because a fork build has
 none: beside ART-cli in that folder first (also `lib/exiftool/` on macOS and
 Linux), else on PATH, else the locations in the table. If none is found
-`inspect_image` fails with `metadata_unavailable` and `open_image`'s metadata
-is null (both servers).
+`inspect_image` fails with `metadata_unavailable` (both servers) and the
+Render server's `open_image` reports its metadata as null (the Live server's
+`open_image` has no metadata; use `inspect_image`).
 
 ART's **config folder** (its `options` file, and the Live server's discovery
 file) follows ART's own rules (`Options::load`): `ART_SETTINGS` if set; else

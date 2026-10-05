@@ -210,7 +210,7 @@ as wp:`, which holds that image's lock; after changing one it calls
 
 ```sh
 uv run pytest                      # unit + fake-art-cli tests
-uv run mypy --strict art_mcp       # typecheck
+uv run ruff check art_mcp tests    # lint (rules in pyproject.toml)
 ART_MCP_TEST_RAW=/path/to/raw uv run pytest tests/test_integration_art.py
 ```
 

@@ -128,7 +128,9 @@ class Crop(BaseModel):
     y: int | None = F("Y", "Top edge", ge=0, unit="px", default=-1)
     w: int | None = F("W", "Width", ge=1, unit="px", default=-1)
     h: int | None = F("H", "Height", ge=1, unit="px", default=-1)
-    fixed_ratio: bool | None = F("FixedRatio", "Keep `ratio` when the rectangle is edited in ART; false = free rectangle", default=True)
+    fixed_ratio: bool | None = F(
+        "FixedRatio", "Keep `ratio` when the rectangle is edited in ART; false = free rectangle", default=True
+    )
     ratio: CropRatio | None = F("Ratio", "Aspect ratio", default="As Image")
     orientation: Literal["Landscape", "Portrait", "As Image"] | None = F(
         "Orientation", "Orientation of the ratio", default="As Image"
@@ -513,6 +515,11 @@ def _extra(model: type[BaseModel], name: str) -> dict[str, Any]:
 
 def field_key(model: type[BaseModel], name: str) -> str:
     return str(_extra(model, name)["key"])
+
+
+def art_default(model: type[BaseModel], name: str) -> Any:
+    """ART's built-in value for a field, what a key missing from the profile means."""
+    return _extra(model, name).get("art_default")
 
 
 def field_group(model: type[BaseModel], name: str, tool_group: str) -> str:

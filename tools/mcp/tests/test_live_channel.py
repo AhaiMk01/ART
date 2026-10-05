@@ -3,9 +3,9 @@ import os
 import socket
 
 import pytest
+from fake_live_art import FakeArt, answer, fail
 
 from art_mcp.live.channel import ArtNotRunning, ChannelError, ChannelTimeout, ControlChannel
-from fake_live_art import FakeArt, answer, fail
 
 
 @pytest.fixture

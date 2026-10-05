@@ -24,6 +24,15 @@ from art_mcp.keyfile import KeyFile
 from art_mcp.live.channel import ArtNotRunning, ChannelError, ChannelTimeout, ControlChannel
 from art_mcp.metadata import Exiftool, Metadata, MetadataProblem, read_metadata
 from art_mcp.preview import PreviewFolder, default_root, sweep_stale
+from art_mcp.profile import Conflict as EditConflict
+from art_mcp.profile import (
+    ProfileView,
+    UnknownKey,
+    WorkingChanges,
+    crop_problem,
+    edit_warnings,
+    read_format,
+)
 from art_mcp.render.preview_tools import MAX_PREVIEW_SIZE, PREVIEW_SIZE, Preview
 from art_mcp.sampling import (
     DEFAULT_SIZE,
@@ -33,19 +42,12 @@ from art_mcp.sampling import (
     ImageStats,
     Spot,
     SpotSamples,
-    image_stats as compute_stats,
     check_spots,
     check_stats_size,
     parse_spots_reply,
 )
-from art_mcp.profile import Conflict as EditConflict
-from art_mcp.profile import (
-    ProfileView,
-    UnknownKey,
-    WorkingChanges,
-    crop_problem,
-    edit_warnings,
-    read_format,
+from art_mcp.sampling import (
+    image_stats as compute_stats,
 )
 from art_mcp.schema import (
     TOOLS,
@@ -449,8 +451,12 @@ def build_server(
             except ChannelError as e:
                 if e.code == "unknown_op":
                     raise tool_error("unsupported", UNSUPPORTED_SPOTS) from e
-                if e.code != "busy" or time.monotonic() >= deadline:
+                if e.code != "busy":
                     raise channel_error(e) from e
+                if time.monotonic() >= deadline:
+                    raise tool_error(
+                        "timeout", f"ART's editor stayed busy for {ART_PREVIEW_WAIT:.0f} s; try again"
+                    ) from e
             except (ArtNotRunning, ChannelTimeout) as e:
                 raise channel_error(e) from e
             time.sleep(BUSY_RETRY_SECONDS)

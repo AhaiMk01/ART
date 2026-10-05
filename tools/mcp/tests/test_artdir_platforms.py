@@ -103,7 +103,8 @@ def test_linux_config_dir_follows_glib(tmp_path):
     home = tmp_path / "home"
     kw = {"system": "linux", "home": home}
     assert artdir.user_config_dir({}, **kw) == home / ".config" / "ART"
-    assert artdir.user_config_dir({"HOME": str(tmp_path / "other")}, system="linux") == tmp_path / "other" / ".config" / "ART"
+    other = tmp_path / "other"
+    assert artdir.user_config_dir({"HOME": str(other)}, system="linux") == other / ".config" / "ART"
     xdg = tmp_path / "xdg"
     assert artdir.user_config_dir({"XDG_CONFIG_HOME": str(xdg)}, **kw) == xdg / "ART"
     # GLib ignores a relative XDG_CONFIG_HOME; LOCALAPPDATA means nothing here

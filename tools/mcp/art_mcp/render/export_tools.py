@@ -1,6 +1,9 @@
 """Export tool: export_image (adapter over ``export_ops``)."""
 
+from typing import Annotated
+
 from mcp.server.mcpserver import MCPServer
+from pydantic import Field
 
 from art_mcp.render import export_ops as ops
 from art_mcp.render.adapter import as_tool_errors
@@ -13,7 +16,8 @@ def register(server: MCPServer, session: RenderSession) -> None:
     def export_image(
         path: str,
         output: str,
-        format: str,
+        # The enum lists the values in the schema; a wrong one still gets out_of_range.
+        format: Annotated[str, Field(json_schema_extra={"enum": ["jpeg", "tiff", "png"]})],
         quality: int | None = None,
         bit_depth: int | str | None = None,
         write_profile: bool = False,

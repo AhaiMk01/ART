@@ -5,12 +5,12 @@ import sys
 from pathlib import Path
 
 import pytest
+from fake_live_art import FakeArt, answer, fail
 from mcp.client.client import Client
 
 from art_mcp.preview import PreviewFolder
 from art_mcp.render.artcli import ArtCli
 from art_mcp.render.server import build_server
-from fake_live_art import FakeArt, answer, fail
 
 FAKE = Path(__file__).with_name("fake_artcli.py")
 pytestmark = pytest.mark.anyio

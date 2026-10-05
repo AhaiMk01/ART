@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from fake_live_art import FakeArt, FakeEditor, answer
 from mcp.client.client import Client
 
 from art_mcp import keyfile
@@ -28,7 +29,6 @@ from art_mcp.profile import RawEdit, WorkingChanges, read_format
 from art_mcp.render.artcli import ArtCli
 from art_mcp.render.server import build_server as build_render
 from art_mcp.schema import AdjustmentError, describe_adjustments, parse_adjustments
-from fake_live_art import FakeArt, FakeEditor, answer
 
 FAKE = Path(__file__).with_name("fake_artcli.py")
 pytestmark = pytest.mark.anyio

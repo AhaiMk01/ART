@@ -1,5 +1,5 @@
-import json
 import base64
+import json
 import sys
 from pathlib import Path
 
@@ -72,7 +72,8 @@ async def test_same_image_by_another_spelling_is_the_same_image(server, image):
     other_spelling = str(image.parent / ".." / image.parent.name / image.name)
     async with Client(server) as client:
         await client.call_tool("open_image", {"path": str(image)})
-        result = await client.call_tool("render_preview", {"path": other_spelling.upper() if sys.platform == "win32" else other_spelling})
+        spelled = other_spelling.upper() if sys.platform == "win32" else other_spelling
+        result = await client.call_tool("render_preview", {"path": spelled})
 
     assert not result.is_error, result.content
 
@@ -172,6 +173,14 @@ async def test_export_formats_and_bit_depth_reach_art_cli(server, image, tmp_pat
         assert not tiff.is_error and not png.is_error, (tiff.content, png.content)
         assert (tmp_path / "a.tif").read_bytes().startswith(b"II*")
         assert (tmp_path / "a.png").read_bytes().startswith(b"\x89PNG")
+
+
+async def test_export_schema_lists_the_formats(server):
+    async with Client(server) as client:
+        tools = await client.list_tools()
+
+    schema = next(t for t in tools.tools if t.name == "export_image").input_schema
+    assert schema["properties"]["format"]["enum"] == ["jpeg", "tiff", "png"]
 
 
 async def test_bit_depth_may_be_given_as_a_number(server, image, tmp_path):

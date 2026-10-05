@@ -15,10 +15,10 @@ from art_mcp.render.session import RenderSession
 from art_mcp.render.store import WorkingProfile
 from art_mcp.sampling import (
     DEFAULT_SIZE,
+    UNSUPPORTED_SPOTS,
     ImageStats,
     Spot,
     SpotSamples,
-    UNSUPPORTED_SPOTS,
     check_spots,
     check_stats_size,
     parse_spots_output,

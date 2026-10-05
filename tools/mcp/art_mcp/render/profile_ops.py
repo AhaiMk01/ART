@@ -11,7 +11,6 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from art_mcp.filmnegative import Estimate, SamplingUnsupported, estimate_for
-from art_mcp.sampling import SpotSamples
 from art_mcp.metadata import ExiftoolError
 from art_mcp.profile import Conflict as EditConflict
 from art_mcp.profile import (
@@ -26,6 +25,7 @@ from art_mcp.render.metadata_ops import MetadataSummary, summarize
 from art_mcp.render.sampling_ops import sample_working_profile
 from art_mcp.render.session import ProfileSource, RenderSession
 from art_mcp.render.store import WorkingProfile
+from art_mcp.sampling import SpotSamples
 from art_mcp.schema import (
     AdjustmentError,
     Adjustments,

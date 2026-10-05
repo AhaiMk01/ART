@@ -4,12 +4,11 @@ edit_profile, describe_adjustments (adapters over ``profile_ops``)."""
 from mcp.server.mcpserver import MCPServer
 
 from art_mcp.profile import ProfileView
-from art_mcp.schema import RawEdit
 from art_mcp.render import profile_ops as ops
 from art_mcp.render.adapter import as_tool_errors
 from art_mcp.render.profile_ops import EditResult, OpenedImage, ResetResult
 from art_mcp.render.session import ProfileSource, RenderSession
-from art_mcp.schema import AdjustmentsArg, AdjustmentsDescription
+from art_mcp.schema import AdjustmentsArg, AdjustmentsDescription, RawEdit
 
 
 def register(server: MCPServer, session: RenderSession) -> None:

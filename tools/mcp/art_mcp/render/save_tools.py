@@ -71,7 +71,10 @@ def register(server: MCPServer, session: RenderSession) -> None:
 
     @server.tool()
     def save_partial_profile(
-        path: str, dest: str, overwrite: bool = False, exclude: list[str] = []
+        path: str,
+        dest: str,
+        overwrite: bool = False,
+        exclude: list[str] = [],  # noqa: B006 - never mutated; the schema shows default []
     ) -> PartialProfileResult:
         """Write only the values the agent changed since the profile was
         loaded or last saved to `dest`, as a partial processing profile

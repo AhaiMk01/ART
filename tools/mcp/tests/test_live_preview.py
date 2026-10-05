@@ -4,12 +4,12 @@ import time
 from pathlib import Path
 
 import pytest
+from fake_live_art import FakeArt, fail, write_preview
 from mcp.client.client import Client
 
 from art_mcp.live.channel import ControlChannel
 from art_mcp.live.server import build_server
 from art_mcp.preview import PreviewFolder
-from fake_live_art import FakeArt, fail, write_preview
 
 pytestmark = pytest.mark.anyio
 

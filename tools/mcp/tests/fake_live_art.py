@@ -4,9 +4,9 @@ JSON-lines protocol, with its discovery file in a temp config folder."""
 import json
 import os
 import socket
-import time
 import struct
 import threading
+import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any

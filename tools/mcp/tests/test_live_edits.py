@@ -4,12 +4,12 @@ editor, through an in-process MCP client."""
 import json
 
 import pytest
+from fake_live_art import FakeArt, FakeEditor
 from mcp.client.client import Client
 
 from art_mcp import keyfile
 from art_mcp.live.channel import ControlChannel
 from art_mcp.live.server import build_server
-from fake_live_art import FakeArt, FakeEditor
 
 pytestmark = pytest.mark.anyio
 

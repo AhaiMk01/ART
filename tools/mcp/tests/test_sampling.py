@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from fake_live_art import FakeArt, FakeEditor, answer, fail, write_preview
 from mcp.client.client import Client
 from PIL import Image
 
@@ -14,7 +15,6 @@ from art_mcp.preview import PreviewFolder
 from art_mcp.render.artcli import ArtCli
 from art_mcp.render.server import build_server as build_render
 from art_mcp.sampling import image_stats
-from fake_live_art import FakeArt, FakeEditor, answer, fail, write_preview
 
 FAKE = Path(__file__).with_name("fake_artcli.py")
 pytestmark = pytest.mark.anyio
@@ -361,6 +361,21 @@ async def test_live_sample_spots_retries_while_art_is_busy(art, tmp_path):
 
     assert not result.is_error, result.content
     assert len(requests(art, "sample_spots")) == 3
+
+
+async def test_live_sample_spots_still_busy_at_the_deadline_is_a_timeout(art, tmp_path, monkeypatch):
+    import art_mcp.live.server as live_server
+
+    monkeypatch.setattr(live_server, "ART_PREVIEW_WAIT", 0.3)
+    monkeypatch.setattr(live_server, "BUSY_RETRY_SECONDS", 0.05)
+    photo = str(tmp_path / "a.ARW")
+    FakeEditor(art).add(photo, EDITOR_PROFILE)
+    art.ops["sample_spots"] = fail("busy", "the editor is processing")
+
+    async with Client(build_live(ControlChannel(art.config_dir))) as client:
+        result = await client.call_tool("sample_spots", {"path": photo, "spots": [{"x": 1, "y": 1}]})
+
+    assert result.is_error and "timeout:" in result.content[0].text, result.content
 
 
 async def test_live_sample_spots_unknown_op_is_unsupported(art, tmp_path):

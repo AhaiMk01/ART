@@ -89,7 +89,7 @@ if "-x" in args:
                 "avg": [int(x), int(y), int(size)],
                 "max": [int(x) + 1, int(y) + 1, int(size) + 1],
             }
-            for x, y in zip(coords[::2], coords[1::2])
+            for x, y in zip(coords[::2], coords[1::2], strict=True)
         ]
         print("some banner line")
         print("ART-SPOTS " + json.dumps({"width": 6000, "height": 4000, "spots": spots}))
