@@ -55,6 +55,16 @@ def test_exit_codes_are_explained(cli, monkeypatch, image, tmp_path, code, meani
     assert "fake failure" in str(e.value)
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="a Windows NTSTATUS exit code")
+def test_a_missing_dll_is_explained(cli, monkeypatch, image, tmp_path):
+    monkeypatch.setenv("FAKE_ARTCLI_EXIT", str(-1073741515))  # 0xC0000135
+
+    with pytest.raises(ArtCliError) as e:
+        cli.run(["-o", str(tmp_path / "o.jpg"), "-c", str(image)])
+
+    assert "DLL" in str(e.value) and "PATH" in str(e.value)
+
+
 def peak_overlap(log: Path) -> tuple[int, int]:
     """(runs, most that ran at once) from the fake's event files."""
     events = sorted(p.name.split("-", 2)[0::2] for p in log.iterdir())

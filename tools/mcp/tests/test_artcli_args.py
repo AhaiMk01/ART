@@ -36,7 +36,7 @@ PROFILE = Path("C:/tmp/w.arp")
 
 
 def export(fmt, quality=None, bit_depth=None, write_profile=False):
-    return artcli.export_args(IMG, OUT, PROFILE, fmt, quality, bit_depth, write_profile)
+    return artcli.export_args(IMG, OUT, [PROFILE], fmt, quality, bit_depth, write_profile)
 
 
 def test_jpeg_export_is_full_size_with_quality_and_no_resize_flag():

@@ -8,6 +8,7 @@ Every run passes ``-Y`` (the server writes only into its own temp folder) and
 import subprocess
 import sys
 import threading
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
@@ -74,15 +75,18 @@ def spots_args(
 def export_args(
     image: Path,
     output: Path,
-    profile: Path,
+    profiles: Sequence[Path],
     format: str,
     quality: int | None,
     bit_depth: str | None,
     write_profile: bool,
+    *,
+    default_base: bool = False,
 ) -> list[str]:
-    """A full-size render of ``profile`` (no ``-f``). With ``write_profile``,
-    ``-O`` also writes ``<output>.arp``. Raises ValueError for a format,
-    quality or bit depth art-cli doesn't take."""
+    """A full-size render (no ``-f``) of ``profiles`` layered in order, over
+    ART's default profile when ``default_base`` (``-d``). With
+    ``write_profile``, ``-O`` also writes ``<output>.arp``. Raises ValueError
+    for a format, quality or bit depth art-cli doesn't take."""
     if format not in EXPORT_BIT_DEPTHS:
         raise ValueError(f"format must be one of {', '.join(EXPORT_BIT_DEPTHS)}, not {format!r}")
     if quality is not None and format != "jpeg":
@@ -101,7 +105,9 @@ def export_args(
         format_flags.append(f"-b{bit_depth}")
     return [
         "-O" if write_profile else "-o", str(output), "-Y", "-a",
-        "-p", str(profile), *format_flags, "-c", str(image),
+        *(["-d"] if default_base else []),
+        *(arg for layer in profiles for arg in ("-p", str(layer))),
+        *format_flags, "-c", str(image),
     ]  # fmt: skip
 
 
@@ -123,6 +129,7 @@ EXIT_MEANINGS = {
     -1: "unknown option or help requested",
     1: "stray argument on the command line",
     2: "no input, or the input's extension was skipped",
+    -1073741515: "a DLL it needs was not found (Windows 0xC0000135): put ART's DLL folder on the server's PATH",
 }
 
 
