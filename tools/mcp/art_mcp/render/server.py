@@ -23,6 +23,7 @@ from art_mcp.preview import PreviewFolder, default_root, sweep_stale
 from art_mcp.render import (
     export_tools,
     metadata_tools,
+    neutrals_tools,
     preset_tools,
     preview_tools,
     profile_tools,
@@ -55,13 +56,14 @@ def build_server(
         "art-render",
         instructions=(
             "Process raw images with ART without its editor. Call open_image "
-            "first; render_preview returns a JPEG path to open and look at."
+            "first; render_preview returns a JPEG path to open and look at. To look at several "
+            "frames at once, contact_sheet(record=false) renders them into one image."
         ),
         lifespan=lifespan,
     )
     for feature in (
         profile_tools, preset_tools, preview_tools, export_tools, save_tools, metadata_tools, sampling_tools,
-        sheet_tools,
+        neutrals_tools, sheet_tools,
     ):
         feature.register(server, session)
     return server

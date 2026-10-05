@@ -386,8 +386,12 @@ async def test_color_correction_regions_are_sent_whole_and_read_back_typed(art, 
     assert result.structured_content["implied"] == {
         "ColorCorrection": {"Mode_1": "RGB", "Enabled": "true", "AreaMaskEnabled_2": "true"}
     }
+    assert result.structured_content["created"] == {"ColorCorrection": [
+        "region 2 (78 keys at their defaults)", "region 2 mask shape 0 (5 keys at their defaults)"]}  # fmt: skip
+    assert "HSLGamma_2" not in result.structured_content["changed"]["ColorCorrection"]
     sent = keyfile.loads(editor.applied[0]["profile"])["ColorCorrection"]
     assert sent["Mode_2"] == "RGB" and sent["AreaMaskType_2"] == "rectangle"
+    assert sent["HSLGamma_2"] == "2.3999999999999999" and sent["AreaMaskShapeBlur_2"] == "0"  # sent whole all the same
     assert sent["SlopeR_1"] == "1" and sent["HSLGamma_1"] == "2.3999999999999999"  # region 1 whole
     assert editor.applied[0]["label"] == "Agent: Color Correction"
     typed = json.loads(text_of(profile))["adjustments"]["color_correction"]

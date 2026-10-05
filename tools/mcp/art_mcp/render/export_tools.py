@@ -67,9 +67,9 @@ def register(server: MCPServer, session: RenderSession) -> None:
         extension. Give `items`, or `source`: a folder (not its subfolders)
         whose raw, jpeg and tiff images are all exported, in file name order,
         optionally only those whose name matches `pattern` (a glob, any
-        case, e.g. `FILM_*`). Each item exports its working profile (open it
+        case, e.g. `IMG_01*`). Each item exports its working profile (open it
         first), or with `profiles` the given `.arp` files layered over ART's
-        default profile (e.g. a roll preset then the frame's partial profile;
+        default profile (e.g. a set-wide preset, then the image's own partial profile;
         no need to open it). With `source`, the top-level `profiles` do the
         same for every image, else each is exported with its working profile.
         Format, `quality`, `bit_depth`, `write_profile`, `profile_name`

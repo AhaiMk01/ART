@@ -103,7 +103,7 @@ def register(server: MCPServer, session: RenderSession) -> None:
         one image (e.g. `Crop`) are usually excluded from a preset meant for
         other images.
 
-        Workflows for film scans: see the film-negative and faded-slide
-        skills (tools/mcp/skills)."""
+        Step-by-step workflows (film negatives, faded slides): see the
+        skills in tools/mcp/skills."""
         with as_tool_errors():
             return ops.save_partial_profile(session, path, dest, overwrite, exclude, vs)

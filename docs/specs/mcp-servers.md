@@ -51,19 +51,22 @@ From [Implementation language and SDK](https://github.com/AhaiMk01/ART/issues/7)
   the allowed range or values, for example `exposure.compensation=99 is outside
   -12..12 EV` or `tone_curve.mode='x' is not one of: Standard, ...`; several
   problems are joined with `; `.
-- **Dependencies:** Pillow is a runtime dependency (`image_stats` decodes the
-  rendered PNG with it, `contact_sheet` composes the sheets).
+- **Dependencies:** Pillow is a runtime dependency (`image_stats` and
+  `suggest_neutrals` decode the rendered PNG with it, `contact_sheet` composes
+  the sheets).
 
 ```
 tools/mcp/
   pyproject.toml, uv.lock
   art_mcp/
     schema.py       # curated adjustments (Pydantic), PPVERSION it targets
+    compactschema.py # base of those models: the compact JSON input schema (3.3)
     keyfile.py      # GLib KeyFile (.arp) reader/writer
     profile.py      # read format, adjustments+raw edits -> partial profile
     preview.py      # temp folder, JPEG files, inline ImageContent
     metadata.py     # exiftool wrapper
     contactsheet.py # contact-sheet composition (Pillow)
+    neutrals.py     # neutral-candidate scoring and selection (pure, Pillow)
     artdir.py       # locating ART-cli.exe / exiftool.exe / config dir
     render/         # Render server
       server.py         # build_server: wiring only; main() entry point
@@ -80,7 +83,8 @@ tools/mcp/
       sheet_tools.py    # contact_sheet, compare_passes
       sheet_changes.py  # what a pass changed (pure): short numbers, grouping
       save_tools.py     # save_sidecar, save_partial_profile
-      metadata_tools.py # inspect_image
+      metadata_tools.py # inspect_image, inspect_images
+      neutrals_tools.py # suggest_neutrals
     live/           # Live server: control channel client, tools
   tests/
 ```
@@ -127,7 +131,27 @@ shapes for them are a later, separate effort.
   description per field). Ranges mirror ART's GUI `Adjuster` ranges; the
   engine defines ranges only for White Balance (`src/engine/colortemp.h`).
 - Exposed in `edit_profile`'s input schema and returned by
-  `describe_adjustments`.
+  `describe_adjustments`. The input schema is the compact form: every client
+  loads it with every session, and pydantic's own was 29,984 characters (compact
+  JSON), over 80% of the Render server's input schemas. It drops what a
+  caller doesn't need (a `title` on every model and field, `default: null`,
+  `additionalProperties: false`, the `anyOf: [<type>, null]` wrapper on every
+  optional field: leaving a field out, or null, means "not set"; ART's stored
+  keys, defaults and conversions; the read-only `drawn` of a curve), folds
+  a field's unit into its description (`Exposure compensation (EV)`), shows of
+  a tool's docstring only its first paragraph (the rest is reference text) and
+  defines the shapes that repeat once under `$defs` (the channel `{slope,
+  offset, power}` of a Color Correction region, the point and linear curves,
+  the mask shapes). A list position that may be null (`regions`, `shapes`)
+  keeps its null alternative. The result is 16,599 characters (-45%); the
+  whole listing of input schemas is 22,961 characters on Render and 19,698 on
+  Live, from 36,346 and 33,083. `describe_adjustments` keeps the full
+  documentation of each field (description, unit, range, default,
+  `[Group] Key`) and of each tool (the whole docstring). The schema is built
+  by `CompactModel` (`compactschema.py`), the base of the models; validation is
+  the models' own and unchanged, so the same requests are accepted and
+  rejected as before (`tests/test_schema.py`), and `tests/test_schema_size.py`
+  pins the size.
 - The schema records the `PPVERSION` it was written for (currently 1045, in
   `src/utils/ppversion.h`). If ART reports a newer one, results carry a
   warning; edits keep working.
@@ -180,6 +204,7 @@ per image for the life of the server) and never for a read without
 {
   "changed":  { "Film Negative": { "RedRatio": "1.335" }, "RAW Bayer": { "Method": "amaze" } },
   "implied":  { "Film Negative": { "Enabled": "true" } },
+  "created":  { "ColorCorrection": ["region 2 (78 keys at their defaults)"] },
   "drawn":    { "curve1": [[0, 0], [0.125, 0.0112], "...", [1, 1]] },
   "warnings": []
 }
@@ -192,6 +217,20 @@ per image for the life of the server) and never for a read without
   `RefOutput`, see 3.1), in the same shape. A key is in `changed` or in
   `implied`, never both (a raw edit of a key an adjustment only implies is in
   `changed`).
+- `created`: `[Group]` -> what the request created, one string each: a new
+  Color Correction region (`region 2`) or mask shape (`region 2 mask shape 0`;
+  a region's number is its position + 1, a shape's its position, as the
+  request's lists count them) and how many of the keys ART writes for it were
+  left at their defaults (`region 2 (78 keys at their defaults)`; a region
+  has 82 keys, a shape 9 or 10). ART needs all of them (Appendix A,
+  `color_correction`), so they are in the profile and in what Live sends to
+  ART, but they are not in `changed`: that has the keys the request set (the
+  new region's `Mode_n`, the shape's `Type` included), and `implied` the ones
+  it caused. A key is in at most one of `changed`, `implied` and the defaults
+  counted here, so the three add up to the keys written. Empty (`{}`) when
+  nothing was created; an edit of a region or shape that exists creates
+  nothing, and a shape of another type that replaces one counts as a new
+  shape.
 - `drawn`: for each tone curve the request set (`curve1`, `curve2`), the line
   ART's curve editor draws, as `get_profile` reads it back (not for a linear
   curve or a NURBS with 3+ points). It saves a `get_profile` after every
@@ -209,8 +248,15 @@ and [Render server tool list and signatures](https://github.com/AhaiMk01/ART/iss
 
 - **Default: file path.** The preview is a JPEG; the tool returns its path and
   Claude opens it with its file-reading tool when it wants to look.
-- **Optional inline:** the result also carries base64 `ImageContent`. Set per
-  call (`inline`), defaulting to the launch flag `--inline-previews`.
+- **Optional inline:** the result also carries base64 `ImageContent`, which the
+  agent sees without opening the file. Set per call (`inline`), defaulting to the
+  launch flag `--inline-previews` (off unless given).
+- **Optional `output`:** an absolute path to a `.jpg` in an existing folder (else
+  `out_of_range`, `not_found`) to write the preview to instead of the temp
+  folder; the result's `path` is that file. The render goes to the temp folder
+  first and is moved over, so a failed render leaves nothing at `output`; an
+  existing file is `exists` unless `overwrite`, the image itself is never
+  replaced, and all of it is checked before anything renders. Both servers.
 - **Size:** long edge 1024 px by default; `max_size` up to 2576 (Claude
   downscales anything larger). JPEG quality 85.
 - **Fast export (Render server):** whole-image previews use `art-cli -f`
@@ -285,25 +331,103 @@ which the server reports as `unsupported`.
 
 ### 4.2 Image statistics (both servers)
 
-`image_stats(path, max_size=1024, histogram=false)` replaces watching the
-histogram and the clipping indicator. It renders the image as a preview is
-rendered (Render: `art-cli -n -b8` to a PNG, crop applied, same `-f` rule;
-Live: the editor's preview, saved as PNG: whole frame, uncropped, ~600 px,
-in the monitor colour space ART previews in), so the numbers describe the
-output-referred 8-bit image, and returns per channel `r`, `g`, `b` and `lum`
-(`0.2126 R + 0.7152 G + 0.0722 B` of the 8-bit values):
+`image_stats(path, max_size=1024, histogram=false, region?, bins?)` replaces
+watching the histogram and the clipping indicator. It renders the image as a
+preview is rendered (Render: `art-cli -n -b8` to a PNG, crop applied, same `-f`
+rule; Live: the editor's preview, saved as PNG: whole frame, uncropped,
+~600 px, in the monitor colour space ART previews in), so the numbers describe
+the output-referred 8-bit image, and returns per channel `r`, `g`, `b` and
+`lum` (`0.2126 R + 0.7152 G + 0.0722 B` of the 8-bit values, rounded):
 
 - `clipped_high` / `clipped_low`: fraction of pixels at 255 / at 0;
 - `percentiles`: values at 0.1, 1, 5, 50, 95, 99, 99.9 %;
-- `mean`;
-- `histogram` (only when asked): 256 counts.
+- `mean`, `std` (population standard deviation), `min` / `max` (lowest and
+  highest value that occurs), `mode` (most frequent value, the lowest on a
+  tie): always present, all from the same 256-bin counts;
+- `bins` (only when asked, with the `bins` parameter): the fractions of pixels
+  (4 decimals, summing to about 1) in 8, 16, 32 or 64 equal groups of values,
+  dark to light; any other count is `out_of_range`. 16 numbers per channel are
+  enough to see a shape the percentiles don't show (a clipped shoulder or toe,
+  a second hump);
+- `histogram` (only when asked): the 256 raw counts.
 
-A holder or border in the image counts in the clipping and percentiles: crop
-first (Render applies the working profile's crop; Live's preview is
-uncropped). The description ends with the same skills pointer as 4.1 (the
-film scan workflow is in the skills). Plus the rendered `width`/`height`. Downscaling hides clipping in tiny
-highlights. Render: raise `max_size` (up to 2576) to see more. Live: `max_size`
-can only shrink the ~600 px editor preview, never enlarge it.
+A holder, a border or bright lamps in the image count in all of it: crop first
+(Render applies the working profile's crop; Live's preview is uncropped), or
+measure only a part with `region` `{x, y, w, h}`: fractions (0 to 1) of the
+image as this tool shows it (Render: the working profile's crop applied; Live:
+the whole frame), `x`, `y` the top-left corner. It is the same rectangle, with
+the same rounding and the same `out_of_range` refusal, as `render_preview`'s
+`region` (6.1), but is cut from the PNG of the one whole-image render (Live:
+the one preview), not rendered separately: no frame measuring, no second
+render, and the region has the pixels of that render, so a small one is coarse
+(raise `max_size`). Every statistic above is then of that part only; `width` /
+`height` stay the whole rendered image's size and the result's `region` is the
+part's pixel rectangle `{x, y, w, h}` in that image (null without a `region`).
+A region outside 0..1 is `out_of_range` before anything runs; one of fewer
+than 16 pixels is `out_of_range` once the render's size is known.
+
+The description ends with the same skills pointer as 4.1 (the film scan
+workflow is in the skills). Downscaling hides clipping in tiny highlights.
+Render: raise `max_size` (up to 2576) to see more. Live: `max_size` can only
+shrink the ~600 px editor preview, never enlarge it.
+
+### 4.3 Neutral candidates (Render server)
+
+`suggest_neutrals(path, count=16, size=32)` proposes where to look for neutral
+(grey/white) references: flat, low-saturation, mid-level patches of the
+working profile's current rendering, as candidates for white balance, colour
+calibration or ratio fitting. It is a pre-filter, not an oracle: whether a
+patch is neutral depends on its material (white paint, bare metal, concrete:
+yes; natural stone, dyed fabric, foliage, glass: no), which only looking can
+tell. The tool narrows where to look; the caller judges by material and checks
+with `sample_spots`. The description says so, and that "neutral" only means
+something once the rendering is roughly colour-correct. It names no workflow.
+
+The rule (constants in `art_mcp/neutrals.py`; deterministic, the same rendering
+gives the same answer):
+
+1. **Render** the working profile as an 8-bit PNG, long edge 1600 px, crop
+   applied: the `image_stats` render (`-f` when 1600 fits the user's
+   fast-export box).
+2. **Cells.** The area is the working profile's crop, else the whole frame.
+   It is cut from its top left corner into squares of
+   `max(size, ceil(4 / scale))` frame pixels (`scale` = preview pixels per
+   frame pixel, so a cell is at least 4 preview pixels and its texture can be
+   measured; the strip that does not fill a square is not analysed). Per cell:
+   `level` = mean luminance (0.2126 R + 0.7152 G + 0.0722 B of the 8-bit
+   values), mean r, g, b, `flatness` = the standard deviation of the luminance
+   over its mean, `saturation` = (max - min) / max of the mean colour (HSV).
+3. **Usable cells.** The mean of every channel lies in 16..240 (not near black,
+   not near clipped), `flatness` <= 0.06, `saturation` <= 0.10 (about twice
+   what still counts as neutral: a 5% difference between channels is 0.05),
+   and the centre is not in the outer border of the area: 3% with a crop, 10%
+   without one (a border or mount of the picture may still be in the frame; a
+   warning says so).
+4. **Cost** = `saturation + flatness` (both unit-less fractions, lower is
+   better).
+5. **Choice.** The usable cells' level range is cut into `count // 2` equal
+   bands. Two rounds, each taking the lowest-cost cell of every band in turn
+   (ties: top to bottom, left to right) that lies at least 10% of the area's
+   longer side from those already chosen; then the lowest-cost of the rest.
+   If that leaves fewer than `count`, the minimum distance is halved, halved
+   again, then dropped. So the candidates spread over the levels (dark to
+   light) and over the frame, and are not all adjacent.
+6. **Result.** Sorted by `level`, then `y`, `x`. Per candidate `x`, `y` (the
+   cell centre, whole pixels of the frame: the coordinates of `sample_spots` and
+   `crop`; a candidate goes to `sample_spots` unchanged, its extra fields are
+   ignored), `level` (0..255), `saturation`, `flatness` (3 decimals) and a short
+   `why` (flat / some texture, neutral / near-neutral / tinted, dark / mid /
+   light). Plus `area` [x, y, w, h] (what was analysed), `size` (to sample
+   with), `cell` (the cell side; more than `size` on a big frame with a small
+   `size`) and `warnings`: no crop, and "only N of M candidates" when fewer
+   cells than asked for were usable (nothing is padded with poor cells). About
+   40 tokens per candidate.
+
+`count` is 1 to 16 (what one `sample_spots` call takes) and `size` 2 to 256, else
+`out_of_range` before anything is rendered; a `size` larger than the area is
+`out_of_range` too. `not_open`, `render_failed` (art-cli failed or wrote an
+unreadable image) as for `image_stats`. The call renders once (about a second
+on a 24 MP raw) and analyses in about 0.1 to 0.5 s.
 
 ## 5. Locating ART (both servers)
 
@@ -360,19 +484,21 @@ on Windows). Any tool except `open_image` on a path not opened returns
 |---|---|---|
 | `open_image` | `path`, `profile?` | Working profile loaded (`profile_from`: `sidecar`, `default` or `profile`); metadata summary; ART version |
 | `get_profile` | `path`, `groups?`, `changed_only=false` | Read format (3.4), whole, of the `groups`, and/or only what differs from ART's default profile |
-| `edit_profile` | `path`, `adjustments?`, `raw_edits?`, `full=false` | The change set (3.5): `changed`, `implied`, `drawn`, `warnings`; `full` adds the touched groups |
+| `edit_profile` | `path`, `adjustments?`, `raw_edits?`, `full=false` | The change set (3.5): `changed`, `implied`, `created`, `drawn`, `warnings`; `full` adds the touched groups |
 | `reset_profile` | `path`, `to: "sidecar" \| "default"` | Working-profile changes discarded |
 | `apply_preset` | `paths`, `profile` | A preset (`.arp`, partial or complete) laid over the working profile of each open image (6.2). Per image, in request order: `path`, `keys_changed`, `groups`, `error`; counts `applied` and `failed` |
-| `render_preview` | `path`, `max_size=1024`, `region?`, `inline?` | JPEG path (+ `ImageContent` if inline) |
+| `render_preview` | `path`, `max_size=1024`, `region?`, `inline?`, `output?`, `overwrite=false` | JPEG path (+ `ImageContent` if inline); with `output` (absolute `.jpg` path, existing folder) the JPEG is written there and that is the path (`exists` unless `overwrite`) |
 | `export_image` | `path`, `output`, `format: "jpeg" \| "tiff" \| "png"`, `quality?` (jpeg only, 1..100), `bit_depth?` (jpeg `8`; png `8`\|`16`; tiff `8`\|`16`\|`16f`\|`32`; a number or a string, `16f` only as a string), `write_profile=false`, `profile_name: "output" \| "source"` (default `"output"`), `overwrite=false` | Output path, `.arp` path when written |
 | `export_batch` | `items?` (`{path, profiles?}`) or `source?` (a folder; with `pattern?` and `profiles?`), `folder`, `format`, `quality?`, `bit_depth?`, `name="{stem}"`, `write_profile=false`, `profile_name="output"`, `overwrite=false` | Per image, in request (or file name) order: `path`, `output`, `profile_path`, `error`; counts `exported` and `failed` |
 | `save_sidecar` | `path`, `on_conflict?: "merge" \| "overwrite" \| "cancel"` | `saved`, path, `how` (written/merged/overwritten/cancelled), or conflict + changed keys |
 | `save_partial_profile` | `path`, `dest`, `overwrite=false`, `exclude=[]`, `vs: "opened" \| "default"` (default `"opened"`) | `written`, path, keys written, `vs` (the baseline used) |
-| `inspect_image` | `path`, `tags?` | Fixed metadata fields + requested tags. `width`/`height` are what the file records; `frame_width`/`frame_height` the frame ART's `[Crop]` and `sample_spots` address (after coarse rotation and the raw border; a Sony ARW records 6048x4024, its frame is 6016x4016), measured like the crop checks (`whole_frame`), null if that fails |
+| `inspect_image` | `path`, `tags?` | Fixed metadata fields + requested tags. `width`/`height` are what the file records; `frame_width`/`frame_height` the frame ART's `[Crop]` and `sample_spots` address (after coarse rotation and the raw border; a Sony ARW records 6048x4024, its frame is 6016x4016), measured like the crop checks (`whole_frame`), null if that fails. `iso`, `shutter_seconds`, `aperture` and `focal_length_mm` are those of the camera that took THIS file (6.4) |
+| `inspect_images` | `paths`, `tags?`, `frame=false` | `inspect_image` for 1 to 100 open images in one call (`out_of_range` otherwise): `items`, one `{path, metadata, error}` per path in request order (`metadata` as `inspect_image` returns it, null when that image failed; `error` is `<code>: <message>`: `not_open`, `metadata_failed`) and `failed`; one bad image doesn't stop the others. exiftool runs once for all the files. `frame_width`/`frame_height` cost art-cli runs (two probes per image the first time, cached), so they are measured only with `frame=true`, through the same pool (at most 2 art-cli at once) with progress per image, else null |
 | `describe_adjustments` | none | Curated schema + `PPVERSION` warning |
 | `sample_spots` | `path`, `spots`, `size=32`, `space="working"` | Linear spot values (4.1); `unsupported` with a release `art-cli` |
-| `image_stats` | `path`, `max_size=1024`, `histogram=false` | Clipping, percentiles, mean per channel (4.2) |
-| `contact_sheet` | `images`, `folder?`, `label?`, `columns?`, `thumb_size=400` | The next numbered pass (6.5): sheet path, JSON path, per image `box`, `error` and `changed` (the number of profile keys changed since the last pass it was in), and `changes`, those changes grouped by identical change with the frames they were made on (the JSON has them per frame) |
+| `image_stats` | `path`, `max_size=1024`, `histogram=false`, `region?`, `bins?` | Clipping, percentiles, mean, std, min, max, mode, optional `bins` per channel, of the image or of a `region` of it (4.2) |
+| `suggest_neutrals` | `path`, `count=16`, `size=32` | Candidate spots for neutral references (4.3): per candidate `x`, `y` (frame pixels), `level`, `saturation`, `flatness`, `why`; plus `area`, `size`, `cell`, `warnings`. Render only |
+| `contact_sheet` | `images`, `folder?`, `label?`, `columns?`, `thumb_size=400`, `record=true` | The next numbered pass (6.5; with `record=false` a quick look instead, no pass kept: the sheet as a JPEG in the preview folder, `index`, `json_path` and `changes` null): sheet path, JSON path, per image `box`, `error` and `changed` (the number of profile keys changed since the last pass it was in), and `changes`, those changes grouped by identical change with the frames they were made on (the JSON has them per frame) |
 | `compare_passes` | `first`, `second`, `folder?`, `images?`, `columns=2` | Path of a side-by-side of the same frames of two passes (6.5) |
 
 `region` is `{x, y, w, h}` as fractions of the image as previewed: of the
@@ -550,6 +676,23 @@ with `-j -n`. Fixed fields: make, model, lens, ISO, shutter, aperture, focal
 length, capture date, pixel dimensions, orientation. `tags` adds named exiftool
 tags. `art-cli` has no metadata output; Pillow can't read most raws.
 
+`inspect_images` runs exiftool once for all the files (`-j -n file1 file2 ...`
+as an argument file on stdin, one array back), matches each record to its file
+by `SourceFile` and parses it as `inspect_image` does. A file exiftool can't
+read (not found, an `Error:` line naming it) is that image's `metadata_failed`;
+an invalid tag name, an exiftool that can't start or time out (30 s plus half a
+second per further file), or output that isn't JSON fails the whole call. An
+exiftool that is not found fails the call with `metadata_unavailable`.
+
+Whose exposure: ISO, shutter, aperture and focal length are those of the
+camera that took THIS file. For a negative photographed on a light table
+(a Sony ILCE-7M3 `.ARW` with a manual lens, exposure program Manual) they are
+the digitising camera's settings, not the film's original exposure, which the
+file does not carry; they are what scales the scan's linear values (the
+scan-exposure normalisation of the `film-negative` skill) and nothing else. A
+manual lens records aperture 0, reported as null: the exposure factor then
+uses shutter and ISO only.
+
 ### 6.5 Contact sheets
 
 From [Contact sheets of a batch, kept per pass](https://github.com/AhaiMk01/ART/issues/45).
@@ -616,6 +759,18 @@ working profiles live there.
   something (the roll's output), kept in the session; with none the call is
   `out_of_range`, so a sheet never lands next to the source images or in the
   temp folder by default.
+- **`record=false`** is the quick look: judging a few frames used to cost a
+  preview and a file read each (a roll test made 28 previews and 32 reads),
+  while the sheet is one image. It renders and composes the same sheet
+  (thumbnails, grid, labels; `label` is in the title) but keeps nothing of a
+  pass: no number, JSON, `profiles.json` update or comparison (`index`,
+  `json_path`, `changes` null; `changed`, `since_pass` null per image), and
+  `folder` is neither needed nor used. The JPEG is a new file in the preview
+  folder (`sheet-NNNN.jpg`), so it goes with the server like a preview and
+  never into the source or output folders. `columns` defaults to
+  `ceil(sqrt(frames))` narrowed so the sheet is at most 2576 px wide
+  (`quick_columns`; a pass keeps min(frames, 6)): 4 frames at 1000 px are 2 by
+  2, 6 frames at 700 px 3 by 2, and `columns` overrides it.
 - **`compare_passes(first, second)`** cuts the frames out of the two passes'
   sheets (the JSON's `box` says where each sits), puts each pair side by side
   (first left) at the smaller `thumb_size` and saves `compare-NN-MM.jpg` in
@@ -643,7 +798,7 @@ Assistants. The Live server never launches ART.
 | `get_profile` | `path`, `groups?`, `changed_only=false` | Read format (3.4), whole, of the `groups`, and/or only what differs from ART's default profile, + `history_position` (selected History row, 0 = oldest; null if none) |
 | `edit_profile` | `path`, `adjustments?`, `raw_edits?`, `full=false` | The change set (3.5) + `history_position`; returns once the undo entry exists |
 | `undo` / `redo` | `path` | New History position |
-| `render_preview` | `path`, `max_size=1024`, `inline?` | JPEG path + width/height; waits until ART's processing queue drains (30 s, else `timeout`). The editor's preview (~600 px wide, whole frame, uncropped) shrunk to fit `max_size`, never enlarged |
+| `render_preview` | `path`, `max_size=1024`, `inline?`, `output?`, `overwrite=false` | JPEG path + width/height; waits until ART's processing queue drains (30 s, else `timeout`). The editor's preview (~600 px wide, whole frame, uncropped) shrunk to fit `max_size`, never enlarged |
 | `open_image` | `path`, `profile?` | ART's name for it, `already_open`, `profile_applied`; returns once ART has loaded it (60 s, else `timeout`) and, with `profile`, applied it |
 | `save_sidecar` | `path` | The sidecar written (editor's own save), null when ART keeps profiles in its cache only; `write_failed` when nothing was written |
 | `queue_export` | `path`, `folder?`, `format?`, `name?`, `quality?`, `bit_depth?`, `profile?` | `queued` (entries in ART's export queue), `running`. Queues the open image through the GUI's own batch queue with its current profile (no sidecar written); output as `export_image` (named `-1`, `-2` when taken: ART's rule), `profile` an `.arp` over the working profile |
@@ -651,8 +806,9 @@ Assistants. The Live server never launches ART.
 | `queue_status` | none | `running`, `auto_start`, `entries`: path, `output`, `state` (`queued`/`processing`/`failed`), `progress`, `error` |
 | `describe_adjustments` | none | As Render server |
 | `inspect_image` | `path`, `tags?` | As Render server (Python + exiftool; no C++); `frame_width`/`frame_height` come from `status`, null until the editor has the size |
+| `inspect_images` | `paths`, `tags?` | As Render server's (1 to 100 images in one call, one `{path, metadata, error}` each, one exiftool run); the images are matched against one `status` reply (`not_open` per image), `frame_width`/`frame_height` from it, null until the editor has the size (there is no `frame` option: nothing is measured) |
 | `sample_spots` | `path`, `spots`, `size=32`, `space="working"` | As Render server, from the open editor (4.1) |
-| `image_stats` | `path`, `max_size=1024`, `histogram=false` | As Render server, from the editor's preview (4.2) |
+| `image_stats` | `path`, `max_size=1024`, `histogram=false`, `region?`, `bins?` | As Render server, from the editor's preview (4.2) |
 
 - `get_profile` returns the profile as the editor holds it (`ipc->getParams`,
   as ART's own sidecar save does), so it includes what the engine resolved:
@@ -1083,7 +1239,9 @@ Editing:
   `Mask::save` in `src/engine/procparams.cc`; the 82 keys of a default region
   taken from a real default profile, `REGION_DEFAULTS` in
   `art_mcp/colorcorrection.py`) with `Mode_n=RGB`, and a new shape with all
-  its keys. For the same reason a partial profile (`save_partial_profile`, Live's
+  its keys. The edit result lists the keys the request set in `changed` and
+  counts the rest, at their defaults, under `created` (3.5), so a new region
+  does not echo its 80 default keys. For the same reason a partial profile (`save_partial_profile`, Live's
   `apply_profile`) in which any `[ColorCorrection]` region key changed carries
   every region key (a layer of changed keys alone drops edits when ART loads
   it).

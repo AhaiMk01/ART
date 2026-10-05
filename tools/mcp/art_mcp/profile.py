@@ -13,8 +13,8 @@ from typing import Any
 from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from art_mcp.colorcorrection import GROUP as CC_GROUP
+from art_mcp.colorcorrection import Created, is_region_key, read_color_correction
 from art_mcp.colorcorrection import compile_edits as compile_color_correction
-from art_mcp.colorcorrection import is_region_key, read_color_correction
 from art_mcp.curves import LinearCurve, PointCurve, curve_warnings, decode, drawn_points, encode
 from art_mcp.filmnegative import GROUP as FILM_GROUP
 from art_mcp.filmnegative import (
@@ -81,6 +81,10 @@ class EditOutcome(BaseModel):
     implied: list[RawEdit]
     """The changes in ``changed`` the agent didn't ask for: a disabled tool
     enabled because it was adjusted, White Balance switched to CustomTemp."""
+    created: list[Created] = []
+    """The regions and mask shapes the request created, each with the keys ART
+    writes for it that the request set no value of: they are in the profile
+    and the partial profile, but not in ``changed``."""
     warnings: list[str] = []
     """Notes on how the changes were computed (e.g. an estimated reference)."""
 
@@ -95,6 +99,13 @@ class EditResult(BaseModel):
     """The changes that were not asked for, in the same shape and not repeated
     in `changed`: a disabled tool enabled because it was adjusted, White
     Balance switched to CustomTemp, a computed film reference."""
+    created: dict[str, list[str]] = {}
+    """What this call created, as [Group] -> descriptions: a new Color
+    Correction region (`region 2`) or mask shape (`region 2 mask shape 0`;
+    regions count from 1, shapes from 0, as in the request's lists), each with
+    how many of the keys ART writes for it were left at their defaults. Those
+    keys are in the profile but not listed in `changed`, which has the ones
+    the request set."""
     drawn: dict[str, list[list[float]]] = {}
     """For each tone curve this call set (`curve1`, `curve2`), the line ART's
     curve editor draws through it, as `get_profile` reads it back (nothing for
@@ -141,20 +152,23 @@ class WorkingChanges:
 
     def _compile(
         self, adjustments: Adjustments, film_estimate: Estimate | None = None
-    ) -> tuple[list[RawEdit], list[RawEdit], list[str]]:
+    ) -> tuple[list[RawEdit], list[RawEdit], list[Created], list[str]]:
         """The (explicit, implied) edits an adjustments request amounts to,
-        and warnings about how they were computed."""
+        what it creates (with the keys ART gets at their defaults) and warnings
+        about how they were computed."""
         explicit: list[RawEdit] = []
         implied: list[RawEdit] = []
+        created: list[Created] = []
         warnings: list[str] = []
         for name, (group, model) in TOOLS.items():
             tool = getattr(adjustments, name)
             if tool is None:
                 continue
             if name == "color_correction":
-                cc_explicit, cc_implied = compile_color_correction(tool, self.profile.get(group))
+                cc_explicit, cc_implied, cc_created = compile_color_correction(tool, self.profile.get(group))
                 explicit += cc_explicit
                 implied += cc_implied
+                created += cc_created
                 continue
             values = {f: getattr(tool, f) for f in model.model_fields if getattr(tool, f) is not None}
             if not values:
@@ -193,7 +207,7 @@ class WorkingChanges:
                 picked, notes = picker_edits(tool, self.profile.get(group), film_estimate)
                 implied += picked
                 warnings += notes
-        return explicit, implied, warnings
+        return explicit, implied, created, warnings
 
     def _tone_curve_implied(self, group: str, values: dict[str, Any]) -> list[RawEdit]:
         implied: list[RawEdit] = []
@@ -233,11 +247,12 @@ class WorkingChanges:
         if unknown:
             names = ", ".join(e.name for e in unknown)
             raise UnknownKey(f"not in this image's processing profile: {names}")
-        explicit, implied, warnings = (
-            self._compile(adjustments, film_estimate) if adjustments else ([], [], [])
+        explicit, implied, created, warnings = (
+            self._compile(adjustments, film_estimate) if adjustments else ([], [], [], [])
         )
+        defaults = [e for c in created for e in c.defaults]
         raw_names = {e.name for e in raw_edits}
-        clashes = [e.name for e in explicit if e.name in raw_names]
+        clashes = [e.name for e in explicit + defaults if e.name in raw_names]
         if clashes:
             raise Conflict(
                 f"set both as an adjustment and as a raw edit: {', '.join(clashes)}"
@@ -245,8 +260,10 @@ class WorkingChanges:
         implied = [e for e in implied if e.name not in raw_names]
 
         edits = explicit + implied + raw_edits
-        before = {(e.group, e.key): self._value(e.group, e.key) for e in edits}
-        for e in edits:
+        # What a created region or shape gets at ART's defaults goes in first,
+        # under the edits: it is in the profile, not in the change set.
+        before = {(e.group, e.key): self._value(e.group, e.key) for e in defaults + edits}
+        for e in defaults + edits:
             self._loaded.setdefault((e.group, e.key), self._value(e.group, e.key))
             self.profile.setdefault(e.group, {})[e.key] = e.value
 
@@ -264,7 +281,7 @@ class WorkingChanges:
         if any(e.name == f"[{FILM_GROUP}] RefOutput" for e in raw_edits):
             warnings = []  # a raw RefOutput overrides the computed one
         return EditOutcome(
-            changed=changed_edits(edits), implied=changed_edits(implied), warnings=warnings
+            changed=changed_edits(edits), implied=changed_edits(implied), created=created, warnings=warnings
         )
 
     def apply(self, edits: list[RawEdit]) -> list[RawEdit]:
@@ -459,6 +476,16 @@ def _grouped(edits: list[RawEdit]) -> dict[str, dict[str, str]]:
     return grouped
 
 
+def _created_text(created: list[Created]) -> dict[str, list[str]]:
+    """``EditResult.created``: ``region 2 (80 keys at their defaults)``."""
+    text: dict[str, list[str]] = {}
+    for c in created:
+        n = len(c.defaults)
+        keys = "1 key at its default" if n == 1 else f"{n} keys at their defaults"
+        text.setdefault(c.group, []).append(f"{c.what} ({keys})")
+    return text
+
+
 def drawn_readback(adjustments: Adjustments | None, profile: KeyFile) -> dict[str, list[list[float]]]:
     """The drawn line (``curves.drawn_points``) of each tone curve the request
     set, as the profile holds it now."""
@@ -499,6 +526,7 @@ def edit_result(
     return EditResult(
         changed=_grouped([e for e in outcome.changed if e.name not in implied]),
         implied=_grouped(outcome.implied),
+        created=_created_text(outcome.created),
         drawn=drawn_readback(adjustments, profile),
         warnings=warnings,
         profile=view,

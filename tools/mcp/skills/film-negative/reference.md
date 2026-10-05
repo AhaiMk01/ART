@@ -84,8 +84,14 @@ by `s` (longer shutter, higher ISO, wider aperture) and its line shifts:
 normalise the intercepts to one scan exposure before comparing frames or
 judging whether a frame fits a group: `ir_norm = ir - ln(s) (1 - 1/RedRatio)`,
 likewise `ib`, with `s = (t * iso / aperture^2) / (t0 * iso0 / aperture0^2)`
-against the reference frame (`inspect_image` gives `shutter_seconds`, `iso`,
-`aperture`; if only the shutter varies, `s = t / t0`). Example, RedRatio 1.37,
+against the reference frame (`inspect_image`, or `inspect_images` for the
+roll in one call, gives `shutter_seconds`, `iso`, `aperture`; if only the
+shutter varies, `s = t / t0`). These EXIF values are the digitising camera's
+(the one that photographed the negative on the light table), and that is what
+matters here: they are what scales the scan's linear values. The film's
+original exposure is not in the file and is not needed. A manual lens records
+aperture 0, which the tools report as null: then use shutter and ISO only,
+`s = (t * iso) / (t0 * iso0)`. Example, RedRatio 1.37,
 BlueRatio 0.90: a frame at 0.625 s against 0.5 s (`s` = 1.25) has `ir` higher
 by 0.060 and `ib` lower by 0.025 in the same light, and its measured `ib` of
 -1.45 is -1.425 at 0.5 s. This assumes the scans' camera settings are the only

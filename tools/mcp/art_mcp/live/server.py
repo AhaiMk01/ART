@@ -22,7 +22,15 @@ from art_mcp import artdir, keyfile
 from art_mcp.filmnegative import Estimate, SamplingUnsupported, estimate_for
 from art_mcp.keyfile import KeyFile
 from art_mcp.live.channel import ArtNotRunning, ChannelError, ChannelTimeout, ControlChannel
-from art_mcp.metadata import Exiftool, Metadata, MetadataProblem, read_metadata
+from art_mcp.metadata import (
+    Exiftool,
+    ImagesMetadata,
+    Metadata,
+    MetadataProblem,
+    check_paths,
+    read_items,
+    read_metadata,
+)
 from art_mcp.preview import PreviewFolder, default_root, sweep_stale
 from art_mcp.profile import (
     VERSION_GROUP,
@@ -43,16 +51,20 @@ from art_mcp.render.defaults import resolve_default_profile
 from art_mcp.render.errors import render_error
 from art_mcp.render.export_ops import EXPORT_SUFFIXES, output_format, output_name
 from art_mcp.render.export_tools import Format
-from art_mcp.render.preview_tools import MAX_PREVIEW_SIZE, PREVIEW_SIZE, Preview
+from art_mcp.render.preview_ops import check_output, place_output
+from art_mcp.render.preview_tools import MAX_PREVIEW_SIZE, PREVIEW_SIZE, Preview, Region
 from art_mcp.sampling import (
     DEFAULT_SIZE,
     IMAGE_STATS_DOC,
     SAMPLE_SPOTS_DOC,
     UNSUPPORTED_SPOTS,
     ImageStats,
+    RegionTooSmall,
     Spot,
     SpotSamples,
     check_spots,
+    check_stats_bins,
+    check_stats_region,
     check_stats_size,
     parse_spots_reply,
 )
@@ -316,7 +328,7 @@ def build_server(
         editor has it now: curated tools typed under `adjustments`, every
         other `[Group] Key` as a string under `raw`, plus the selected
         History row. A whole profile is large (about 15k tokens): `groups`
-        (`[Group]` names as in `raw`, e.g. `["Film Negative", "ToneCurve"]`;
+        (`[Group]` names as in `raw`, e.g. `["Exposure", "ToneCurve"]`;
         an unknown one is unknown_key and lists the valid ones) reads only
         those groups, and `changed_only` only the values that differ from
         ART's default profile for the image (whatever is not listed equals
@@ -355,12 +367,15 @@ def build_server(
         """The metadata of an image open in ART (read with ART's exiftool):
         make, model, lens, ISO, shutter, aperture, focal length, capture
         date, the pixel dimensions the file records (`width`, `height`) and
-        orientation, plus any extra exiftool `tags` named. `frame_width` and
-        `frame_height` are the size the editor works in (after coarse
-        rotation and the raw border), the space `crop` and `sample_spots`
-        coordinates are in: use them, not `width` and `height`, to size a
-        crop (null until the editor has loaded the image). Fails with
-        not_open if ART doesn't have it open."""
+        orientation, plus any extra exiftool `tags` named. ISO, shutter,
+        aperture and focal length are those of the camera that took THIS
+        file: for a re-photographed original (a negative or slide on a light table, a print) the digitising camera,
+        not the original's own exposure (the file does not carry that); aperture is null
+        for a manual lens. `frame_width` and `frame_height` are the size the
+        editor works in (after coarse rotation and the raw border), the space
+        `crop` and `sample_spots` coordinates are in: use them, not `width`
+        and `height`, to size a crop (null until the editor has loaded the
+        image). Fails with not_open if ART doesn't have it open."""
         result = call("status")
         images = result.get("images", []) if isinstance(result, dict) else []
         shown = next((i for i in images if isinstance(i, dict) and same_image(str(i.get("path", "")), path)), None)
@@ -402,6 +417,38 @@ def build_server(
         return None
 
     @server.tool()
+    def inspect_images(paths: list[str], tags: list[str] | None = None) -> ImagesMetadata:
+        """inspect_image for many images open in ART in one call: `paths` (1
+        to 100), exiftool run once for all of them. One result per path, in
+        request order: `{path, metadata, error}`, `metadata` as inspect_image
+        returns it (`frame_width` and `frame_height` from the editor, null
+        until it has loaded the image), or an `error` (`not_open`, a read
+        failure) while the others still come back. ISO, shutter and aperture
+        are those of the camera that took THIS file: for a re-photographed original (a negative or slide on a light
+        table, a print) the digitising camera, not the original's own exposure; aperture is
+        null for a manual lens."""
+        check_paths(paths, tool_error)
+        shown = open_images()
+        targets: list[Path | str] = []
+        sizes: list[tuple[object, object]] = []
+        for path in paths:
+            image = next((i for i in shown if same_image(str(i.get("path", "")), path)), None)
+            if image is None:
+                targets.append(f"not_open: {path} is not open in ART")
+                sizes.append((None, None))
+            else:
+                targets.append(Path(art_path(path)))
+                sizes.append((image.get("width"), image.get("height")))
+        try:
+            result = read_items(exiftool, paths, targets, tags or [])
+        except MetadataProblem as e:
+            raise tool_error(e.code, e.message) from e
+        for item, (w, h) in zip(result.items, sizes, strict=True):
+            if item.metadata is not None and isinstance(w, int) and isinstance(h, int):
+                item.metadata.frame_width, item.metadata.frame_height = w, h
+        return result
+
+    @server.tool()
     def edit_profile(
         path: str,
         adjustments: AdjustmentsArg = None,
@@ -423,9 +470,11 @@ def build_server(
 
         Returns only what changed: `changed` ([Group] -> Key -> new value),
         `implied` (changes you did not ask for, such as that enabling, in the
-        same shape), `drawn` (the line ART draws for a tone curve you set),
-        `warnings` and the `history_position`. `full` also returns the groups
-        touched, as get_profile reads them."""
+        same shape), `created` (a new Color Correction region or mask shape:
+        its keys at ART's defaults are counted, not listed), `drawn` (the line
+        ART draws for a tone curve you set), `warnings` and the
+        `history_position`. `full` also returns the groups touched, as
+        get_profile reads them."""
         current = get_profile_text(path)
         changes = WorkingChanges(keyfile.loads(current["profile"]))
         warnings: list[str] = []
@@ -599,33 +648,50 @@ def build_server(
 
     @server.tool()
     def render_preview(
-        path: str, max_size: int = PREVIEW_SIZE, inline: bool | None = None
+        path: str,
+        max_size: int = PREVIEW_SIZE,
+        inline: bool | None = None,
+        output: str | None = None,
+        overwrite: bool = False,
     ) -> Annotated[CallToolResult, LivePreview]:
         """The image open in ART's editor as the editor shows it now, as a
         JPEG (long edge at most `max_size` px, 1 to 2576; the editor's preview
         is often smaller, and is never enlarged); returns its path. Waits
         until ART has finished processing the latest edits (fails with
         timeout after 30 s). The colours are in the monitor colour space
-        ART displays with, not sRGB output. `inline` also returns the image
-        itself (default: the server's --inline-previews setting). Fails with
+        ART displays with, not sRGB output. The JPEG is a new file in the
+        server's own temp folder (`art-mcp-<pid>`, removed when the server
+        exits); `output` (an absolute path to a `.jpg`, its folder must exist)
+        writes it there instead and returns that path: `exists` if the file
+        is there, unless `overwrite`. `inline`: true also returns the image
+        itself in the result, which you see without opening the file; false
+        returns the path only. Default: the server's --inline-previews
+        setting, which is off unless the server was started with that flag, so
+        normally you get a path and must open the file to look. Fails with
         not_open if ART doesn't have the image open."""
         if not 1 <= max_size <= MAX_PREVIEW_SIZE:
             raise tool_error("out_of_range", f"max_size must be 1 to {MAX_PREVIEW_SIZE}")
-        output = preview_folder.new_file("live", ".jpg")
-        args = {"path": art_path(path), "output": str(output), "max_size": max_size}
+        with as_tool_errors():
+            dest = check_output(output, Path(art_path(path)), overwrite) if output is not None else None
+        rendered = preview_folder.new_file("live", ".jpg")
+        args = {"path": art_path(path), "output": str(rendered), "max_size": max_size}
         try:
             result = call("preview", args, timeout=channel.timeout + ART_PREVIEW_WAIT)
             try:
                 if not isinstance(result, dict):
                     raise TypeError("not an object")
                 preview = LivePreview(
-                    path=str(output), max_size=max_size, width=result["width"], height=result["height"]
+                    path=str(rendered), max_size=max_size, width=result["width"], height=result["height"]
                 )
-                jpeg = output.read_bytes()
+                jpeg = rendered.read_bytes()
             except (KeyError, TypeError, ValueError, OSError) as e:
                 raise tool_error("bad_reply", f"unexpected preview reply from ART: {result!r:.300}") from e
+            if dest is not None:
+                with as_tool_errors():
+                    place_output(rendered, dest, overwrite)
+                preview.path = str(dest)
         except BaseException:
-            output.unlink(missing_ok=True)
+            rendered.unlink(missing_ok=True)
             raise
         content: list[ContentBlock] = [TextContent(text=preview.model_dump_json())]
         if inline if inline is not None else inline_previews:
@@ -695,15 +761,23 @@ def build_server(
         )
     )
     def image_stats(
-        path: str, max_size: int = PREVIEW_SIZE, histogram: bool = False
+        path: str,
+        max_size: int = PREVIEW_SIZE,
+        histogram: bool = False,
+        region: Region | None = None,
+        bins: int | None = None,
     ) -> ImageStats:
         check_stats_size(max_size, MAX_PREVIEW_SIZE, tool_error)
+        check_stats_region(region, tool_error)
+        check_stats_bins(bins, tool_error)
         output = preview_folder.new_file("stats", ".png")
         try:
             args = {"path": art_path(path), "output": str(output), "max_size": max_size}
             call("preview", args, timeout=channel.timeout + ART_PREVIEW_WAIT)
             try:
-                return compute_stats(output, histogram)
+                return compute_stats(output, histogram, region, bins)
+            except RegionTooSmall as e:
+                raise tool_error("out_of_range", str(e)) from e
             except ValueError as e:
                 raise tool_error("bad_reply", f"ART's preview is not a readable image: {e}") from e
         finally:

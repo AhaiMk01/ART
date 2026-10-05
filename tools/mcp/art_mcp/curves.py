@@ -12,7 +12,10 @@ import math
 import struct
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Discriminator, Field, Tag, field_validator
+from pydantic import Discriminator, Field, Tag, field_validator
+from pydantic.json_schema import SkipJsonSchema
+
+from art_mcp.compactschema import CompactModel
 
 CURVE_CODES = {"spline": 1, "nurbs": 3, "catmull_rom": 4}
 """``type`` -> ART's DiagonalCurveType code (parametric, 2, is read-only)."""
@@ -44,14 +47,12 @@ def _points_problem(points: list[Point]) -> str | None:
     return None
 
 
-class PointCurve(BaseModel):
+class PointCurve(CompactModel):
     """A curve through explicit points."""
-
-    model_config = ConfigDict(extra="forbid")
 
     type: Literal["spline", "catmull_rom", "nurbs"]
     points: list[Point] = Field(description="[x, y] pairs in 0..1, x strictly increasing")
-    drawn: list[list[float]] | None = Field(
+    drawn: SkipJsonSchema[list[list[float]] | None] = Field(
         default=None, exclude=True,
         description="Read-only: the line ART draws, as get_profile reports it; ignored if sent back",
     )  # fmt: skip
@@ -65,13 +66,11 @@ class PointCurve(BaseModel):
         return points
 
 
-class LinearCurve(BaseModel):
+class LinearCurve(CompactModel):
     """The identity curve."""
 
-    model_config = ConfigDict(extra="forbid")
-
     type: Literal["linear"]
-    drawn: list[list[float]] | None = Field(
+    drawn: SkipJsonSchema[list[list[float]] | None] = Field(
         default=None, exclude=True, description="Read-only; ignored if sent back"
     )
 

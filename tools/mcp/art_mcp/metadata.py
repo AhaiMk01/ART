@@ -1,10 +1,12 @@
 """Reading image metadata with the exiftool that ships with ART."""
 
 import json
+import os
 import re
 import subprocess
 import sys
-from collections.abc import Sequence
+from collections.abc import Callable, Iterator, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -39,10 +41,28 @@ class Metadata(BaseModel):
     make: str | None = None
     model: str | None = None
     lens: str | None = None
-    iso: int | None = None
-    shutter_seconds: float | None = None
-    aperture: float | None = Field(default=None, description="f-number")
-    focal_length_mm: float | None = None
+    iso: int | None = Field(
+        default=None,
+        description="as recorded by the camera that took THIS file; for a re-photographed original (a negative or "
+        "slide on a light table, a print) the digitising camera, not the original's own exposure",
+    )
+    shutter_seconds: float | None = Field(
+        default=None,
+        description="as recorded by the camera that took THIS file; for a re-photographed original (a negative or "
+        "slide on a light table, a print) the digitising camera, not the original's own exposure",
+    )
+    aperture: float | None = Field(
+        default=None,
+        description="f-number, as recorded by the camera that took THIS file; for a re-photographed original (a "
+        "negative or slide on a light table, a print) the digitising camera, not the original's own exposure; "
+        "null for a manual lens (the body records 0)",
+    )
+    focal_length_mm: float | None = Field(
+        default=None,
+        description="as recorded by the camera that took THIS file; for a re-photographed original (a negative or "
+        "slide on a light table, a print) the digitising camera, not the original's own exposure; null for a "
+        "manual lens",
+    )
     capture_date: str | None = Field(
         default=None, description="local time as recorded, ISO 8601 without zone"
     )
@@ -128,37 +148,116 @@ class Exiftool:
     def read(self, image: Path, tags: Sequence[str] = ()) -> Metadata:
         """The fixed fields of ``image`` plus the named extra ``tags`` that it
         has."""
-        for tag in tags:
-            if not TAG_NAME.fullmatch(tag):
-                raise InvalidTag(f"not an exiftool tag name: {tag!r}")
-        # Everything goes through stdin as an argument file: on Windows a
-        # command-line path with non-ASCII characters reaches exiftool mangled.
+        check_tags(tags)
         if "\n" in str(image):
             raise ExiftoolError(f"cannot read a path containing a newline: {image!r}")
+        status, stdout, stderr = self._run([image], tags)
+        if status != 0:
+            raise ExiftoolError(f"exiftool exited with {status}: {(stdout + stderr).strip()}")
+        try:
+            return parse(json.loads(stdout)[0])
+        except (ValueError, LookupError, TypeError, AttributeError) as e:
+            raise ExiftoolError(f"unexpected exiftool output: {stdout.strip()[:200]!r}") from e
+
+    def read_many(self, images: Sequence[Path], tags: Sequence[str] = ()) -> list[Metadata | ExiftoolError]:
+        """``read`` for every image in ``images`` with ONE exiftool run: per
+        image, its ``Metadata`` or the ``ExiftoolError`` that is that image's
+        alone (not a file, no record, an error exiftool names for it) while
+        the others still read. An invalid tag, an exiftool that can't start or
+        times out, or output that isn't JSON fails the whole call by raising."""
+        check_tags(tags)
+        results: list[Metadata | ExiftoolError | None] = [None] * len(images)
+        to_read: dict[str, Path] = {}  # once per file, however it is spelled
+        for i, image in enumerate(images):
+            if "\n" in str(image):
+                results[i] = ExiftoolError(f"cannot read a path containing a newline: {image!r}")
+            elif not image.is_file():
+                results[i] = ExiftoolError(f"File not found - {image}")
+            else:
+                to_read.setdefault(_key(image), image)
+        read = self._read_files(list(to_read.values()), tags) if to_read else {}
+        for i, image in enumerate(images):
+            if results[i] is None:
+                found = read[_key(image)]
+                results[i] = found.model_copy(deep=True) if isinstance(found, Metadata) else found
+        return [r for r in results if r is not None]
+
+    def _read_files(self, files: Sequence[Path], tags: Sequence[str]) -> dict[str, Metadata | ExiftoolError]:
+        """One run over existing ``files``, by ``_key``."""
+        status, stdout, stderr = self._run(files, tags)
+        records: dict[str, Any] = {}
+        # Like exiftool, which exits 1 when any file failed, its other
+        # records still printed (none at all when every file failed).
+        if stdout.strip() or status == 0:
+            try:
+                records = {_key(r["SourceFile"]): r for r in json.loads(stdout)}
+            except (ValueError, LookupError, TypeError, AttributeError) as e:
+                raise ExiftoolError(f"unexpected exiftool output: {stdout.strip()[:200]!r}") from e
+        errors = _errors_by_file(stderr, files)
+        results: dict[str, Metadata | ExiftoolError] = {}
+        for file in files:
+            key = _key(file)
+            if key in errors:
+                results[key] = ExiftoolError(errors[key])
+            elif key in records:
+                results[key] = parse(records[key])
+            else:
+                results[key] = ExiftoolError(f"exiftool exited with {status} and read nothing: {stderr.strip()}")
+        return results
+
+    def _run(self, images: Sequence[Path], tags: Sequence[str]) -> tuple[int, str, str]:
+        """One exiftool run over ``images``: its exit status, stdout and
+        stderr."""
+        # Everything goes through stdin as an argument file: on Windows a
+        # command-line path with non-ASCII characters reaches exiftool mangled.
         lines = ["-charset", "exiftool=utf8", "-charset", "filename=utf8", "-j", "-n"]
         lines += [f"-{t}" for t in (*FIXED_TAGS, *tags)]
-        lines += ["--", str(image)]
+        lines += ["--", *(str(image) for image in images)]
+        timeout = self.timeout + 0.5 * max(0, len(images) - 1)  # more files, more time
         flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
         try:
             done = subprocess.run(
                 [*self.command, "-@", "-"],
                 input="\n".join(lines).encode("utf-8"),
                 capture_output=True,
-                timeout=self.timeout,
+                timeout=timeout,
                 creationflags=flags,
             )
         except subprocess.TimeoutExpired as e:
-            raise ExiftoolTimeout(f"exiftool timed out after {self.timeout:g} s") from e
+            raise ExiftoolTimeout(f"exiftool timed out after {timeout:g} s") from e
         except OSError as e:
             raise ExiftoolError(f"cannot start exiftool: {e}") from e
-        stdout = done.stdout.decode("utf-8", errors="replace")
-        if done.returncode != 0:
-            stderr = done.stderr.decode("utf-8", errors="replace")
-            raise ExiftoolError(f"exiftool exited with {done.returncode}: {(stdout + stderr).strip()}")
-        try:
-            return parse(json.loads(stdout)[0])
-        except (ValueError, LookupError, TypeError, AttributeError) as e:
-            raise ExiftoolError(f"unexpected exiftool output: {stdout.strip()[:200]!r}") from e
+        return (
+            done.returncode,
+            done.stdout.decode("utf-8", errors="replace"),
+            done.stderr.decode("utf-8", errors="replace"),
+        )
+
+
+def check_tags(tags: Sequence[str]) -> None:
+    for tag in tags:
+        if not TAG_NAME.fullmatch(tag):
+            raise InvalidTag(f"not an exiftool tag name: {tag!r}")
+
+
+def _key(path: str | Path) -> str:
+    """A file's identity across spellings: exiftool echoes a path in
+    ``SourceFile`` with forward slashes."""
+    return os.path.normcase(os.path.normpath(str(path)))
+
+
+def _errors_by_file(stderr: str, files: Sequence[Path]) -> dict[str, str]:
+    """The ``Error: <what> - <file>`` lines of exiftool's stderr, by file
+    (``<what> - <file>``); a file it names nothing for is left out."""
+    lines = [line[len("Error: ") :] for line in stderr.splitlines() if line.startswith("Error: ")]
+    named: dict[str, str] = {}
+    for file in files:
+        shown = str(file).replace("\\", "/")
+        for line in lines:
+            if line.endswith(f" - {shown}"):
+                named[_key(file)] = line
+                break
+    return named
 
 
 class MetadataProblem(Exception):
@@ -170,18 +269,78 @@ class MetadataProblem(Exception):
         self.message = message
 
 
-def read_metadata(exiftool: "Exiftool | None", image: Path, tags: list[str]) -> Metadata:
-    """``exiftool.read`` for both servers, with failures as MetadataProblem:
+@contextmanager
+def _as_problems(exiftool: "Exiftool | None") -> Iterator[Exiftool]:
+    """The ``exiftool`` to use, its failures raised as MetadataProblem:
     metadata_unavailable, invalid_tag, timeout or metadata_failed."""
     if exiftool is None:
         raise MetadataProblem(
             "metadata_unavailable", "exiftool was not found (beside ART-cli, on PATH, or in an ART install)"
         )
     try:
-        return exiftool.read(image, tags)
+        yield exiftool
     except InvalidTag as e:
         raise MetadataProblem("invalid_tag", str(e)) from e
     except ExiftoolTimeout as e:
         raise MetadataProblem("timeout", str(e)) from e
     except ExiftoolError as e:
         raise MetadataProblem("metadata_failed", str(e)) from e
+
+
+def read_metadata(exiftool: "Exiftool | None", image: Path, tags: list[str]) -> Metadata:
+    """``exiftool.read`` for both servers, with failures as MetadataProblem:
+    metadata_unavailable, invalid_tag, timeout or metadata_failed."""
+    with _as_problems(exiftool) as tool:
+        return tool.read(image, tags)
+
+
+MAX_IMAGES = 100
+"""The most images one ``inspect_images`` call takes."""
+
+
+class ImageMetadata(BaseModel):
+    path: str
+    """The path as requested."""
+    metadata: Metadata | None
+    """As ``inspect_image`` returns it; null when this image failed."""
+    error: str | None
+    """`<code>: <message>` when this image failed; the others still come back."""
+
+
+class ImagesMetadata(BaseModel):
+    items: list[ImageMetadata]
+    """One per requested path, in request order."""
+    failed: int
+
+
+def check_paths(paths: Sequence[str], error: Callable[[Any, str], Exception]) -> None:
+    """Raise ``error("out_of_range", ...)`` unless ``paths`` holds 1 to
+    ``MAX_IMAGES`` paths."""
+    if not paths:
+        raise error("out_of_range", "paths is empty")
+    if len(paths) > MAX_IMAGES:
+        raise error("out_of_range", f"paths has {len(paths)} entries; the most one call takes is {MAX_IMAGES}")
+
+
+def read_items(
+    exiftool: "Exiftool | None", paths: Sequence[str], targets: Sequence[Path | str], tags: list[str]
+) -> ImagesMetadata:
+    """``inspect_images`` for both servers, up to the frame size: ``targets[i]``
+    is the file to read for ``paths[i]``, or the error text (`<code>:
+    <message>`) that image already has. exiftool runs once for all the files.
+    What fails the whole call (metadata_unavailable, invalid_tag, timeout, an
+    unusable exiftool run) is raised as MetadataProblem; a problem with one
+    image is that image's ``error``."""
+    with _as_problems(exiftool) as tool:
+        read = iter(tool.read_many([t for t in targets if isinstance(t, Path)], tags))
+    items = []
+    for path, target in zip(paths, targets, strict=True):
+        if isinstance(target, str):
+            items.append(ImageMetadata(path=path, metadata=None, error=target))
+            continue
+        found = next(read)
+        if isinstance(found, Metadata):
+            items.append(ImageMetadata(path=path, metadata=found, error=None))
+        else:
+            items.append(ImageMetadata(path=path, metadata=None, error=f"metadata_failed: {found}"))
+    return ImagesMetadata(items=items, failed=sum(i.error is not None for i in items))

@@ -9,6 +9,7 @@ passes is saved beside them as ``compare-03-05.jpg``, never overwritten either.
 """
 
 import json
+import math
 import re
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -92,20 +93,23 @@ class SheetFrame(BaseModel):
     """The pass `changed` is measured from: the last one this image was in. Null for its first."""
     changed: int | None
     """How many profile values differ from that pass (0 when none); null when there is nothing to
-    compare with. Which ones: `changes` for the roll, the pass JSON per frame."""
+    compare with. Which ones: `changes` for the whole set, the pass JSON per frame."""
 
 
 class SheetResult(Pass):
+    index: int | None
+    """The pass number; null for a sheet made with `record=false`, which is not a pass."""
     images: list[SheetFrame]
     changes: ChangeSummary | None
     """What changed since the last pass, the same change on several frames being one entry with their
     file names (`groups`: the most shared first, then by name; `more`: how many further ones are not
-    listed). Null when no frame had an earlier pass to compare with (a first pass). Every change per
-    frame is in the JSON."""
+    listed). Null when no frame had an earlier pass to compare with (a first pass), and with
+    `record=false`. Every change per frame is in the JSON."""
     path: str
-    """The sheet (a JPEG); open it to look at the roll."""
-    json_path: str
-    """The pass's record: per image `changes`, every profile value that differs."""
+    """The sheet (a JPEG); open it to look at the frames. With `record=false` it is a file in the
+    server's own temp folder."""
+    json_path: str | None
+    """The pass's record: per image `changes`, every profile value that differs. Null with `record=false`."""
     rendered: int
     failed: int
     warnings: list[str] = []
@@ -228,19 +232,25 @@ def contact_sheet(
     columns: int | None = None,
     thumb_size: int = DEFAULT_THUMB_SIZE,
     on_progress: Callable[[int, int], None] | None = None,
+    record: bool = True,
 ) -> SheetResult:
     """Render ``images`` from their working profiles as small thumbnails,
     compose them into a labelled grid and save it as the next pass in
     ``<folder>/sheets``. A problem with the call as a whole fails it before
     anything renders; a problem with one image is that image's error, with a
     placeholder on the sheet. Working profiles are copied when the call
-    starts. ``on_progress(done, total)`` is called as each render finishes."""
+    starts. ``on_progress(done, total)`` is called as each render finishes.
+
+    Without ``record`` the same sheet is a quick look, not a pass: a new JPEG in
+    the previews folder (like ``render_preview``'s) and nothing else. No number,
+    JSON, bookkeeping or comparison, and ``folder`` is not used. ``columns``
+    defaults to ``quick_columns``."""
     if not MIN_THUMB_SIZE <= thumb_size <= MAX_THUMB_SIZE:
         raise render_error("out_of_range", f"thumb_size must be {MIN_THUMB_SIZE} to {MAX_THUMB_SIZE}")
     if columns is not None and not 1 <= columns <= MAX_COLUMNS:
         raise render_error("out_of_range", f"columns must be 1 to {MAX_COLUMNS}")
-    slug = label_slug(label) if label is not None else None
-    sheets = sheets_folder(session, folder)
+    slug = label_slug(label) if record and label is not None else None
+    sheets = sheets_folder(session, folder) if record else None
     paths = expand(session, images)
     if not paths:
         raise render_error("out_of_range", "images is empty")
@@ -257,6 +267,8 @@ def contact_sheet(
         if all(f.thumbnail is None for f in frames):
             first_error = next((f.error for f in frames if f.error), "")
             raise render_error("render_failed", f"no image could be rendered; the first: {first_error}")
+        if sheets is None:
+            return save_look(session, frames, label, columns or quick_columns(len(frames), thumb_size), thumb_size)
         with session.locked_folder(sheets):
             return save_pass(
                 sheets, frames, label, slug, columns or min(len(frames), DEFAULT_COLUMNS), thumb_size
@@ -265,6 +277,75 @@ def contact_sheet(
         for frame in frames:
             if frame.thumbnail is not None:
                 frame.thumbnail.unlink(missing_ok=True)
+
+
+def quick_columns(count: int, thumb_size: int) -> int:
+    """``columns`` for an unrecorded sheet of ``count`` frames when the caller
+    names none: a grid about as wide as it is high (``ceil(sqrt(count))``),
+    narrowed so its width stays within what Claude shows without shrinking
+    (``MAX_PREVIEW_SIZE``). A few big frames come out as one readable image:
+    4 frames of 1000 px make 2 by 2, 6 of 700 px make 3 by 2. (A pass keeps
+    its default of 6.)"""
+    square = math.ceil(math.sqrt(count))
+    fitting = (MAX_PREVIEW_SIZE - PAD) // (thumb_size + PAD)
+    return max(1, min(square, fitting, MAX_COLUMNS))
+
+
+def frame_cells(frames: list[Frame]) -> list[Cell]:
+    return [Cell(f.image.name, f.thumbnail, (f.error or "").partition(":")[0]) for f in frames]
+
+
+def size_warnings(grid: Image.Image) -> list[str]:
+    """A warning when ``grid`` is longer than Claude shows without shrinking it."""
+    if max(grid.size) <= MAX_PREVIEW_SIZE:
+        return []
+    return [
+        f"the sheet is {grid.width}x{grid.height} px and gets shown at most {MAX_PREVIEW_SIZE} px on its "
+        "long edge, so the frames look smaller than thumb_size: use fewer images or a smaller thumb_size"
+    ]
+
+
+def save_look(
+    session: RenderSession, frames: list[Frame], label: str | None, columns: int, thumb_size: int
+) -> SheetResult:
+    """Compose the sheet and save it as a new file in the previews folder (which goes
+    with the server); nothing of a pass is kept: no number, JSON or bookkeeping."""
+    now = datetime.now().astimezone()
+    title = (label or "preview") + f" - {now:%Y-%m-%d %H:%M}"
+    grid, boxes = compose(frame_cells(frames), columns, thumb_size, title)
+    jpeg = session.previews.new_file("sheet", ".jpg")
+    try:
+        save_new_jpeg(jpeg, grid)
+    except OSError as e:
+        raise render_error("render_failed", f"cannot write the sheet {jpeg}: {e}") from e
+    rendered = sum(f.thumbnail is not None for f in frames)
+    return SheetResult(
+        index=None,
+        label=label,
+        time=now.isoformat(timespec="seconds"),
+        sheet=jpeg.name,
+        thumb_size=thumb_size,
+        columns=max(1, min(columns, len(frames))),
+        width=grid.width,
+        height=grid.height,
+        images=[
+            SheetFrame(
+                path=str(f.image),
+                name=f.image.name,
+                box=[box.x, box.y, box.w, box.h] if box else None,
+                error=f.error,
+                since_pass=None,
+                changed=None,
+            )
+            for f, box in zip(frames, boxes, strict=True)
+        ],
+        changes=None,
+        path=str(jpeg),
+        json_path=None,
+        rendered=rendered,
+        failed=len(frames) - rendered,
+        warnings=size_warnings(grid),
+    )
 
 
 def save_new_jpeg(target: Path, grid: Image.Image) -> None:
@@ -295,12 +376,7 @@ def save_pass(
         index = next_index(sheets)
         now = datetime.now().astimezone()
         title = f"pass {index:02d}" + (f" - {label}" if label else "") + f" - {now:%Y-%m-%d %H:%M}"
-        grid, boxes = compose(
-            [Cell(f.image.name, f.thumbnail, (f.error or "").partition(":")[0]) for f in frames],
-            columns,
-            thumb_size,
-            title,
-        )
+        grid, boxes = compose(frame_cells(frames), columns, thumb_size, title)
         profiles = read_profiles(sheets)
         images: list[SheetImage] = []
         for frame, box in zip(frames, boxes, strict=True):
@@ -350,12 +426,7 @@ def save_pass(
         raise render_error("render_failed", f"cannot write the pass into {sheets}: {e}") from e
 
     rendered = sum(f.thumbnail is not None for f in frames)
-    warnings: list[str] = []
-    if max(grid.size) > MAX_PREVIEW_SIZE:
-        warnings.append(
-            f"the sheet is {grid.width}x{grid.height} px and gets shown at most {MAX_PREVIEW_SIZE} px on its "
-            "long edge, so the frames look smaller than thumb_size: use fewer images or a smaller thumb_size"
-        )
+    warnings = size_warnings(grid)
     summary = summarise(((i.name, i.changes) for i in images), MAX_SHARED_CHANGES)
     if summary is not None and summary.more:
         warnings.append(

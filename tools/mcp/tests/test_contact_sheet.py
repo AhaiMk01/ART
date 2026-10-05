@@ -582,6 +582,96 @@ async def test_leaves_no_temporary_files_behind(server, images, out, tmp_path):
     assert leftovers == []
 
 
+# -- record=false: a look, not a pass ---------------------------------------
+
+
+async def test_without_record_the_sheet_goes_to_the_preview_folder_and_no_pass_is_kept(server, images, out, tmp_path):
+    previews = tmp_path / "previews"
+    async with Client(server) as client:
+        await open_all(client, images)
+        # no folder, and no export_batch to default to: a pass would be refused
+        result = await sheet(client, images, record=False, thumb_size=700)
+        with_folder = await sheet(client, images, out, record=False, thumb_size=100)
+        listing = sorted(p.name for p in previews.iterdir())
+        with Image.open(result.structured_content["path"]) as grid:  # the folder goes with the server
+            grid_format, grid_size = grid.format, grid.size
+
+    assert not result.is_error, result.content
+    data = result.structured_content
+    jpeg = Path(data["path"])
+    assert jpeg.parent == previews and jpeg.suffix == ".jpg" and data["sheet"] == jpeg.name
+    assert grid_format == "JPEG" and grid_size == (data["width"], data["height"])
+    assert data["rendered"] == 3 and data["failed"] == 0 and data["warnings"] == []
+    assert data["index"] is None and data["json_path"] is None and data["changes"] is None
+    assert [i["name"] for i in data["images"]] == ["FILM_1.ARW", "FILM_2.ARW", "FILM_3.ARW"]
+    assert all(i["error"] is None and i["since_pass"] is None and i["changed"] is None for i in data["images"])
+    assert all(i["box"] and max(i["box"][2:]) == 700 for i in data["images"])
+    # a folder that is given is not used; each sheet is a new file, and the thumbnails are gone
+    other = Path(with_folder.structured_content["path"])
+    assert other.parent == previews and other != jpeg
+    assert listing == sorted([jpeg.name, other.name])
+    assert list(out.iterdir()) == []
+
+
+async def test_an_unrecorded_sheet_takes_no_part_in_the_passes_comparisons(server, images, out):
+    async with Client(server) as client:
+        await open_all(client, images)
+        await sheet(client, images, out, thumb_size=100)
+        await client.call_tool("edit_profile", {"path": str(images[1]), "raw_edits": compensation("1.5")})
+        look = await sheet(client, images, out, record=False, thumb_size=100)
+        await client.call_tool("edit_profile", {"path": str(images[2]), "raw_edits": compensation("0.5")})
+        second = await sheet(client, images, out, thumb_size=100)
+
+    assert look.structured_content["changes"] is None
+    assert second.structured_content["index"] == 2  # the look took no number
+    assert {p.name for p in (out / "sheets").iterdir()} == {
+        "pass-01.jpg", "pass-01.json", "pass-02.jpg", "pass-02.json", "profiles.json"
+    }
+    # both edits count against pass 1: the look did not move the baseline
+    assert [i["changed"] for i in second.structured_content["images"]] == [0, 1, 1]
+    assert [i["since_pass"] for i in second.structured_content["images"]] == [1, 1, 1]
+
+
+async def test_without_record_the_columns_default_to_what_suits_the_number_of_frames(server, images, out):
+    async with Client(server) as client:
+        await open_all(client, images)
+        recorded = await sheet(client, images, out, thumb_size=700)
+        quick = await sheet(client, images, record=False, thumb_size=700)
+        three = await sheet(client, images, record=False, thumb_size=700, columns=3)
+        bad = await sheet(client, images, record=False, columns=0)
+        small = await sheet(client, images, record=False, thumb_size=10)
+
+    assert recorded.structured_content["columns"] == 3  # unchanged: min(frames, 6)
+    assert quick.structured_content["columns"] == 2
+    assert quick.structured_content["width"] < 2576 and quick.structured_content["warnings"] == []
+    assert three.structured_content["columns"] == 3
+    assert bad.is_error and "out_of_range" in bad.content[0].text
+    assert small.is_error and "out_of_range" in small.content[0].text
+
+
+async def test_an_unrecorded_sheet_still_names_a_failing_image_and_renders_the_others(server, images):
+    async with Client(server) as client:
+        await open_all(client, images[:2])
+        result = await sheet(client, images, record=False, thumb_size=100)
+        nothing = await sheet(client, images[2:], record=False)
+
+    first, _, third = result.structured_content["images"]
+    assert result.structured_content["rendered"] == 2 and result.structured_content["failed"] == 1
+    assert first["error"] is None and third["error"].startswith("not_open:") and third["box"] is None
+    assert nothing.is_error and "render_failed" in nothing.content[0].text
+
+
+@pytest.mark.parametrize(
+    ("count", "thumb_size", "columns"),
+    [
+        (1, 400, 1), (2, 700, 2), (3, 700, 2), (4, 1000, 2), (5, 700, 3),
+        (6, 700, 3), (6, 1000, 2), (12, 400, 4), (40, 32, 7),
+    ],
+)  # fmt: skip
+def test_quick_columns_make_a_square_grid_that_still_fits_the_width_claude_shows(count, thumb_size, columns):
+    assert sheet_ops.quick_columns(count, thumb_size) == columns
+
+
 # -- compare_passes ---------------------------------------------------------
 
 

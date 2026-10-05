@@ -156,3 +156,98 @@ async def test_each_preview_is_a_new_file_and_the_folder_goes_with_the_server(ar
         assert Path(first.structured_content["path"]).exists()
 
     assert not previews.root.exists()
+
+
+# -- output: keep the preview where the caller says --------------------------
+
+
+def leftovers(previews):
+    return sorted(p.name for p in previews.root.iterdir()) if previews.root.exists() else []
+
+
+async def test_a_preview_can_be_written_to_a_path_of_the_callers_choice(art, previews, tmp_path):
+    art.ops["preview"] = write_preview(b"\xff\xd8look\xff\xd9", width=600, height=400)
+    out = tmp_path / "work" / "look.jpg"
+    out.parent.mkdir()
+
+    async with Client(build_server(ControlChannel(art.config_dir), previews=previews)) as client:
+        result = await client.call_tool(
+            "render_preview", {"path": str(tmp_path / "a.ARW"), "max_size": 800, "output": str(out), "inline": True}
+        )
+
+    assert not result.is_error, result.content
+    assert result.structured_content == {"path": str(out), "max_size": 800, "width": 600, "height": 400}
+    assert out.read_bytes() == b"\xff\xd8look\xff\xd9"
+    [req] = requests(art, "preview")
+    assert Path(req["args"]["output"]).parent == previews.root  # ART writes into the server's folder
+    assert leftovers(previews) == []  # and the server moved it
+    [block] = images(result)
+    assert base64.b64decode(block.data) == out.read_bytes()
+
+
+async def test_an_existing_output_is_refused_unless_overwrite_and_ART_is_not_asked_first(art, previews, tmp_path):
+    art.ops["preview"] = write_preview(b"new", width=2, height=1)
+    out = tmp_path / "look.jpg"
+    out.write_bytes(b"keep me")
+
+    async with Client(build_server(ControlChannel(art.config_dir), previews=previews)) as client:
+        refused = await client.call_tool("render_preview", {"path": str(tmp_path / "a.ARW"), "output": str(out)})
+        kept = out.read_bytes()
+        asked = len(requests(art, "preview"))
+        replaced = await client.call_tool(
+            "render_preview", {"path": str(tmp_path / "a.ARW"), "output": str(out), "overwrite": True}
+        )
+
+    assert refused.is_error and "exists:" in refused.content[0].text
+    assert kept == b"keep me" and asked == 0
+    assert not replaced.is_error, replaced.content
+    assert out.read_bytes() == b"new" and leftovers(previews) == []
+
+
+@pytest.mark.parametrize(
+    ("name", "code"),
+    [("missing/look.jpg", "not_found"), ("look.png", "out_of_range"), ("look.jpg", "out_of_range")],
+)
+async def test_output_needs_an_existing_folder_a_jpeg_name_and_an_absolute_path(art, previews, tmp_path, name, code):
+    art.ops["preview"] = write_preview(b"jpeg", width=2, height=1)
+    output = name if name == "look.jpg" else str(tmp_path / name)  # "look.jpg" alone is relative
+
+    async with Client(build_server(ControlChannel(art.config_dir), previews=previews)) as client:
+        result = await client.call_tool("render_preview", {"path": str(tmp_path / "a.ARW"), "output": output})
+
+    assert result.is_error and f"{code}:" in result.content[0].text
+    assert not requests(art, "preview")
+
+
+async def test_a_preview_never_replaces_the_image_it_shows(art, previews, tmp_path):
+    art.ops["preview"] = write_preview(b"jpeg", width=2, height=1)
+    scan = tmp_path / "scan.JPG"
+    scan.write_bytes(b"jpeg scan")
+
+    async with Client(build_server(ControlChannel(art.config_dir), previews=previews)) as client:
+        result = await client.call_tool(
+            "render_preview", {"path": str(scan), "output": str(scan), "overwrite": True}
+        )
+
+    assert result.is_error and "exists:" in result.content[0].text
+    assert scan.read_bytes() == b"jpeg scan" and not requests(art, "preview")
+
+
+async def test_art_failing_leaves_nothing_at_output(art, previews, tmp_path):
+    art.ops["preview"] = fail("not_open", "a.ARW is not open in ART")
+    out = tmp_path / "look.jpg"
+
+    async with Client(build_server(ControlChannel(art.config_dir), previews=previews)) as client:
+        result = await client.call_tool("render_preview", {"path": str(tmp_path / "a.ARW"), "output": str(out)})
+
+    assert result.is_error and "not_open:" in result.content[0].text
+    assert not out.exists() and leftovers(previews) == []
+
+
+async def test_the_description_says_what_inline_does_and_defaults_to(art, previews):
+    async with Client(build_server(ControlChannel(art.config_dir), previews=previews)) as client:
+        tools = {t.name: t for t in (await client.list_tools()).tools}
+
+    text = tools["render_preview"].description
+    assert "inline" in text and "--inline-previews" in text and "off" in text
+    assert "output" in text and "overwrite" in text

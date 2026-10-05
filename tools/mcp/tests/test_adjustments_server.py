@@ -196,8 +196,9 @@ async def test_edit_profile_input_schema_shows_the_adjustments(server):
         tools = await client.list_tools()
 
     schema = next(t for t in tools.tools if t.name == "edit_profile").input_schema
-    exposure = schema["properties"]["adjustments"]
-    assert "compensation" in str(exposure) and "-12" in str(exposure)
+    assert "#/$defs/Adjustments" in str(schema["properties"]["adjustments"])  # the models are defined once
+    compensation = schema["$defs"]["Exposure"]["properties"]["compensation"]
+    assert compensation["minimum"] == -12 and compensation["maximum"] == 12
 
 
 async def test_crop_is_checked_against_the_image_frame(server, image):
@@ -367,6 +368,10 @@ async def test_color_correction_regions_edit_render_and_read_back_typed(server, 
     implied = edit.structured_content["implied"]["ColorCorrection"]
     assert implied == {"Mode_1": "RGB", "Enabled": "true", "AreaMaskEnabled_2": "true"}
     assert not implied.keys() & changed.keys()  # each value once
+    # Region 2 and its shape are new: the keys ART writes for them are counted, not listed.
+    assert edit.structured_content["created"] == {"ColorCorrection": [
+        "region 2 (78 keys at their defaults)", "region 2 mask shape 0 (5 keys at their defaults)"]}  # fmt: skip
+    assert "HSLGamma_2" not in changed and "AreaMaskX_2" not in changed and len(changed) < 20
     typed = profile.structured_content["adjustments"]["color_correction"]
     assert typed["enabled"] is True
     assert typed["regions"][0]["b"] == {"slope": 0.9239, "offset": 0.0, "power": 0.6241}

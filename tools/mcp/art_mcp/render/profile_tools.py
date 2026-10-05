@@ -35,7 +35,7 @@ def register(server: MCPServer, session: RenderSession) -> None:
         """The image's working profile: curated tools under `adjustments`,
         every other `[Group] Key` as a string under `raw`. A whole profile is
         large (about 15k tokens): `groups` (`[Group]` names as in `raw`, e.g.
-        `["Film Negative", "ToneCurve"]`; an unknown one is unknown_key and
+        `["Exposure", "ToneCurve"]`; an unknown one is unknown_key and
         lists the valid ones) reads only those groups, and `changed_only`
         only the values that differ from ART's default profile for the image
         (whatever is not listed equals it)."""
@@ -58,9 +58,10 @@ def register(server: MCPServer, session: RenderSession) -> None:
 
         Returns only what changed: `changed` ([Group] -> Key -> new value),
         `implied` (changes you did not ask for, such as that enabling, in the
-        same shape), `drawn` (the line ART draws for a tone curve you set) and
-        `warnings`. `full` also returns the groups touched, as get_profile
-        reads them."""
+        same shape), `created` (a new Color Correction region or mask shape:
+        its keys at ART's defaults are counted, not listed), `drawn` (the line
+        ART draws for a tone curve you set) and `warnings`. `full` also
+        returns the groups touched, as get_profile reads them."""
         with as_tool_errors():
             return ops.edit_profile(session, path, adjustments, raw_edits, full)
 

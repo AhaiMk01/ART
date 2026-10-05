@@ -7,11 +7,14 @@ talking to ART stays in the servers.
 
 import io
 import json
+import math
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 from pydantic import BaseModel, ValidationError
+
+from art_mcp.render.artcli import Rect, region_rect
 
 SPACES = ("working", "input")
 MIN_SIZE, MAX_SIZE = 2, 256
@@ -24,8 +27,8 @@ UNSUPPORTED_SPOTS = (
 )
 
 SKILLS_POINTER = (
-    "Workflows for film scans: see the film-negative and faded-slide skills "
-    "(tools/mcp/skills)."
+    "Step-by-step workflows (film negatives, faded slides): see the skills in "
+    "tools/mcp/skills."
 )
 
 SAMPLE_SPOTS_DOC = """Read what ART's own pickers read: linear values of square spots of the image.
@@ -142,21 +145,77 @@ def parse_spots_reply(reply: Any, size: int, space: str) -> SpotSamples:
 # -- statistics ---------------------------------------------------------------
 
 IMAGE_STATS_DOC = """Per channel r, g, b and lum (0.2126 R + 0.7152 G + 0.0722 B of the 8-bit
-values): `mean`, `clipped_high` / `clipped_low` (fraction of pixels at 255 /
-0), `percentiles` (0.1, 1, 5, 50, 95, 99, 99.9 %), and with `histogram` the
-256 counts; plus the width/height analysed. `max_size`: long edge, 1 to 2576.
-Anything the image shows counts, including a scanner holder or border: crop
-first (Render applies the working profile's crop; Live's preview is
-uncropped). """ + SKILLS_POINTER
+values): `mean`, `std` (standard deviation), `min` / `max` (lowest / highest
+value that occurs), `mode` (most frequent value, the lowest on a tie),
+`clipped_high` / `clipped_low` (fraction of pixels at 255 / 0), `percentiles`
+(0.1, 1, 5, 50, 95, 99, 99.9 %). `bins` (8, 16, 32 or 64) adds per channel
+`bins`: the fraction of pixels in that many equal groups of values, dark to
+light; 16 is enough to see the shape (a clipped shoulder, a second hump, a
+flat toe), where the percentiles alone do not. `histogram` adds the 256 raw
+counts. `width`/`height`: the whole rendered image. `max_size`: long edge, 1 to
+2576. Anything the image shows counts, including a border, a mount or
+bright lamps: crop first (Render applies the working profile's crop; Live's
+preview is uncropped), or give `region` {x, y, w, h}, fractions 0 to 1 of the
+image as this tool shows it (x, y the top-left corner; the same rectangle as
+Render's render_preview `region`): all of the above is then of that part only,
+and the result's `region` is its pixel rectangle {x, y, w, h} in the
+`width` x `height` image. The region is cut from the same render, so a small
+one has few pixels (at least 16 are needed, else out_of_range): raise
+`max_size` for more. """ + SKILLS_POINTER
 
 PERCENTILES = ("0.1", "1", "5", "50", "95", "99", "99.9")
 _PERMILLE = {p: round(float(p) * 10) for p in PERCENTILES}
 LUMA = (0.2126, 0.7152, 0.0722)
+BIN_COUNTS = (8, 16, 32, 64)
+"""The `bins` that divide the 256 values evenly."""
+MIN_REGION_PIXELS = 16
+REGION_OUTSIDE = (
+    "region x, y, w, h are fractions of the image: x, y >= 0, w, h > 0, "
+    "x + w <= 1 and y + h <= 1"
+)
+"""What a region must satisfy; render_preview's refusal has the same words."""
+
+
+class RegionFractions(Protocol):
+    """A region as render_preview takes it (``Region`` in render/preview_ops.py)."""
+
+    x: float
+    y: float
+    w: float
+    h: float
+
+    def inside_image(self) -> bool: ...
+
+
+class RegionTooSmall(ValueError):
+    """A region that covers too few pixels of the rendered image to measure."""
+
+
+def check_stats_region(region: RegionFractions | None, error: Callable[[Any, str], Exception]) -> None:
+    """Raise ``error("out_of_range", ...)`` for a region outside the image
+    (render_preview's rule, same words)."""
+    if region is not None and not region.inside_image():
+        raise error("out_of_range", REGION_OUTSIDE)
+
+
+def check_stats_bins(bins: int | None, error: Callable[[Any, str], Exception]) -> None:
+    """Raise ``error("out_of_range", ...)`` unless ``bins`` is None or one of
+    ``BIN_COUNTS``."""
+    if bins is not None and bins not in BIN_COUNTS:
+        raise error("out_of_range", "bins must be 8, 16, 32 or 64")
 
 
 class ChannelStats(BaseModel):
     mean: float
     """Mean of the 8-bit values (0..255), 2 decimals."""
+    std: float
+    """Standard deviation of the values, 2 decimals."""
+    min: int
+    """Lowest value that occurs."""
+    max: int
+    """Highest value that occurs."""
+    mode: int
+    """Most frequent value (the lowest on a tie)."""
     clipped_high: float
     """Fraction of pixels at 255."""
     clipped_low: float
@@ -165,12 +224,27 @@ class ChannelStats(BaseModel):
     """Value (0..255) at 0.1, 1, 5, 50, 95, 99, 99.9 % (nearest rank)."""
     histogram: list[int] | None = None
     """256 counts, only when asked."""
+    bins: list[float] | None = None
+    """Fractions of pixels (4 decimals) in `bins` equal groups of values, dark
+    to light, only when asked."""
+
+
+class PixelRegion(BaseModel):
+    """A rectangle of the rendered image, in its pixels."""
+
+    x: int
+    y: int
+    w: int
+    h: int
 
 
 class ImageStats(BaseModel):
     width: int
     height: int
-    """The rendered image's size."""
+    """The whole rendered image's size, also when a region was measured."""
+    region: PixelRegion | None = None
+    """The part measured, in the pixels of `width` x `height`; None for the
+    whole image."""
     r: ChannelStats
     g: ChannelStats
     b: ChannelStats
@@ -179,9 +253,11 @@ class ImageStats(BaseModel):
     value (so it bins like the other channels)."""
 
 
-def channel_stats(counts: list[int], histogram: bool) -> ChannelStats:
+def channel_stats(counts: list[int], histogram: bool, bins: int | None = None) -> ChannelStats:
     """Statistics from a 256-bin histogram. A percentile is the smallest value
-    whose cumulative count reaches ceil(p/100 * N) (nearest rank)."""
+    whose cumulative count reaches ceil(p/100 * N) (nearest rank). ``bins``
+    (one of ``BIN_COUNTS``) adds the fractions of pixels in that many equal
+    groups of values."""
     total = sum(counts)
     percentiles: dict[str, int] = {}
     for name, permille in _PERMILLE.items():
@@ -192,18 +268,34 @@ def channel_stats(counts: list[int], histogram: bool) -> ChannelStats:
             if running >= rank:
                 percentiles[name] = value
                 break
+    mean = sum(v * n for v, n in enumerate(counts)) / total
+    present = [v for v, n in enumerate(counts) if n]
+    group = 256 // bins if bins else 0
     return ChannelStats(
-        mean=round(sum(v * n for v, n in enumerate(counts)) / total, 2),
+        mean=round(mean, 2),
+        std=round(math.sqrt(sum(n * (v - mean) ** 2 for v, n in enumerate(counts)) / total), 2),
+        min=present[0],
+        max=present[-1],
+        mode=counts.index(max(counts)),  # the first of equals: the lowest
         clipped_high=counts[255] / total,
         clipped_low=counts[0] / total,
         percentiles=percentiles,
         histogram=counts if histogram else None,
+        bins=[round(sum(counts[i : i + group]) / total, 4) for i in range(0, 256, group)] if bins else None,
     )
 
 
-def image_stats(png: Path | bytes, histogram: bool = False) -> ImageStats:
-    """Statistics of an 8-bit image file (any mode Pillow can turn into RGB).
-    Raises ValueError if it can't be read or has no pixels."""
+def image_stats(
+    png: Path | bytes,
+    histogram: bool = False,
+    region: RegionFractions | None = None,
+    bins: int | None = None,
+) -> ImageStats:
+    """Statistics of an 8-bit image file (any mode Pillow can turn into RGB),
+    of the part ``region`` selects when given (fractions of the image, cut like
+    render_preview's region). Raises ValueError if it can't be read or has no
+    pixels, and ``RegionTooSmall`` (a ValueError) if the region has fewer than
+    ``MIN_REGION_PIXELS``."""
     from PIL import Image
 
     try:
@@ -214,10 +306,20 @@ def image_stats(png: Path | bytes, histogram: bool = False) -> ImageStats:
     width, height = rgb.size
     if width * height == 0:
         raise ValueError("the rendered image has no pixels")
+    part = None
+    if region is not None:
+        rect = region_rect(Rect(0, 0, width, height), x=region.x, y=region.y, w=region.w, h=region.h)
+        if rect.w * rect.h < MIN_REGION_PIXELS:
+            raise RegionTooSmall(
+                f"the region covers only {rect.w} x {rect.h} pixels of the {width} x {height} image; "
+                f"it needs at least {MIN_REGION_PIXELS} pixels: widen it, or raise max_size"
+            )
+        rgb = rgb.crop((rect.x, rect.y, rect.x + rect.w, rect.y + rect.h))
+        part = PixelRegion(x=rect.x, y=rect.y, w=rect.w, h=rect.h)
     counts = rgb.histogram()
     lum = rgb.convert("L", (*LUMA, 0)).histogram()
-    r, g, b = (channel_stats(counts[i * 256 : (i + 1) * 256], histogram) for i in range(3))
+    r, g, b = (channel_stats(counts[i * 256 : (i + 1) * 256], histogram, bins) for i in range(3))
     return ImageStats(
-        width=width, height=height, r=r, g=g, b=b, lum=channel_stats(lum, histogram)
+        width=width, height=height, region=part, r=r, g=g, b=b, lum=channel_stats(lum, histogram, bins)
     )
 

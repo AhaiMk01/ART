@@ -1,17 +1,21 @@
 """Preview operation: render_preview."""
 
+import shutil
 from pathlib import Path
 
 from pydantic import BaseModel
 
 from art_mcp import artdir, keyfile
+from art_mcp.concurrency import image_key
 from art_mcp.render.artcli import crop_profile, preview_args, region_rect, resize_profile
 from art_mcp.render.errors import render_error
+from art_mcp.render.export_ops import move_over
 from art_mcp.render.session import RenderSession
 
 PREVIEW_SIZE = 1024
 MAX_PREVIEW_SIZE = 2576
 """Claude downscales images with a longer edge above this."""
+OUTPUT_SUFFIXES = (".jpg", ".jpeg")
 
 
 class Region(BaseModel):
@@ -75,11 +79,58 @@ def render_jpeg(
     return output
 
 
+def check_output(output: str, image: Path, overwrite: bool) -> Path:
+    """The file a preview is to be written to: ``output`` must be an absolute
+    path naming a ``.jpg`` in a folder that exists (``out_of_range``,
+    ``not_found``), must not be ``image`` itself, and must not exist yet unless
+    ``overwrite`` (``exists``). Checked before anything renders."""
+    given = Path(output)
+    if not given.is_absolute():
+        raise render_error("out_of_range", f"output must be an absolute path to a .jpg file, not {output!r}")
+    if given.suffix.lower() not in OUTPUT_SUFFIXES:
+        raise render_error("out_of_range", f"output must be a .jpg file, not {given.name!r}")
+    dest = given.resolve()
+    if not dest.parent.is_dir():
+        raise render_error("not_found", f"folder {dest.parent} does not exist")
+    if image_key(dest) == image_key(image.resolve()):
+        raise render_error("exists", f"{dest} is the image itself; write the preview to another file")
+    if dest.exists() and not overwrite:
+        raise render_error("exists", f"{dest} already exists; pass overwrite=true to replace it")
+    return dest
+
+
+def place_output(rendered: Path, dest: Path, overwrite: bool) -> None:
+    """Move the rendered preview ``rendered`` to ``dest`` (``check_output``'s
+    answer) and leave nothing of it in the previews folder. Without
+    ``overwrite`` the file is created exclusively, so a file that appeared
+    since the check is not replaced either (``exists``)."""
+    try:
+        if overwrite:
+            move_over(rendered, dest)
+        else:
+            try:
+                target = dest.open("xb")
+            except FileExistsError as e:
+                raise render_error("exists", f"{dest} already exists; pass overwrite=true to replace it") from e
+            try:
+                with target, rendered.open("rb") as source:
+                    shutil.copyfileobj(source, target)
+            except BaseException:
+                dest.unlink(missing_ok=True)  # no half a file is left behind
+                raise
+    except OSError as e:
+        raise render_error("render_failed", f"cannot write {dest}: {e}") from e
+    finally:
+        rendered.unlink(missing_ok=True)
+
+
 def render_preview(
     session: RenderSession,
     path: str,
     max_size: int = PREVIEW_SIZE,
     region: Region | None = None,
+    output: str | None = None,
+    overwrite: bool = False,
 ) -> Preview:
     if not 1 <= max_size <= MAX_PREVIEW_SIZE:
         raise render_error("out_of_range", f"max_size must be 1 to {MAX_PREVIEW_SIZE}")
@@ -89,6 +140,7 @@ def render_preview(
             "region x, y, w, h are fractions of the image: x, y >= 0, w, h > 0, "
             "x + w <= 1 and y + h <= 1",
         )
+    dest = check_output(output, Path(path), overwrite) if output is not None else None
     with session.image(path) as wp:
         # -f resizes before processing, which approximates sharpening and
         # local effects: only worth it for a whole-image preview that fits the
@@ -98,7 +150,10 @@ def render_preview(
         if region is not None:
             rect = region_rect(session.frame_of(wp), x=region.x, y=region.y, w=region.w, h=region.h)
             crop_text = crop_profile(rect)
-        output = render_jpeg(
+        rendered = render_jpeg(
             session, wp.image, keyfile.dumps(wp.changes.profile), max_size, fast=fast, crop_text=crop_text
         )
-    return Preview(path=str(output), max_size=max_size)
+    if dest is not None:
+        place_output(rendered, dest, overwrite)
+        rendered = dest
+    return Preview(path=str(rendered), max_size=max_size)

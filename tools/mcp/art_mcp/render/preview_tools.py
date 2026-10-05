@@ -22,14 +22,25 @@ def register(server: MCPServer, session: RenderSession) -> None:
         max_size: int = PREVIEW_SIZE,
         region: Region | None = None,
         inline: bool | None = None,
+        output: str | None = None,
+        overwrite: bool = False,
     ) -> Annotated[CallToolResult, Preview]:
         """Render the working profile as a JPEG (long edge `max_size` px, 1 to
         2576) and return its path. `region` {x, y, w, h}, as fractions of the
         image, renders just that area at 1:1 (shrunk only to fit `max_size`).
-        `inline` also returns the image itself (default: the server's
-        --inline-previews setting)."""
+        The JPEG is a new file in the server's own temp folder
+        (`art-mcp-<pid>`, removed when the server exits); `output` (an
+        absolute path to a `.jpg`, its folder must exist) writes it there
+        instead and returns that path: `exists` if the file is there, unless
+        `overwrite`. `inline`: true also returns the image itself in the
+        result, which you see without opening the file; false returns the
+        path only. Default: the server's --inline-previews setting, which is
+        off unless the server was started with that flag, so normally you get
+        a path and must open the file to look. To look at several frames at
+        once, `contact_sheet(record=false, thumb_size=...)` renders them into
+        one image, so one file read instead of a preview and a read each."""
         with as_tool_errors():
-            result = ops.render_preview(session, path, max_size, region)
+            result = ops.render_preview(session, path, max_size, region, output, overwrite)
         content: list[ContentBlock] = [TextContent(text=result.model_dump_json())]
         if inline if inline is not None else session.inline_previews:
             content.append(

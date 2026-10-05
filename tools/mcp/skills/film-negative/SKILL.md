@@ -37,10 +37,14 @@ spots in the picture. A frame without any film base visible is fine.
      `groups: [<the group>]` and use the name it shows.
    - The result lists only what changed, as `{Group: {Key: value}}`:
      `changed` (what you set; a value already there is not listed), `implied`
-     (what the server did on its own), `drawn` (curves), `warnings`. It is
+     (what the server did on its own), `drawn` (curves), `warnings`; `created`
+     names a new `color_correction` region or mask shape (the keys ART fills
+     in at their defaults are counted there, not listed). It is
      the check that the edit did what you meant; no `get_profile` is needed.
 3. **Orientation.** Coarse rotation is per frame (frames of one roll differed:
    90 vs 270). `render_preview(max_size=1024)`, look at it (Read the JPEG).
+   For several frames, one `contact_sheet(images, record=false, thumb_size=700)`
+   and one read show them all (see Pitfalls).
    If wrong, set `[Coarse Transformation] Rotate=90` (0, 90, 180, 270) and preview again.
 4. **Crop off the film holder/border** with `adjustments.crop` `{x, y, w, h}`
    in frame pixels (after coarse rotation). Do this BEFORE `image_stats`: the
@@ -57,6 +61,15 @@ spots in the picture. A frame without any film base visible is fine.
    NEGATIVE's (transmitted light): higher = darker scene part. Use `avg`.
    Spread the spots over dark and light areas; the fit needs a range of green
    values. To map a preview pixel to frame pixels, see Pitfalls.
+   To find candidates faster, run `suggest_neutrals(path)` once the inversion
+   and the crop are set: it proposes flat, low-saturation cells spread from
+   dark to light, in the frame pixels `sample_spots` takes (on the test roll
+   about twice the hit rate of a regular grid, on frames from other rolls only
+   slightly better). It narrows where to look and cannot
+   tell the material: look at the preview, drop what is not white paint, metal
+   or concrete, and fit only from what `sample_spots` shows agreeing across
+   independent materials (in mixed light its candidates can agree with each
+   other and still be off the frame's line).
 6. **Fit** (reference.md): `RedRatio = 1/slope` of ln r vs ln g, `BlueRatio`
    likewise with b, least squares over the neutrals; drop spots with large
    residuals (coloured objects: foliage showed up in blue), refit. Real
@@ -86,7 +99,11 @@ spots in the picture. A frame without any film base visible is fine.
    15000 -> ...) until `clipped_high` is about 0 in every channel (a bright
    blue sky may clip a little in `b` first: stay under ~0.05%; raise `L`
    until highlights just don't clip); `lum` p99.9
-   of 220-245 is typical. Then `render_preview` and look. Colour cast:
+   of 220-245 is typical. When lamps or a border dominate, measure a
+   `region` instead (`{x, y, w, h}`, fractions of the image as in
+   `render_preview`). `bins=16` shows the shape of the distribution (is the
+   shadow end clipped, is there a second hump), which the percentiles alone
+   do not. Then `render_preview` and look. Colour cast:
    re-pick `ref_input` on another neutral and leave `ref_output` out: the
    server applies the brightness-preserving rule (reference.md).
 9. **Black point and contrast** (`tone_curve`, sRGB-encoded 0..1, roughly
@@ -125,7 +142,11 @@ same frames of two passes side by side (a few frames: `images`).
    inversion (reference.md, "Lighting groups"): daylight, overcast, dusk,
    each kind of indoor lamp. One preset per group; a frame that fits no
    group is handled on its own. Look at the sheet again after applying the
-   presets; sample neutrals in any frame that still stands out.
+   presets; sample neutrals in any frame that still stands out. Compare
+   frames only after normalising their intercepts to one scan exposure
+   (reference.md, "Reference point on the neutral line"); the numbers are the
+   scanning camera's `shutter_seconds`, `iso` and `aperture`, for the whole
+   roll in one `inspect_images` call.
    Brightness per frame: the preset's `L` fits the group's brightest frame;
    darker frames get +EV (exposure), never -EV (reference.md, "Output
    level").
@@ -162,7 +183,10 @@ same frames of two passes side by side (a few frames: `images`).
    roll: morning, afternoon, shade, greenhouse). Sample neutrals in the frame,
    check that its reliable ones lie on the roll's line (reference.md), keep
    only spots that agree on the intercepts, set `ref_input` on the line and
-   leave `ref_output` to the brightness-preserving rule (or give it). Do not refit the ratios
+   leave `ref_output` to the brightness-preserving rule (or give it). Judge
+   the intercepts after normalising to one scan exposure (reference.md,
+   "Reference point on the neutral line"; shutter, ISO and aperture of the
+   scanning camera, from `inspect_images`). Do not refit the ratios
    unless the frame is another film or development; fit them pooled over
    frames (reference.md), never from one frame.
 5. Check each frame with `image_stats` and a preview, and the roll with a
@@ -202,12 +226,19 @@ same frames of two passes side by side (a few frames: `images`).
   setting a curve is that.
 - The neutral-line intercepts `ir`, `ib` move with scan exposure (shutter,
   ISO, aperture) as well as with the light: normalise them to one exposure
-  before comparing frames. Use one reference green `g0` per lighting group,
+  before comparing frames. Those settings are the DIGITISING camera's, read
+  from the raw's EXIF (`inspect_image` / `inspect_images`), not the film's
+  original exposure, which the file does not carry and which is not needed;
+  a null aperture (manual lens) means use shutter and ISO only. Use one reference green `g0` per lighting group,
   scaled for each frame's exposure, or one `L` is a different brightness on
   each frame (reference.md, "Reference point on the neutral line").
 - A `color_correction` offset is stored halved (lowering a black by the linear
   amount `D` needs `offset = -2 D`) and comes off every pixel of the channel,
   mid-tones included (reference.md, "Per-channel black point").
+- A preview plus a file read per frame adds up (a roll took 28 previews and 32
+  reads). To look at several frames, one `contact_sheet(images, record=false,
+  thumb_size=700)` is one labelled image and one read; 2 to 6 frames at 700 to
+  1000 px stay readable, and nothing is recorded as a pass.
 - Edits are in memory until `save_sidecar`; previews and exports never write
   the sidecar.
 - A whole `get_profile` is about 15k tokens: over a roll, never read it

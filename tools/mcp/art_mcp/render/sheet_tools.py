@@ -19,11 +19,15 @@ def register(server: MCPServer, session: RenderSession) -> None:
         label: str | None = None,
         columns: int | None = None,
         thumb_size: int = ops.DEFAULT_THUMB_SIZE,
+        record: bool = True,
     ) -> SheetResult:
-        """Render the open `images` (paths, or a folder standing for the open
-        images in it) from their working profiles as thumbnails (long edge
-        `thumb_size` px, 32 to 1024), compose them into a grid with the file
-        name under each frame (`columns` per row, default 6) and save it as
+        """To just look at several frames pass `record=false`: one image to
+        read instead of a preview and a read per frame (details at the end).
+        Without it the call renders the open `images` (paths, or a folder
+        standing for the open images in it) from their working profiles as
+        thumbnails (long edge `thumb_size` px, 32 to 1024), composes them into
+        a grid with the file name under each frame (`columns` per row, default
+        6) and saves it as
         the next numbered pass, `<folder>/sheets/pass-NN[-label].jpg`, with
         `pass-NN[-label].json` beside it: the images, the label, the time and
         per image `changes`, every profile value that differs from the last
@@ -36,19 +40,32 @@ def register(server: MCPServer, session: RenderSession) -> None:
         first (at most 25, `more` counts the rest and the JSON has every
         change per frame; `changes` is null when no image had an earlier
         pass, as in the first). Earlier passes are never
-        overwritten. `folder` (it must exist) is the roll's output folder, not
+        overwritten. `folder` (it must exist) is the batch's output folder, not
         the source images' (default: the folder of the last export_batch). Open
         the returned `path` to look at the sheet. One failing image
         (`not_open`, a render error) is reported in its entry and shown as a
         placeholder; the others still render. Working profiles are copied when
-        the call starts. Progress is reported per finished image."""
+        the call starts. Progress is reported per finished image.
+
+        `record=false` makes the same sheet (same thumbnails, grid and labels;
+        `label` goes in its title) as a quick look and saves nothing as a
+        pass: no number, JSON or bookkeeping, no comparison with earlier passes
+        (`index`, `json_path` and `changes` are null), and `folder` is not
+        used. The JPEG is a new file in the server's own temp folder
+        (`art-mcp-<pid>`, removed when the server exits), like render_preview's.
+        `columns` then defaults to a grid about as wide as high (2 for 2 to 4
+        frames, 3 for 5 to 9, as far as the width stays within the 2576 px
+        Claude shows), so 2 to 6 frames at `thumb_size` 700 to 1000 are one
+        readable image; set `thumb_size` large to judge colour and detail."""
 
         def progress(done: int, total: int) -> None:
             anyio.from_thread.run(ctx.report_progress, done, total)
 
         def run() -> SheetResult:
             with as_tool_errors():
-                return ops.contact_sheet(session, images, folder, label, columns, thumb_size, on_progress=progress)
+                return ops.contact_sheet(
+                    session, images, folder, label, columns, thumb_size, on_progress=progress, record=record
+                )
 
         return await anyio.to_thread.run_sync(run)
 

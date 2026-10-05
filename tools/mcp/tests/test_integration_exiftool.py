@@ -65,3 +65,24 @@ def test_missing_file_is_an_error(exiftool, tmp_path):
 
     with pytest.raises(ExiftoolError, match="not found"):
         exiftool.read(tmp_path / "gone.jpg")
+
+
+@needs_exiftool
+def test_read_many_reads_real_files_in_one_run_and_names_the_ones_it_cannot(exiftool, tmp_path):
+    from art_mcp.metadata import ExiftoolError
+
+    def jpeg(name, iso):
+        exif = Image.Exif()
+        exif.get_ifd(0x8769)[0x8827] = iso  # ISO
+        path = tmp_path / name
+        Image.new("RGB", (8, 8)).save(path, exif=exif)
+        return path
+
+    empty = tmp_path / "empty.jpg"
+    empty.write_bytes(b"")
+    first, second = jpeg("a.jpg", 100), jpeg("café à.jpg", 400)  # non-ASCII name
+    results = exiftool.read_many([first, tmp_path / "gone.jpg", empty, second, first])
+
+    assert [r.iso if not isinstance(r, ExiftoolError) else None for r in results] == [100, None, None, 400, 100]
+    assert "not found" in str(results[1]) and "gone.jpg" in str(results[1])
+    assert "empty" in str(results[2])

@@ -31,7 +31,7 @@ class BatchItem(BaseModel):
     path: str
     """The image to export."""
     profiles: list[str] | None = None
-    """`.arp` files layered in order over ART's default profile (a roll
+    """`.arp` files layered in order over ART's default profile (a set-wide
     preset, then this image's own partial profile); the image need not be
     open. Without them the image's working profile is exported (it must be
     open)."""

@@ -7,8 +7,9 @@ exactly one ``[Group] Key`` of the processing profile, recorded in the field's
 
 from typing import Annotated, Any, Literal, get_args
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, WithJsonSchema
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationError
 
+from art_mcp.compactschema import CompactModel, compact_model_schema, full_schema
 from art_mcp.curves import CurveSpec
 
 PPVERSION = 1045
@@ -51,10 +52,8 @@ def F(
     return Field(None, ge=ge, le=le, description=description, json_schema_extra=extra)
 
 
-class Exposure(BaseModel):
+class Exposure(CompactModel):
     """Exposure compensation, black point and highlight recovery."""
-
-    model_config = ConfigDict(extra="forbid")
 
     enabled: bool | None = F("Enabled", "Turn the tool on or off", default=True)
     compensation: float | None = F(
@@ -69,11 +68,9 @@ class Exposure(BaseModel):
     )
 
 
-class WhiteBalance(BaseModel):
+class WhiteBalance(CompactModel):
     """White balance. Setting temperature, green or equal without `setting`
     switches `setting` to CustomTemp."""
-
-    model_config = ConfigDict(extra="forbid")
 
     enabled: bool | None = F("Enabled", "Turn the tool on or off", default=True)
     setting: Literal["Camera", "Auto", "CustomTemp", "CustomMult"] | None = F(
@@ -102,6 +99,8 @@ CropRatio = Literal[
 
 
 class RawEdit(BaseModel):
+    model_config = ConfigDict(json_schema_extra=compact_model_schema)
+
     group: str
     key: str
     value: str
@@ -111,7 +110,7 @@ class RawEdit(BaseModel):
         return f"[{self.group}] {self.key}"
 
 
-class Crop(BaseModel):
+class Crop(CompactModel):
     """Crop rectangle in the pixels of the image frame (the raw image after
     coarse rotation and the raw border); checked against the image's size.
 
@@ -120,8 +119,6 @@ class Crop(BaseModel):
     ratio whenever it is edited, so a free rectangle needs `fixed_ratio:
     false`. Headless renders (art-cli) use x, y, w, h as given and ignore the
     ratio; it only shapes the default rectangle when none is set."""
-
-    model_config = ConfigDict(extra="forbid")
 
     enabled: bool | None = F("Enabled", "Turn the tool on or off", default=False)
     x: int | None = F("X", "Left edge", ge=0, unit="px", default=-1)
@@ -137,10 +134,8 @@ class Crop(BaseModel):
     )
 
 
-class Rotation(BaseModel):
+class Rotation(CompactModel):
     """Fine rotation."""
-
-    model_config = ConfigDict(extra="forbid")
 
     enabled: bool | None = F("Enabled", "Turn the tool on or off", default=False)
     degree: float | None = F("Degree", "Rotation angle", ge=-45, le=45, unit="deg", default=0)
@@ -150,20 +145,16 @@ class Rotation(BaseModel):
     )  # fmt: skip
 
 
-class LocalContrast(BaseModel):
+class LocalContrast(CompactModel):
     """Local contrast (first region only; more regions, curves and masks are
     raw edits)."""
-
-    model_config = ConfigDict(extra="forbid")
 
     enabled: bool | None = F("Enabled", "Turn the tool on or off", default=False)
     contrast: float | None = F("Contrast", "Local contrast amount", ge=-100, le=100, default=0)
 
 
-class Sharpening(BaseModel):
+class Sharpening(CompactModel):
     """Capture sharpening: unsharp mask (`usm`) or deconvolution (`rld`)."""
-
-    model_config = ConfigDict(extra="forbid")
 
     enabled: bool | None = F("Enabled", "Turn the tool on or off", default=False)
     method: Literal["usm", "rld"] | None = F("Method", "Sharpening method", default="rld")
@@ -181,10 +172,8 @@ class Sharpening(BaseModel):
     )
 
 
-class Denoise(BaseModel):
+class Denoise(CompactModel):
     """Noise reduction: main luminance and chrominance amounts."""
-
-    model_config = ConfigDict(extra="forbid")
 
     enabled: bool | None = F("Enabled", "Turn the tool on or off", default=False)
     luminance: float | None = F("Luminance", "Luminance noise reduction", ge=0, le=100, default=0)
@@ -201,10 +190,8 @@ class Denoise(BaseModel):
     )
 
 
-class Vignetting(BaseModel):
+class Vignetting(CompactModel):
     """Vignetting correction."""
-
-    model_config = ConfigDict(extra="forbid")
 
     enabled: bool | None = F("Enabled", "Turn the tool on or off", default=False)
     amount: int | None = F("Amount", "Amount", ge=-100, le=100, default=0)
@@ -220,10 +207,8 @@ class Vignetting(BaseModel):
     )  # fmt: skip
 
 
-class LensProfile(BaseModel):
+class LensProfile(CompactModel):
     """Lens correction profile; `lc_mode` none turns it off."""
-
-    model_config = ConfigDict(extra="forbid")
 
     lc_mode: Literal["none", "lfauto", "lfmanual", "lcp", "exif"] | None = F(
         "LcMode", "Where the lens profile comes from (none = off)", default="none"
@@ -242,7 +227,7 @@ _LEGACY_MODES = {"OpenDisplayTransform": "Neutral"}
 """Older mode names ART's loader still accepts."""
 
 
-class ToneCurve(BaseModel):
+class ToneCurve(CompactModel):
     """Tone curves 1 and 2 and the contrast slider. A curve is `{"type":
     "spline"|"catmull_rom"|"nurbs", "points": [[x, y], ...]}` (2 to 32 points,
     x and y in 0..1, x strictly increasing) or `{"type": "linear"}`. x and y are
@@ -250,8 +235,6 @@ class ToneCurve(BaseModel):
     pipeline, so they line up roughly with image_stats 8-bit values / 255.
     Setting a curve while histogram_matching is on turns histogram_matching off
     (implied). For an S-curve use `contrast` rather than curve points."""
-
-    model_config = ConfigDict(extra="forbid")
 
     enabled: bool | None = F("Enabled", "Turn the tool on or off", default=False)
     mode: CurveModeName | None = F(
@@ -282,10 +265,8 @@ class ToneCurve(BaseModel):
 ShapeMode = Literal["add", "subtract", "intersect"]
 
 
-class RectangleShape(BaseModel):
+class RectangleShape(CompactModel):
     """A rectangle (an ellipse at roundness 100) in image coordinates."""
-
-    model_config = ConfigDict(extra="forbid")
 
     type: Literal["rectangle"]
     x: float | None = Field(
@@ -305,10 +286,8 @@ class RectangleShape(BaseModel):
     mode: ShapeMode | None = Field(None, description="How the shape combines with the shapes before it")
 
 
-class GradientShape(BaseModel):
+class GradientShape(CompactModel):
     """A linear gradient across the image."""
-
-    model_config = ConfigDict(extra="forbid")
 
     type: Literal["gradient"]
     x: float | None = Field(
@@ -328,11 +307,9 @@ class GradientShape(BaseModel):
 MaskShape = Annotated[RectangleShape | GradientShape, Field(discriminator="type")]
 
 
-class AreaMaskAdjustment(BaseModel):
+class AreaMaskAdjustment(CompactModel):
     """An area mask: its shapes combined in order, then feathered, blurred and
     (inverted) flipped. Giving any mask field turns the mask on."""
-
-    model_config = ConfigDict(extra="forbid")
 
     enabled: bool | None = Field(None, description="Turn the area mask on or off")
     inverted: bool | None = Field(
@@ -348,10 +325,8 @@ class AreaMaskAdjustment(BaseModel):
     )
 
 
-class ChannelCdl(BaseModel):
+class ChannelCdl(CompactModel):
     """One channel's slope, offset and power."""
-
-    model_config = ConfigDict(extra="forbid")
 
     slope: float | None = Field(None, ge=0.01, le=10, description="Multiplier, applied first (1 = unchanged)")
     offset: float | None = Field(
@@ -362,11 +337,9 @@ class ChannelCdl(BaseModel):
     )
 
 
-class ColorCorrectionRegion(BaseModel):
+class ColorCorrectionRegion(CompactModel):
     """One Color Correction region in RGB mode: per-channel slope, offset and
     power, optionally restricted by an area mask."""
-
-    model_config = ConfigDict(extra="forbid")
 
     r: ChannelCdl | None = None
     g: ChannelCdl | None = None
@@ -374,7 +347,7 @@ class ColorCorrectionRegion(BaseModel):
     mask: AreaMaskAdjustment | None = None
 
 
-class ColorCorrection(BaseModel):
+class ColorCorrection(CompactModel):
     """Color Correction (ASC CDL-like grading; cast removal, per-channel
     contrast, split toning, faded film), RGB-mode regions only; other modes,
     pivots, compression and non-area masks are raw edits. Values are linear
@@ -388,16 +361,17 @@ class ColorCorrection(BaseModel):
     Setting r, g or b on a region switches it to RGB mode, and setting
     anything turns the tool on (both listed under `implied`). An entry past
     the end appends a region (the error names the next free index); a new
-    region and new mask shapes get every key ART writes, with its defaults
-    for what is not given. Mask coordinates: the origin is the image centre;
-    x, y are % of HALF the image's width and height from it (-100..100, so
+    region or mask shape gets every key ART writes, at its defaults for what
+    is not given (the result's `created` counts those keys, `changed` lists
+    only what you set).
+
+    Mask coordinates: the origin is the image centre; x, y are
+    % of HALF the image's width and height from it (-100..100, so
     100 puts the shape's centre on the right or bottom edge, 50 at three
     quarters of the width), width, height are % of the whole image's (100 =
-    the whole image). An inverted mask
-    affects everything outside its shapes: an inverted ellipse of 110% with
-    feather 60 spares the middle and grades toward the edges."""
-
-    model_config = ConfigDict(extra="forbid")
+    the whole image). An inverted mask affects everything
+    outside its shapes: an inverted ellipse of 110% with feather 60 spares
+    the middle and grades toward the edges."""
 
     enabled: bool | None = F("Enabled", "Turn the tool on or off", default=False)
     regions: list[ColorCorrectionRegion | None] | None = Field(
@@ -416,7 +390,7 @@ def rgb_field(key: str, description: str, *, default: list[Any]) -> Any:
     )  # fmt: skip
 
 
-class FilmNegative(BaseModel):
+class FilmNegative(CompactModel):
     """Film Negative: inverts a camera-scanned colour negative. Per channel
     `out = mult * in ^ exp`, clipped at 65535, with
     `exp = -(green_exponent * (red_ratio, 1, blue_ratio))` for (r, g, b) and
@@ -435,13 +409,13 @@ class FilmNegative(BaseModel):
     image keeps its brightness (ART's own reference-picker rule; listed under
     `implied`): L is the Rec.709 luminance (0.2126729, 0.7151521, 0.0721750)
     of what the profile as it is now (before this request) renders the new
-    `ref_input` as. If the current reference is unset, ART's medians are first
-    estimated by sampling (a grid of 64 spots, a warning says so); where
-    sampling is unavailable `ref_output` becomes grey 65535/24 and a warning
-    says brightness may change. Legacy profiles (`BackCompat`, `RedBase`)
-    stay raw: typed edits other than `enabled` are refused on them."""
+    `ref_input` as.
 
-    model_config = ConfigDict(extra="forbid")
+    If the current reference is unset, ART's medians are first estimated by
+    sampling (a grid of 64 spots, a warning says so); where sampling is
+    unavailable `ref_output` becomes grey 65535/24 and a warning says
+    brightness may change. Legacy profiles (`BackCompat`, `RedBase`) stay raw:
+    typed edits other than `enabled` are refused on them."""
 
     enabled: bool | None = F("Enabled", "Turn the tool on or off", default=False)
     color_space: Literal["working", "input"] | None = F(
@@ -473,10 +447,8 @@ class FilmNegative(BaseModel):
     )
 
 
-class Adjustments(BaseModel):
+class Adjustments(CompactModel):
     """Typed changes to curated tools. Set only what should change."""
-
-    model_config = ConfigDict(extra="forbid")
 
     exposure: Exposure | None = None
     white_balance: WhiteBalance | None = None
@@ -592,7 +564,8 @@ class AdjustmentsDescription(BaseModel):
 def describe_adjustments() -> AdjustmentsDescription:
     tools: dict[str, ToolDescription] = {}
     for name, (group, model) in TOOLS.items():
-        properties = model.model_json_schema()["properties"]
+        with full_schema():  # the compact one has no keys, defaults or units
+            properties = model.model_json_schema()["properties"]
         fields: dict[str, FieldDescription] = {}
         for field, prop in properties.items():
             # Optional fields come as anyOf [<real schema>, null]: flatten.
@@ -614,33 +587,19 @@ def describe_adjustments() -> AdjustmentsDescription:
     return AdjustmentsDescription(schema_ppversion=PPVERSION, tools=tools)
 
 
-def adjustments_json_schema() -> dict[str, Any]:
-    """The JSON schema of ``Adjustments`` with its definitions inlined, for
-    ``edit_profile``'s input schema."""
-    schema = Adjustments.model_json_schema()
-    defs = schema.pop("$defs", {})
-
-    def inline(node: Any) -> Any:
-        if isinstance(node, dict):
-            if "$ref" in node:
-                return inline(defs[node["$ref"].rsplit("/", 1)[-1]])
-            return {k: inline(v) for k, v in node.items()}
-        if isinstance(node, list):
-            return [inline(v) for v in node]
-        return node
-
-    result: dict[str, Any] = inline(schema)
-    return result
+def _as_given(value: Any) -> Any:
+    return value
 
 
 AdjustmentsArg = Annotated[
     dict[str, Any] | None,
-    WithJsonSchema({"anyOf": [adjustments_json_schema(), {"type": "null"}]}),
+    BeforeValidator(_as_given, json_schema_input_type=Adjustments | None),
 ]
 """``edit_profile``'s `adjustments` argument (both servers). Validated by
 hand (``parse_adjustments``) so a bad value is reported as out_of_range rather
 than as a generic schema error; the published input schema is still the typed
-one."""
+one (compact: ``art_mcp.compactschema``), its models defined once under
+`$defs`."""
 
 
 class AdjustmentError(Exception):

@@ -10,16 +10,19 @@ from art_mcp.render.artcli import (
     stats_args,
 )
 from art_mcp.render.errors import render_error
-from art_mcp.render.preview_ops import MAX_PREVIEW_SIZE, PREVIEW_SIZE
+from art_mcp.render.preview_ops import MAX_PREVIEW_SIZE, PREVIEW_SIZE, Region
 from art_mcp.render.session import RenderSession
 from art_mcp.render.store import WorkingProfile
 from art_mcp.sampling import (
     DEFAULT_SIZE,
     UNSUPPORTED_SPOTS,
     ImageStats,
+    RegionTooSmall,
     Spot,
     SpotSamples,
     check_spots,
+    check_stats_bins,
+    check_stats_region,
     check_stats_size,
     parse_spots_output,
 )
@@ -78,10 +81,20 @@ def sample_working_profile(
 
 
 def image_stats(
-    session: RenderSession, path: str, max_size: int = PREVIEW_SIZE, histogram: bool = False
+    session: RenderSession,
+    path: str,
+    max_size: int = PREVIEW_SIZE,
+    histogram: bool = False,
+    region: Region | None = None,
+    bins: int | None = None,
 ) -> ImageStats:
+    """Statistics of the working profile's whole-image render; ``region`` is
+    cut from that one render's PNG (fractions of the image as it shows, the
+    working crop applied), not rendered separately."""
     previews = session.previews
     check_stats_size(max_size, MAX_PREVIEW_SIZE, render_error)
+    check_stats_region(region, render_error)
+    check_stats_bins(bins, render_error)
     with session.image(path) as wp:
         fast = max_size <= artdir.fast_export_box(session.config_dir)
         profile = previews.new_file("profile", ".arp")
@@ -92,7 +105,9 @@ def image_stats(
             resize.write_text(resize_profile(max_size), encoding="utf-8")
             session.run(stats_args(wp.image, output, profile, resize, fast=fast), output)
             try:
-                return compute_stats(output, histogram)
+                return compute_stats(output, histogram, region, bins)
+            except RegionTooSmall as e:
+                raise render_error("out_of_range", str(e)) from e
             except ValueError as e:
                 raise render_error("render_failed", str(e)) from e
         finally:

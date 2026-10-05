@@ -7,7 +7,15 @@ import pytest
 
 from art_mcp import keyfile
 from art_mcp.colorcorrection import REGION_DEFAULTS, SHAPE_DEFAULTS, is_region_key
-from art_mcp.profile import RawEdit, UnknownKey, WorkingChanges, partial_vs_default, read_format
+from art_mcp.profile import (
+    Conflict,
+    RawEdit,
+    UnknownKey,
+    WorkingChanges,
+    edit_result,
+    partial_vs_default,
+    read_format,
+)
 from art_mcp.schema import AdjustmentError, describe_adjustments, parse_adjustments
 
 REAL_DEFAULT = (Path(__file__).parent / "data" / "art_default_colorcorrection.arp").read_text()
@@ -42,6 +50,116 @@ def test_a_new_region_gets_the_key_set_ART_saves():
     assert keys(group, 2) == keys(group, 1) == {k for k, _ in REGION_DEFAULTS}
     assert group["Mode_2"] == "RGB" and group["SlopeB_2"] == "0.85"
     assert group["SlopeG_2"] == "1" and group["HSLGamma_2"] == "2.3999999999999999"
+
+
+def edited(request):
+    """The edit result (as edit_profile reports it) of a color_correction request on ART's default profile."""
+    changes = WorkingChanges(profile())
+    parsed = adj(color_correction=request)
+    outcome = changes.edit(parsed, [])
+    return changes, edit_result(outcome, changes.profile, parsed, [], [])
+
+
+def test_a_new_region_reports_what_the_request_set_and_counts_the_keys_left_at_their_defaults():
+    changes, result = edited({"regions": [None, {"b": {"slope": 0.85}}]})
+
+    assert result.changed == {"ColorCorrection": {"Mode_2": "RGB", "SlopeB_2": "0.85"}}
+    assert result.implied == {"ColorCorrection": {"Enabled": "true"}}
+    # The template's keys minus the two the request set (Mode, SlopeB): the rest is ART's defaults.
+    assert result.created == {"ColorCorrection": [f"region 2 ({len(REGION_DEFAULTS) - 2} keys at their defaults)"]}
+    group = changes.profile["ColorCorrection"]
+    assert keys(group, 2) == {k for k, _ in REGION_DEFAULTS}  # the profile still gets every key
+    assert group["HSLGamma_2"] == "2.3999999999999999" and "HSLGamma_2" not in result.changed["ColorCorrection"]
+
+
+def test_what_a_new_region_is_made_of_adds_up():
+    changes, result = edited({"regions": [None, {"b": {"slope": 0.85, "power": 0.62}, "g": {"slope": 1}}]})
+
+    group = changes.profile["ColorCorrection"]
+    region_keys = {k for k in result.changed["ColorCorrection"] | result.implied["ColorCorrection"] if k.endswith("_2")}
+    defaulted = int(result.created["ColorCorrection"][0].split("(")[1].split()[0])
+    assert region_keys == {"Mode_2", "SlopeB_2", "PowerB_2", "SlopeG_2"}  # a slope of 1 is still asked for
+    assert defaulted + len(region_keys) == len(keys(group, 2))
+
+
+def test_a_new_region_with_a_mask_counts_its_region_and_its_shape_apart():
+    shape = {"type": "rectangle", "width": 110, "height": 110, "roundness": 100, "feather": 60}
+
+    _, result = edited({"regions": [None, {"b": {"slope": 0.85}, "mask": {"inverted": True, "shapes": [shape]}}]})
+
+    # Set: Mode, SlopeB, MaskInverted, AreaMaskEnabled (implied); the shape's Type, Width, Height, Roundness,
+    # ShapeFeather.
+    assert result.created == {"ColorCorrection": [
+        f"region 2 ({len(REGION_DEFAULTS) - 4} keys at their defaults)",
+        f"region 2 mask shape 0 ({len(SHAPE_DEFAULTS['rectangle']) - 5} keys at their defaults)",
+    ]}  # fmt: skip
+    changed = result.changed["ColorCorrection"]
+    assert changed["AreaMaskRoundness_2"] == "100" and changed["MaskInverted_2"] == "true"
+    assert "AreaMaskX_2" not in changed and "AreaMaskAngle_2" not in changed  # defaults, counted not listed
+    assert result.implied["ColorCorrection"] == {"Enabled": "true", "AreaMaskEnabled_2": "true"}
+
+
+def test_editing_a_region_that_exists_creates_nothing():
+    base = profile()
+    base["ColorCorrection"].update({"Mode_1": "RGB", "Enabled": "true"})
+    changes = WorkingChanges(base)
+    parsed = adj(color_correction={"regions": [{"g": {"offset": 0.02}}]})
+
+    result = edit_result(changes.edit(parsed, []), changes.profile, parsed, [], [])
+
+    assert result.created == {} and result.changed == {"ColorCorrection": {"OffsetG_1": "0.02"}}
+
+
+def test_a_shape_appended_to_a_mask_or_replaced_by_one_of_another_type_is_created_too():
+    changes = WorkingChanges(profile())
+    changes.edit(adj(color_correction={"regions": [None, {"mask": ELLIPSE}]}), [])
+
+    def edit_shapes(*shapes):
+        parsed = adj(color_correction={"regions": [None, {"mask": {"shapes": list(shapes)}}]})
+        return edit_result(changes.edit(parsed, []), changes.profile, parsed, [], [])
+
+    appended = edit_shapes(None, {"type": "gradient", "x": 10})
+    replaced = edit_shapes({"type": "gradient", "angle": 45})
+    edited_in_place = edit_shapes({"type": "gradient", "angle": 90})
+
+    # The gradient's template minus its Type and X; then minus its Type and Angle.
+    assert appended.created == {"ColorCorrection": [
+        f"region 2 mask shape 1 ({len(SHAPE_DEFAULTS['gradient']) - 2} keys at their defaults)"]}  # fmt: skip
+    assert replaced.created == {"ColorCorrection": [
+        f"region 2 mask shape 0 ({len(SHAPE_DEFAULTS['gradient']) - 2} keys at their defaults)"]}  # fmt: skip
+    assert edited_in_place.created == {}
+    assert edited_in_place.changed == {"ColorCorrection": {"AreaMaskAngle_2": "90"}}
+
+
+def test_a_region_created_without_a_color_correction_group_counts_the_group_too():
+    changes = WorkingChanges({"Version": {"Version": "1045"}})
+    parsed = adj(color_correction={"regions": [{"r": {"slope": 1.2}}]})
+
+    result = edit_result(changes.edit(parsed, []), changes.profile, parsed, [], [])
+
+    assert result.created == {"ColorCorrection": [f"region 1 ({len(REGION_DEFAULTS) - 2} keys at their defaults)"]}
+    assert result.changed == {"ColorCorrection": {"Mode_1": "RGB", "SlopeR_1": "1.2"}}
+
+
+def test_the_defaults_of_a_created_region_still_reach_the_partial_profile():
+    """Listing them apart changes the report, not what is sent to ART."""
+    changes = WorkingChanges(profile())
+    changes.edit(adj(color_correction={"regions": [None, {"b": {"slope": 0.85}}]}), [])
+
+    partial = changes.partial_profile()["ColorCorrection"]
+
+    assert keys(partial, 2) == {k for k, _ in REGION_DEFAULTS} and partial["SlopeB_2"] == "0.85"
+
+
+def test_a_raw_edit_of_a_key_a_replaced_shape_is_given_by_default_is_still_a_conflict():
+    changes = WorkingChanges(profile())
+    changes.edit(adj(color_correction={"regions": [None, {"mask": ELLIPSE}]}), [])
+
+    with pytest.raises(Conflict, match="AreaMaskX_2"):
+        changes.edit(
+            adj(color_correction={"regions": [None, {"mask": {"shapes": [{"type": "gradient"}]}}]}),
+            [RawEdit(group="ColorCorrection", key="AreaMaskX_2", value="50")],
+        )
 
 
 def test_the_template_is_the_real_default_region():

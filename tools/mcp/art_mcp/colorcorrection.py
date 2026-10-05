@@ -10,13 +10,15 @@ shape is written with every key ART's saver writes (``REGION_DEFAULTS`` and
 ``SHAPE_DEFAULTS``, taken from ``ColorCorrectionParams::Region``/``Mask``
 saving in ``src/engine/procparams.cc`` and a real default profile), and a
 partial profile that changes any region key carries all region keys
-(``WorkingChanges.partial_profile``, ``partial_vs_default``).
+(``WorkingChanges.partial_profile``, ``partial_vs_default``). The keys a
+request doesn't set are not part of the edit's change set: ``Created`` counts
+them (``EditResult.created``).
 """
 
 import re
 from typing import Any
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from art_mcp.schema import (
     AdjustmentError,
@@ -106,6 +108,20 @@ def is_region_key(key: str) -> bool:
 
 
 Group = dict[str, str]
+
+
+class Created(BaseModel):
+    """A region or mask shape a typed edit created: ART's saver writes ~80 keys
+    for a region, so the edit result counts those the request left at their
+    defaults (``defaults``, written to the profile all the same) instead of
+    listing them."""
+
+    group: str
+    what: str
+    """What it is: ``region 2``, ``region 2 mask shape 0`` (a region's
+    number is its position + 1, a shape's its position)."""
+    defaults: list[RawEdit]
+    """The keys ART writes for it that the request set no value of."""
 
 
 def _shape_key(base: str, shape: int, region: int) -> str:
@@ -269,11 +285,14 @@ def _edit_shapes(
     group: Group,
     region: int,
     explicit: dict[str, str],
+    filled: dict[str, str],
+    created: list[tuple[str, list[str]]],
     existing: int,
     where: str,
 ) -> None:
     """Shapes by position into ``explicit``: an entry edits the shape at its
-    index, replaces it when the type differs, or appends at the end. A gap is
+    index, replaces it when the type differs, or appends at the end (its keys
+    at ART's defaults go to ``filled`` and the shape to ``created``). A gap is
     refused: ART stops reading shapes at the first one missing a key."""
     count = existing
     for j, shape in enumerate(mask_shapes):
@@ -286,8 +305,10 @@ def _edit_shapes(
                 f"region {region}'s mask has {count} shape(s), so a new shape goes at index {count}",
             )
         if j == count or group.get(_shape_key("Type", j, region)) != kind:
-            for base, default in SHAPE_DEFAULTS[kind]:
-                explicit[_shape_key(base, j, region)] = default
+            keys = {_shape_key(base, j, region): default for base, default in SHAPE_DEFAULTS[kind]}
+            filled.update(keys)
+            explicit[_shape_key("Type", j, region)] = kind
+            created.append((f"region {region} mask shape {j}", list(keys)))
             count = max(count, j + 1)
         for field, base in SHAPE_KEYS[kind].items():
             value = getattr(shape, field)
@@ -297,15 +318,19 @@ def _edit_shapes(
 
 def compile_edits(
     cc: ColorCorrection, group: Group | None
-) -> tuple[list[RawEdit], list[RawEdit]]:
+) -> tuple[list[RawEdit], list[RawEdit], list[Created]]:
     """The edits of the ``[ColorCorrection]`` group a ``color_correction``
-    request amounts to: (explicit, implied). A region
-    past the end is appended with every key ART writes; raises
-    ``AdjustmentError`` for a position that would leave a gap or a mask edit
-    on a mask that isn't typed."""
+    request amounts to: (explicit, implied, created). A region past the end is
+    appended with every key ART writes, and so is a new shape: the keys the
+    request sets (and the implied ones) are in ``explicit`` and ``implied``,
+    the rest, at ART's defaults, with the region or shape they complete in
+    ``created``. Raises ``AdjustmentError`` for a position that would leave a
+    gap or a mask edit on a mask that isn't typed."""
     current = group or {}
     explicit: dict[str, str] = {}
     implied: dict[str, str] = {}
+    filled: dict[str, str] = {}
+    created: list[tuple[str, list[str]]] = []
     regions = cc.regions or []
     count = region_count(current)
     for idx, region in enumerate(regions):
@@ -320,8 +345,9 @@ def compile_edits(
         new = idx == count
         if new:
             count += 1
-            for base, default in REGION_DEFAULTS:
-                explicit[f"{base}_{n}"] = default
+            keys = {f"{base}_{n}": default for base, default in REGION_DEFAULTS}
+            filled.update(keys)
+            created.append((f"region {n}", list(keys)))
             explicit[f"Mode_{n}"] = "RGB"
         graded = False
         for field, letter in CHANNELS.items():
@@ -353,7 +379,7 @@ def compile_edits(
             implied[f"AreaMaskEnabled_{n}"] = "true"
         if mask.shapes:
             _edit_shapes(
-                mask.shapes, current, n, explicit, 0 if new else shape_count(current, n),
+                mask.shapes, current, n, explicit, filled, created, 0 if new else shape_count(current, n),
                 f"regions.{idx}.mask",
             )
     touched = any(r is not None for r in regions)
@@ -361,7 +387,15 @@ def compile_edits(
         explicit["Enabled"] = _text(cc.enabled)
     elif touched and current.get("Enabled") != "true":
         implied["Enabled"] = "true"
+
+    def at_defaults(keys: list[str]) -> list[RawEdit]:
+        """Of a created region's or shape's keys, those nothing else sets."""
+        return [
+            RawEdit(group=GROUP, key=k, value=filled[k]) for k in keys if k not in explicit and k not in implied
+        ]
+
     return (
         [RawEdit(group=GROUP, key=k, value=v) for k, v in explicit.items()],
         [RawEdit(group=GROUP, key=k, value=v) for k, v in implied.items()],
+        [Created(group=GROUP, what=what, defaults=at_defaults(keys)) for what, keys in created],
     )

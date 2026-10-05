@@ -645,3 +645,106 @@ async def test_inline_launch_flag_is_the_default_and_a_call_can_override_it(inli
 
     assert len(images(default)) == 1 and default.structured_content["path"]
     assert not images(off)
+
+
+# -- output: keep the preview where the caller says --------------------------
+
+
+def leftovers(tmp_path):
+    folder = tmp_path / "previews"
+    return sorted(p.name for p in folder.iterdir()) if folder.exists() else []
+
+
+async def test_a_preview_can_be_written_to_a_path_of_the_callers_choice(server, image, tmp_path):
+    out = tmp_path / "work" / "look.jpg"
+    out.parent.mkdir()
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await client.call_tool("render_preview", {"path": str(image), "max_size": 640, "output": str(out)})
+
+    assert not result.is_error, result.content
+    assert result.structured_content == {"path": str(out), "max_size": 640}
+    jpeg = out.read_bytes()
+    assert jpeg.startswith(b"\xff\xd8") and b"Width=640" in jpeg
+    assert leftovers(tmp_path) == []  # the server's own copy is not kept next to it
+
+
+async def test_the_inline_image_is_the_file_at_output(server, image, tmp_path):
+    out = tmp_path / "look.jpg"
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await client.call_tool("render_preview", {"path": str(image), "output": str(out), "inline": True})
+
+    [block] = images(result)
+    assert base64.b64decode(block.data) == out.read_bytes()
+
+
+async def test_an_existing_output_is_refused_unless_overwrite_and_nothing_renders_first(server, image, tmp_path):
+    out = tmp_path / "look.jpg"
+    out.write_bytes(b"keep me")
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        refused = await client.call_tool("render_preview", {"path": str(image), "output": str(out)})
+        kept = out.read_bytes()
+        refused_leftovers = leftovers(tmp_path)
+        replaced = await client.call_tool(
+            "render_preview", {"path": str(image), "output": str(out), "overwrite": True}
+        )
+
+    assert refused.is_error and "exists:" in error_text(refused)
+    assert kept == b"keep me" and refused_leftovers == []
+    assert not replaced.is_error, replaced.content
+    assert out.read_bytes().startswith(b"\xff\xd8") and leftovers(tmp_path) == []
+
+
+@pytest.mark.parametrize(
+    ("name", "code"),
+    [("missing/look.jpg", "not_found"), ("look.png", "out_of_range"), ("look", "out_of_range")],
+)
+async def test_output_needs_an_existing_folder_and_a_jpeg_name(server, image, tmp_path, name, code):
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await client.call_tool("render_preview", {"path": str(image), "output": str(tmp_path / name)})
+
+    assert result.is_error and f"{code}:" in error_text(result)
+    assert leftovers(tmp_path) == [] and not (tmp_path / name).exists()
+
+
+async def test_output_must_be_an_absolute_path(server, image):
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await client.call_tool("render_preview", {"path": str(image), "output": "look.jpg"})
+
+    assert result.is_error and "out_of_range:" in error_text(result) and "absolute" in error_text(result)
+
+
+async def test_a_preview_never_replaces_the_image_it_shows(server, tmp_path):
+    scan = tmp_path / "photos" / "scan.JPG"
+    scan.parent.mkdir()
+    scan.write_bytes(b"jpeg scan")
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(scan)})
+        result = await client.call_tool(
+            "render_preview", {"path": str(scan), "output": str(scan), "overwrite": True}
+        )
+
+    assert result.is_error and "exists:" in error_text(result)
+    assert scan.read_bytes() == b"jpeg scan"
+
+
+async def test_a_failed_render_leaves_nothing_at_output(server, image, tmp_path):
+    out = tmp_path / "look.jpg"
+    async with Client(server) as client:
+        result = await client.call_tool("render_preview", {"path": str(image), "output": str(out)})  # not open
+
+    assert result.is_error and "not_open:" in error_text(result)
+    assert not out.exists()
+
+
+async def test_the_description_says_what_inline_does_and_defaults_to(server):
+    async with Client(server) as client:
+        tools = {t.name: t for t in (await client.list_tools()).tools}
+
+    text = tools["render_preview"].description
+    assert "inline" in text and "--inline-previews" in text and "off" in text
+    assert "output" in text and "overwrite" in text
