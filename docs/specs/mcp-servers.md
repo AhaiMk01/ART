@@ -69,6 +69,7 @@ tools/mcp/
     neutrals.py     # neutral-candidate scoring and selection (pure, Pillow)
     marks.py        # numbered boxes drawn on a preview (6.1; pure, Pillow)
     artdir.py       # locating ART-cli.exe / exiftool.exe / config dir
+    calllog.py      # opt-in call log (2.1) and its summariser
     render/         # Render server
       server.py         # build_server: wiring only; main() entry point
       session.py        # RenderSession: working profiles, per-image locks,
@@ -89,6 +90,44 @@ tools/mcp/
     live/           # Live server: control channel client, tools
   tests/
 ```
+
+### 2.1 Call log (both servers)
+
+A client-independent record of what an agent did with the tools, so runs by
+different clients and models can be compared from the server side.
+
+- **Interface:** when the environment variable `ART_MCP_CALL_LOG` names a file,
+  each server appends one line of JSON (UTF-8, JSON Lines) per tool call to it,
+  when the call has completed; several servers, processes and threads may share
+  one file (every line is one write that others cannot split). Unset or empty:
+  nothing is logged and no hook is installed. The variable is part of the
+  servers' interface, like `--art-dir`.
+- **Line:** `t` (ISO 8601 UTC, milliseconds; when the call arrived), `server`
+  (`art-render`, `art-live`), `tool`, `ms` (duration, to completion: an async
+  tool is timed until it returns), `ok`, `error` (null when `ok`, else the
+  leading `code:` of the tool error, or `invalid_arguments`, `unknown_tool`,
+  `exception` for a crash, `cancelled`), `args`, `result_chars` (the length of
+  the result's text as the client receives it: the compact JSON of the
+  structured result, else the text content), `images` (image contents),
+  `in_flight` (tool calls being handled when this one started, itself
+  included).
+- **Arguments** are logged by name with the values cut down: a string to 120
+  characters (ending `...` when cut), a list to its first two items (each cut
+  the same way) and `"...+<more>"`, a dict to its key names (50 at most).
+  Nothing from the environment is ever logged.
+- **Hook:** one `ServerMiddleware` (`calllog.install(server)`, called by each
+  `build_server`), outermost in the SDK's chain, so every tool is covered without
+  touching it, and a call is timed through its `await`, whatever its kind. It
+  observes `tools/call` only and never changes a request or a result.
+- **Failure:** a log that cannot be written (or a record that cannot be built)
+  prints one warning on stderr and the call goes on; a missing folder is made.
+- **Summary:** `python -m art_mcp.calllog summarise <file>` (`--json` for the
+  data): calls and wall time (first arrival to last completion), distinct tools,
+  the maximum `in_flight`, images, per tool the calls, errors, result
+  characters and time (most calls first), the largest results, the first five
+  errors with their codes, and the sequence of tools in order of arrival with
+  consecutive calls of one tool collapsed (`open_image x12, edit_profile x12,
+  ...`).
 
 ## 3. Profile surface (both servers)
 
@@ -1169,7 +1208,8 @@ Assistants. The Live server never launches ART.
   first use), with relative `--directory tools/mcp`.
 - Claude Desktop: same command in `claude_desktop_config.json` under
   `mcpServers`, with an absolute path.
-- Optional args: `--art-dir`, `--inline-previews`.
+- Optional args: `--art-dir`, `--inline-previews`. Optional environment:
+  `ART_MCP_CALL_LOG` (2.1).
 
 ## 9. Testing
 

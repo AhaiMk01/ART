@@ -17,7 +17,7 @@ from pathlib import Path
 
 from mcp.server.mcpserver import MCPServer
 
-from art_mcp import artdir
+from art_mcp import artdir, calllog
 from art_mcp.metadata import Exiftool
 from art_mcp.preview import PreviewFolder, default_root, sweep_stale
 from art_mcp.render import (
@@ -66,6 +66,7 @@ def build_server(
         neutrals_tools, sheet_tools,
     ):
         feature.register(server, session)
+    calllog.install(server)
     return server
 
 

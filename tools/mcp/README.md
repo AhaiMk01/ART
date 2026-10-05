@@ -345,6 +345,48 @@ skill loads when a request matches its description (e.g. "invert this negative
 scan", "fix the colour of this faded slide"). The skills need the `art-render` server above (and an ART build with
 `sample_spots`).
 
+## Measuring a run
+
+To see what an agent really did with the tools, whatever client drove it (Claude Code, omp,
+another), set `ART_MCP_CALL_LOG` to a file in the environment the client starts the servers
+with (`claude mcp add -e ART_MCP_CALL_LOG=<file> ...`, or `env` in the server's `.mcp.json`
+entry). Both servers then append one JSON line per tool call, when the call ends; they can
+share one file. Without the variable nothing is logged and nothing is added to the server.
+
+```json
+{"t":"2026-10-05T10:00:02.500Z","server":"art-render","tool":"edit_profile","ms":31.4,"ok":false,"error":"out_of_range","args":{"path":"C:\\raws\\a.ARW","raw_edits":[["group","key","value"],["group","key","value"],"...+10"]},"result_chars":212,"images":0,"in_flight":2}
+```
+
+- `t` is when the call arrived (UTC, milliseconds); `ms` how long it took, to completion
+  (an async tool such as `export_batch` or `contact_sheet` included); `in_flight` how many
+  tool calls were being handled when it started, itself included, so parallel calls show up.
+- `ok` and `error`: the leading code of a tool error (`not_open`, `out_of_range`, ...), or
+  `invalid_arguments` (the schema refused the arguments), `unknown_tool`, `exception` (the
+  tool crashed), `cancelled`; null when `ok`.
+- `result_chars` is the length of the result's text as the client gets it (the compact JSON
+  of the structured result, else the text content), `images` the number of image contents:
+  what each call cost the agent to read.
+- `args`: the argument names with their values cut down: strings to 120 characters, lists to
+  their first two items and `"...+<more>"`, dicts to their key names. Nothing from the
+  environment is logged.
+- A log that can't be written (an unwritable path) is reported once on stderr and the
+  calls carry on; a missing folder is created.
+
+```sh
+uv run --directory <repo>/tools/mcp python -m art_mcp.calllog summarise <file>
+```
+
+prints the calls and wall time (first arrival to last completion), the number of tools used,
+the most calls in flight at once, the images, calls, errors, result characters and time per
+tool (most calls first), the largest results, the first five errors with their codes, and
+the SEQUENCE of tools in order of arrival with runs collapsed
+(`open_image x12, edit_profile x12, ...`). `--json` prints the summary as JSON.
+
+To compare two runs, summarise each and read the reports side by side: the totals line, the
+per-tool table and the sequence show at a glance which tools one agent used that the other
+did not, how often it looked (`render_preview`, `contact_sheet`), what it asked for and
+where it failed, and whether it overlapped calls.
+
 ## Development
 
 The typed curated-tool modules (`curves.py`, `colorcorrection.py`, `filmnegative.py`)

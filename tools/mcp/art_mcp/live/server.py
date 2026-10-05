@@ -18,7 +18,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import CallToolResult, ContentBlock, ImageContent, TextContent
 from pydantic import BaseModel, ConfigDict, RootModel
 
-from art_mcp import artdir, keyfile
+from art_mcp import artdir, calllog, keyfile
 from art_mcp.filmnegative import Estimate, SamplingUnsupported, estimate_for
 from art_mcp.keyfile import KeyFile
 from art_mcp.live.channel import ArtNotRunning, ChannelError, ChannelTimeout, ControlChannel
@@ -886,6 +886,7 @@ def build_server(
                 items.append(StatsItem(path=each, error=str(e)))
         return stats_result(StatsBatch(items=items, failed=sum(item.error is not None for item in items)))
 
+    calllog.install(server)
     return server
 
 
