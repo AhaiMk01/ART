@@ -114,11 +114,11 @@ async def test_a_tool_error_records_its_code(server, image, log_file):
 
 async def test_arguments_the_schema_refuses_are_invalid_arguments(server, log_file):
     async with Client(server) as client:
-        result = await client.call_tool("render_preview", {})  # `path` is required (open_image's is `path` or `paths`)
+        result = await client.call_tool("get_profile", {})  # `path` is required here
 
     assert result.is_error
     (line,) = read_log(log_file)
-    assert (line["tool"], line["ok"], line["error"], line["args"]) == ("render_preview", False, "invalid_arguments", {})
+    assert (line["tool"], line["ok"], line["error"], line["args"]) == ("get_profile", False, "invalid_arguments", {})
 
 
 async def test_a_tool_the_server_does_not_have_is_unknown_tool(server, log_file):

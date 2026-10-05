@@ -29,7 +29,7 @@ EDIT_PROFILE_CEILING = 20_000
 was compacted, about 16,600 now. The bound leaves room for a few more fields
 and fails if the schema grows back."""
 TOTAL_CEILING = {"render": 26_500, "live": 23_000}
-"""All of a server's input schemas together (Render about 26,200 now, the luminance band of image_stats the latest).
+"""All of a server's input schemas together (Render about 26,300 now, the batch of render_preview the latest).
 Raise it deliberately for an option worth its characters; the bound is there to stop silent growth."""
 
 

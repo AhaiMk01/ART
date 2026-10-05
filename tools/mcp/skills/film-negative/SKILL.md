@@ -13,6 +13,22 @@ snippets for the single-frame and the pooled fit).
 ART's Film Negative tool needs no film-base sample: ratios come from neutral
 spots in the picture. A frame without any film base visible is fine.
 
+## The minimum for a roll
+
+Whatever else you skip, a roll needs these; without them the result is a
+flat, tinted guess, and ratios or a reference you did not measure are one:
+
+1. Crop off the holder or border, before any statistics.
+2. Sample 20 or more neutral spots (white paint, bare metal, concrete) in
+   several frames and fit `RedRatio` and `BlueRatio` pooled over them
+   (reference.md). Never invent the ratios.
+3. Group the frames by light, by looking at a contact sheet, and give each
+   group a reference (`ref_input` on a neutral, `ref_output`).
+4. Set each frame's black point from its lowest channel's percentile 0.1,
+   then check that percentile is about 5 to 10 afterwards.
+5. Check every frame with one `image_stats(paths=[...])` and look at a
+   contact sheet before exporting; export once, at the end.
+
 ## Single frame
 
 1. `open_image(path)` and look at `profile_from`: `"sidecar"` means the frame
@@ -56,7 +72,9 @@ spots in the picture. A frame without any film base visible is fine.
 3. **Orientation.** Coarse rotation is per frame (frames of one roll differed:
    90 vs 270). `render_preview(max_size=1024, inline=true)` returns the image
    in the result, nothing to read (without `inline` it returns a JPEG path: Read it).
-   For several frames, one `contact_sheet(images, record=false, thumb_size=700)`
+   For the few frames that need a closer look, `render_preview(paths=[...])`
+   (up to 16, each at its own size, inline if you set it); for several frames,
+   one `contact_sheet(images, record=false, thumb_size=700)`
    and one read show them all (see Pitfalls).
    If wrong, set `[Coarse Transformation] Rotate=90` (0, 90, 180, 270) and preview again.
 4. **Crop off the film holder/border** with `adjustments.crop` `{enabled: true,
@@ -177,7 +195,8 @@ frame, the ratios for the whole roll once fitted, and a group's output level
 and black adjustments within the group. So reset any frame that loaded a
 sidecar (step 3; a preset sets only the keys it holds, old ones would stay),
 in one call, `reset_profile(paths=[...], to="default")` (likewise
-`open_image(paths=[...], profile=...)` for opening), and after the first
+`open_image(paths=[...], profile=...)` for opening, 10 to 15 frames per call
+if the client's tool timeout is short: about a second each), and after the first
 frame's base edit `save_partial_profile(path,
 dest="base.arp", vs="default")` and give it to the others in one call,
 `apply_preset(paths=[the rest], profile="base.arp")` (one identical one-off

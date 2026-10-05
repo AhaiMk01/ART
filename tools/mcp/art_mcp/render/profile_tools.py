@@ -31,7 +31,10 @@ def register(server: MCPServer, session: RenderSession) -> None:
         request order, `{path, profile_from, metadata}` as above (`path` as
         you gave it; `metadata` left out when there is none) or `{path,
         error}` (`not_found`, a render failure), the others still open. A
-        `profile` that is no file fails the call before any image opens."""
+        `profile` that is no file fails the call before any image opens.
+        Opening takes about a second per image (37 took 35 s on a cold
+        start): where the client's tool timeout is short (30 s), open 10 to
+        15 images per call. A call the client gave up on may still finish."""
 
         def progress(done: int, total: int) -> None:
             anyio.from_thread.run(ctx.report_progress, done, total)
