@@ -48,7 +48,7 @@ Claude Desktop (`claude_desktop_config.json`):
 | `inspect_image(path, tags?)` | Metadata of an opened image from `exiftool` (`-j -n`; found beside `ART-cli`, else on PATH, else in the newest `C:\Program Files\ART\<version>`, so a fork build without one still works): make, model, lens, ISO, `shutter_seconds`, `aperture`, `focal_length_mm`, `capture_date` (local, ISO 8601), `width`, `height`, `orientation` (EXIF 1-8), each null when absent; `tags` adds named exiftool tags (e.g. `Software`) that the file has, under `tags` |
 | `render_preview(path, max_size=1024, region?, inline?)` | Renders the working profile to a JPEG and returns its path; see [Previews](#previews) |
 | `get_profile(path)` | The working profile: curated tools typed under `adjustments`, every other value as a string under `raw` (each value once) |
-| `edit_profile(path, adjustments?, raw_edits?)` | Changes the working profile: typed, range-checked `adjustments` (`exposure`, `white_balance`, `crop`, `rotation`, `local_contrast`, `sharpening`, `denoise`, `vignetting`, `lens_profile`, `tone_curve`; `crop` is checked against the image's size) and/or `[Group] Key` raw edits; all or nothing. Lists `implied` changes (a disabled tool gets enabled; White Balance switches to `CustomTemp`; `histogram_matching` turned off when a curve is set) |
+| `edit_profile(path, adjustments?, raw_edits?)` | Changes the working profile: typed, range-checked `adjustments` (`exposure`, `white_balance`, `crop`, `rotation`, `local_contrast`, `sharpening`, `denoise`, `vignetting`, `lens_profile`, `tone_curve`, `color_correction`; `crop` is checked against the image's size) and/or `[Group] Key` raw edits; all or nothing. Lists `implied` changes (a disabled tool gets enabled; White Balance switches to `CustomTemp`; `histogram_matching` turned off when a curve is set) |
 | `describe_adjustments()` | The curated adjustments: fields, ranges, units, the `[Group] Key` each sets, and the `PPVERSION` the schema targets |
 | `reset_profile(path, to)` | Reloads the working profile from the `sidecar` or ART's `default` profile |
 | `export_image(path, output, format, quality?, bit_depth?, write_profile=false, overwrite=false)` | Renders the working profile at full size as `jpeg` (quality 1..100, 8 bit), `png` (8/16 bit) or `tiff` (8/16/16f/32 bit) to `output` (its folder must exist); an existing `output` is refused unless `overwrite`; `write_profile` also saves `<output>.arp`, otherwise none is written |
@@ -56,6 +56,20 @@ Claude Desktop (`claude_desktop_config.json`):
 | `save_partial_profile(path, dest, overwrite?, exclude?)` | Writes only the keys the agent changed since load or the last save to `dest`; `exists` error if `dest` exists unless `overwrite`; writes nothing if nothing changed. `exclude`: `"Group"` or `"Group/Key"` entries left out (unknown name: `unknown_key`); for a roll preset exclude the per-frame settings `Coarse Transformation`, `Crop`, `Film Negative/RefInput` (and `Film Negative/RefOutput` if set per frame) |
 | `sample_spots(path, spots, size=32, space="working")` | What ART's film negative pickers read: for 1 to 16 `{x, y}` frame pixels (the coordinates of `[Crop]`), `avg` and `max` `[r, g, b]` of the `size` x `size` square (2 to 256), linear 0..65535, white-balanced, before the film negative tool; `space` `working` or `input`. Out-of-frame spots are `out_of_range`; the description carries the film negative maths. Needs an ART build with spot sampling (`art-cli -x`; a release `art-cli` gives `unsupported`: point `--art-dir`/`ART_DIR` at the fork) |
 | `image_stats(path, max_size=1024, histogram=false)` | Renders like a whole-image preview (8-bit PNG, crop applied; film scans include the holder/border, which dominates clipping and percentiles, so crop first; Live's preview is uncropped) and returns per channel `r`, `g`, `b`, `lum` (0.2126 R + 0.7152 G + 0.0722 B, rounded to the nearest 8-bit value): `mean`, `clipped_high`/`clipped_low` (fraction at 255/0), `percentiles` (0.1, 1, 5, 50, 95, 99, 99.9 %, nearest rank on the 256-bin histogram), `histogram` (256 counts, only when asked), and the rendered `width`/`height` |
+
+`color_correction` grades RGB-mode regions (`regions[0]` is ART's region 1; a
+`null` entry is a region that isn't typed, other modes and non-area masks stay
+under `raw`): each region has `r`/`g`/`b` `{slope, offset, power}` and an
+optional `mask` (area mask: `inverted`, `feather`, `blur`, `shapes` of
+`rectangle` or `gradient` in ART's own coordinates: position -100..100 from edge to edge,
+0 = image centre; width/height 100 = the image's size). Values are linear working-space: per channel
+`v = v*slope + offset/2`, then `v = (v/pivot)^(1/power)*pivot`: the slope acts
+before the power and the stored `power` is the inverse of the exponent (0.5
+squares the channel). An inverted mask affects everything outside its shapes.
+Regions and shapes are matched by position and the first one past the end
+appends; a new region or shape is written with every key ART saves (ART's loader
+would skip an incomplete one). Setting `r`/`g`/`b` switches the region to RGB mode
+and turns the tool on (listed as `implied`).
 
 `tone_curve` takes `mode`, `mode2` (omitted = same as `mode`; `get_profile`
 always reports the effective one), `histogram_matching`, `contrast` (-100..100: ART's

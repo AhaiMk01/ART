@@ -12,6 +12,9 @@ from typing import Any
 
 from pydantic import BaseModel, TypeAdapter, ValidationError
 
+from art_mcp.colorcorrection import GROUP as CC_GROUP
+from art_mcp.colorcorrection import compile_edits as compile_color_correction
+from art_mcp.colorcorrection import is_region_key, read_color_correction
 from art_mcp.curves import LinearCurve, PointCurve, curve_warnings, decode, drawn_points, encode
 from art_mcp.keyfile import KeyFile
 from art_mcp.schema import (
@@ -109,6 +112,11 @@ class WorkingChanges:
             tool = getattr(adjustments, name)
             if tool is None:
                 continue
+            if name == "color_correction":
+                cc_explicit, cc_implied = compile_color_correction(tool, self.profile.get(group))
+                explicit += [RawEdit(group=group, key=k, value=v) for k, v in cc_explicit]
+                implied += [RawEdit(group=group, key=k, value=v) for k, v in cc_implied]
+                continue
             values = {f: getattr(tool, f) for f in model.model_fields if getattr(tool, f) is not None}
             if not values:
                 continue
@@ -204,6 +212,13 @@ class WorkingChanges:
         for (group, key), loaded in self._loaded.items():
             if self.profile[group][key] != loaded:
                 partial.setdefault(group, {})[key] = self.profile[group][key]
+        changed = partial.get(CC_GROUP)
+        if changed is not None and any(is_region_key(k) for k in changed):
+            # ART replaces all Color Correction regions by the ones a profile
+            # lists, each from its own keys (defaults for the rest): changing
+            # one region key sends every region whole.
+            regions = {k: v for k, v in self.profile[CC_GROUP].items() if is_region_key(k)}
+            partial[CC_GROUP] = {**regions, **changed}
         return partial
 
 
@@ -217,6 +232,10 @@ def typed_adjustments(profile: KeyFile) -> tuple[dict[str, dict[str, Any]], set[
     for name, (group, model) in TOOLS.items():
         entries = profile.get(group)
         if entries is None:
+            continue
+        if name == "color_correction":
+            typed[name], cc_consumed = read_color_correction(entries)
+            consumed |= cc_consumed
             continue
         values: dict[str, Any] = {}
         for field, info in model.model_fields.items():

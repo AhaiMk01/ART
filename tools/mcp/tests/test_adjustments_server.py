@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from mcp.client.client import Client
 
+from art_mcp import keyfile
 from art_mcp.preview import PreviewFolder
 from art_mcp.render.artcli import ArtCli
 from art_mcp.render.server import build_server
@@ -339,3 +340,92 @@ async def test_describe_adjustments_and_input_schema_carry_tone_curve(server):
     assert "sRGB" in tone["description"] and tone["fields"]["curve1"]["key"] == "Curve"
     schema = next(t for t in tools.tools if t.name == "edit_profile").input_schema
     assert "catmull_rom" in str(schema) and "contrast" in str(schema)
+
+
+CC_SIDECAR = (
+    SIDECAR + "\n" + (Path(__file__).parent / "data" / "art_default_colorcorrection.arp").read_text()
+)
+FADED_SLIDE = {
+    "color_correction": {
+        "regions": [
+            {"r": {"slope": 1.1844, "power": 1.0204}, "b": {"slope": 0.9239, "power": 0.6241}},
+            {
+                "b": {"slope": 0.85},
+                "mask": {
+                    "inverted": True,
+                    "shapes": [{"type": "rectangle", "width": 110, "height": 110, "roundness": 100, "feather": 60}],
+                },
+            },
+        ]
+    }
+}
+
+
+async def test_color_correction_regions_edit_render_and_read_back_typed(server, image):
+    async with Client(server) as client:
+        await opened(client, image, CC_SIDECAR)
+        edit = await client.call_tool("edit_profile", {"path": str(image), "adjustments": FADED_SLIDE})
+        profile = await client.call_tool("get_profile", {"path": str(image)})
+        preview = await client.call_tool("render_preview", {"path": str(image)})
+        rendered = Path(preview.structured_content["path"]).read_bytes()
+
+    assert not edit.is_error, edit.content
+    changed = {(c["key"], c["value"]) for c in edit.structured_content["changed"]}
+    assert {("Mode_1", "RGB"), ("SlopeR_1", "1.1844"), ("PowerB_1", "0.6241"), ("Enabled", "true")} <= changed
+    assert {("Mode_2", "RGB"), ("MaskInverted_2", "true"), ("AreaMaskRoundness_2", "100"),
+            ("AreaMaskShapeFeather_2", "60")} <= changed  # fmt: skip
+    implied = {(c["key"], c["value"]) for c in edit.structured_content["implied"]}
+    assert implied == {("Mode_1", "RGB"), ("Enabled", "true"), ("AreaMaskEnabled_2", "true")}
+    typed = profile.structured_content["adjustments"]["color_correction"]
+    assert typed["enabled"] is True
+    assert typed["regions"][0]["b"] == {"slope": 0.9239, "offset": 0.0, "power": 0.6241}
+    assert typed["regions"][1]["mask"]["inverted"] is True
+    assert typed["regions"][1]["mask"]["shapes"][0]["width"] == 110
+    raw = profile.structured_content["raw"]["ColorCorrection"]
+    assert "SlopeR_1" not in raw and "AreaMaskType_2" not in raw
+    assert b"Mode_2=RGB" in rendered and b"AreaMaskType_2=rectangle" in rendered
+    assert b"AreaMaskShapeBlur_2=0" in rendered and b"ExternalMaskFeather_2=0" in rendered
+
+
+async def test_a_saved_partial_profile_carries_whole_color_correction_regions(server, image):
+    async with Client(server) as client:
+        await opened(client, image, CC_SIDECAR)
+        await client.call_tool("edit_profile", {"path": str(image), "adjustments": FADED_SLIDE})
+        dest = image.with_name("preset.arp")
+        saved = await client.call_tool(
+            "save_partial_profile", {"path": str(image), "dest": str(dest)}
+        )
+
+    assert not saved.is_error, saved.content
+    group = keyfile.loads(dest.read_text())["ColorCorrection"]
+    assert group["Mode_2"] == "RGB" and group["SlopeG_1"] == "1" and group["HSLGamma_2"] == "2.3999999999999999"
+
+
+async def test_a_color_correction_gap_or_unsupported_mask_is_out_of_range(server, image):
+    async with Client(server) as client:
+        await opened(client, image, CC_SIDECAR)
+        gap = await client.call_tool(
+            "edit_profile",
+            {"path": str(image), "adjustments": {"color_correction": {"regions": [None, None, {}]}}},
+        )
+        slope = await client.call_tool(
+            "edit_profile",
+            {"path": str(image), "adjustments": {"color_correction": {"regions": [{"r": {"slope": 11}}]}}},
+        )
+        profile = await client.call_tool("get_profile", {"path": str(image)})
+
+    assert gap.is_error and "out_of_range" in gap.content[0].text and "index 1" in gap.content[0].text
+    assert slope.is_error and "out_of_range" in slope.content[0].text and "regions.0.r.slope" in slope.content[0].text
+    assert profile.structured_content["adjustments"]["color_correction"]["regions"] == [None]
+
+
+async def test_describe_and_input_schema_carry_color_correction(server):
+    async with Client(server) as client:
+        described = await client.call_tool("describe_adjustments", {})
+        tools = await client.list_tools()
+
+    tool = described.structured_content["tools"]["color_correction"]
+    assert "v*slope + offset/2" in tool["description"] and "inverse" in tool["description"]
+    schema = next(t for t in tools.tools if t.name == "edit_profile").input_schema
+    text = str(schema)
+    assert "roundness" in text and "strength_start" in text and "intersect" in text

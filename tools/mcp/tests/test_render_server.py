@@ -174,6 +174,15 @@ async def test_export_formats_and_bit_depth_reach_art_cli(server, image, tmp_pat
         assert (tmp_path / "a.png").read_bytes().startswith(b"\x89PNG")
 
 
+async def test_bit_depth_may_be_given_as_a_number(server, image, tmp_path):
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        png = await export(client, image, tmp_path / "a.png", format="png", bit_depth=16)
+
+    assert not png.is_error, png.content
+    assert (tmp_path / "a.png").read_bytes().startswith(b"\x89PNG")
+
+
 async def test_existing_output_is_refused_untouched_unless_overwrite(server, image, tmp_path):
     out = tmp_path / "final.jpg"
     out.write_bytes(b"precious")

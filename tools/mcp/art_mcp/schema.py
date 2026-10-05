@@ -261,6 +261,131 @@ class ToneCurve(BaseModel):
     )
 
 
+ShapeMode = Literal["add", "subtract", "intersect"]
+
+
+class RectangleShape(BaseModel):
+    """A rectangle (an ellipse at roundness 100) in image coordinates."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["rectangle"]
+    x: float | None = Field(
+        None, ge=-100, le=100, description="Centre, -100 = left edge, 0 = image centre, 100 = right edge"
+    )
+    y: float | None = Field(
+        None, ge=-100, le=100, description="Centre, -100 = top edge, 0 = image centre, 100 = bottom edge"
+    )
+    width: float | None = Field(None, ge=1, le=200, description="% of image width (100 = the image's)")
+    height: float | None = Field(None, ge=1, le=200, description="% of image height (100 = the image's)")
+    angle: float | None = Field(None, ge=-180, le=180, description="Rotation in degrees")
+    roundness: float | None = Field(
+        None, ge=0, le=100, description="0 = rectangle, 100 = ellipse"
+    )
+    feather: float | None = Field(None, ge=0, le=100, description="Edge softness")
+    blur: float | None = Field(None, ge=0, le=500, description="Blur of this shape's edge")
+    mode: ShapeMode | None = Field(None, description="How the shape combines with the shapes before it")
+
+
+class GradientShape(BaseModel):
+    """A linear gradient across the image."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["gradient"]
+    x: float | None = Field(
+        None, ge=-100, le=100, description="Position, -100 = left edge, 0 = image centre, 100 = right edge"
+    )
+    y: float | None = Field(
+        None, ge=-100, le=100, description="Position, -100 = top edge, 0 = image centre, 100 = bottom edge"
+    )
+    strength_start: float | None = Field(None, ge=0, le=100, description="Mask strength where the gradient starts")
+    strength_end: float | None = Field(None, ge=0, le=100, description="Mask strength where the gradient ends")
+    angle: float | None = Field(None, ge=-180, le=180, description="Direction in degrees")
+    feather: float | None = Field(None, ge=0, le=100, description="Width of the transition")
+    blur: float | None = Field(None, ge=0, le=500, description="Blur of the gradient")
+    mode: ShapeMode | None = Field(None, description="How the shape combines with the shapes before it")
+
+
+MaskShape = Annotated[RectangleShape | GradientShape, Field(discriminator="type")]
+
+
+class AreaMaskAdjustment(BaseModel):
+    """An area mask: its shapes combined in order, then feathered, blurred and
+    (inverted) flipped. Giving any mask field turns the mask on."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool | None = Field(None, description="Turn the area mask on or off")
+    inverted: bool | None = Field(
+        None, description="Flip the mask: the region then affects everything outside the shapes"
+    )
+    feather: float | None = Field(None, ge=0, le=100, description="Feather of the whole mask")
+    blur: float | None = Field(None, ge=0, le=500, description="Blur of the whole mask")
+    shapes: list[MaskShape] | None = Field(
+        None,
+        description="Shapes by position: an entry edits the shape at its index (same type) or "
+        "replaces it (other type); an index one past the end appends",
+    )
+
+
+class ChannelCdl(BaseModel):
+    """One channel's slope, offset and power."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    slope: float | None = Field(None, ge=0.01, le=10, description="Multiplier, applied first (1 = unchanged)")
+    offset: float | None = Field(
+        None, ge=-0.15, le=0.15, description="Added after the slope (stored halved: v*slope + offset/2)"
+    )
+    power: float | None = Field(
+        None, ge=0.1, le=4, description="Stored as the inverse of the exponent applied: 0.5 squares the channel"
+    )
+
+
+class ColorCorrectionRegion(BaseModel):
+    """One Color Correction region in RGB mode: per-channel slope, offset and
+    power, optionally restricted by an area mask."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    r: ChannelCdl | None = None
+    g: ChannelCdl | None = None
+    b: ChannelCdl | None = None
+    mask: AreaMaskAdjustment | None = None
+
+
+class ColorCorrection(BaseModel):
+    """Color Correction (ASC CDL-like grading; cast removal, per-channel
+    contrast, split toning, faded film), RGB-mode regions only; other modes,
+    pivots, compression and non-area masks are raw edits. Values are linear
+    working-space values (0..1 = 0..65535). Per channel the region applies
+    `v = v*slope + offset/2`, then `v = (v/pivot)^(1/power)*pivot` (pivot 1
+    unless raw-edited): the slope acts before the power, and the stored
+    `power` is the inverse of the exponent applied (power 0.5 squares the
+    channel), as ART's GUI shows it. `regions` is by position (region 1 =
+    regions[0]); get_profile gives null for a region that is not typed (other
+    mode or an unsupported mask), and a null in a request skips that position.
+    Setting r, g or b on a region switches it to RGB mode, and setting
+    anything turns the tool on (both listed under `implied`). An entry past
+    the end appends a region (the error names the next free index); a new
+    region and new mask shapes get every key ART writes, with its defaults
+    for what is not given. Mask coordinates: the origin is the image centre;
+    x, y are % of the image's width and height from it (-100..100), width,
+    height are % of the image's (100 = the whole image). An inverted mask
+    affects everything outside its shapes: an inverted ellipse of 110% with
+    feather 60 spares the middle and grades toward the edges."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool | None = F("Enabled", "Turn the tool on or off", default=False)
+    regions: list[ColorCorrectionRegion | None] | None = Field(
+        None,
+        description="Regions by position; each sets r, g, b (slope, offset, power) and an area mask",
+        json_schema_extra={"key": "<Key>_<region number>", "art_default": None},
+    )
+
+
 class Adjustments(BaseModel):
     """Typed changes to curated tools. Set only what should change."""
 
@@ -276,6 +401,7 @@ class Adjustments(BaseModel):
     vignetting: Vignetting | None = None
     lens_profile: LensProfile | None = None
     tone_curve: ToneCurve | None = None
+    color_correction: ColorCorrection | None = None
 
 
 TOOLS: dict[str, tuple[str, type[BaseModel]]] = {
@@ -289,6 +415,7 @@ TOOLS: dict[str, tuple[str, type[BaseModel]]] = {
     "vignetting": ("Vignetting Correction", Vignetting),
     "lens_profile": ("LensProfile", LensProfile),
     "tone_curve": ("ToneCurve", ToneCurve),
+    "color_correction": ("ColorCorrection", ColorCorrection),
 }
 """Tool name -> ([Group] in the .arp, its model)."""
 

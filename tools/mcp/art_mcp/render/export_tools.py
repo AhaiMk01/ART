@@ -39,13 +39,13 @@ def register(server: MCPServer, session: RenderSession) -> None:
         output: str,
         format: str,
         quality: int | None = None,
-        bit_depth: str | None = None,
+        bit_depth: int | str | None = None,
         write_profile: bool = False,
         overwrite: bool = False,
     ) -> ExportResult:
         """Render the working profile (saved or not) at full size to `output`.
         `quality` (1..100) is for jpeg; `bit_depth` is 8 for jpeg, 8|16 for
-        png, 8|16|16f|32 for tiff (default: ART's). An existing `output` (or
+        png, 8|16|"16f"|32 for tiff (default: ART's). An existing `output` (or
         `.arp`) is refused with `exists` unless `overwrite`. With
         `write_profile`, the working profile is also saved as `<output>.arp`;
         otherwise no `.arp` is written. The folder of `output` must exist."""
@@ -55,8 +55,9 @@ def register(server: MCPServer, session: RenderSession) -> None:
             profile = previews.new_file("profile", ".arp")
             temp = previews.new_file("export", EXPORT_SUFFIXES.get(format, ".out"))
             temp_arp = Path(str(temp) + ".arp")
+            depth = None if bit_depth is None else str(bit_depth)  # 8 and "8" alike
             try:
-                args = export_args(wp.image, temp, profile, format, quality, bit_depth, write_profile)
+                args = export_args(wp.image, temp, profile, format, quality, depth, write_profile)
             except ValueError as e:
                 raise tool_error("out_of_range", str(e)) from e
             if not dest.parent.is_dir():

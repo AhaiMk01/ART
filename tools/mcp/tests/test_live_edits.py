@@ -287,3 +287,34 @@ async def test_tone_curve_edit_sends_the_curve_keys(art, editor, image):
     }
     assert {"group": "ToneCurve", "key": "Enabled", "value": "true"} in result.structured_content["implied"]
     assert editor.applied[0]["label"] == "Agent: Tone Curve"
+
+
+CC_PROFILE = PROFILE + "\n" + (
+    __import__("pathlib").Path(__file__).parent / "data" / "art_default_colorcorrection.arp"
+).read_text()
+
+
+async def test_color_correction_regions_are_sent_whole_and_read_back_typed(art, tmp_path):
+    editor = FakeEditor(art)
+    path = str(tmp_path / "slide.ARW")
+    editor.add(path, CC_PROFILE)
+    request = {"color_correction": {"regions": [
+        {"b": {"slope": 0.9239, "power": 0.6241}},
+        {"b": {"slope": 0.85}, "mask": {"inverted": True, "shapes": [
+            {"type": "rectangle", "width": 110, "height": 110, "roundness": 100, "feather": 60}]}},
+    ]}}  # fmt: skip
+
+    async with Client(live(art)) as client:
+        result = await client.call_tool("edit_profile", {"path": path, "adjustments": request})
+        profile = await client.call_tool("get_profile", {"path": path})
+
+    assert not result.is_error, result.content
+    implied = {(c["key"], c["value"]) for c in result.structured_content["implied"]}
+    assert implied == {("Mode_1", "RGB"), ("Enabled", "true"), ("AreaMaskEnabled_2", "true")}
+    sent = keyfile.loads(editor.applied[0]["profile"])["ColorCorrection"]
+    assert sent["Mode_2"] == "RGB" and sent["AreaMaskType_2"] == "rectangle"
+    assert sent["SlopeR_1"] == "1" and sent["HSLGamma_1"] == "2.3999999999999999"  # region 1 whole
+    assert editor.applied[0]["label"] == "Agent: Color Correction"
+    typed = json.loads(text_of(profile))["adjustments"]["color_correction"]
+    assert typed["regions"][0]["b"]["slope"] == 0.9239
+    assert typed["regions"][1]["mask"]["shapes"][0]["roundness"] == 100

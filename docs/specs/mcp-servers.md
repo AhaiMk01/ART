@@ -108,7 +108,7 @@ Both compile into one partial profile. Rules:
 
 Exposure, White Balance, Crop, Rotation, Local Contrast, Sharpening, Denoise
 (basic amounts), Vignetting Correction, Lens Profile, Tone Curve (curves 1
-and 2). Fields, ranges and units:
+and 2), Color Correction (RGB-mode regions with rectangle/gradient area masks). Fields, ranges and units:
 see [Appendix A](#appendix-a-curated-adjustment-schema).
 
 All other tools (other curves, equalizers, masks, Spot Removal, Film Negative,
@@ -287,7 +287,7 @@ on Windows). Any tool except `open_image` on a path not opened returns
 | `edit_profile` | `path`, `adjustments?`, `raw_edits?` | Keys changed |
 | `reset_profile` | `path`, `to: "sidecar" \| "default"` | Working-profile changes discarded |
 | `render_preview` | `path`, `max_size=1024`, `region?`, `inline?` | JPEG path (+ `ImageContent` if inline) |
-| `export_image` | `path`, `output`, `format: "jpeg" \| "tiff" \| "png"`, `quality?` (jpeg only, 1..100), `bit_depth?` (jpeg `8`; png `8`\|`16`; tiff `8`\|`16`\|`16f`\|`32`), `write_profile=false`, `overwrite=false` | Output path, `.arp` path when written |
+| `export_image` | `path`, `output`, `format: "jpeg" \| "tiff" \| "png"`, `quality?` (jpeg only, 1..100), `bit_depth?` (jpeg `8`; png `8`\|`16`; tiff `8`\|`16`\|`16f`\|`32`; a number or a string, `16f` only as a string), `write_profile=false`, `overwrite=false` | Output path, `.arp` path when written |
 | `save_sidecar` | `path`, `on_conflict?: "merge" \| "overwrite" \| "cancel"` | `saved`, path, `how` (written/merged/overwritten/cancelled), or conflict + changed keys |
 | `save_partial_profile` | `path`, `dest`, `overwrite=false`, `exclude=[]` | `written`, path, keys written |
 | `inspect_image` | `path`, `tags?` | Fixed metadata fields + requested tags |
@@ -736,3 +736,88 @@ and `BaseCurve` stay raw-edit only.
 
 Defaults above are ART's built-in values; an image's actual starting values
 come from its sidecar or default profile and are what `get_profile` reports.
+
+**color_correction** -> `[ColorCorrection]`
+
+ASC CDL-like grading (cast removal, per-channel contrast, split toning, faded
+film), on regions in RGB mode. Values are linear working-space values (0..1 =
+0..65535). Per channel ART computes `v = v * slope + offset / 2`, then
+`v = (v / pivot) ^ (1 / power) * pivot` (`src/engine/ipcolorcorrection.cc`;
+pivot 1 unless raw-edited): the slope acts **before** the power, and the stored
+`power` is the **inverse** of the exponent applied (power 0.5 squares the
+channel), as the GUI shows it.
+
+| Field | Type | Range / values | Default |
+|---|---|---|---|
+| `enabled` | bool | (`Enabled`) | false |
+| `regions` | list | by position, region 1 = `regions[0]`; entries are a region or `null` | |
+
+A **region** is `{"r": c, "g": c, "b": c, "mask": m}` (all optional); a channel
+`c` is `{slope, offset, power}`:
+
+| Field | Range | Default | Key (region n) |
+|---|---|---|---|
+| `slope` | 0.01 .. 10 | 1 | `Slope<R/G/B>_n` |
+| `offset` | -0.15 .. 0.15 | 0 | `Offset<R/G/B>_n` |
+| `power` | 0.1 .. 4 | 1 | `Power<R/G/B>_n` |
+
+The **area mask** `m` is `{enabled, inverted, feather, blur, shapes}`
+(`AreaMaskEnabled_n`, `MaskInverted_n`, `AreaMaskFeather_n` 0..100,
+`AreaMaskBlur_n` 0..500). `inverted` flips the mask: the region then affects
+everything outside its shapes. A shape is typed by `type`:
+
+- `rectangle`: `x`, `y` -100..100 (% of the image's half width / height:
+  -100 = left / top edge, 0 = centre, 100 = right / bottom edge), `width`, `height` 1..200 (% of the image's, 100 = the
+  whole image; the GUI's minimum, ART's header says 0), `angle` degrees
+  (-180..180; the GUI allows 0..180), `roundness` 0..100 (100 = ellipse),
+  `feather` 0..100 (`ShapeFeather`), `blur` 0..500 (`ShapeBlur`), `mode`
+  `add`/`subtract`/`intersect`. Defaults: 0, 0, 100, 100, 0, 0, 0, 0, `add`.
+- `gradient`: `x`, `y` -100..100 (as rectangle), angle 0 runs top to
+  bottom, `strength_start` / `strength_end` 0..100,
+  `angle` -180..180, `feather`, `blur`, `mode`. Defaults: 0, 0, 100, 0, 0, 25,
+  0, `add`.
+
+Shape feather is a blur radius of `feather` % of the shape's smaller half
+size (`src/engine/masks.cc`), so a large feather also reaches into the shape
+(on a 110% ellipse, feather 60 changes pixels well inside it). Shape i is
+stored as `AreaMask<X>_n` for i = 0 and `AreaMask_i_<X>_n` for i > 0
+(`Type`, `X`, `Y`, `Width`, `Height`, `Angle`, `Roundness`, `Mode`,
+`ShapeFeather`, `ShapeBlur`; gradients `StrengthStart`, `StrengthEnd` in place
+of `Width`..`Roundness`).
+
+Editing:
+
+- Regions and shapes are matched **by position**; an entry changes only the
+  keys it gives. A `null` region skips that position. The first entry past the
+  end appends a region (further is `out_of_range`, naming the next free index).
+  A shape entry whose `type` differs from the stored shape replaces it. There
+  is no deleting a region or shape (raw edits).
+- Setting `r`/`g`/`b` on a region not in RGB mode switches it to RGB (`Mode_n`,
+  implied); giving a `mask` field sets `AreaMaskEnabled_n` true unless `enabled`
+  says otherwise (implied); anything turns `Enabled` on (implied).
+- **Complete key sets.** ART's loader replaces all regions with the ones a
+  profile lists and gives every missing key its default (a missing `Mode_n`
+  means Jzazbz), and it skips a mask shape with a missing key. So a new region
+  is written with every key ART's saver writes (`Region::Region()` and
+  `Mask::save` in `src/engine/procparams.cc`; the 82 keys of a default region
+  taken from a real default profile, `REGION_DEFAULTS` in
+  `art_mcp/colorcorrection.py`) with `Mode_n=RGB`, and a new shape with all
+  its keys. For the same reason a partial profile (`save_partial_profile`, Live's
+  `apply_profile`) in which any `[ColorCorrection]` region key changed carries
+  every region key (a layer of changed keys alone drops edits when ART loads
+  it).
+- Raw edits keep the rule that a key must exist; a typed adjustment may create
+  keys (a new region, a new shape).
+
+Reading: `get_profile` gives `enabled` and `regions` with one entry per
+region: a region in RGB mode whose mask is only an area mask of rectangles and
+gradients (and `MaskCurve`, `AreaMaskContrast`, `MaskPosterization`,
+`MaskSmoothing`, `MaskOpacity` at their defaults) is typed (always with a
+`mask`); any other region (YUV, HSL, Jzazbz or LUT mode; parametric, deltaE,
+drawn, linked or external masks; polygon shapes; a turned-off mask) is `null`
+and **all** its keys stay under `raw`. A typed region's remaining keys (pivots,
+compression, other-mode keys, unused masks) stay under `raw`. ART's default
+region 1 is in Jzazbz mode, so a fresh profile reads `regions: [null]`. A
+typed edit of such a region (values, or a mask on a region with a supported
+mask) works; changing the mask of a region with an unsupported one is
+`out_of_range` (use raw edits).
