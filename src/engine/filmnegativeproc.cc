@@ -18,6 +18,8 @@
  */
 #include <cmath>
 #include <iostream>
+#include <locale>
+#include <sstream>
 
 #include "imagefloat.h"
 #include "improccoordinator.h"
@@ -80,7 +82,7 @@ Coord2D translateCoord(art::engine::ImProcFunctions &ipf, int fw, int fh, int x,
 
 void getSpotAvgMax(ImageSource *imgsrc, ColorTemp currWB,
                    const art::engine::procparams::ProcParams &params, Coord2D p,
-                   int tr, int spotSize, RGB &avg, RGB &max,
+                   int tr, int spotSize, SpotSpace space, RGB &avg, RGB &max,
                    art::engine::gpu::Context *ctx)
 {
     int x1 = MAX(0, (int)p.x - spotSize / 2);
@@ -120,8 +122,7 @@ void getSpotAvgMax(ImageSource *imgsrc, ColorTemp currWB,
         avg.b /= (spotSize * spotSize);
     };
 
-    if (params.filmNegative.colorSpace ==
-        art::engine::FilmNegativeParams::ColorSpace::INPUT) {
+    if (space == SpotSpace::INPUT) {
         avgMax(avg, max);
     } else {
         // Convert spot image to current working space
@@ -414,6 +415,103 @@ void art::engine::ImProcFunctions::filmNegativeProcess(
     doProcess(input, output, params, this->params->icm, refIn, refOut);
 }
 
+namespace {
+
+// the average and maximum of one spot (frame pixel x, y), see sampleSpots()
+void sampleSpot(ImProcFunctions &ipf, ImageSource *imgsrc,
+                const ColorTemp &currWB, const ProcParams &params, int fw,
+                int fh, int x, int y, int size, SpotSpace space,
+                SpotSample &out)
+{
+    const int tr = getCoarseBitMask(params.coarse);
+    Coord2D p = translateCoord(ipf, fw, fh, x, y);
+    // keep the square inside the frame (unlike the GUI pickers, which can
+    // hang over the right/bottom edge)
+    if (fw >= size) {
+        p.x = LIM<double>(p.x, size / 2, fw - size + size / 2);
+    }
+    if (fh >= size) {
+        p.y = LIM<double>(p.y, size / 2, fh - size + size / 2);
+    }
+    RGB a, m;
+    getSpotAvgMax(imgsrc, currWB, params, p, tr, size, space, a, m,
+                  ipf.getGPUContext());
+    out.x = x;
+    out.y = y;
+    out.avg[0] = a.r;
+    out.avg[1] = a.g;
+    out.avg[2] = a.b;
+    out.max[0] = m.r;
+    out.max[1] = m.g;
+    out.max[2] = m.b;
+}
+
+} // namespace
+
+SpotStatus checkSpots(int fw, int fh, const SpotRequest &req,
+                      SpotResult &res)
+{
+    res.width = fw;
+    res.height = fh;
+    for (auto &p : req.pos) {
+        if (p.first < 0 || p.first >= fw || p.second < 0 || p.second >= fh) {
+            res.error = "spot (" + std::to_string(p.first) + "," +
+                        std::to_string(p.second) + ") is outside the frame " +
+                        std::to_string(fw) + "x" + std::to_string(fh);
+            return SpotStatus::OUT_OF_FRAME;
+        }
+    }
+    return SpotStatus::OK;
+}
+
+SpotStatus sampleSpots(ImProcFunctions &ipf, ImageSource *imgsrc,
+                       const ColorTemp &currWB, const ProcParams &params,
+                       int fw, int fh, const SpotRequest &req, SpotResult &res)
+{
+    res.spots.clear();
+    SpotStatus st = checkSpots(fw, fh, req, res);
+    if (st != SpotStatus::OK) {
+        return st;
+    }
+    for (auto &p : req.pos) {
+        SpotSample s;
+        sampleSpot(ipf, imgsrc, currWB, params, fw, fh, p.first, p.second,
+                   req.size, req.space, s);
+        res.spots.push_back(s);
+    }
+    return SpotStatus::OK;
+}
+
+std::string spotResultJson(const SpotResult &res)
+{
+    std::ostringstream o;
+    o.imbue(std::locale::classic());
+    o.precision(9);
+    o << "{\"width\":" << res.width << ",\"height\":" << res.height
+      << ",\"spots\":[";
+    for (size_t i = 0; i < res.spots.size(); ++i) {
+        const SpotSample &s = res.spots[i];
+        o << (i ? "," : "") << "{\"x\":" << s.x << ",\"y\":" << s.y
+          << ",\"avg\":[" << s.avg[0] << "," << s.avg[1] << "," << s.avg[2]
+          << "],\"max\":[" << s.max[0] << "," << s.max[1] << ","
+          << s.max[2] << "]}";
+    }
+    o << "]}";
+    return o.str();
+}
+
+SpotStatus art::engine::ImProcCoordinator::sampleSpots(const SpotRequest &req,
+                                                       SpotResult &res)
+{
+    art::utils::MyMutex::MyLock lock(mProcessing);
+
+    if (!imgsrc || fw <= 0 || fh <= 0) {
+        return SpotStatus::NOT_READY;
+    }
+    return art::engine::sampleSpots(ipf, imgsrc, currWB, params, fw, fh, req,
+                                    res);
+}
+
 bool art::engine::ImProcCoordinator::getFilmNegativeSpot(int x, int y,
                                                       const int spotSize,
                                                       RGB &refInput,
@@ -427,8 +525,12 @@ bool art::engine::ImProcCoordinator::getFilmNegativeSpot(int x, int y,
 
     // Get the average channel values from the sampled spot
     RGB avg, max;
-    getSpotAvgMax(imgsrc, currWB, params, p, tr, spotSize, avg, max,
-                 ipf.getGPUContext());
+    getSpotAvgMax(imgsrc, currWB, params, p, tr, spotSize,
+                  params.filmNegative.colorSpace ==
+                          art::engine::FilmNegativeParams::ColorSpace::INPUT
+                      ? SpotSpace::INPUT
+                      : SpotSpace::WORKING,
+                  avg, max, ipf.getGPUContext());
 
     float rexp = -(params.filmNegative.greenExp * params.filmNegative.redRatio);
     float gexp = -params.filmNegative.greenExp;

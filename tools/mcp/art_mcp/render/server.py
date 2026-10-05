@@ -25,6 +25,7 @@ from art_mcp.render import (
     metadata_tools,
     preview_tools,
     profile_tools,
+    sampling_tools,
     save_tools,
 )
 from art_mcp.render.artcli import ArtCli
@@ -56,7 +57,9 @@ def build_server(
         ),
         lifespan=lifespan,
     )
-    for feature in (profile_tools, preview_tools, export_tools, save_tools, metadata_tools):
+    for feature in (
+        profile_tools, preview_tools, export_tools, save_tools, metadata_tools, sampling_tools
+    ):
         feature.register(server, session)
     return server
 

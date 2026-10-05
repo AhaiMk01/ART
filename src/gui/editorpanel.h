@@ -159,6 +159,10 @@ public:
     // The open image's size as the editor processes it (before cropping);
     // false until the processor has reported it (the first preview).
     bool getImageSize(int &w, int &h);
+    // Spot values as the film negative pickers read them (frame pixels);
+    // NOT_READY if nothing is processed yet.
+    art::engine::SpotStatus sampleSpots(const art::engine::SpotRequest &req,
+                                        art::engine::SpotResult &res);
     // The current processing profile as .arp (KeyFile) text, and the
     // selected History row; false when no image is loaded.
     bool getProfileText(std::string &arp, int &history_position);

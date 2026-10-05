@@ -108,7 +108,8 @@ async def test_get_profile_returns_the_read_format_and_history_position(art, tmp
     assert profile["ppversion"] == 1045
     assert profile["history_position"] == 3
     assert profile["adjustments"]["exposure"]["compensation"] == 0.7
-    assert profile["raw"]["ToneCurve"] == {"Enabled": "false"}
+    assert profile["adjustments"]["tone_curve"]["enabled"] is False
+    assert "ToneCurve" not in profile["raw"]
     sent = json.loads(art.received[-1])
     assert sent["op"] == "get_profile" and sent["args"] == {"path": str(image)}
 

@@ -364,9 +364,14 @@ public:
 
     void info(const Glib::ustring &msg)
     {
+        if (quiet_) {
+            return;
+        }
         MyMutex::MyLock l(mutex_);
         std::cout << "  " << msg << std::endl;
     }
+
+    void setQuiet(bool yes) { quiet_ = yes; }
 
     void msg(const Glib::ustring &msg)
     {
@@ -388,7 +393,69 @@ private:
     MyMutex mutex_;
     int num_steps_;
     int percent_;
+    bool quiet_ = false;
 };
+
+// parse the argument of -x: <size>,<space>,<x1>,<y1>[,<x2>,<y2>...]
+bool parseSpotArg(const std::string &arg, art::engine::SpotRequest &req,
+                  std::string &err)
+{
+    std::vector<std::string> tok;
+    std::string cur;
+    for (char c : arg) {
+        if (c == ',') {
+            tok.push_back(cur);
+            cur.clear();
+        } else {
+            cur += c;
+        }
+    }
+    tok.push_back(cur);
+
+    auto to_int = [](const std::string &s, int &out) -> bool {
+        if (s.empty()) {
+            return false;
+        }
+        char *end = nullptr;
+        long v = strtol(s.c_str(), &end, 10);
+        if (*end != '\0' || v < -1000000 || v > 1000000) {
+            return false;
+        }
+        out = int(v);
+        return true;
+    };
+
+    if (tok.size() < 4 || tok.size() % 2 != 0) {
+        err = "expected <size>,<space>,<x1>,<y1>[,<x2>,<y2>...]";
+        return false;
+    }
+    if (!to_int(tok[0], req.size) || req.size < 2 || req.size > 256) {
+        err = "size must be an integer from 2 to 256";
+        return false;
+    }
+    if (tok[1] == "working") {
+        req.space = art::engine::SpotSpace::WORKING;
+    } else if (tok[1] == "input") {
+        req.space = art::engine::SpotSpace::INPUT;
+    } else {
+        err = "space must be \"working\" or \"input\"";
+        return false;
+    }
+    req.pos.clear();
+    for (size_t i = 2; i + 1 < tok.size(); i += 2) {
+        int x, y;
+        if (!to_int(tok[i], x) || !to_int(tok[i + 1], y)) {
+            err = "spot coordinates must be integers";
+            return false;
+        }
+        req.pos.push_back(std::make_pair(x, y));
+    }
+    if (req.pos.size() > 16) {
+        err = "at most 16 spots";
+        return false;
+    }
+    return true;
+}
 
 int processLineParams(int argc, char **argv)
 {
@@ -411,6 +478,8 @@ int processLineParams(int argc, char **argv)
     bool isFloat = false;
     std::string outputType = "";
     unsigned errors = 0;
+    bool sampling = false;
+    art::engine::SpotRequest spotReq;
 
     for (int iArg = 1; iArg < argc; iArg++) {
         Glib::ustring currParam(argv[iArg]);
@@ -486,6 +555,23 @@ int processLineParams(int argc, char **argv)
 
             case 'd':
                 useDefault = true;
+                break;
+
+            case 'x': // spot sampling, no image output
+                if (iArg + 1 < argc) {
+                    iArg++;
+                    std::string err;
+                    if (!parseSpotArg(argv[iArg], spotReq, err)) {
+                        std::cerr << "Error: bad -x argument: " << err
+                                  << std::endl;
+                        return -3;
+                    }
+                    sampling = true;
+                } else {
+                    std::cerr << "Error: the -x switch requires a value."
+                              << std::endl;
+                    return -3;
+                }
                 break;
 
             case 'q':
@@ -818,7 +904,13 @@ int processLineParams(int argc, char **argv)
         }
     }
 
+    if (sampling && inputFiles.size() != 1) {
+        std::cerr << "Error: -x needs exactly one input image." << std::endl;
+        return -3;
+    }
+
     ConsoleProgressListener cpl(inputFiles.size() + 1);
+    cpl.setQuiet(sampling);
     art::engine::ProgressListener *pl = progress ? &cpl : nullptr;
 
     if (progress) {
@@ -883,13 +975,13 @@ int processLineParams(int argc, char **argv)
             }
         }
 
-        if (inputFile == outputFile) {
+        if (!sampling && inputFile == outputFile) {
             cpl.error(
                 Glib::ustring::compose("cannot overwrite: %1", inputFile));
             continue;
         }
 
-        if (!overwriteFiles &&
+        if (!sampling && !overwriteFiles &&
             Glib::file_test(outputFile, Glib::FILE_TEST_EXISTS)) {
             cpl.error(Glib::ustring::compose(
                 "%1 already exists: use -Y option to overwrite. This image has "
@@ -994,6 +1086,25 @@ int processLineParams(int argc, char **argv)
                 "impossible to create processing job for: %1", inputFile));
             ii->decreaseRef();
             continue;
+        }
+
+        if (sampling) {
+            art::engine::SpotResult res;
+            bool ok = art::engine::sampleSpots(job, spotReq, res, errorCode);
+            art::engine::ProcessingJob::destroy(job);
+            ii->decreaseRef();
+            if (!ok) {
+                if (!res.error.empty()) {
+                    std::cerr << "Error: " << res.error << std::endl;
+                    return -3;
+                }
+                cpl.error(Glib::ustring::compose("failure in sampling: %1",
+                                                 inputFile));
+                return -2;
+            }
+            std::cout << "ART-SPOTS " << art::engine::spotResultJson(res)
+                      << std::endl;
+            return 0;
         }
 
         // Process image

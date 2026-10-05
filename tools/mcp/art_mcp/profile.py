@@ -12,6 +12,7 @@ from typing import Any
 
 from pydantic import BaseModel, TypeAdapter, ValidationError
 
+from art_mcp.curves import LinearCurve, PointCurve, curve_warnings, decode, drawn_points, encode
 from art_mcp.keyfile import KeyFile
 from art_mcp.schema import (
     PPVERSION,
@@ -108,17 +109,18 @@ class WorkingChanges:
             tool = getattr(adjustments, name)
             if tool is None:
                 continue
-            values = tool.model_dump(exclude_none=True)
+            values = {f: getattr(tool, f) for f in model.model_fields if getattr(tool, f) is not None}
             if not values:
                 continue
-            explicit += [
-                RawEdit(
+            for f, v in values.items():
+                edit = RawEdit(
                     group=field_group(model, f, group),
                     key=field_key(model, f),
-                    value=stored_value(model, f, _arp_value(v)),
+                    value=encode(v)
+                    if isinstance(v, (PointCurve, LinearCurve))
+                    else stored_value(model, f, _arp_value(v)),
                 )
-                for f, v in values.items()
-            ]
+                explicit.append(edit)
             own_group = any(field_group(model, f, group) == group for f in values)
             if "enabled" not in values and own_group and self._value(group, "Enabled") == "false":
                 implied.append(RawEdit(group=group, key="Enabled", value="true"))
@@ -129,7 +131,24 @@ class WorkingChanges:
                 and self._value(group, "Setting") != "CustomTemp"
             ):
                 implied.append(RawEdit(group=group, key="Setting", value="CustomTemp"))
+            if name == "tone_curve":
+                implied += self._tone_curve_implied(group, values)
         return explicit, implied
+
+    def _tone_curve_implied(self, group: str, values: dict[str, Any]) -> list[RawEdit]:
+        implied: list[RawEdit] = []
+        if (
+            ("curve1" in values or "curve2" in values)
+            and "histogram_matching" not in values
+            and self._value(group, "HistogramMatching") == "true"
+        ):
+            # ART would replace the curve by the histogram-matched one.
+            implied.append(RawEdit(group=group, key="HistogramMatching", value="false"))
+        mode2 = self._value(group, "CurveMode2")
+        if "mode" in values and "mode2" not in values and mode2 not in (None, values["mode"]):
+            # ART loads a CurveMode as both modes; keep the profile saying so.
+            implied.append(RawEdit(group=group, key="CurveMode2", value=values["mode"]))
+        return implied
 
     def edit(self, adjustments: Adjustments | None, raw_edits: list[RawEdit]) -> EditOutcome:
         """Apply adjustments and raw edits together, all or nothing.
@@ -207,7 +226,20 @@ def typed_adjustments(profile: KeyFile) -> tuple[dict[str, dict[str, Any]], set[
             extra = info.json_schema_extra
             assert isinstance(extra, dict)
             if stored is None:
-                values[field] = extra["art_default"]
+                source = extra.get("default_from")
+                if source is None:
+                    values[field] = extra["art_default"]
+                elif source in values:
+                    values[field] = values[source]
+                continue
+            if extra.get("curve"):
+                curve = decode(stored)
+                if curve is None:
+                    continue  # parametric or unparseable: stays raw
+                if curve["type"] != "linear":
+                    curve["drawn"] = drawn_points(curve)
+                values[field] = curve
+                consumed.add((field_grp, key))
                 continue
             try:
                 values[field] = TypeAdapter(info.annotation).validate_python(
@@ -253,7 +285,8 @@ def crop_problem(
 
 def edit_warnings(adjustments: Adjustments | None, profile: KeyFile) -> list[str]:
     """Warnings about an edit just applied to ``profile``: a newer profile
-    version than the schema's, lens options that can't take effect."""
+    version than the schema's, lens options that can't take effect, tone
+    curves whose drawn line clips or reverses."""
     warnings = version_warnings(ppversion_of(profile))
     if (
         adjustments is not None
@@ -264,6 +297,12 @@ def edit_warnings(adjustments: Adjustments | None, profile: KeyFile) -> list[str
             "lens_profile options have no effect while lc_mode is none; "
             "set lc_mode to turn lens correction on"
         )
+    tone = adjustments.tone_curve if adjustments is not None else None
+    if tone is not None:
+        for field in ("curve1", "curve2"):
+            curve = getattr(tone, field)
+            if curve is not None:
+                warnings += curve_warnings(field, curve)
     return warnings
 
 

@@ -36,22 +36,24 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "mcp" },
+    { name = "pillow" },
 ]
 
 [package.dev-dependencies]
 dev = [
     { name = "mypy" },
-    { name = "pillow" },
     { name = "pytest" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "mcp", specifier = ">=2,<3" }]
+requires-dist = [
+    { name = "mcp", specifier = ">=2,<3" },
+    { name = "pillow", specifier = ">=12.3.0" },
+]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "mypy", specifier = ">=2.4.0" },
-    { name = "pillow", specifier = ">=12.3.0" },
     { name = "pytest", specifier = ">=8" },
 ]
 

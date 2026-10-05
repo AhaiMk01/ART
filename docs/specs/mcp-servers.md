@@ -41,9 +41,18 @@ From [Implementation language and SDK](https://github.com/AhaiMk01/ART/issues/7)
   `not_open`, `not_found`, `out_of_range`, `unknown_key`, `conflict`, `exists`,
   `render_failed`, `timeout` (art-cli or exiftool), `metadata_unavailable` (no
   exiftool beside ART-cli), `metadata_failed`, `invalid_tag`, `open_in_editor`,
-  `art_not_running`, `write_failed`, `busy`. Live server only: `timeout` also covers ART not answering
+  `art_not_running`, `write_failed`, `busy`, `unsupported` (the ART
+  build lacks a fork feature). Live server only: `timeout` also covers ART not answering
   on the control channel; `bad_reply` (ART's answer isn't the protocol); ART's
-  own codes pass through (`bad_request`, `unknown_op`).
+  own codes pass through (`bad_request`, `unknown_op`), except that for
+  `sample_spots` ART's `unknown_op` (a fork build without spot sampling) becomes
+  `unsupported`, as in the Render server.
+- **Validation messages:** an out-of-range or unknown input names the field and
+  the allowed range or values, for example `exposure.compensation=99 is outside
+  -12..12 EV` or `tone_curve.mode='x' is not one of: Standard, ...`; several
+  problems are joined with `; `.
+- **Dependencies:** Pillow is a runtime dependency (`image_stats` decodes the
+  rendered PNG with it).
 
 ```
 tools/mcp/
@@ -98,10 +107,11 @@ Both compile into one partial profile. Rules:
 ### 3.2 Curated tools (v1)
 
 Exposure, White Balance, Crop, Rotation, Local Contrast, Sharpening, Denoise
-(basic amounts), Vignetting Correction, Lens Profile. Fields, ranges and units:
+(basic amounts), Vignetting Correction, Lens Profile, Tone Curve (curves 1
+and 2). Fields, ranges and units:
 see [Appendix A](#appendix-a-curated-adjustment-schema).
 
-All other tools (curves, equalizers, masks, Spot Removal, Film Negative,
+All other tools (other curves, equalizers, masks, Spot Removal, Film Negative,
 Color Management, RAW settings) are reachable through raw edits only. Typed
 shapes for them are a later, separate effort.
 
@@ -155,6 +165,80 @@ and [Render server tool list and signatures](https://github.com/AhaiMk01/ART/iss
   other OSes), so earlier previews stay viewable for comparison. Folder deleted
   on exit; stale folders of dead pids swept at startup.
 
+### 4.1 Spot sampling (both servers)
+
+What ART's own pickers read, so an agent can do what a human does with them
+(the film negative tool's neutral-spot and reference-spot pickers, from a
+camera-scanned negative). Exact: both servers call the engine code the GUI
+pickers use, not an approximation from a rendered file.
+
+`sample_spots(path, spots, size=32, space="working")`:
+
+- `spots`: 1 to 16 `{x, y}`, whole pixels in the **frame** (the raw image
+  after coarse rotation and the raw border, the same coordinates as
+  `[Crop]`), each the centre of a `size` x `size` square. A spot outside the
+  frame is `out_of_range`. `size` is 2 to 256 (the GUI offers 2 to 32; 32 is
+  its default).
+- `space`: `"working"` (the profile's working space) or `"input"` (camera
+  space). These are the film negative tool's two `ColorSpace` values
+  (`[Film Negative] ColorSpace` 1 and 0); use the one the profile has.
+- Returns the frame's `width`/`height`, `space`, `size`, and per spot `x`,
+  `y`, `avg` and `max` as `[r, g, b]`: linear values on ART's 0..65535 scale,
+  white-balanced with the profile's white balance, before the film negative
+  tool and everything after it (the engine's `getSpotAvgMax`: demosaiced
+  `ImageSource::getImage` of the square, converted to the working space for
+  `"working"`; `avg` channels are raised to at least 1). One difference from
+  the GUI pickers: the square is kept inside the frame (theirs can overhang
+  the right and bottom edges), so spots near an edge can differ slightly.
+  The Live op answers `busy` while the editor is processing or has nothing
+  processed yet; the Live server retries for up to 30 s (`timeout` after).
+- Mapping a preview pixel to the frame: a whole-image Render preview shows
+  the crop when one is enabled, so `x = crop.x + px * crop.w / preview_w`
+  (no crop: `x = px * frame_w / preview_w`); a Live preview always shows the
+  whole frame.
+- The tool description carries the film negative maths, so the agent doesn't
+  have to read ART's source. Neutral spots `a` and `b` (the clearer one has
+  the higher green): `RedRatio = log(clear.r/dense.r) / log(clear.g/dense.g)`,
+  `BlueRatio` likewise with blue, `GreenExponent` unchanged. Reference spot:
+  `RefInput = avg`; `RefOutput = (L, L, L)` for an output grey level `L`
+  (ART's default is 65535/24; the GUI picks `L` so that the previous
+  reference spot keeps its luminance, which the agent may do or not).
+
+Render server: a new `art-cli` option in the fork,
+`-x <size>,<space>,<x1>,<y1>[,<x2>,<y2>...]`, given with the usual `-p`
+layers and `-c <image>`. It loads the image, applies the profile's raw
+preprocessing, demosaic and white balance as an export does, samples, prints
+one line `ART-SPOTS <json>` (`{"width", "height", "spots": [{"x", "y",
+"avg", "max"}]}`) and writes no image. A release `art-cli` doesn't know `-x`
+and exits -1 (its usage text is in the output; any other failure is
+`render_failed`): the tool fails with `unsupported` ("needs an ART build with
+spot sampling"). Point `--art-dir`/`ART_DIR` at a fork build to use it.
+
+Live server: a control-channel op `sample_spots` (`path`, `spots`, `size`,
+`space`) on the open editor, through `ImProcCoordinator` as the GUI pickers
+are, so it samples the profile the editor holds (any unsaved edits
+included). Same result shape. A fork build without the op answers `unknown_op`,
+which the server reports as `unsupported`.
+
+### 4.2 Image statistics (both servers)
+
+`image_stats(path, max_size=1024, histogram=false)` replaces watching the
+histogram and the clipping indicator. It renders the image as a preview is
+rendered (Render: `art-cli -n -b8` to a PNG, crop applied, same `-f` rule;
+Live: the editor's preview, saved as PNG: whole frame, uncropped, ~600 px,
+in the monitor colour space ART previews in), so the numbers describe the
+output-referred 8-bit image, and returns per channel `r`, `g`, `b` and `lum`
+(`0.2126 R + 0.7152 G + 0.0722 B` of the 8-bit values):
+
+- `clipped_high` / `clipped_low`: fraction of pixels at 255 / at 0;
+- `percentiles`: values at 0.1, 1, 5, 50, 95, 99, 99.9 %;
+- `mean`;
+- `histogram` (only when asked): 256 counts.
+
+Plus the rendered `width`/`height`. Downscaling hides clipping in tiny
+highlights. Render: raise `max_size` (up to 2576) to see more. Live: `max_size`
+can only shrink the ~600 px editor preview, never enlarge it.
+
 ## 5. Locating ART (both servers)
 
 `--art-dir` flag or `ART_DIR` env (folder with `ART-cli.exe` and
@@ -190,6 +274,8 @@ on Windows). Any tool except `open_image` on a path not opened returns
 | `save_partial_profile` | `path`, `dest`, `overwrite=false` | `written`, path, keys written |
 | `inspect_image` | `path`, `tags?` | Fixed metadata fields + requested tags |
 | `describe_adjustments` | none | Curated schema + `PPVERSION` warning |
+| `sample_spots` | `path`, `spots`, `size=32`, `space="working"` | Linear spot values (4.1); `unsupported` with a release `art-cli` |
+| `image_stats` | `path`, `max_size=1024`, `histogram=false` | Clipping, percentiles, mean per channel (4.2) |
 
 `region` is `{x, y, w, h}` as fractions of the image as previewed: of the
 working profile's crop when it has an enabled one, else of the whole frame
@@ -300,6 +386,8 @@ Assistants. The Live server never launches ART.
 | `save_sidecar` | `path` | The sidecar written (editor's own save), null when ART keeps profiles in its cache only; `write_failed` when nothing was written |
 | `describe_adjustments` | none | As Render server |
 | `inspect_image` | `path`, `tags?` | As Render server (Python + exiftool; no C++) |
+| `sample_spots` | `path`, `spots`, `size=32`, `space="working"` | As Render server, from the open editor (4.1) |
+| `image_stats` | `path`, `max_size=1024`, `histogram=false` | As Render server, from the editor's preview (4.2) |
 
 - `get_profile` returns the profile as the editor holds it (`ipc->getParams`,
   as ART's own sidecar save does), so it includes what the engine resolved:
@@ -358,7 +446,8 @@ Assistants. The Live server never launches ART.
   stall the GUI.
 - **Ops:** `status`, `get_profile` (returns .arp text + history position),
   `apply_profile` (.arp partial profile text + label), `undo`, `redo`,
-  `preview` (target JPEG path + max size), `open`, `save_sidecar`. All schema
+  `preview` (target JPEG or PNG path + max size), `open`, `save_sidecar`,
+  `sample_spots` (4.1). All schema
   work stays in Python; ART only parses and emits KeyFile text.
 
 ### 7.3 C++ changes (fork only)
@@ -370,7 +459,8 @@ Assistants. The Live server never launches ART.
   later: it polls every 50 ms (low priority) until the editor isn't
   processing, at most 4 waiting per connection (`busy` beyond), 30 s
   (`timeout`); replies can therefore arrive out of order, matched by `id`.
-  Its `output` must be a new `.jpg`/`.jpeg` file (`exists` otherwise), so
+  Its `output` must be a new `.jpg`/`.jpeg`/`.png` file (`exists`
+  otherwise), so
   the channel can't be used to overwrite files; `write_failed` if saving
   it fails. `open` takes absolute paths only.
 - Hooks, kept small to limit upstream merge conflicts:
@@ -452,7 +542,8 @@ There is no C++ test suite. For the Python package:
 
 ## 10. Later (not in this spec)
 
-- Typed shapes for the hard tools (curves, equalizers, masks, Spot Removal).
+- Typed shapes for the hard tools (other curves, equalizers, masks, Spot
+  Removal).
 - Extracting `tools/mcp/` into a standalone repo.
 - Folder-wide catalog queries (ruled out).
 
@@ -569,6 +660,55 @@ Colour space, aggressiveness, detail and other keys stay raw-edit only.
 | `use_ca` | bool | | | false |
 
 `LCPFile` and the manual Lensfun camera/lens strings stay raw-edit only.
+
+**tone_curve** -> `[ToneCurve]`
+
+| Field | Type | Range / values | Unit | Default |
+|---|---|---|---|---|
+| `mode` | enum | `Standard`, `WeightedStd`, `FilmLike`, `SatAndValueBlending`, `Luminance`, `Perceptual`, `Neutral` (`CurveMode`) | | `Neutral` |
+| `mode2` | enum | as `mode` (`CurveMode2`); omitted = same as `mode` | | as `mode` |
+| `histogram_matching` | bool | (`HistogramMatching`) | | false |
+| `contrast` | int | -100..100 (`Contrast`) | | 0 |
+| `curve1`, `curve2` | curve | see below (`Curve`, `Curve2`) | | linear |
+
+Setting `mode` without `mode2` while the stored `CurveMode2` differs also
+writes `CurveMode2 = mode` (implied; ART loads a `CurveMode` as both modes). A
+legacy `CurveMode=OpenDisplayTransform` reads as `Neutral`.
+
+A **curve** is explicit points or linear:
+
+- `{"type": "spline" | "catmull_rom" | "nurbs", "points": [[x, y], ...]}`:
+  2 to 32 points, `x` and `y` in 0..1, `x` strictly increasing. Written as
+  ART's `<type code>;x1;y1;x2;y2;...;` (codes from `src/utils/curvetypes.h`:
+  spline 1, NURBS 3, Catmull-Rom 4).
+- `{"type": "linear"}`: identity, written `0;`.
+
+`x` and `y` are sRGB-gamma-encoded 0..1 values of the image at the curve's
+place in the pipeline (`src/engine/iptonecurve.cc`), so they line up roughly
+with `image_stats` 8-bit values / 255 (later tools still change the output).
+`get_profile` reads curves back as `{"type", "points", "drawn"}`; a parametric curve (code 2) or one that doesn't parse stays
+under `raw`. `drawn` is what ART's curve editor draws through the points, a
+port of `DiagonalCurve::getVal` (`src/engine/diagonalcurves.cc`; natural cubic
+spline for `spline`, centripetal Catmull-Rom polyline for `catmull_rom`, a line
+for two points or the identity): `[x, y]` pairs at x = 0, 0.125, ..., 1, y
+rounded to 4 decimals. ART clamps only below 0 (`CLIPD`), so a spline or
+Catmull-Rom can show y above 1. Every NURBS curve with three or more points (an identity one too) is not
+computed (`drawn: null`); a two-point NURBS is a line and is drawn; `linear` has no `drawn`. `drawn` is read-only: input
+that carries it (a `get_profile` curve sent back) is accepted and ignored.
+`edit_profile` adds a warning for each `curve1`/`curve2` it set whose drawn line
+clips to 0 (`curve2 clips to 0 for x 0.02-0.07`), goes above 1, or reverses
+(decreases; `curve2 reverses for x 0.86-0.95`), scanned at 1001 x values; a NURBS
+gets one warning that it can't be checked. ART resamples the drawn curve before
+applying it (`src/engine/iptonecurve.cc`: about 30 samples, dense below 0.25 in
+linear light, rebuilt as Catmull-Rom), so `drawn` is a close but not bit-exact
+picture of what is applied. Setting `curve1`/`curve2` while `HistogramMatching` is on also
+sets `histogram_matching: false` (implied): ART would replace the curve.
+`contrast` is ART's analytic contrast curve (a power curve pivoting on scene
+middle grey 0.18, or Log Encoding's target grey when that is enabled; it never
+overshoots), applied before the curves; use it for an S-curve instead of curve
+points. It is independent of histogram matching, which replaces only the
+curves. `ContrastLegacyMode`, `Saturation`, `Saturation2`, `PerceptualStrength`, `WhitePoint`
+and `BaseCurve` stay raw-edit only.
 
 Defaults above are ART's built-in values; an image's actual starting values
 come from its sidecar or default profile and are what `get_profile` reports.

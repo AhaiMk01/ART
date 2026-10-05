@@ -71,8 +71,8 @@ inline void ART_print_help(std::ostream &out, const char *progname, bool gui)
         out << "  " << pn
             << "[-o <output>|-O <output>] [-q] [-a] [-s|-S] [-p <one"
             << paramFileExtension << "> [-p <two" << paramFileExtension
-            << "> ...] ] [-d] [ -j[1-100] -js<1-3> | -t[z] -b<8|16|16f|32> | "
-               "-n -b<8|16> | -Ttype ] [-Y] [-f] -c <input>"
+            << "> ...] ] [-d] [-x <spec>] [ -j[1-100] -js<1-3> | -t[z] "
+               "-b<8|16|16f|32> | -n -b<8|16> | -Ttype ] [-Y] [-f] -c <input>"
             << std::endl;
         out << std::endl;
         out << "  -c <files>       Specify one or more input files or folders. "
@@ -81,6 +81,20 @@ inline void ART_print_help(std::ostream &out, const char *progname, bool gui)
                "which comply with\n"
             << "                   the selected extensions (see also '-a').\n"
             << "                   '-c' must be the last option." << std::endl;
+        out << "  -x <spec>        Sample spots instead of converting. <spec> "
+               "is\n"
+            << "                   <size>,<space>,<x1>,<y1>[,<x2>,<y2>...]. "
+               "Prints one line\n"
+            << "                   'ART-SPOTS <json>' with the frame "
+               "width/height and, for\n"
+            << "                   each of 1 to 16 spots (frame pixels, as for "
+               "the crop), the\n"
+            << "                   avg/max RGB of the <size> (2 to 256) square "
+               "centred on it.\n"
+            << "                   <space> is 'working' or 'input' (camera). "
+               "Works with\n"
+            << "                   -p, -d, -s/-S and one -c image; writes no "
+               "file." << std::endl;
         out << "  -o <file>|<dir>  Set output file or folder. Saves output "
                "file alongside input\n"
             << "                   file if -o is not specified." << std::endl;

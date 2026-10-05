@@ -9,6 +9,8 @@ from typing import Annotated, Any, Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, WithJsonSchema
 
+from art_mcp.curves import CurveSpec
+
 PPVERSION = 1045
 """The processing-profile version (``src/utils/ppversion.h``) this schema was
 written for."""
@@ -24,10 +26,15 @@ def F(
     default: Any = None,
     group: str | None = None,
     stored_as: dict[str, str] | None = None,
+    default_from: str | None = None,
+    curve: bool = False,
+    read_as: dict[str, str] | None = None,
 ) -> Any:
     """A curated field: the ``[Group] Key`` it sets (``group`` only when it
     isn't the tool's own group) and, for values ART stores differently from
-    how they are named here, the stored form of each (``stored_as``)."""
+    how they are named here, the stored form of each (``stored_as``). A field
+    with no value of its own reads as the field it follows (``default_from``).
+    ``read_as`` maps legacy stored names ART still loads to their current name."""
     extra: dict[str, Any] = {"key": key, "art_default": default}
     if unit:
         extra["unit"] = unit
@@ -35,6 +42,12 @@ def F(
         extra["group"] = group
     if stored_as:
         extra["stored_as"] = stored_as
+    if default_from:
+        extra["default_from"] = default_from
+    if curve:
+        extra["curve"] = True
+    if read_as:
+        extra["read_as"] = read_as
     return Field(None, ge=ge, le=le, description=description, json_schema_extra=extra)
 
 
@@ -202,6 +215,52 @@ class LensProfile(BaseModel):
     use_ca: bool | None = F("UseCA", "Correct chromatic aberration", default=False)
 
 
+CurveModeName = Literal[
+    "Standard", "WeightedStd", "FilmLike", "SatAndValueBlending", "Luminance", "Perceptual", "Neutral"
+]
+"""ART's tone curve modes, named as ART writes them."""
+
+_LEGACY_MODES = {"OpenDisplayTransform": "Neutral"}
+"""Older mode names ART's loader still accepts."""
+
+
+class ToneCurve(BaseModel):
+    """Tone curves 1 and 2 and the contrast slider. A curve is `{"type":
+    "spline"|"catmull_rom"|"nurbs", "points": [[x, y], ...]}` (2 to 32 points,
+    x and y in 0..1, x strictly increasing) or `{"type": "linear"}`. x and y are
+    sRGB-gamma-encoded 0..1 values of the image at the curve's place in the
+    pipeline, so they line up roughly with image_stats 8-bit values / 255.
+    Setting a curve while histogram_matching is on turns histogram_matching off
+    (implied). For an S-curve use `contrast` rather than curve points."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool | None = F("Enabled", "Turn the tool on or off", default=False)
+    mode: CurveModeName | None = F(
+        "CurveMode", "How curve 1 is applied", default="Neutral", read_as=_LEGACY_MODES
+    )
+    mode2: CurveModeName | None = F(
+        "CurveMode2", "How curve 2 is applied; omitted = same as mode",
+        default="as mode", default_from="mode", read_as=_LEGACY_MODES,
+    )  # fmt: skip
+    histogram_matching: bool | None = F(
+        "HistogramMatching", "Replace the curve by one matching a reference histogram", default=False
+    )
+    contrast: int | None = F(
+        "Contrast",
+        "ART's analytic contrast curve (a power curve pivoting on scene middle grey 0.18, or "
+        "Log Encoding's target grey when that is enabled; it never overshoots); use it for an "
+        "S-curve instead of curve points",
+        ge=-100, le=100, default=0,
+    )
+    curve1: CurveSpec | None = F(
+        "Curve", "Curve 1: points or linear", default={"type": "linear"}, curve=True
+    )
+    curve2: CurveSpec | None = F(
+        "Curve2", "Curve 2: points or linear", default={"type": "linear"}, curve=True
+    )
+
+
 class Adjustments(BaseModel):
     """Typed changes to curated tools. Set only what should change."""
 
@@ -216,6 +275,7 @@ class Adjustments(BaseModel):
     denoise: Denoise | None = None
     vignetting: Vignetting | None = None
     lens_profile: LensProfile | None = None
+    tone_curve: ToneCurve | None = None
 
 
 TOOLS: dict[str, tuple[str, type[BaseModel]]] = {
@@ -228,6 +288,7 @@ TOOLS: dict[str, tuple[str, type[BaseModel]]] = {
     "denoise": ("Denoise", Denoise),
     "vignetting": ("Vignetting Correction", Vignetting),
     "lens_profile": ("LensProfile", LensProfile),
+    "tone_curve": ("ToneCurve", ToneCurve),
 }
 """Tool name -> ([Group] in the .arp, its model)."""
 
@@ -258,7 +319,7 @@ def named_value(model: type[BaseModel], name: str, stored: str) -> str:
     for named, as_stored in _extra(model, name).get("stored_as", {}).items():
         if as_stored == stored:
             return str(named)
-    return stored
+    return str(_extra(model, name).get("read_as", {}).get(stored, stored))
 
 
 def crop_bounds_problem(x: int, y: int, w: int, h: int, *, frame_w: int, frame_h: int) -> str | None:
@@ -312,7 +373,7 @@ def describe_adjustments() -> AdjustmentsDescription:
             fields[field] = FieldDescription(
                 group=field_group(model, field, group),
                 key=prop["key"],
-                type=real["type"],
+                type=real.get("type") or "curve",
                 minimum=real.get("minimum"),
                 maximum=real.get("maximum"),
                 unit=prop.get("unit"),
@@ -379,6 +440,8 @@ def _describe(error: Any) -> tuple[str, str]:
     loc = [str(p) for p in error["loc"]]
     where = ".".join(loc)
     kind = error["type"]
+    if kind == "extra_forbidden" and len(loc) > 2:
+        return "unknown_key", f"{where} is not accepted here"
     if kind == "extra_forbidden":
         known = ", ".join(sorted(_known_names(loc[:-1])))
         return "unknown_key", f"{where} is not an adjustment (known here: {known})"
@@ -389,7 +452,12 @@ def _describe(error: Any) -> tuple[str, str]:
         model = TOOLS[loc[0]][1]
         allowed = ", ".join(get_args(_literal_of(model, loc[1])))
         return "out_of_range", f"{where}={error['input']!r} is not one of: {allowed}"
-    return "out_of_range", f"{where}: {error['msg']}"
+    if kind in ("greater_than_equal", "less_than_equal"):
+        ctx = error.get("ctx", {})
+        lo, hi = ctx.get("ge"), ctx.get("le")
+        bound = f">= {lo}" if lo is not None else f"<= {hi}"
+        return "out_of_range", f"{where}={error['input']!r} is outside the range ({bound})"
+    return "out_of_range", f"{where}: {error['msg'].removeprefix('Value error, ')}"
 
 
 def _literal_of(model: type[BaseModel], name: str) -> Any:

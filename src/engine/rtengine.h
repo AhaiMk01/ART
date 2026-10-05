@@ -37,6 +37,8 @@
 #include <glibmm.h>
 #include <lcms2.h>
 #include <string>
+#include <utility>
+#include <vector>
 
 /**
  * @file
@@ -678,6 +680,46 @@ public:
  * data set. You have to save it or you can access the pixel data directly.  */
 IImagefloat *processImage(ProcessingJob *job, int &errorCode,
                           ProgressListener *pl = nullptr, bool flush = false);
+
+/** A spot to sample: the centre (frame pixels, as for the crop) of a
+ * size x size square. */
+struct SpotSample {
+    int x = 0;
+    int y = 0;
+    float avg[3] = {0.f, 0.f, 0.f}; // channels raised to at least 1
+    float max[3] = {0.f, 0.f, 0.f};
+};
+
+/** The colour space the spots are measured in. */
+enum class SpotSpace { WORKING, INPUT /* camera */ };
+
+struct SpotRequest {
+    int size = 32;
+    SpotSpace space = SpotSpace::WORKING;
+    std::vector<std::pair<int, int>> pos;
+};
+
+enum class SpotStatus { OK, NOT_READY, OUT_OF_FRAME };
+
+struct SpotResult {
+    int width = 0; // frame size, after coarse transform
+    int height = 0;
+    std::vector<SpotSample> spots;
+    std::string error; // set when a spot is outside the frame
+};
+
+/** The "{\"width\",\"height\",\"spots\":[...]}" JSON body of a result (the
+ * ART-SPOTS line of art-cli, the sample_spots result of the live channel). */
+std::string spotResultJson(const SpotResult &res);
+
+/** Runs the raw preprocessing, demosaic and white balance setup of
+ * processImage() on the job, then samples the spots (what the film negative
+ * pickers read). No pixel pipeline is run and no image is produced. The job
+ * is not consumed: destroy it with ProcessingJob::destroy().
+ * @return false on failure (errorCode set for load errors, res.error for
+ * out-of-frame spots) */
+bool sampleSpots(ProcessingJob *job, const SpotRequest &req, SpotResult &res,
+                 int &errorCode);
 
 /** This class is used to control the batch processing. The class implementing
  * this interface will be called when the full processing of an image is ready

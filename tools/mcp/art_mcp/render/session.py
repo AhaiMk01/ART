@@ -36,7 +36,7 @@ from art_mcp.schema import Crop as CropAdjustment
 ErrorCode = Literal[
     "not_open", "not_found", "unknown_key", "render_failed", "timeout",
     "conflict", "exists", "out_of_range", "open_in_editor",
-    "metadata_unavailable", "metadata_failed", "invalid_tag",
+    "metadata_unavailable", "metadata_failed", "invalid_tag", "unsupported",
 ]
 
 ProfileSource = Literal["sidecar", "default"]

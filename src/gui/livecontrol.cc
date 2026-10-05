@@ -35,6 +35,7 @@
 #include <cstring>
 #include <deque>
 #include <iostream>
+#include <locale>
 #include <sstream>
 #include <vector>
 
@@ -142,6 +143,18 @@ public:
                 if (nodes_[i].type == JsonNode::STRING) {
                     out[nodes_[i].key] = nodes_[i].str;
                 }
+            }
+        }
+        return out;
+    }
+
+    // The elements of an array, or the members of an object.
+    std::vector<const JsonNode *> children(const JsonNode &n) const
+    {
+        std::vector<const JsonNode *> out;
+        if (n.type == JsonNode::ARRAY || n.type == JsonNode::OBJECT) {
+            for (size_t i = n.first; i != NONE; i = nodes_[i].next) {
+                out.push_back(&nodes_[i]);
             }
         }
         return out;
@@ -480,6 +493,14 @@ std::map<std::string, std::string> preview_args(const JsonDoc &doc,
     }
     return out;
 }
+
+// The `sample_spots` op's args. `spots` is an array of [x, y] pairs or of
+// {"x", "y"} objects (whole numbers); `size` a whole number (default 32),
+// `space` "working" (default) or "input". On failure `error` is the error
+// object.
+bool parse_sample_args(const JsonDoc &doc, const JsonNode *args,
+                       std::string &path, art::engine::SpotRequest &req,
+                       std::string &error);
 
 //-----------------------------------------------------------------------------
 
@@ -909,6 +930,16 @@ bool LiveControl::handle_line(Connection *c, const std::string &line)
             // Answered later, once the editor has finished processing.
             start_preview(c, id_json, preview_args(doc, args));
             return true;
+        } else if (op->str == "sample_spots") {
+            bool ok = false;
+            std::string path, result;
+            art::engine::SpotRequest req;
+            if (parse_sample_args(doc, args, path, req, result)) {
+                result = sample_spots(path, req, ok);
+            }
+            reply = "{\"id\":" + id_json + (ok ? ",\"ok\":true,\"result\":"
+                                                 : ",\"ok\":false,\"error\":") +
+                    result + "}";
         } else {
             bool ok = false;
             std::string result =
@@ -1061,6 +1092,130 @@ std::string path_key(const std::string &path)
 }
 
 } // namespace
+
+namespace {
+
+// A JSON number that is a whole number, as an int.
+bool whole_number(const JsonDoc &doc, const JsonNode *n, int &out)
+{
+    if (!n || n->type != JsonNode::NUMBER) {
+        return false;
+    }
+    const std::string text = doc.raw(*n);
+    if (text.size() > 9 ||
+        text.find_first_not_of("-0123456789") != std::string::npos) {
+        return false;
+    }
+    out = static_cast<int>(strtol(text.c_str(), nullptr, 10));
+    return true;
+}
+
+bool parse_sample_args(const JsonDoc &doc, const JsonNode *args,
+                       std::string &path, art::engine::SpotRequest &req,
+                       std::string &error)
+{
+    static const char *const SHAPE =
+        "\"spots\" must be 1 to 16 [x, y] pairs or {\"x\", \"y\"} objects "
+        "of whole numbers";
+    static const char *const SPACE =
+        "\"space\" must be \"working\" or \"input\"";
+    if (!args) {
+        error = error_object("bad_request", "sample_spots needs \"path\"");
+        return false;
+    }
+    const std::map<std::string, std::string> strs = doc.strings(*args);
+    std::map<std::string, std::string>::const_iterator it = strs.find("path");
+    if (it == strs.end() || it->second.empty()) {
+        error = error_object("bad_request", "sample_spots needs \"path\"");
+        return false;
+    }
+    path = it->second;
+    it = strs.find("space");
+    if (it != strs.end()) {
+        if (it->second != "working" && it->second != "input") {
+            error = error_object("bad_request", SPACE);
+            return false;
+        }
+        req.space = it->second == "working"
+                        ? art::engine::SpotSpace::WORKING
+                        : art::engine::SpotSpace::INPUT;
+    } else if (doc.get(*args, "space")) {
+        error = error_object("bad_request", SPACE);
+        return false;
+    }
+    if (const JsonNode *sz = doc.get(*args, "size")) {
+        if (!whole_number(doc, sz, req.size)) {
+            error = error_object("bad_request",
+                                 "\"size\" must be a whole number");
+            return false;
+        }
+        if (req.size < 2 || req.size > 256) {
+            error = error_object("out_of_range",
+                                 "\"size\" must be from 2 to 256");
+            return false;
+        }
+    }
+    const JsonNode *spots = doc.get(*args, "spots");
+    if (!spots || spots->type != JsonNode::ARRAY) {
+        error = error_object("bad_request", SHAPE);
+        return false;
+    }
+    const std::vector<const JsonNode *> items = doc.children(*spots);
+    if (items.empty() || items.size() > 16) {
+        error = error_object("bad_request", SHAPE);
+        return false;
+    }
+    for (const JsonNode *item : items) {
+        int x = 0, y = 0;
+        bool ok = false;
+        if (item->type == JsonNode::ARRAY) {
+            const std::vector<const JsonNode *> xy = doc.children(*item);
+            ok = xy.size() == 2 && whole_number(doc, xy[0], x) &&
+                 whole_number(doc, xy[1], y);
+        } else if (item->type == JsonNode::OBJECT) {
+            ok = doc.children(*item).size() == 2 &&
+                 whole_number(doc, doc.get(*item, "x"), x) &&
+                 whole_number(doc, doc.get(*item, "y"), y);
+        }
+        if (!ok) {
+            error = error_object("bad_request", SHAPE);
+            return false;
+        }
+        req.pos.push_back(std::make_pair(x, y));
+    }
+    return true;
+}
+
+} // namespace
+
+std::string
+LiveControl::sample_spots(const std::string &path,
+                          const art::engine::SpotRequest &req, bool &ok)
+{
+    ok = false;
+    EditorPanel *ep = find_editor(path);
+    if (!ep) {
+        return error_object("not_open", path + " is not open in ART");
+    }
+    if (ep->getIsProcessing()) {
+        return error_object("busy", path + " is still being processed");
+    }
+    art::engine::SpotResult res;
+    switch (ep->sampleSpots(req, res)) {
+    case art::engine::SpotStatus::OK:
+        break;
+    case art::engine::SpotStatus::OUT_OF_FRAME: {
+        std::ostringstream m;
+        m << "a spot is outside the " << res.width << "x" << res.height
+          << " frame";
+        return error_object("out_of_range", m.str());
+    }
+    default:
+        return error_object("busy", path + " has no processed image yet");
+    }
+    ok = true;
+    return art::engine::spotResultJson(res);
+}
 
 EditorPanel *LiveControl::find_editor(const std::string &path)
 {
@@ -1262,7 +1417,7 @@ void LiveControl::close(Connection *c)
 }
 
 //-----------------------------------------------------------------------------
-// preview {path, output, max_size}: the editor's preview image as a JPEG
+// preview {path, output, max_size}: the editor's preview image as a JPEG or PNG
 //-----------------------------------------------------------------------------
 
 namespace {
@@ -1298,6 +1453,7 @@ struct LiveControl::PendingPreview {
     std::string id_json;
     std::string path;
     std::string output;
+    std::string format; // Pixbuf format name: "jpeg" or "png"
     int max_size;
     gint64 deadline; // g_get_monotonic_time()
     guint timer;
@@ -1305,16 +1461,22 @@ struct LiveControl::PendingPreview {
 
 namespace {
 
-bool has_jpeg_name(const std::string &path)
+// The Pixbuf format name for an output file name; "" if not .jpg/.jpeg/.png.
+std::string image_format(const std::string &path)
 {
+    static const struct {
+        const char *ext;
+        const char *format;
+    } FORMATS[] = {{".jpg", "jpeg"}, {".jpeg", "jpeg"}, {".png", "png"}};
     const std::string lower = Glib::ustring(path).lowercase();
-    for (const char *ext : {".jpg", ".jpeg"}) {
-        const size_t n = strlen(ext);
-        if (lower.size() > n && lower.compare(lower.size() - n, n, ext) == 0) {
-            return true;
+    for (const auto &f : FORMATS) {
+        const size_t n = strlen(f.ext);
+        if (lower.size() > n &&
+            lower.compare(lower.size() - n, n, f.ext) == 0) {
+            return f.format;
         }
     }
-    return false;
+    return "";
 }
 
 } // namespace
@@ -1327,6 +1489,7 @@ void LiveControl::start_preview(Connection *c, const std::string &id_json,
     Args::const_iterator size = args.find("max_size");
     long max_size = size == args.end() ? DEFAULT_PREVIEW_SIZE
                                        : preview_size(size->second);
+    std::string format;
     size_t waiting = 0;
     for (auto p : previews_) {
         waiting += p->c == c;
@@ -1339,9 +1502,9 @@ void LiveControl::start_preview(Connection *c, const std::string &id_json,
                !Glib::path_is_absolute(output->second)) {
         code = "bad_request";
         message = "preview needs an absolute \"output\" path";
-    } else if (!has_jpeg_name(output->second)) {
+    } else if ((format = image_format(output->second)).empty()) {
         code = "bad_request";
-        message = "preview \"output\" must end in .jpg or .jpeg";
+        message = "preview \"output\" must end in .jpg, .jpeg or .png";
     } else if (Glib::file_test(output->second, Glib::FILE_TEST_EXISTS)) {
         // Never overwrite: the client names a new file in its own folder.
         code = "exists";
@@ -1370,6 +1533,7 @@ void LiveControl::start_preview(Connection *c, const std::string &id_json,
     p->id_json = id_json;
     p->path = path->second;
     p->output = output->second;
+    p->format = format;
     p->max_size = static_cast<int>(max_size);
     p->deadline =
         g_get_monotonic_time() + PREVIEW_WAIT_SECONDS * G_USEC_PER_SEC;
@@ -1396,10 +1560,14 @@ bool LiveControl::poll_preview(PendingPreview *p)
         Glib::RefPtr<Gdk::Pixbuf> img = ep->getPreviewImage(p->max_size);
         if (img) {
             try {
-                img->save(p->output, "jpeg",
-                          std::vector<Glib::ustring>(1, "quality"),
-                          std::vector<Glib::ustring>(
-                              1, std::to_string(PREVIEW_JPEG_QUALITY)));
+                if (p->format == "png") {
+                    img->save(p->output, "png");
+                } else {
+                    img->save(p->output, p->format,
+                              std::vector<Glib::ustring>(1, "quality"),
+                              std::vector<Glib::ustring>(
+                                  1, std::to_string(PREVIEW_JPEG_QUALITY)));
+                }
                 std::ostringstream out;
                 out << "{\"id\":" << p->id_json
                     << ",\"ok\":true,\"result\":{\"path\":"

@@ -37,6 +37,10 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <utility>
+#include <vector>
+
+#include "../engine/rtengine.h"
 
 #include <gio/gio.h>
 
@@ -96,6 +100,10 @@ private:
     std::string open(const Args &args, bool &ok);
     // Saves an open image's profile as the editor does (sidecar and cache).
     std::string save_sidecar(const Args &args, bool &ok);
+    // Spot values of the open image (spec 4.1); the result object, or the
+    // error object when !ok.
+    std::string sample_spots(const std::string &path,
+                             const art::engine::SpotRequest &req, bool &ok);
     // The editor showing the image `op`'s "path" arg names; nullptr with
     // `error` set (an error object) otherwise.
     EditorPanel *editor_for(const std::string &op, const Args &args,

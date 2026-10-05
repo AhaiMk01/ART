@@ -10,7 +10,7 @@ Design: [`docs/specs/mcp-servers.md`](../../docs/specs/mcp-servers.md).
   channel. Start ART with `--live-control` (it then writes
   `live-control.json` with a port and a per-run token to its config folder,
   and removes it on exit). Tools so far: `status()` (ART's version and the
-  images open in the editor, with sizes); without a control-enabled ART it
+  images open in the editor, with sizes), `sample_spots` and `image_stats` (as on the Render server, from the open editor: `sample_spots` samples the profile it holds, unsaved edits included; `image_stats` analyses its preview saved as PNG); without a control-enabled ART it
   fails with `art_not_running`.
 
 Requires Python 3.11+, [uv](https://docs.astral.sh/uv/) and an ART install
@@ -48,16 +48,36 @@ Claude Desktop (`claude_desktop_config.json`):
 | `inspect_image(path, tags?)` | Metadata of an opened image from the `exiftool` beside `ART-cli` (`-j -n`): make, model, lens, ISO, `shutter_seconds`, `aperture`, `focal_length_mm`, `capture_date` (local, ISO 8601), `width`, `height`, `orientation` (EXIF 1-8), each null when absent; `tags` adds named exiftool tags (e.g. `Software`) that the file has, under `tags` |
 | `render_preview(path, max_size=1024, region?, inline?)` | Renders the working profile to a JPEG and returns its path; see [Previews](#previews) |
 | `get_profile(path)` | The working profile: curated tools typed under `adjustments`, every other value as a string under `raw` (each value once) |
-| `edit_profile(path, adjustments?, raw_edits?)` | Changes the working profile: typed, range-checked `adjustments` (`exposure`, `white_balance`, `crop`, `rotation`, `local_contrast`, `sharpening`, `denoise`, `vignetting`, `lens_profile`; `crop` is checked against the image's size) and/or `[Group] Key` raw edits; all or nothing. Lists `implied` changes (a disabled tool gets enabled; White Balance switches to `CustomTemp`) |
+| `edit_profile(path, adjustments?, raw_edits?)` | Changes the working profile: typed, range-checked `adjustments` (`exposure`, `white_balance`, `crop`, `rotation`, `local_contrast`, `sharpening`, `denoise`, `vignetting`, `lens_profile`, `tone_curve`; `crop` is checked against the image's size) and/or `[Group] Key` raw edits; all or nothing. Lists `implied` changes (a disabled tool gets enabled; White Balance switches to `CustomTemp`; `histogram_matching` turned off when a curve is set) |
 | `describe_adjustments()` | The curated adjustments: fields, ranges, units, the `[Group] Key` each sets, and the `PPVERSION` the schema targets |
 | `reset_profile(path, to)` | Reloads the working profile from the `sidecar` or ART's `default` profile |
 | `export_image(path, output, format, quality?, bit_depth?, write_profile=false, overwrite=false)` | Renders the working profile at full size as `jpeg` (quality 1..100, 8 bit), `png` (8/16 bit) or `tiff` (8/16/16f/32 bit) to `output` (its folder must exist); an existing `output` is refused unless `overwrite`; `write_profile` also saves `<output>.arp`, otherwise none is written |
 | `save_sidecar(path, on_conflict?)` | The only tool that writes the sidecar (named per ART's strip-extension option): atomic, previous one kept as `<sidecar>.bak`. If the sidecar changed on disk since it was loaded, asks the user (merge / overwrite / cancel) when the client supports elicitation; else fails with `conflict` listing the changed keys, and the agent calls again with `on_conflict`. `merge` applies only the agent's changed keys onto the current sidecar. Afterwards the saved file is the new baseline |
 | `save_partial_profile(path, dest, overwrite?)` | Writes only the keys the agent changed since load or the last save to `dest`; `exists` error if `dest` exists unless `overwrite`; writes nothing if nothing changed |
+| `sample_spots(path, spots, size=32, space="working")` | What ART's film negative pickers read: for 1 to 16 `{x, y}` frame pixels (the coordinates of `[Crop]`), `avg` and `max` `[r, g, b]` of the `size` x `size` square (2 to 256), linear 0..65535, white-balanced, before the film negative tool; `space` `working` or `input`. Out-of-frame spots are `out_of_range`; the description carries the film negative maths. Needs an ART build with spot sampling (`art-cli -x`; a release `art-cli` gives `unsupported`: point `--art-dir`/`ART_DIR` at the fork) |
+| `image_stats(path, max_size=1024, histogram=false)` | Renders like a whole-image preview (8-bit PNG, crop applied) and returns per channel `r`, `g`, `b`, `lum` (0.2126 R + 0.7152 G + 0.0722 B, rounded to the nearest 8-bit value): `mean`, `clipped_high`/`clipped_low` (fraction at 255/0), `percentiles` (0.1, 1, 5, 50, 95, 99, 99.9 %, nearest rank on the 256-bin histogram), `histogram` (256 counts, only when asked), and the rendered `width`/`height` |
+
+`tone_curve` takes `mode`, `mode2` (omitted = same as `mode`; `get_profile`
+always reports the effective one), `histogram_matching`, `contrast` (-100..100: ART's
+analytic contrast curve, a power curve pivoting on middle grey 0.18 or Log
+Encoding's target grey, never overshooting; use it for an S-curve instead of
+curve points), and `curve1`/`curve2` as `{"type": "spline"|"catmull_rom"|"nurbs", "points": [[x, y], ...]}` (2 to 32
+points in 0..1, x strictly increasing) or `{"type": "linear"}`. x and y are sRGB-gamma-encoded
+0..1, roughly `image_stats` 8-bit values / 255. Curves read back as
+`{"type", "points", "drawn"}`; parametric or unparseable curves stay under `raw`.
+`drawn` is the line ART's curve editor draws through the points (a port of ART's
+own `DiagonalCurve`): `[x, y]` at x = 0, 0.125, ..., 1, y to 4 decimals (`null`
+for a NURBS with 3+ points, which isn't computed; omitted for `linear`). It is
+read-only: sending it back is allowed and ignored, so `get_profile` output
+round-trips. A spline can wiggle or overshoot, so `edit_profile` warns for a
+curve it set that clips to 0 or goes above 1 (ART clamps only below 0) or
+reverses, with the x range (e.g. `curve2 reverses for x 0.86-0.95`). ART
+resamples the curve before applying it, so `drawn` is close, not bit-exact, to
+what the image gets.
 
 Errors come back as tool errors whose text starts with a code: `not_open`,
 `not_found`, `unknown_key`, `render_failed`, `timeout`, `conflict`, `exists`,
-`out_of_range` (adjustment value outside its range; nothing is clamped), and
+`out_of_range` (adjustment value outside its range, or a spot outside the frame; nothing is clamped), `unsupported` (the ART build lacks spot sampling), and
 for metadata `metadata_unavailable` (no exiftool beside
 ART-cli), `metadata_failed`, `invalid_tag`.
 
@@ -103,7 +123,7 @@ Layout of the Render server (`art_mcp/render/`): `server.py` only wires
 things up; `session.py` holds `RenderSession` (working profiles, per-image
 locks, the frame-size cache, running art-cli); each feature module
 (`profile_tools.py`, `preview_tools.py`, `export_tools.py`, `save_tools.py`,
-`metadata_tools.py`) has a `register(server, session)` that adds its tools. A
+`metadata_tools.py`, `sampling_tools.py`) has a `register(server, session)` that adds its tools. A
 tool reaches a working profile only through `with session.image(path) as wp:`,
 which holds that image's lock.
 

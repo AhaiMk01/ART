@@ -355,6 +355,11 @@ public:
     bool getFilmNegativeSpot(int x, int y, const int spotSize,
                              FilmNegativeParams::RGB &refInput,
                              FilmNegativeParams::RGB &refOutput);
+
+    /** Samples spots (frame pixels) like the film negative pickers do, on
+     * the current state. NOT_READY if no image is processed yet; for
+     * OUT_OF_FRAME res.width/height are set. */
+    SpotStatus sampleSpots(const SpotRequest &req, SpotResult &res);
 };
 
 }} // namespace art::engine

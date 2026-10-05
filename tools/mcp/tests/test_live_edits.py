@@ -124,7 +124,7 @@ async def test_raw_edit_groups_are_named_in_the_label(art, editor, image):
         })  # fmt: skip
 
     assert not result.is_error, result.content
-    assert editor.applied[0]["label"] == "Agent: Exposure, ToneCurve"
+    assert editor.applied[0]["label"] == "Agent: Exposure, Tone Curve"
 
 
 @pytest.mark.parametrize(
@@ -268,3 +268,22 @@ async def test_save_sidecar_of_an_image_not_open_is_not_open(art, editor, tmp_pa
         result = await client.call_tool("save_sidecar", {"path": str(tmp_path / "x.ARW")})
 
     assert result.is_error and "not_open:" in text_of(result)
+
+
+async def test_tone_curve_edit_sends_the_curve_keys(art, editor, image):
+    async with Client(live(art)) as client:
+        result = await client.call_tool("edit_profile", {
+            "path": image,
+            "adjustments": {"tone_curve": {
+                "curve1": {"type": "spline", "points": [[0, 0], [0.25, 0.2], [1, 1]]},
+                "mode": "Standard",
+            }},
+        })  # fmt: skip
+
+    assert not result.is_error, result.content
+    sent = keyfile.loads(editor.applied[0]["profile"])
+    assert sent == {
+        "ToneCurve": {"Curve": "1;0;0;0.25;0.2;1;1;", "CurveMode": "Standard", "Enabled": "true"}
+    }
+    assert {"group": "ToneCurve", "key": "Enabled", "value": "true"} in result.structured_content["implied"]
+    assert editor.applied[0]["label"] == "Agent: Tone Curve"

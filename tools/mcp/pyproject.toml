@@ -3,7 +3,7 @@ name = "art-mcp"
 version = "0.1.0"
 description = "MCP servers for the ART raw editor (Render and Live)"
 requires-python = ">=3.11"
-dependencies = ["mcp>=2,<3"]
+dependencies = ["mcp>=2,<3", "pillow>=12.3.0"]
 
 [project.scripts]
 art-mcp-render = "art_mcp.render.server:main"
@@ -12,7 +12,6 @@ art-mcp-live = "art_mcp.live.server:main"
 [dependency-groups]
 dev = [
     "mypy>=2.4.0",
-    "pillow>=12.3.0",
     "pytest>=8",
 ]
 

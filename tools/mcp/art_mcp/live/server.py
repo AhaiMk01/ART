@@ -23,6 +23,19 @@ from art_mcp.live.channel import ArtNotRunning, ChannelError, ChannelTimeout, Co
 from art_mcp.metadata import Exiftool, Metadata, MetadataProblem, read_metadata
 from art_mcp.preview import PreviewFolder, default_root, sweep_stale
 from art_mcp.render.preview_tools import MAX_PREVIEW_SIZE, PREVIEW_SIZE, Preview
+from art_mcp.sampling import (
+    DEFAULT_SIZE,
+    IMAGE_STATS_DOC,
+    SAMPLE_SPOTS_DOC,
+    UNSUPPORTED_SPOTS,
+    ImageStats,
+    Spot,
+    SpotSamples,
+    image_stats as compute_stats,
+    check_spots,
+    check_stats_size,
+    parse_spots_reply,
+)
 from art_mcp.profile import Conflict as EditConflict
 from art_mcp.profile import (
     ProfileView,
@@ -44,6 +57,7 @@ from art_mcp.schema import (
 from art_mcp.schema import describe_adjustments as schema_description
 
 OPEN_POLL_SECONDS = 0.25
+BUSY_RETRY_SECONDS = 0.25
 
 
 def tool_error(code: str, message: str) -> ToolError:
@@ -148,6 +162,14 @@ def same_image(a: str, b: str) -> bool:
     return os.path.normcase(art_path(a)) == os.path.normcase(art_path(b))
 
 
+def sample_spots_args(
+    path: str, spots: list[tuple[int, int]], size: int, space: str
+) -> dict[str, Any]:
+    """The `sample_spots` op's arguments; the one place that encodes them
+    (`spots` is a list of [x, y] pairs)."""
+    return {"path": art_path(path), "spots": [[x, y] for x, y in spots], "size": size, "space": space}
+
+
 def build_server(
     channel: ControlChannel,
     *,
@@ -175,15 +197,20 @@ def build_server(
         lifespan=lifespan,
     )
 
+    def channel_error(e: Exception) -> ToolError:
+        if isinstance(e, ArtNotRunning):
+            return tool_error("art_not_running", str(e))
+        if isinstance(e, ChannelTimeout):
+            return tool_error("timeout", str(e))
+        if isinstance(e, ChannelError):
+            return tool_error(e.code, e.message)
+        return ToolError(str(e))
+
     def call(op: str, args: dict[str, Any] | None = None, timeout: float | None = None) -> object:
         try:
             return channel.request(op, args, timeout=timeout)
-        except ArtNotRunning as e:
-            raise tool_error("art_not_running", str(e)) from e
-        except ChannelTimeout as e:
-            raise tool_error("timeout", str(e)) from e
-        except ChannelError as e:
-            raise tool_error(e.code, e.message) from e
+        except (ArtNotRunning, ChannelTimeout, ChannelError) as e:
+            raise channel_error(e) from e
 
     @server.tool()
     def status() -> Status:
@@ -402,6 +429,58 @@ def build_server(
         if inline if inline is not None else inline_previews:
             content.append(ImageContent(data=base64.b64encode(jpeg).decode("ascii"), mime_type="image/jpeg"))
         return CallToolResult(content=content, structured_content=preview.model_dump(mode="json"))
+
+    @server.tool(description=SAMPLE_SPOTS_DOC)
+    def sample_spots(
+        path: str, spots: list[Spot], size: int = DEFAULT_SIZE, space: str = "working"
+    ) -> SpotSamples:
+        points = [(s.x, s.y) for s in spots]
+        check_spots(points, size, space, None, tool_error)
+        check_spots(points, size, space, image_size(path), tool_error)
+        # ART answers busy while the editor is processing instead of waiting:
+        # retry until it settles, as long as a preview would wait.
+        deadline = time.monotonic() + ART_PREVIEW_WAIT
+        while True:
+            try:
+                reply = channel.request("sample_spots", sample_spots_args(path, points, size, space))
+                break
+            except ChannelError as e:
+                if e.code == "unknown_op":
+                    raise tool_error("unsupported", UNSUPPORTED_SPOTS) from e
+                if e.code != "busy" or time.monotonic() >= deadline:
+                    raise channel_error(e) from e
+            except (ArtNotRunning, ChannelTimeout) as e:
+                raise channel_error(e) from e
+            time.sleep(BUSY_RETRY_SECONDS)
+        try:
+            return parse_spots_reply(reply, size, space)
+        except ValueError as e:
+            raise tool_error("bad_reply", f"unexpected sample_spots reply from ART: {reply!r:.300}") from e
+
+    @server.tool(
+        description=(
+            "Statistics of the image open in ART's editor as the editor shows it now "
+            "(its preview, saved as an 8-bit PNG; the whole frame, in the monitor colour "
+            "space, never enlarged beyond the editor's preview). "
+            + IMAGE_STATS_DOC
+            + " Waits for ART's processing like render_preview. Fails with not_open if "
+            "ART doesn't have the image open."
+        )
+    )
+    def image_stats(
+        path: str, max_size: int = PREVIEW_SIZE, histogram: bool = False
+    ) -> ImageStats:
+        check_stats_size(max_size, MAX_PREVIEW_SIZE, tool_error)
+        output = preview_folder.new_file("stats", ".png")
+        try:
+            args = {"path": art_path(path), "output": str(output), "max_size": max_size}
+            call("preview", args, timeout=channel.timeout + ART_PREVIEW_WAIT)
+            try:
+                return compute_stats(output, histogram)
+            except ValueError as e:
+                raise tool_error("bad_reply", f"ART's preview is not a readable image: {e}") from e
+        finally:
+            output.unlink(missing_ok=True)
 
     return server
 

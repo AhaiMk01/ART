@@ -1380,6 +1380,17 @@ bool EditorPanel::getImageSize(int &w, int &h)
     return w > 0 && h > 0;
 }
 
+art::engine::SpotStatus
+EditorPanel::sampleSpots(const art::engine::SpotRequest &req,
+                         art::engine::SpotResult &res)
+{
+    if (!ipc) {
+        return art::engine::SpotStatus::NOT_READY;
+    }
+    return static_cast<art::engine::ImProcCoordinator *>(ipc.get())
+        ->sampleSpots(req, res);
+}
+
 // TODO!!!
 void EditorPanel::procParamsChanged(
     const art::engine::procparams::ProcParams *params,

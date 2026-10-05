@@ -13,8 +13,19 @@
   (6000x4000, ``FAKE_SIZE``) clamped to the last ``[Crop]`` layer's W/H, as
   ART clamps a crop to the frame; this is what a frame probe reads.
 - A missing ``-c`` input exits 2 like the real one.
+- ``-x size,space,x1,y1,...`` (spot sampling, no output file) prints one
+  ``ART-SPOTS`` line: spot i has avg ``[x, y, size]`` and max
+  ``[x + 1, y + 1, size + 1]``, on the fake 6000x4000 frame. With
+  ``FAKE_SPOTS=release`` it acts like a release art-cli (help, exit -1);
+  with ``FAKE_SPOTS=silent`` it exits 0 printing nothing.
+- With ``FAKE_PNG_SOURCE`` set, an 8-bit PNG output (``-n -b8``) is a copy of
+  that file, so a test chooses the pixels ``image_stats`` sees.
+- With ``FAKE_ARGS_LOG`` set, the command line is appended there as a JSON line.
 """
 
+import json
+import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -51,6 +62,11 @@ if args == ["-v"]:
     sys.exit(0)
 
 
+if os.environ.get("FAKE_ARGS_LOG"):
+    with open(os.environ["FAKE_ARGS_LOG"], "a") as log:
+        log.write(json.dumps(args) + "\n")
+
+
 def value(flag):
     return args[args.index(flag) + 1] if flag in args else None
 
@@ -59,6 +75,25 @@ image = Path(args[args.index("-c") + 1])
 if not image.exists():
     print(f'"{image}" doesn\'t exist!', file=sys.stderr)
     sys.exit(2)
+
+if "-x" in args:
+    mode = os.environ.get("FAKE_SPOTS")
+    if mode == "release":
+        print("ART, version 9.9.9, command line.\nSymbols:\nUsage:\n  ART-cli -c <dir>|<files>", file=sys.stderr)
+        sys.exit(-1)
+    if mode != "silent":
+        size, _space, *coords = args[args.index("-x") + 1].split(",")
+        spots = [
+            {
+                "x": int(x), "y": int(y),
+                "avg": [int(x), int(y), int(size)],
+                "max": [int(x) + 1, int(y) + 1, int(size) + 1],
+            }
+            for x, y in zip(coords[::2], coords[1::2])
+        ]
+        print("some banner line")
+        print("ART-SPOTS " + json.dumps({"width": 6000, "height": 4000, "spots": spots}))
+    sys.exit(0)
 
 layers = [Path(args[i + 1]).read_text() for i, a in enumerate(args) if a == "-p"]
 output = Path(value("-o") or value("-O"))
@@ -84,7 +119,9 @@ def png_header():
     )
 
 
-if output.suffix == ".png":
+if output.suffix == ".png" and "-b8" in args and os.environ.get("FAKE_PNG_SOURCE"):
+    shutil.copyfile(os.environ["FAKE_PNG_SOURCE"], output)
+elif output.suffix == ".png":
     output.write_bytes(png_header())
 else:
     magic = b"II*\x00" if "-t" in args else b"\x89PNG\r\n\x1a\n" if "-n" in args else b"\xff\xd8"

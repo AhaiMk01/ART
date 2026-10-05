@@ -52,6 +52,25 @@ def preview_args(
     ]  # fmt: skip
 
 
+def stats_args(
+    image: Path, output: Path, profile: Path, resize: Path, *, fast: bool
+) -> list[str]:
+    """An 8-bit PNG render of ``profile`` with the ``resize`` layer on top, for
+    ``image_stats``: a whole-image preview, so ``fast`` adds ``-f``."""
+    return [
+        "-o", str(output), *(["-f"] if fast else []), "-Y", "-a",
+        "-p", str(profile), "-p", str(resize), "-n", "-b8", "-c", str(image),
+    ]  # fmt: skip
+
+
+def spots_args(
+    image: Path, profile: Path, size: int, space: str, spots: list[tuple[int, int]]
+) -> list[str]:
+    """Sample spots of ``profile`` (fork-only ``-x``): no output file."""
+    spec = ",".join([str(size), space, *(str(v) for spot in spots for v in spot)])
+    return ["-x", spec, "-a", "-p", str(profile), "-c", str(image)]
+
+
 def export_args(
     image: Path,
     output: Path,
@@ -105,6 +124,16 @@ EXIT_MEANINGS = {
     1: "stray argument on the command line",
     2: "no input, or the input's extension was skipped",
 }
+
+
+HELP_MARKER = "Usage:"
+"""Printed by art-cli's help (ART_print_help in src/gui/printhelp.h)."""
+
+
+def looks_like_help(output: str) -> bool:
+    """Whether art-cli's output is its usage text (it printed help and exited
+    -1 because it doesn't know an option)."""
+    return HELP_MARKER in output
 
 
 def exit_code(returncode: int) -> int:
@@ -202,6 +231,11 @@ def png_size(path: Path) -> tuple[int, int]:
 class ArtCliError(Exception):
     """art-cli failed or produced no output."""
 
+    def __init__(self, message: str, returncode: int | None = None) -> None:
+        super().__init__(message)
+        self.returncode = returncode
+        """art-cli's exit code (see ``exit_code``) when it ran and failed."""
+
 
 class ArtCliTimeout(ArtCliError):
     """art-cli ran past its timeout and was killed."""
@@ -250,7 +284,7 @@ class ArtCli:
             raise ArtCliError(f"cannot start art-cli: {e}") from e
         output = done.stdout + done.stderr
         if done.returncode != 0:
-            raise ArtCliError(describe_exit(done.returncode, output))
+            raise ArtCliError(describe_exit(done.returncode, output), exit_code(done.returncode))
         return output
 
     def version(self) -> str:

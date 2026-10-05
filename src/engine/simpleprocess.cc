@@ -53,6 +53,14 @@ public:
     {
     }
 
+    // sample-only mode: run the init stage up to the white balance and
+    // sample, instead of producing an image
+    void setSampling(const SpotRequest *req, SpotResult *res)
+    {
+        sample_req = req;
+        sample_res = res;
+    }
+
     Imagefloat *operator()()
     {
         if (!job->fast) {
@@ -137,6 +145,12 @@ private:
             imgsrc->setBorder(params.raw.xtranssensor.border);
         }
         imgsrc->getFullSize(fw, fh, tr);
+
+        if (sample_req &&
+            checkSpots(fw, fh, *sample_req, *sample_res) !=
+                SpotStatus::OK) {
+            return false;
+        }
 
         // check the crop params
         if (!params.crop.hasGeometry()) {
@@ -247,6 +261,12 @@ private:
             } else {
                 currWB.useDefaults(params.wb.equal);
             }
+        }
+
+        if (sample_req) {
+            sampleSpots(ipf, imgsrc, currWB, params, fw, fh, *sample_req,
+                        *sample_res);
+            return false;
         }
 
         if (pl) {
@@ -639,6 +659,9 @@ private:
 
     double pipeline_scale;
     bool stop;
+
+    const SpotRequest *sample_req = nullptr;
+    SpotResult *sample_res = nullptr;
 };
 
 } // namespace
@@ -656,6 +679,17 @@ IImagefloat *processImage(ProcessingJob *pjob, int &errorCode,
      * rather than a single blended one.  No-op unless ART_PROFILE is set. */
     PipelineProfile::report("OUTPUT pipeline");
     return res;
+}
+
+bool sampleSpots(ProcessingJob *pjob, const SpotRequest &req, SpotResult &res,
+                 int &errorCode)
+{
+    res = SpotResult();
+    ImageProcessor proc(pjob, errorCode, nullptr, false);
+    proc.setSampling(&req, &res);
+    proc();
+    return errorCode == 0 && res.error.empty() &&
+           res.spots.size() == req.pos.size();
 }
 
 void batchProcessingThread(ProcessingJob *job, BatchProcessingListener *bpl)

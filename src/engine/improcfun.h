@@ -34,6 +34,7 @@
 #include "masks.h"
 #include "pipettebuffer.h"
 #include "procparams.h"
+#include "rtengine.h"
 
 namespace art { namespace engine {
 
@@ -48,6 +49,8 @@ class DenoisePools;
 } // namespace gpu
 
 class ImProcFunctions;
+class ImageSource;
+class ColorTemp;
 
 struct ImProcData {
     const ProcParams *params;
@@ -310,5 +313,25 @@ private:
     template <class Ret, class Method>
     Ret apply(const char *name, Method op, Imagefloat *img, bool can_skip_sync);
 };
+
+/** Sets res.width/height to the frame size fw x fh; OUT_OF_FRAME with
+ * res.error set if a spot of req is outside it. */
+SpotStatus checkSpots(int fw, int fh, const SpotRequest &req, SpotResult &res);
+
+/**
+ * Spot sampling (implemented in filmnegativeproc.cc, next to the film
+ * negative pickers it mirrors). Fills res.width/height with the frame size
+ * fw x fh; if a spot of req is outside it, returns OUT_OF_FRAME with
+ * res.error set. Otherwise res.spots gets, for each spot, the average and
+ * maximum per channel of the size x size square centred on that frame pixel:
+ * the coordinates are mapped through the coarse transform / rotation like the
+ * GUI does, the pixels are the demosaiced ImageSource::getImage output, and
+ * for SpotSpace::WORKING they are converted to the working space. avg
+ * channels are raised to at least 1.
+ */
+SpotStatus sampleSpots(ImProcFunctions &ipf, ImageSource *imgsrc,
+                       const ColorTemp &currWB, const ProcParams &params,
+                       int fw, int fh, const SpotRequest &req,
+                       SpotResult &res);
 
 }} // namespace art::engine

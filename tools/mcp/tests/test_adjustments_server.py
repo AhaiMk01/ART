@@ -257,3 +257,85 @@ async def test_lens_options_while_lens_profile_is_off_carry_a_warning(server, im
 
     assert not result.is_error, result.content
     assert any("lc_mode" in w for w in result.structured_content["warnings"])
+
+
+TONE_SIDECAR = SIDECAR + """
+[ToneCurve]
+Enabled=false
+CurveMode=Neutral
+HistogramMatching=true
+Curve=0;
+Curve2=0;
+"""
+
+
+async def test_tone_curve_edit_writes_art_keys_and_lists_what_it_implied(server, image):
+    async with Client(server) as client:
+        await opened(client, image, TONE_SIDECAR)
+        edit = await client.call_tool(
+            "edit_profile",
+            {
+                "path": str(image),
+                "adjustments": {
+                    "tone_curve": {
+                        "mode": "Luminance",
+                        "curve1": {"type": "spline", "points": [[0, 0], [0.5, 0.6], [1, 1]]},
+                        "contrast": 10,
+                        "curve2": {"type": "catmull_rom", "points": [[0, 0], [0.5, 0.4], [1, 1]]},
+                    }
+                },
+            },
+        )
+        profile = await client.call_tool("get_profile", {"path": str(image)})
+
+    assert not edit.is_error, edit.content
+    changed = {(c["key"], c["value"]) for c in edit.structured_content["changed"]}
+    assert changed == {
+        ("CurveMode", "Luminance"), ("Curve", "1;0;0;0.5;0.6;1;1;"),
+        ("Curve2", "4;0;0;0.5;0.4;1;1;"), ("Contrast", "10"), ("Enabled", "true"), ("HistogramMatching", "false"),
+    }  # fmt: skip
+    assert {(c["key"], c["value"]) for c in edit.structured_content["implied"]} == {
+        ("Enabled", "true"), ("HistogramMatching", "false"),
+    }  # fmt: skip
+    tone = profile.structured_content["adjustments"]["tone_curve"]
+    drawn = tone["curve1"].pop("drawn")
+    assert tone["curve1"] == {"type": "spline", "points": [[0, 0], [0.5, 0.6], [1, 1]]}
+    assert len(drawn) == 9 and drawn[0] == [0, 0] and drawn[4] == [0.5, 0.6]
+    assert tone["curve2"]["type"] == "catmull_rom" and tone["mode2"] == "Luminance"
+    assert "ToneCurve" not in profile.structured_content["raw"]
+
+
+async def test_a_bad_tone_curve_is_out_of_range_and_changes_nothing(server, image):
+    async with Client(server) as client:
+        await opened(client, image, TONE_SIDECAR)
+        bad = await client.call_tool(
+            "edit_profile",
+            {
+                "path": str(image),
+                "adjustments": {"tone_curve": {"curve1": {"type": "spline", "points": [[0, 0], [2, 1]]}}},
+            },
+        )
+        profile = await client.call_tool("get_profile", {"path": str(image)})
+
+    assert bad.is_error and "out_of_range" in bad.content[0].text
+    assert profile.structured_content["adjustments"]["tone_curve"]["curve1"] == {"type": "linear"}
+
+
+async def test_a_parametric_tone_curve_stays_raw_in_get_profile(server, image):
+    async with Client(server) as client:
+        await opened(client, image, TONE_SIDECAR.replace("Curve=0;", "Curve=2;0;0;1;0.5;"))
+        profile = await client.call_tool("get_profile", {"path": str(image)})
+
+    assert profile.structured_content["raw"]["ToneCurve"] == {"Curve": "2;0;0;1;0.5;"}
+    assert "curve1" not in profile.structured_content["adjustments"]["tone_curve"]
+
+
+async def test_describe_adjustments_and_input_schema_carry_tone_curve(server):
+    async with Client(server) as client:
+        described = await client.call_tool("describe_adjustments", {})
+        tools = await client.list_tools()
+
+    tone = described.structured_content["tools"]["tone_curve"]
+    assert "sRGB" in tone["description"] and tone["fields"]["curve1"]["key"] == "Curve"
+    schema = next(t for t in tools.tools if t.name == "edit_profile").input_schema
+    assert "catmull_rom" in str(schema) and "contrast" in str(schema)
