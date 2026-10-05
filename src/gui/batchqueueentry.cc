@@ -175,6 +175,10 @@ Glib::ustring BatchQueueEntry::getToolTip(int x, int y) const
     // get the parent class' tooltip first
     Glib::ustring tooltip = ThumbBrowserEntryBase::getToolTip(x, y);
 
+    if (!error.empty()) {
+        tooltip += "\n\n" + error;
+    }
+
     // add the saving param options
     if (!outFileName.empty()) {
         tooltip += Glib::ustring::compose(

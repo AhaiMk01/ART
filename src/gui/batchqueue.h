@@ -71,6 +71,20 @@ public:
 
     void startProcessing();
 
+    // What an entry is doing, for the Live control channel.
+    struct EntryStatus {
+        enum State { QUEUED, PROCESSING, FAILED };
+        Glib::ustring path;
+        // The output name asked for (no extension), empty for the queue's own
+        // naming.
+        Glib::ustring output;
+        double progress;
+        State state;
+        Glib::ustring error;
+    };
+    // The entries in queue order; `running` is whether one is processing.
+    std::vector<EntryStatus> entryStatuses(bool &running);
+
     // Show or hide the reorder/cancel buttons on every queued thumbnail.
     // The buttons are hidden while the queue is running and shown again when
     // it is stopped or paused.
@@ -111,6 +125,12 @@ private:
     {
         cancelItems(items, false);
     }
+    // `processing` could not be exported: it stays in the queue, after the
+    // others, with `descr` as its error, and the queue goes on with the next
+    // entry unless that has failed too or the queue was stopped.
+    void failProcessing(const Glib::ustring &descr);
+    // Tells the listener that an export failed.
+    void reportError(const Glib::ustring &descr);
     int getMaxThumbnailHeight() const override;
     void saveThumbnailHeight(int height) override;
     int getThumbnailHeight() override;

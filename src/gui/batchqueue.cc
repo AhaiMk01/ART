@@ -29,6 +29,7 @@
 #include <string>
 
 #include "../engine/imgiomanager.h"
+#include "../engine/processingjob.h"
 #include "batchqueue.h"
 #include "batchqueuebuttonset.h"
 #include "filecatalog.h"
@@ -703,6 +704,7 @@ void BatchQueue::startProcessing()
             next = static_cast<BatchQueueEntry *>(fd[0]);
             // tag it as processing and set sequence
             next->processing = true;
+            next->error.clear();
             next->sequence = sequence = 1;
             processing = next;
 
@@ -734,6 +736,26 @@ void BatchQueue::startProcessing()
             notifyListener();
         }
     }
+}
+
+std::vector<BatchQueue::EntryStatus> BatchQueue::entryStatuses(bool &running)
+{
+    MYREADERLOCK(l, entryRW);
+    running = processing != nullptr;
+    std::vector<EntryStatus> ret;
+    for (const auto e : fd) {
+        const auto entry = static_cast<BatchQueueEntry *>(e);
+        EntryStatus s;
+        s.path = entry->filename;
+        s.output = entry->outFileName;
+        s.progress = entry->progress;
+        s.state = entry->processing ? EntryStatus::PROCESSING
+                  : entry->error.empty() ? EntryStatus::QUEUED
+                                         : EntryStatus::FAILED;
+        s.error = entry->error;
+        ret.push_back(s);
+    }
+    return ret;
 }
 
 void BatchQueue::setButtonSetsVisible(bool visible)
@@ -789,24 +811,55 @@ void BatchQueue::pipelineTimes(const art::engine::PipelineTimes &t)
     }
 }
 
-void BatchQueue::error(const Glib::ustring &descr)
+void BatchQueue::failProcessing(const Glib::ustring &descr)
 {
-    if (processing && processing->processing) {
-        // restore failed thumb
-        BatchQueueButtonSet *bqbs = new BatchQueueButtonSet(processing);
-        bqbs->setButtonListener(this);
-        processing->addButtonSet(bqbs);
-        processing->processing = false;
-        processing->job = art::engine::ProcessingJob::create(
-            processing->filename, processing->thumbnail->getType() == FT_Raw,
-            processing->params);
+    BatchQueueEntry *failed = processing;
+    bool carry_on = false;
+    {
+        MYWRITERLOCK(l, entryRW);
+        failed->error = descr.empty() ? "export failed" : descr;
+        failed->processing = false;
+        // the engine has consumed the job
+        failed->job = art::engine::ProcessingJob::create(
+            failed->filename, failed->thumbnail->getType() == FT_Raw,
+            failed->params, failed->fast_pipeline);
+        static_cast<art::engine::ProcessingJobImpl *>(failed->job)
+            ->use_batch_profile = failed->use_batch_profile;
+        // after the others, which are tried first
+        fd.erase(std::find(fd.begin(), fd.end(), failed));
+        fd.push_back(failed);
         processing = nullptr;
+        carry_on = static_cast<BatchQueueEntry *>(fd[0])->error.empty() &&
+                   listener && listener->canStartNext();
+    }
+    // restore failed thumb
+    BatchQueueButtonSet *bqbs = new BatchQueueButtonSet(failed);
+    bqbs->setButtonListener(this);
+    failed->addButtonSet(bqbs);
+    saveBatchQueue();
+    if (carry_on) {
+        idle_register.add([this]() -> bool {
+            startProcessing();
+            return false;
+        });
+    } else {
         // the queue has stopped: restore the reorder/cancel buttons on all
         // remaining entries
         setButtonSetsVisible(true);
-        redraw();
     }
+    redraw();
+}
 
+void BatchQueue::error(const Glib::ustring &descr)
+{
+    if (processing && processing->processing) {
+        failProcessing(descr);
+    }
+    reportError(descr);
+}
+
+void BatchQueue::reportError(const Glib::ustring &descr)
+{
     if (listener) {
         BatchQueueListener *const bql = listener;
         const bool running = processing;
@@ -1015,13 +1068,14 @@ art::engine::ProcessingJob *BatchQueue::imageReady(art::engine::IImagefloat *img
     
     // save image img
     Glib::ustring fname;
+    Glib::ustring base;
     SaveFormat saveFormat;
 
     if (processing->outFileName == "") { // auto file name
-        Glib::ustring s = calcAutoFileNameBase(
+        base = calcAutoFileNameBase(
             processing->filename, processing->params, processing->sequence);
         saveFormat = options.saveFormatBatch;
-        fname = autoCompleteFileName(s, saveFormat.format);
+        fname = autoCompleteFileName(base, saveFormat.format);
     } else { // use the save-as filename with automatic completion for
              // uniqueness
         if (processing->forceFormatOpts) {
@@ -1033,14 +1087,23 @@ art::engine::ProcessingJob *BatchQueue::imageReady(art::engine::IImagefloat *img
         // The output filename's extension is forced to the current or selected
         // output format, despite what the user have set in the fielneame's
         // field of the "Save as" dialgo box
-        fname = autoCompleteFileName(removeExtension(processing->outFileName),
-                                     saveFormat.format);
+        base = removeExtension(processing->outFileName);
+        fname = autoCompleteFileName(base, saveFormat.format);
         // fname = autoCompleteFileName
         // (removeExtension(processing->outFileName),
         // getExtension(processing->outFileName));
     }
 
     // printf ("fname=%s, %s\n", fname.c_str(), removeExtension(fname).c_str());
+
+    // Why this entry could not be exported, if it could not
+    Glib::ustring failure;
+
+    if (img && fname == "") {
+        // the output folder could not be created
+        img->free();
+        failure = M("MAIN_MSG_CANNOTSAVE") + ": " + Glib::path_get_dirname(base);
+    }
 
     if (img && fname != "") {
         int err = 0;
@@ -1067,11 +1130,8 @@ art::engine::ProcessingJob *BatchQueue::imageReady(art::engine::IImagefloat *img
         img->free();
 
         if (err) {
-            throw Glib::FileError(Glib::FileError::FAILED,
-                                  M("MAIN_MSG_CANNOTSAVE") + ": " + fname);
-        }
-
-        if (saveFormat.saveParams) {
+            failure = M("MAIN_MSG_CANNOTSAVE") + ": " + fname;
+        } else if (saveFormat.saveParams) {
             // We keep the extension to avoid overwriting the profile when we
             // have the same output filename with different extension
             // processing->params.save (removeExtension(fname) +
@@ -1089,10 +1149,17 @@ art::engine::ProcessingJob *BatchQueue::imageReady(art::engine::IImagefloat *img
             }
         }
 
-        if (processing->thumbnail) {
+        if (failure.empty() && processing->thumbnail) {
             processing->thumbnail->imageDeveloped();
             processing->thumbnail->imageRemovedFromQueue();
         }
+    }
+
+    if (!failure.empty()) {
+        // not removed from the queue: the entry and its saved params stay
+        failProcessing(failure);
+        reportError(failure);
+        return nullptr;
     }
 
     // save temporary params file name: delete as last thing
@@ -1110,10 +1177,12 @@ art::engine::ProcessingJob *BatchQueue::imageReady(art::engine::IImagefloat *img
         fd.erase(fd.begin());
 
         // return next job
-        if (!fd.empty() && listener && listener->canStartNext()) {
+        if (!fd.empty() && listener && listener->canStartNext() &&
+            static_cast<BatchQueueEntry *>(fd[0])->error.empty()) {
             BatchQueueEntry *next = static_cast<BatchQueueEntry *>(fd[0]);
             // tag it as selected and set sequence
             next->processing = true;
+            next->error.clear();
             next->sequence = ++sequence;
             processing = next;
 

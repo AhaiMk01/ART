@@ -2251,6 +2251,15 @@ BatchQueueEntry *EditorPanel::createBatchQueueEntry(
                                prevh, openThm);
 }
 
+BatchQueueEntry *EditorPanel::makeQueueEntry(
+    const art::engine::procparams::PartialProfile *export_profile)
+{
+    if (!ipc || !openThm) {
+        return nullptr;
+    }
+    return createBatchQueueEntry(false, true, export_profile);
+}
+
 void EditorPanel::saveAsPressed(GdkEventButton *event)
 {
     do_save_image(event->state & GDK_CONTROL_MASK);

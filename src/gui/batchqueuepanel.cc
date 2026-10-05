@@ -384,6 +384,15 @@ void BatchQueuePanel::startBatchProc()
     }
 }
 
+bool BatchQueuePanel::startQueue()
+{
+    if (!batchQueue->hasJobs()) {
+        return false;
+    }
+    startBatchProc();
+    return true;
+}
+
 void BatchQueuePanel::stopBatchProc()
 {
     // There is nothing much to do here except set the desired state, which the

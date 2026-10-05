@@ -27,6 +27,8 @@
 #include "filecatalog.h"
 #include "filepanel.h"
 #include "guiutils.h"
+#include "batchqueue.h"
+#include "batchqueuepanel.h"
 #include "options.h"
 #include "rtwindow.h"
 
@@ -1038,6 +1040,15 @@ std::string LiveControl::dispatch(const std::string &op, const Args &args,
     if (op == "save_sidecar") {
         return save_sidecar(args, ok);
     }
+    if (op == "queue_add") {
+        return queue_add(args, ok);
+    }
+    if (op == "queue_start") {
+        return queue_start(ok);
+    }
+    if (op == "queue_status") {
+        return queue_status(ok);
+    }
     ok = false;
     return "{\"code\":\"unknown_op\",\"message\":" +
            json_string("unknown op: " + op) + "}";
@@ -1407,6 +1418,189 @@ std::string LiveControl::save_sidecar(const Args &args, bool &ok)
     }
     ok = true;
     return "{\"sidecar\":" + json_string(sidecar) + "}";
+}
+
+namespace {
+
+// An integer argument written in full as a whole number.
+bool whole_arg(const std::string &text, int &out)
+{
+    if (text.empty() || text.size() > 9 ||
+        text.find_first_not_of("0123456789") != std::string::npos) {
+        return false;
+    }
+    out = static_cast<int>(strtol(text.c_str(), nullptr, 10));
+    return true;
+}
+
+// The output format a queue_add names, laid over `sf`; false with `error`
+// when it asks for something the format can't do.
+bool queue_format(const std::map<std::string, std::string> &args,
+                  SaveFormat &sf, std::string &error)
+{
+    typedef std::map<std::string, std::string>::const_iterator Iter;
+    const std::string &format = args.find("format")->second;
+    const Iter quality = args.find("quality");
+    const Iter depth = args.find("bit_depth");
+    const std::string bits = depth == args.end() ? "" : depth->second;
+    if (format != "jpg" && format != "png" && format != "tif") {
+        error = error_object("bad_request",
+                             "\"format\" must be jpg, tif or png");
+        return false;
+    }
+    if (quality != args.end()) {
+        int q = 0;
+        if (format != "jpg") {
+            error = error_object("bad_request",
+                                 "\"quality\" is for jpg only");
+            return false;
+        }
+        if (!whole_arg(quality->second, q) || q < 1 || q > 100) {
+            error = error_object("out_of_range",
+                                 "\"quality\" must be 1 to 100");
+            return false;
+        }
+        sf.jpegQuality = q;
+    }
+    sf.format = format;
+    if (format == "jpg") {
+        if (!bits.empty() && bits != "8") {
+            error = error_object("out_of_range",
+                                 "\"bit_depth\" for jpg can only be 8");
+            return false;
+        }
+    } else if (format == "png") {
+        if (!bits.empty() && bits != "8" && bits != "16") {
+            error = error_object("out_of_range",
+                                 "\"bit_depth\" for png is 8 or 16");
+            return false;
+        }
+        if (!bits.empty()) {
+            sf.pngBits = bits == "8" ? 8 : 16;
+        }
+    } else if (!bits.empty()) {
+        if (bits != "8" && bits != "16" && bits != "16f" && bits != "32") {
+            error = error_object("out_of_range",
+                                 "\"bit_depth\" for tif is 8, 16, 16f or 32");
+            return false;
+        }
+        sf.tiffBits = bits == "8" ? 8 : bits == "32" ? 32 : 16;
+        sf.tiffFloat = bits == "16f" || bits == "32";
+    }
+    return true;
+}
+
+} // namespace
+
+std::string LiveControl::queue_add(const Args &args, bool &ok)
+{
+    ok = false;
+    std::string error;
+    EditorPanel *ep = editor_for("queue_add", args, error);
+    if (!ep) {
+        return error;
+    }
+    SaveFormat format = options.saveFormatBatch;
+    const bool own_format = args.count("format") != 0;
+    if (own_format) {
+        if (!queue_format(args, format, error)) {
+            return error;
+        }
+    } else if (args.count("quality") || args.count("bit_depth")) {
+        return error_object("bad_request",
+                            "\"quality\" and \"bit_depth\" need \"format\"");
+    }
+    Glib::ustring output;
+    Args::const_iterator out = args.find("output");
+    if (out != args.end()) {
+        if (!Glib::path_is_absolute(out->second)) {
+            return error_object("bad_request",
+                                "\"output\" must be an absolute path");
+        }
+        output = out->second;
+    }
+    std::unique_ptr<art::engine::procparams::KeyFilePartialProfile> profile;
+    Args::const_iterator text = args.find("profile");
+    if (text != args.end()) {
+        profile.reset(
+            new art::engine::procparams::KeyFilePartialProfile(text->second));
+        if (!profile->valid()) {
+            return error_object("bad_request",
+                                "\"profile\" is not processing-profile text");
+        }
+        if (!ep->canApply(*profile)) {
+            return error_object("bad_request",
+                                "ART could not load these values; nothing was "
+                                "queued");
+        }
+    }
+    BatchQueueEntry *entry = ep->makeQueueEntry(profile.get());
+    if (!entry) {
+        return still_loading(ep->getFileName());
+    }
+    entry->outFileName = output;
+    entry->saveFormat = format;
+    entry->forceFormatOpts = own_format;
+    BatchQueuePanel *panel = window_->getBatchQueuePanel();
+    window_->addBatchQueueJob(entry);
+    bool running = false;
+    const size_t size = panel->getBatchQueue()->entryStatuses(running).size();
+    ok = true;
+    std::ostringstream res;
+    res << "{\"queued\":" << size << ",\"running\":"
+        << (running ? "true" : "false") << "}";
+    return res.str();
+}
+
+std::string LiveControl::queue_start(bool &ok)
+{
+    ok = false;
+    BatchQueuePanel *panel = window_->getBatchQueuePanel();
+    bool running = false;
+    BatchQueue *queue = panel->getBatchQueue();
+    queue->entryStatuses(running);
+    if (running) {
+        ok = true;
+        return "{\"running\":true,\"already_running\":true}";
+    }
+    if (!panel->startQueue()) {
+        return error_object("empty_queue", "the export queue has no entries");
+    }
+    queue->entryStatuses(running);
+    ok = true;
+    return std::string("{\"running\":") + (running ? "true" : "false") +
+           ",\"already_running\":false}";
+}
+
+std::string LiveControl::queue_status(bool &ok)
+{
+    BatchQueuePanel *panel = window_->getBatchQueuePanel();
+    bool running = false;
+    const std::vector<BatchQueue::EntryStatus> entries =
+        panel->getBatchQueue()->entryStatuses(running);
+    std::ostringstream out;
+    out << "{\"running\":" << (running ? "true" : "false")
+        << ",\"auto_start\":" << (panel->autoStart() ? "true" : "false")
+        << ",\"entries\":[";
+    bool first = true;
+    for (const BatchQueue::EntryStatus &e : entries) {
+        const char *state = e.state == BatchQueue::EntryStatus::PROCESSING
+                                ? "processing"
+                            : e.state == BatchQueue::EntryStatus::FAILED
+                                ? "failed"
+                                : "queued";
+        out << (first ? "" : ",") << "{\"path\":" << json_string(e.path)
+            << ",\"output\":"
+            << (e.output.empty() ? std::string("null") : json_string(e.output))
+            << ",\"state\":\"" << state << "\",\"progress\":" << e.progress
+            << ",\"error\":"
+            << (e.error.empty() ? std::string("null") : json_string(e.error))
+            << "}";
+        first = false;
+    }
+    out << "]}";
+    ok = true;
+    return out.str();
 }
 
 void LiveControl::close(Connection *c)

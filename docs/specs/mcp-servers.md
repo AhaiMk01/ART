@@ -426,6 +426,9 @@ Assistants. The Live server never launches ART.
 | `render_preview` | `path`, `max_size=1024`, `inline?` | JPEG path + width/height; waits until ART's processing queue drains (30 s, else `timeout`). The editor's preview (~600 px wide, whole frame, uncropped) shrunk to fit `max_size`, never enlarged |
 | `open_image` | `path` | ART's name for it, `already_open`; returns once ART has loaded it (60 s, else `timeout`) |
 | `save_sidecar` | `path` | The sidecar written (editor's own save), null when ART keeps profiles in its cache only; `write_failed` when nothing was written |
+| `queue_export` | `path`, `folder?`, `format?`, `name?`, `quality?`, `bit_depth?`, `profile?` | `queued` (entries in ART's export queue), `running`. Queues the open image through the GUI's own batch queue with its current profile (no sidecar written); output as `export_image` (named `-1`, `-2` when taken: ART's rule), `profile` an `.arp` over the working profile |
+| `queue_start` | none | `running`, `already_running`; `empty_queue` when nothing is queued |
+| `queue_status` | none | `running`, `auto_start`, `entries`: path, `output`, `state` (`queued`/`processing`/`failed`), `progress`, `error` |
 | `describe_adjustments` | none | As Render server |
 | `inspect_image` | `path`, `tags?` | As Render server (Python + exiftool; no C++) |
 | `sample_spots` | `path`, `spots`, `size=32`, `space="working"` | As Render server, from the open editor (4.1) |
@@ -489,6 +492,7 @@ Assistants. The Live server never launches ART.
 - **Ops:** `status`, `get_profile` (returns .arp text + history position),
   `apply_profile` (.arp partial profile text + label), `undo`, `redo`,
   `preview` (target JPEG or PNG path + max size), `open`, `save_sidecar`,
+  `queue_add`, `queue_start`, `queue_status` (the export queue),
   `sample_spots` (4.1). All schema
   work stays in Python; ART only parses and emits KeyFile text.
 
@@ -541,6 +545,23 @@ Assistants. The Live server never launches ART.
   once `status` lists the image with its size (60 s, else `timeout`).
   `save_sidecar` is `EditorPanel::saveProfile` and returns the sidecar path
   (null when ART keeps profiles in its cache only).
+- The queue ops use the GUI's `BatchQueue` as it is: `queue_add` makes the
+  entry as the queue button does (`EditorPanel::createBatchQueueEntry`, the
+  editor's current profile, the optional partial profile over it) without
+  saving the sidecar, sets the entry's own output name and format as the
+  Save-as dialog does (`outFileName`, `forceFormatOpts`; without them the
+  queue's panel settings apply) and adds it through `RTWindow` so
+  "auto start" works. Entries are the Queue tab's: the user can reorder
+  and cancel them, and they persist as normal entries. Per-entry state is
+  read from the queue (`BatchQueue::entryStatuses`). A failed export (a
+  source that can't be loaded, an output that can't be written or its
+  folder created) records its message on the entry (`BatchQueueEntry::error`,
+  also in its tooltip), moves it behind the others and the queue carries on
+  with the next entry (`BatchQueue::failProcessing`); it stops when only
+  failed entries are left, and a start tries those again. Before, a failed
+  load stopped the queue, and a failed save left it "running" with the
+  entry stuck (and an output folder that couldn't be created dropped the
+  entry unexported).
 - The Render server's `open_in_editor` check asks ART's `status` with a 5 s
   limit; no ART, an error or no answer means it can't tell, and the save
   proceeds.

@@ -11,7 +11,7 @@ import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
@@ -33,6 +33,10 @@ from art_mcp.profile import (
     edit_warnings,
     read_format,
 )
+from art_mcp.render.adapter import as_tool_errors
+from art_mcp.render.errors import render_error
+from art_mcp.render.export_ops import EXPORT_SUFFIXES, output_format, output_name
+from art_mcp.render.export_tools import Format
 from art_mcp.render.preview_tools import MAX_PREVIEW_SIZE, PREVIEW_SIZE, Preview
 from art_mcp.sampling import (
     DEFAULT_SIZE,
@@ -121,6 +125,44 @@ class SidecarSaved(BaseModel):
     sidecar: str | None
     """The sidecar file written; null when ART is set to keep processing
     profiles in its cache only."""
+
+
+class QueuedExport(BaseModel):
+    queued: int
+    """The entries in ART's export queue now."""
+    running: bool
+    """Whether the queue is running: it starts by itself when its "auto start"
+    is on, else with queue_start (or the user's switch)."""
+
+
+class QueueStarted(BaseModel):
+    running: bool
+    already_running: bool
+
+
+class QueueEntry(BaseModel):
+    path: str
+    """The image."""
+    output: str | None
+    """The output file asked for; null when the queue names it itself (its own
+    folder or template). ART adds `-1`, `-2` to a name already taken, unless
+    its Preferences overwrite."""
+    state: Literal["queued", "processing", "failed"]
+    progress: float
+    """0..1 while processing."""
+    error: str | None
+    """Why the export of a `failed` entry failed."""
+
+
+class QueueStatus(BaseModel):
+    running: bool
+    auto_start: bool
+    entries: list[QueueEntry]
+    """In queue order; an entry is gone once it has exported. A `failed`
+    entry (its `error` says why: the image can't be loaded, the output can't
+    be written) goes to the end and the queue carries on with the others; it
+    stops when only failed entries are left. queue_start tries them again;
+    remove one in ART's Queue tab."""
 
 
 TOOL_TITLES = {name: name.replace("_", " ").title() for name in TOOLS} | {
@@ -400,6 +442,73 @@ def build_server(
         if not isinstance(reply, dict) or not isinstance(reply.get("sidecar"), (str, type(None))):
             raise tool_error("bad_reply", f"unexpected save_sidecar reply from ART: {reply!r:.300}")
         return SidecarSaved(saved=True, sidecar=reply["sidecar"])
+
+    @server.tool()
+    def queue_export(
+        path: str,
+        folder: str | None = None,
+        format: Format | None = None,
+        name: str = "{stem}",
+        quality: int | None = None,
+        bit_depth: int | str | None = None,
+        profile: str | None = None,
+    ) -> QueuedExport:
+        """Put an image open in ART into ART's export queue (the Queue tab)
+        with its current profile (as get_profile shows it; the sidecar is not
+        saved). With `folder` (and `format`: jpeg, tiff or png; `quality` is
+        for jpeg, `bit_depth` as in export_image) the output is
+        `<folder>/<name><suffix>`, `{stem}` being the image's file name
+        without extension; without them the queue's own folder, template and
+        format apply. An existing file is not replaced: ART names the new one
+        `-1`, `-2`, unless its Preferences overwrite. `profile`: an `.arp`
+        file whose values go over the working profile for this export only.
+        The queue starts by itself if its "auto start" is on, else call
+        queue_start."""
+        args: dict[str, Any] = {"path": art_path(path)}
+        with as_tool_errors():
+            if format is None:
+                if folder is not None or quality is not None or bit_depth is not None:
+                    raise render_error("out_of_range", "folder, quality and bit_depth need a format")
+            else:
+                out = output_format(format, quality, bit_depth, False)
+                args["format"] = EXPORT_SUFFIXES[out.format].lstrip(".")
+                if quality is not None:
+                    args["quality"] = str(quality)
+                if out.bit_depth is not None:
+                    args["bit_depth"] = out.bit_depth
+                if folder is not None:
+                    target = Path(folder).resolve()
+                    if not target.is_dir():
+                        raise render_error("not_found", f"folder {target} does not exist")
+                    args["output"] = str(target / output_name(name, Path(path), EXPORT_SUFFIXES[out.format]))
+            if profile is not None:
+                layer = Path(profile).resolve()
+                if not layer.is_file():
+                    raise render_error("not_found", f"profile {layer} does not exist")
+                args["profile"] = layer.read_text(encoding="utf-8")
+        reply = call("queue_add", args)
+        if not isinstance(reply, dict) or not isinstance(reply.get("queued"), int):
+            raise tool_error("bad_reply", f"unexpected queue_add reply from ART: {reply!r:.300}")
+        return QueuedExport(queued=reply["queued"], running=bool(reply.get("running")))
+
+    @server.tool()
+    def queue_start() -> QueueStarted:
+        """Start ART's export queue, as its Start switch does. Fails with
+        `empty_queue` when there is nothing to export."""
+        reply = call("queue_start")
+        if not isinstance(reply, dict) or not isinstance(reply.get("running"), bool):
+            raise tool_error("bad_reply", f"unexpected queue_start reply from ART: {reply!r:.300}")
+        return QueueStarted(running=reply["running"], already_running=bool(reply.get("already_running")))
+
+    @server.tool()
+    def queue_status() -> QueueStatus:
+        """ART's export queue: whether it is running, its "auto start", and
+        each entry with its state, progress and error."""
+        reply = call("queue_status")
+        try:
+            return QueueStatus.model_validate(reply)
+        except ValueError as e:
+            raise tool_error("bad_reply", f"unexpected queue_status reply from ART: {reply!r:.300}") from e
 
     @server.tool()
     def render_preview(

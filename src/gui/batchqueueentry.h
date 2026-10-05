@@ -57,6 +57,8 @@ public:
     bool forceFormatOpts;
     bool fast_pipeline;
     bool use_batch_profile;
+    // Why the last attempt to export this entry failed; empty if none did.
+    Glib::ustring error;
 
     BatchQueueEntry(art::engine::ProcessingJob *job,
                     const art::engine::procparams::ProcParams &pparams,

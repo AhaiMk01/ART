@@ -86,6 +86,13 @@ public:
 
     void refreshProfiles();
 
+    // For the Live control channel.
+    BatchQueue *getBatchQueue() { return batchQueue; }
+    // The "auto start" switch.
+    bool autoStart() const { return qAutoStart->get_active(); }
+    // Starts the queue as its switch does; false if there is nothing to run.
+    bool startQueue();
+
 private:
     void startBatchProc();
     void stopBatchProc();

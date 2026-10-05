@@ -109,7 +109,8 @@ class FakeArt:
 class FakeEditor:
     """Images open in a fake ART's editor, each with a processing profile and
     a History, behind the ops that read and change them (status, get_profile,
-    apply_profile, undo, redo, open, save_sidecar)."""
+    apply_profile, undo, redo, open, save_sidecar) and the export queue's
+    (queue_add, queue_start, queue_status)."""
 
     def __init__(self, art: FakeArt) -> None:
         self.art = art
@@ -120,6 +121,11 @@ class FakeEditor:
         self.loadable: set[str] = set()
         """Paths `open` can open; they are listed `open_delay` s later."""
         self.open_delay = 0.0
+        self.queue: list[dict[str, Any]] = []
+        """The export queue's entries: what the Queue tab would show, and under
+        "args" what queue_add received."""
+        self.queue_running = False
+        self.auto_start = False
         art.ops.update({
             "status": self._status,
             "get_profile": self._get_profile,
@@ -128,6 +134,9 @@ class FakeEditor:
             "redo": lambda req: self._step(req, +1),
             "open": self._open,
             "save_sidecar": self._save,
+            "queue_add": self._queue_add,
+            "queue_start": self._queue_start,
+            "queue_status": self._queue_status,
         })  # fmt: skip
 
     def add(self, path: str, profile: str, width: int | None = 6000, height: int | None = 4000) -> None:
@@ -204,3 +213,27 @@ class FakeEditor:
             return self._not_open(req)
         self.saved.append(image["path"])
         return answer({"sidecar": image["path"] + ".arp"})(req)
+
+    def _queue_add(self, req: dict[str, Any]) -> bytes | None:
+        image = self._image(req)
+        if image is None:
+            return self._not_open(req)
+        args = req["args"]
+        self.queue.append({
+            "path": image["path"], "output": args.get("output"), "state": "queued",
+            "progress": 0.0, "error": None, "args": args,
+        })  # fmt: skip
+        self.queue_running = self.queue_running or self.auto_start
+        return answer({"queued": len(self.queue), "running": self.queue_running})(req)
+
+    def _queue_start(self, req: dict[str, Any]) -> bytes | None:
+        if self.queue_running:
+            return answer({"running": True, "already_running": True})(req)
+        if not self.queue:
+            return fail("empty_queue", "the export queue has no entries")(req)
+        self.queue_running = True
+        return answer({"running": True, "already_running": False})(req)
+
+    def _queue_status(self, req: dict[str, Any]) -> bytes | None:
+        entries = [{k: v for k, v in entry.items() if k != "args"} for entry in self.queue]
+        return answer({"running": self.queue_running, "auto_start": self.auto_start, "entries": entries})(req)

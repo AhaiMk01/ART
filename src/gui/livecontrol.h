@@ -100,6 +100,15 @@ private:
     std::string open(const Args &args, bool &ok);
     // Saves an open image's profile as the editor does (sidecar and cache).
     std::string save_sidecar(const Args &args, bool &ok);
+    // Puts an open image into the export queue (the Queue tab's) with its
+    // current profile, and the output it names if any; the queue then starts
+    // by itself if its "auto start" is on.
+    std::string queue_add(const Args &args, bool &ok);
+    // Starts the export queue, as its switch does.
+    std::string queue_start(bool &ok);
+    // The queue's entries (in order, with state and error), whether it is
+    // running, and its "auto start".
+    std::string queue_status(bool &ok);
     // Spot values of the open image (spec 4.1); the result object, or the
     // error object when !ok.
     std::string sample_spots(const std::string &path,

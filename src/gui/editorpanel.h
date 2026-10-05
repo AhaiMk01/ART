@@ -207,6 +207,12 @@ public:
 
     void refreshImageAreas();
 
+    // A queue entry exporting this image with its current profile, and
+    // `export_profile` over it if given. As the queue button makes one, but
+    // the sidecar is not saved. nullptr while no image is loaded.
+    BatchQueueEntry *makeQueueEntry(
+        const art::engine::procparams::PartialProfile *export_profile);
+
 private:
     BatchQueueEntry *createBatchQueueEntry(
         bool fast_export, bool use_batch_queue_profile,

@@ -74,6 +74,7 @@ public:
 
     void addBatchQueueJob(BatchQueueEntry *bqe, bool head = false);
     void addBatchQueueJobs(const std::vector<BatchQueueEntry *> &entries);
+    BatchQueuePanel *getBatchQueuePanel() { return bpanel; }
 
     bool keyPressed(GdkEventKey *event);
     bool keyPressedBefore(GdkEventKey *event);
