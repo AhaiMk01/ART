@@ -141,6 +141,7 @@ Results of `get_profile`, `edit_profile` and `describe_adjustments` carry a
 | Skill | For |
 |---|---|
 | `film-negative` | Inverting camera-scanned colour negatives with ART's Film Negative tool: base settings, fitting the colour ratios from `sample_spots`, reference spot, output level, a whole roll |
+| `faded-slide` | Restoring faded colour slides: per-channel power-law fit against neutrals with `color_correction`, edge fading with masked regions |
 
 Install for Claude Code by copying or symlinking the skill folder into your
 user skills (all projects) or a project's skills:
@@ -148,18 +149,18 @@ user skills (all projects) or a project's skills:
 ```sh
 # user level
 mkdir -p ~/.claude/skills
-cp -r <repo>/tools/mcp/skills/film-negative ~/.claude/skills/
-# or: ln -s <repo>/tools/mcp/skills/film-negative ~/.claude/skills/film-negative
+cp -r <repo>/tools/mcp/skills/<skill> ~/.claude/skills/
+# or: ln -s <repo>/tools/mcp/skills/<skill> ~/.claude/skills/<skill>
 
 # one project
 mkdir -p <project>/.claude/skills
-cp -r <repo>/tools/mcp/skills/film-negative <project>/.claude/skills/
+cp -r <repo>/tools/mcp/skills/<skill> <project>/.claude/skills/
 ```
 
 On Windows (PowerShell) use `Copy-Item -Recurse` into `$HOME\.claude\skills`
 (a symlink needs developer mode or an admin shell). Restart Claude Code; the
 skill loads when a request matches its description (e.g. "invert this negative
-scan"). The skills need the `art-render` server above (and an ART build with
+scan", "fix the colour of this faded slide"). The skills need the `art-render` server above (and an ART build with
 `sample_spots`).
 
 ## Development
