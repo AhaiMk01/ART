@@ -106,6 +106,19 @@ shifts turn blue sky violet-grey).
 
 ## Output level
 
+`L` is also the ceiling: the film negative clips its output at 65535, and
+nothing later recovers it. Tested on one frame: `L` 34000 with exposure -1 EV
+matched `L` 17000 exactly in shadows and mid-tones (percentiles 0.1-50
+identical) but its highlights, clipped by the film negative, came out as
+flat cream at ~194 instead of white. So per lighting group, set `L` at the
+group's brightest frame's no-clip level in the preset, and per frame only
+brighten with exposure compensation (+EV; the film negative's values then
+stay the group's). A frame that needs to go darker than the preset gets a
+lower `L`, not -EV. Either way, scale the black adjustments with the total
+factor (`k = 2^EV` or `L_new/L_old`; "Changing L after the black
+adjustments"). Brightness (Lab adjustments, after the tone curve) is for
+taste in the mid-tones, not for exposure.
+
 `clipped_high` of `image_stats` is the guide: raise `L` while it is about 0,
 stop when highlights begin to clip. Curve x/y are sRGB-encoded 0..1 (about
 `image_stats` value / 255), so a black point at `lum` percentile 0.1 of 60
@@ -142,3 +155,30 @@ neutrals (white paint on the aircraft, not the floor under another lamp) and
 leave the rest. Keep a cast that is the real colour of the light (a warm lamp
 lighting a bomb bay): neutralising it looks wrong. Say which frames you left
 warm or cool, and why.
+
+## Lighting groups
+
+One roll often mixes light: outdoor daylight, dusk, and several kinds of
+indoor lamps. A single "indoor" balance left one hangar frame visibly green.
+Group by looking, not by clustering numbers:
+
+1. Make a contact sheet of the whole roll after a first inversion (roll
+   ratios, one rough reference) and look at it: sort the frames by the light
+   you can see (sun, overcast, dusk, tungsten, fluorescent/LED, mixed, a
+   single coloured lamp). Casts that differ between frames of the same scene
+   point at different light even when the place is the same.
+2. Per group, take the representative with good contrast (shadows and
+   highlights both present) and neutral objects of independent materials;
+   tune it fully (white balance, output level, per-channel black offset,
+   black point) and save it as the group's preset.
+3. Apply the preset to the group and look at the sheet again. A frame that
+   still stands out (a cast its neighbours don't have) gets its neutrals
+   sampled: if they sit off the group's line (intercepts `ir`, `ib`, above,
+   differing by more than ~0.03), it is in other light; move it or give it
+   its own reference.
+4. Per frame, check `image_stats` and adjust `L` (scaling the black
+   adjustments, above).
+5. Frames that fit no group (a single warm lamp, mixed light) get their own
+   settings; say which and why.
+
+The numbers confirm a doubt from looking; they don't replace it.

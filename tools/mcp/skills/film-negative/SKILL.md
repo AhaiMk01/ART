@@ -96,7 +96,18 @@ spots in the picture. A frame without any film base visible is fine.
 
 Ratios are a property of the film and development: fit once, reuse.
 
-1. Do the single-frame steps on one representative frame (rotation, crop,
+0. Group the frames by light, by looking at a contact sheet of a first
+   inversion (reference.md, "Lighting groups"): daylight, overcast, dusk,
+   each kind of indoor lamp. One preset per group; a frame that fits no
+   group is handled on its own. Look at the sheet again after applying the
+   presets; sample neutrals in any frame that still stands out.
+   Brightness per frame: the preset's `L` fits the group's brightest frame;
+   darker frames get +EV (exposure), never -EV (reference.md, "Output
+   level").
+1. Pick a representative per group: good contrast, real shadows AND
+   highlights, and neutral objects of independent materials (white paint,
+   metal, concrete). A flat or low-key frame, or one without neutrals, makes
+   a bad reference. Do the single-frame steps on it (rotation, crop,
    `ref_input`/`ref_output` included).
 2. `save_partial_profile(path, dest="<roll>.arp", exclude=["Coarse
    Transformation", "Crop", "Film Negative/RefInput", "Film Negative/RefOutput"])`:
