@@ -272,8 +272,10 @@ With several light sources in a frame (lamps plus daylight, coloured
 spotlights), no single balance is right everywhere: balance on the subject's
 neutrals (white paint on the aircraft, not the floor under another lamp) and
 leave the rest. Keep a cast that is the real colour of the light (a warm lamp
-lighting a bomb bay): neutralising it looks wrong. Say which frames you left
-warm or cool, and why.
+lighting a bomb bay): neutralising it looks wrong. If a cast looks odd next to
+neighbouring frames of the same place, it is cheap to re-check the reference
+spot and the black offsets, but it may well be the lamp. Say which frames you
+left warm, cool or tinted, and why.
 
 ## Lighting groups
 
@@ -297,7 +299,9 @@ Group by looking, not by clustering numbers:
    neutral line"): every frame of the group takes its `RefInput` at this `g0`,
    scaled for its scan exposure, or `L` means a different brightness on each
    frame.
-3. Apply the preset to the group and look at the sheet again. A frame that
+3. Apply the preset to the group and look at the sheet again (a preset applied
+   again after step 4 overwrites each frame's own curve, level, EV and black
+   offset unless `apply_preset` gets an `exclude` for them). A frame that
    still stands out (a cast its neighbours don't have) gets its neutrals
    sampled: if they sit off the group's line (intercepts `ir`, `ib`, above,
    normalised to one scan exposure first, differing by more than ~0.03), it is

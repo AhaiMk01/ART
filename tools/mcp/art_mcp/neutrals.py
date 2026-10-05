@@ -59,7 +59,7 @@ Workflows that use it: see the skills (tools/mcp/skills)."""
 
 DEFAULT_COUNT = 16
 MAX_COUNT = MAX_SPOTS
-"""What one ``sample_spots`` call takes."""
+"""What one sampling run takes (``sample_spots`` takes more and accepts the candidates unchanged)."""
 ANALYSIS_SIZE = 1600
 """Long edge, in pixels, of the preview that is analysed."""
 MIN_CELL_PX = 4

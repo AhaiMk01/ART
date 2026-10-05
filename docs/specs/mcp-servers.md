@@ -318,14 +318,40 @@ and no change set each:
   image failed).
 - `failed`: the number of entries with an `error`.
 
+#### A different edit per image (`items`)
+
+`edit_profile` also takes `items`: 1 to 50 entries `{ path, adjustments?,
+raw_edits? }`, a third alternative to `path` and `paths`. Exactly one of the
+three: more than one, none, an empty list, more than 50 entries, `full=true`,
+or an `adjustments` or `raw_edits` beside `items` (they go in each item) is
+`out_of_range`, before anything changes; an entry with no `path` or a field
+other than those three is refused by the input schema, also before anything
+changes. Each entry is its own change, checked and applied like one image of
+a `paths` call (it may carry `adjustments`, `raw_edits` or both, each as for
+`path`; one with neither changes nothing), and the result is the same compact
+`{ items, failed }` of the previous section: one entry per item, in request
+order, `path` as given. One entry that fails is its own `error` and the others
+still change. Two entries for the same image are applied in request order,
+each as its own change (Live: its own History entry), so the second is made
+on what the first left; entries for different images are independent (Render:
+up to `max_processes` images at once, an image's entries one after the other;
+Live: one after the other). It is what a set's per-frame values (white
+balance, film reference and level, black point) need: one call instead of one
+per frame, and `paths` stays for the values every frame shares.
+
 Render edits the images up to `max_processes` at once (an edit can need art-cli
 to measure the frame or sample the picture), each under its own image lock, as
 `apply_preset` and `export_batch` do; Live edits them one after the other, over
 the one control channel. The tool's output schema is an `anyOf` of the two
 shapes (`EditResult`, `EditBatch`; Live's `LiveEditResult`, `LiveEditBatch`)
 with an explicit `"type": "object"`, which a tool's output schema must have.
+`reset_profile` and `open_image` (6.1) publish their output the same way
+(`ResetResult` or `ResetBatch`; `OpenedImage` or `OpenBatch`, Live's
+`OpenedInEditor` or `OpenedBatch`).
 `paths` exists because a roll of twelve frames took twelve identical calls for
-each of its base settings, its ratios and its group's output level.
+each of its base settings, its ratios and its group's output level; `items`
+because the next roll's per-frame values (white balance, level, offset) still
+took one call per frame (141 `edit_profile` calls for twelve frames).
 
 ## 4. Preview delivery (both servers)
 
@@ -364,11 +390,23 @@ pickers use, not an approximation from a rendered file.
 
 `sample_spots(path, spots, size=32, space="working")`:
 
-- `spots`: 1 to 16 `{x, y}`, whole pixels in the **frame** (the raw image
-  after coarse rotation and the raw border, the same coordinates as
-  `[Crop]`), each the centre of a `size` x `size` square. A spot outside the
-  frame is `out_of_range`. `size` is 2 to 256 (the GUI offers 2 to 32; 32 is
-  its default).
+- `spots`: 1 to 64 `{x, y}` per call (more or fewer is `out_of_range`), whole
+  pixels in the **frame** (the raw image after coarse rotation and the raw
+  border, the same coordinates as `[Crop]`), each the centre of a `size` x
+  `size` square. A spot outside the frame is `out_of_range`. `size` is 2 to
+  256 (the GUI offers 2 to 32; 32 is its default). One run, `art-cli -x` or the
+  channel op, takes at most 16 spots (`MAX_SPOTS`; the C++ side caps there), so
+  a call of more is split in request order into runs of at most 16
+  (`MAX_SPOTS_PER_CALL` = 64 is the call's cap) and answered as one result,
+  the same per-spot values in the same order as if one run had taken them:
+  Render runs them through the pool of `inspect_images` and `export_batch`
+  (`session.cli.max_processes` at once, 2 by default); Live sends one request
+  after the other, each waiting for a busy editor on its own (30 s). The frame
+  is measured once. A failing run fails the call with that run's error (the
+  first in request order), no partial result, and the message ends with the
+  spot numbers it covered, e.g. `(spots 17 to 32 of 40; no result returned)`
+  (a call of 16 or fewer has one run and its plain error). `suggest_neutrals`
+  candidates (1 to 16) go in unchanged.
 - `space`: `"working"` (the profile's working space) or `"input"` (camera
   space). These are the film negative tool's two `ColorSpace` values
   (`[Film Negative] ColorSpace` 1 and 0).
@@ -480,6 +518,7 @@ the same `max_size`, `histogram`, `detail`, `bins` and `region` for all, and
 returns `{items: [{path, stats | error}], failed}`: one item per path in
 request order, `stats` as for one image, or the `error` (`<code>: <message>`)
 of an image that could not be measured while the others still come back.
+The two shapes differ: with `path` the statistics are the result's top level (`r`, `g`, `b`, `lum`, `width`, `height`, ...); with `paths` they are under `items[i].stats` (each item `{path, stats}` or `{path, error}`).
 `detail` defaults to `"compact"` here (and to `"standard"` for one `path`)
 unless the caller gives one. A problem with the call as a whole (`path` and
 `paths`, `max_size`, `region`, `bins`, `detail`) fails it before anything runs.
@@ -548,7 +587,8 @@ gives the same answer):
    cells than asked for were usable (nothing is padded with poor cells). About
    40 tokens per candidate.
 
-`count` is 1 to 16 (what one `sample_spots` call takes) and `size` 2 to 256, else
+`count` is 1 to 16 (what one `art-cli -x` run takes; a `sample_spots` call takes
+up to 64, so the candidates go in unchanged) and `size` 2 to 256, else
 `out_of_range` before anything is rendered; a `size` larger than the area is
 `out_of_range` too. `not_open`, `render_failed` (art-cli failed or wrote an
 unreadable image) as for `image_stats`. The call renders once (about a second
@@ -621,10 +661,10 @@ on Windows). Any tool except `open_image` on a path not opened returns
 
 | Tool | Args | Returns |
 |---|---|---|
-| `open_image` | `path`, `profile?` | Working profile loaded (`profile_from`: `sidecar`, `default` or `profile`); metadata summary; ART version |
+| `open_image` | `path?` or `paths?` (1 to 50), `profile?` | Working profile loaded (`profile_from`: `sidecar`, `default` or `profile`); metadata summary; ART version. With `paths` each image is opened the same way, with the same `profile` (6.2), up to two at once through the art-cli pool, progress per image: `items`, one `{path, profile_from, metadata \| error}` per path in request order (`path` as given, no `art_version`; no null fields) and `failed`; one bad image (`not_found`, a render failure) doesn't stop the others, a `profile` that is no file fails the call before any image opens. Both or neither of `path` and `paths`, an empty list or more than 50 is `out_of_range` |
 | `get_profile` | `path`, `groups?`, `changed_only=false` | Read format (3.4), whole, of the `groups`, and/or only what differs from ART's default profile |
-| `edit_profile` | `path?`, `adjustments?`, `raw_edits?`, `full=false`, `paths?` | One of `path` or `paths` (1 to 50 open images, the same edit for each; both or neither is `out_of_range`). For `path` the change set (3.5): `changed`, `implied`, `created`, `drawn`, `warnings`; `full` adds the touched groups. For `paths` per image, in request order: `path`, `changed` (a count), `implied`, `warnings`, `error`; and `failed` (3.5) |
-| `reset_profile` | `path`, `to: "sidecar" \| "default"` | Working-profile changes discarded |
+| `edit_profile` | `path?`, `adjustments?`, `raw_edits?`, `full=false`, `paths?`, `items?` | One of `path`, `paths` (1 to 50 open images, the same edit for each) or `items` (1 to 50 `{path, adjustments?, raw_edits?}`, each image its own edit); more than one or none is `out_of_range`. For `path` the change set (3.5): `changed`, `implied`, `created`, `drawn`, `warnings`; `full` adds the touched groups. For `paths` or `items` per image, in request order: `path`, `changed` (a count), `implied`, `warnings`, `error`; and `failed` (3.5) |
+| `reset_profile` | `path?` or `paths?` (1 to 50 open images), `to: "sidecar" \| "default"` | Working-profile changes discarded. With `paths` each image is reset the same way, up to two at once, progress per image: `items`, one `{path, profile_from \| error}` per path in request order (`not_open`; `not_found` for `to: "sidecar"` without a sidecar; no null fields) and `failed`. Both or neither of `path` and `paths`, an empty list or more than 50 is `out_of_range` |
 | `apply_preset` | `paths`, `profile`, `exclude?` | A preset (`.arp`, partial or complete) laid over the working profile of each open image (6.2), less the `exclude` entries (`Group` or `Group/Key`, as `save_partial_profile`'s), which are dropped from the preset first. Per image, in request order: `path`, `keys_changed`, `groups`, `error`; counts `applied` and `failed`; `excluded` (per entry, the preset keys it took out) |
 | `render_preview` | `path`, `max_size=1024`, `region?`, `inline?`, `output?`, `overwrite=false`, `marks?` | JPEG path (+ `ImageContent` if inline); with `output` (absolute `.jpg` path, existing folder) the JPEG is written there and that is the path (`exists` unless `overwrite`); `warnings` only when there are any. `marks`: up to 64 `{x, y, size?, label?}` boxed and numbered on the picture, at frame pixels (below) |
 | `export_image` | `path`, `output`, `format: "jpeg" \| "tiff" \| "png"`, `quality?` (jpeg only, 1..100), `bit_depth?` (jpeg `8`; png `8`\|`16`; tiff `8`\|`16`\|`16f`\|`32`; a number or a string, `16f` only as a string), `write_profile=false`, `profile_name: "output" \| "source"` (default `"output"`), `overwrite=false` | Output path, `.arp` path when written |
@@ -634,8 +674,8 @@ on Windows). Any tool except `open_image` on a path not opened returns
 | `inspect_image` | `path`, `tags?` | Fixed metadata fields + requested tags. `width`/`height` are what the file records; `frame_width`/`frame_height` the frame ART's `[Crop]` and `sample_spots` address (after coarse rotation and the raw border; a Sony ARW records 6048x4024, its frame is 6016x4016), measured like the crop checks (`whole_frame`), null if that fails. `iso`, `shutter_seconds`, `aperture` and `focal_length_mm` are those of the camera that took THIS file (6.4) |
 | `inspect_images` | `paths`, `tags?`, `frame=false` | `inspect_image` for 1 to 100 open images in one call (`out_of_range` otherwise): `items`, one `{path, metadata, error}` per path in request order (`metadata` as `inspect_image` returns it, null when that image failed; `error` is `<code>: <message>`: `not_open`, `metadata_failed`) and `failed`; one bad image doesn't stop the others. exiftool runs once for all the files. `frame_width`/`frame_height` cost art-cli runs (two probes per image the first time, cached), so they are measured only with `frame=true`, through the same pool (at most 2 art-cli at once) with progress per image, else null |
 | `describe_adjustments` | none | Curated schema + `PPVERSION` warning |
-| `sample_spots` | `path`, `spots`, `size=32`, `space="working"` | Linear spot values (4.1); `unsupported` with a release `art-cli` |
-| `image_stats` | `path?` or `paths?` (1 to 50), `max_size=1024`, `histogram=false`, `detail?: "compact" \| "standard" \| "full"` (default `standard`; `compact` with `paths`), `region?`, `bins?` | Per channel clipping and percentiles (`compact`), plus mean (`standard`), plus std, min, max, mode (`full`), optional `bins`/`histogram`, of the image or of a `region` of it; no null fields. With `paths`: `items` (`{path, stats \| error}` per image in request order) and `failed` (4.2) |
+| `sample_spots` | `path`, `spots` (1 to 64), `size=32`, `space="working"` | Linear spot values (4.1), more than 16 spots in several `art-cli` runs, one result in request order; `unsupported` with a release `art-cli` |
+| `image_stats` | `path?` or `paths?` (1 to 50), `max_size=1024`, `histogram=false`, `detail?: "compact" \| "standard" \| "full"` (default `standard`; `compact` with `paths`), `region?`, `bins?` | Per channel clipping and percentiles (`compact`), plus mean (`standard`), plus std, min, max, mode (`full`), optional `bins`/`histogram`, of the image or of a `region` of it; no null fields. With `paths`: `items` (`{path, stats \| error}` per image in request order) and `failed` (4.2); with `path` the statistics are the result's top level (`r`, `g`, `b`, `lum`, `width`, `height`, ...); with `paths` they are under `items[i].stats` (each item `{path, stats}` or `{path, error}`). |
 | `suggest_neutrals` | `path`, `count=16`, `size=32`, `preview=false` | Candidate spots for neutral references (4.3): per candidate `x`, `y` (frame pixels), `level`, `saturation`, `flatness`, `why`; plus `area`, `size`, `cell`, `warnings`; with `preview` also `preview_path`, the analysed rendering as a JPEG with the candidates boxed and numbered 1..n. Render only |
 | `contact_sheet` | `images`, `folder?`, `label?`, `columns?`, `thumb_size=400`, `record=true` | The next numbered pass in `<folder>/sheets` (6.5; `folder`: any existing folder you choose, not the exports folder; required unless an earlier call used one; with `record=false` a quick look instead, no pass kept: the sheet as a JPEG in the preview folder, `index`, `json_path` and `changes` null): sheet path, JSON path, per image `box`, `error` and `changed` (the number of profile keys changed since the last pass it was in), and `changes`, those changes grouped by identical change with the frames they were made on (the JSON has them per frame) |
 | `compare_passes` | `first`, `second`, `folder?`, `images?`, `columns=2` | Path of a side-by-side of the same frames of two passes (6.5); `folder` is the one that holds `sheets`, as in `contact_sheet` |
@@ -718,6 +758,16 @@ From [Sidecar write policy for the Render server](https://github.com/AhaiMk01/AR
   raises the usual conflict (merge applies only the edits made after the
   open, not the file's values; overwrite replaces the sidecar). A missing
   file is `not_found`.
+- `open_image(paths, profile)` opens each of 1 to 50 images that way (one
+  `profile` for all, checked once before any image opens). The loads run
+  through the art-cli pool (at most `max_processes` at once, each image under
+  its own lock), and an image's metadata summary is read right after its load.
+  The result is `{items, failed}`, one `{path, profile_from, metadata}` or
+  `{path, error}` per path in request order; `art_version` is left out (one
+  value for the session, in a single-image result), and the per-image
+  `metadata` is kept because it is small (about 100 characters: camera, lens,
+  capture date, pixel size). `reset_profile(paths, to)` reloads each image
+  from `to` the same way, one `{path, profile_from}` or `{path, error}` each.
 - To get the resolved, complete processing profile (default profile, dynamic
   rules, sidecar), `open_image` runs `art-cli` once (`-p <sidecar>` or `-d`,
   or `-d -p <profile>`; `-f`, `-O`) to a throwaway output and reads the `.arp` written beside it.
@@ -1028,10 +1078,10 @@ Assistants. The Live server never launches ART.
 |---|---|---|
 | `status` | none | ART version, open images: path, `active`, width/height (the editor's full image size before crop; null until known) |
 | `get_profile` | `path`, `groups?`, `changed_only=false` | Read format (3.4), whole, of the `groups`, and/or only what differs from ART's default profile, + `history_position` (selected History row, 0 = oldest; null if none) |
-| `edit_profile` | `path?`, `adjustments?`, `raw_edits?`, `full=false`, `paths?` | The change set (3.5) + `history_position`; returns once the undo entry exists. With `paths` (1 to 50 images, instead of `path`) the per-image entries of 3.5, each with its `history_position`: one undo entry per image, none for an image that already had the values |
+| `edit_profile` | `path?`, `adjustments?`, `raw_edits?`, `full=false`, `paths?`, `items?` | The change set (3.5) + `history_position`; returns once the undo entry exists. With `paths` (1 to 50 images, instead of `path`) the per-image entries of 3.5, each with its `history_position`: one undo entry per image, none for an image that already had the values. With `items` (1 to 50 `{path, adjustments?, raw_edits?}`, instead of `path` and `paths`; each image its own edit) the same entries, one per item, applied one after the other in request order: one undo entry per item that changed something, two items for one image two entries |
 | `undo` / `redo` | `path` | New History position |
 | `render_preview` | `path`, `max_size=1024`, `inline?`, `output?`, `overwrite=false`, `marks?` | JPEG path + width/height; waits until ART's processing queue drains (30 s, else `timeout`). The editor's preview (~600 px wide, whole frame, uncropped) shrunk to fit `max_size`, never enlarged. `marks`: as 6.1, on the whole frame (its size from `status`); `warnings` only when there are any |
-| `open_image` | `path`, `profile?` | ART's name for it, `already_open`, `profile_applied`; returns once ART has loaded it (60 s, else `timeout`) and, with `profile`, applied it |
+| `open_image` | `path?` or `paths?` (1 to 50), `profile?` | ART's name for it, `already_open`, `profile_applied`; returns once ART has loaded it (60 s, else `timeout`) and, with `profile`, applied it. With `paths` each image in turn, waiting for each to load, with the same `profile` (checked once before any image is opened): `items`, one `{path, already_open, profile_applied}` or `{path, error}` per path in request order (`path` as given; no null fields) and `failed`; an image that fails (`not_found`, `timeout`, ART's refusal of the profile) doesn't stop the others. Both or neither of `path` and `paths`, an empty list or more than 50 is `out_of_range` |
 | `save_sidecar` | `path` | The sidecar written (editor's own save), null when ART keeps profiles in its cache only; `write_failed` when nothing was written |
 | `queue_export` | `path`, `folder?`, `format?`, `name?`, `quality?`, `bit_depth?`, `profile?` | `queued` (entries in ART's export queue), `running`. Queues the open image through the GUI's own batch queue with its current profile (no sidecar written); output as `export_image` (named `-1`, `-2` when taken: ART's rule), `profile` an `.arp` over the working profile |
 | `queue_start` | none | `running`, `already_running`; `empty_queue` when nothing is queued |
@@ -1039,7 +1089,7 @@ Assistants. The Live server never launches ART.
 | `describe_adjustments` | none | As Render server |
 | `inspect_image` | `path`, `tags?` | As Render server (Python + exiftool; no C++); `frame_width`/`frame_height` come from `status`, null until the editor has the size |
 | `inspect_images` | `paths`, `tags?` | As Render server's (1 to 100 images in one call, one `{path, metadata, error}` each, one exiftool run); the images are matched against one `status` reply (`not_open` per image), `frame_width`/`frame_height` from it, null until the editor has the size (there is no `frame` option: nothing is measured) |
-| `sample_spots` | `path`, `spots`, `size=32`, `space="working"` | As Render server, from the open editor (4.1) |
+| `sample_spots` | `path`, `spots` (1 to 64), `size=32`, `space="working"` | As Render server, from the open editor (4.1); more than 16 spots are asked for in several requests, one after the other (the op takes 16) |
 | `image_stats` | `path?` or `paths?` (1 to 50), `max_size=1024`, `histogram=false`, `detail?`, `region?`, `bins?` | As Render server, from the editor's preview; with `paths` one preview per image in turn, a failing image is its item's `error` (4.2) |
 
 - `get_profile` returns the profile as the editor holds it (`ipc->getParams`,
@@ -1053,7 +1103,7 @@ Assistants. The Live server never launches ART.
   `unsupported`), so those resolved values are listed as changed even when the
   user changed nothing. Paths go to ART absolute but unresolved (links and `subst` drives
   as given), because ART matches the name it opened the file under.
-- History: one entry per `edit_profile` (per image with `paths`); ART shows it as
+- History: one entry per `edit_profile` (per image with `paths`, per item with `items`); ART shows it as
   `ARP changed | Agent: <tools touched>` (its paste-entry prefix). A raw
   edit ART can't load is rejected (`bad_request`) before anything changes:
   ART tries the partial profile on a copy first. `[Version]` can't be

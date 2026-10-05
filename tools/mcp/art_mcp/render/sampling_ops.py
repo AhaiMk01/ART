@@ -1,4 +1,5 @@
-"""Sampling operations: sample_spots (art-cli's fork-only ``-x``) and image_stats."""
+"""Sampling operations: sample_spots (art-cli's fork-only ``-x``, runs of up to 16
+spots) and image_stats."""
 
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -27,7 +28,10 @@ from art_mcp.sampling import (
     StatsItem,
     check_spots,
     check_stats_call,
+    covering,
+    merge_samples,
     parse_spots_output,
+    spot_runs,
     stats_detail,
 )
 from art_mcp.sampling import image_stats as compute_stats
@@ -47,7 +51,39 @@ def sample_spots(
     with session.image(path) as wp:
         frame = session.whole_frame(wp)
         check_spots(points, size, space, (frame.w, frame.h), render_error)
+        return sample_in_runs(session, wp, points, size, space)
+
+
+def sample_in_runs(
+    session: RenderSession,
+    wp: WorkingProfile,
+    points: list[tuple[int, int]],
+    size: int,
+    space: str,
+) -> SpotSamples:
+    """Sample ``points`` (up to ``MAX_SPOTS_PER_CALL``) of an open image's working
+    profile in art-cli runs of at most ``MAX_SPOTS`` spots, up to
+    ``session.cli.max_processes`` at once, and combine them in request order. A
+    failing run fails the whole call with its error, naming the spots it covered
+    (the first such run in request order). Call with the image's lock held."""
+    runs = spot_runs(len(points))
+    if len(runs) == 1:
         return sample_working_profile(session, wp, points, size, space)
+
+    def sample(run: range) -> SpotSamples:
+        return sample_working_profile(session, wp, points[run.start : run.stop], size, space)
+
+    with ThreadPoolExecutor(max_workers=max(1, session.cli.max_processes)) as pool:
+        futures = [pool.submit(sample, run) for run in runs]
+        parts = []
+        for run, future in zip(runs, futures, strict=True):
+            try:
+                parts.append(future.result())
+            except RenderError as e:
+                for pending in futures:
+                    pending.cancel()
+                raise render_error(e.code, f"{e.message} ({covering(run, len(points))})") from e
+    return merge_samples(parts)
 
 
 def sample_working_profile(
@@ -57,8 +93,9 @@ def sample_working_profile(
     size: int,
     space: str,
 ) -> SpotSamples:
-    """Sample ``points`` of an open image's working profile (call with the
-    image's lock held; the request is already checked)."""
+    """Sample ``points`` (at most ``MAX_SPOTS``) of an open image's working
+    profile in one art-cli run (call with the image's lock held; the request
+    is already checked)."""
     previews = session.previews
     profile = previews.new_file("profile", ".arp")
     try:

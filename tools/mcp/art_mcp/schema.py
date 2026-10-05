@@ -602,6 +602,15 @@ one (compact: ``art_mcp.compactschema``), its models defined once under
 `$defs`."""
 
 
+class EditItem(CompactModel):
+    """One image's own edit in an edit_profile call with `items`: the same
+    `adjustments` and `raw_edits` as the call takes for `path`."""
+
+    path: str
+    adjustments: AdjustmentsArg = None
+    raw_edits: list[RawEdit] | None = None
+
+
 class AdjustmentError(Exception):
     def __init__(self, code: Literal["out_of_range", "unknown_key"], message: str) -> None:
         super().__init__(message)

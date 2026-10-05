@@ -19,14 +19,18 @@
   ``ART-SPOTS`` line: spot i has avg ``[x, y, size]`` and max
   ``[x + 1, y + 1, size + 1]``, on the fake 6000x4000 frame. With
   ``FAKE_SPOTS=release`` it acts like a release art-cli (help, exit -1);
-  with ``FAKE_SPOTS=silent`` it exits 0 printing nothing.
+  with ``FAKE_SPOTS=silent`` it exits 0 printing nothing. With
+  ``FAKE_SPOTS_FAIL_X=<x>`` a ``-x`` run that has a spot at that x fails (exit
+  3); with ``FAKE_SPOTS_SLOW_X=<x>`` a run whose first spot is at that x
+  answers a second late.
 - With ``FAKE_PNG_SOURCE`` set, an 8-bit PNG output (``-n -b8``) is a copy of
   that file, so a test chooses the pixels ``image_stats`` sees. With
   ``FAKE_PNG_DIR`` set to a folder, the copy is of ``<image stem>.png`` in it
   when that exists (so each image has its own pixels, whatever the
   ``FAKE_PNG_SOURCE``); an image with neither gets a bare PNG header, which
   does not decode.
-- With ``FAKE_ARGS_LOG`` set, the command line is appended there as a JSON line.
+- With ``FAKE_ARGS_LOG`` set, the command line is appended there as a JSON line
+  (under a lock file: runs that start together don't interleave their lines).
 - With ``FAKE_DEFAULT_PROFILE`` set, ``-d`` stands for that file's text instead
   of the small default profile.
 - With ``FAKE_REAL_JPEG`` set, a JPEG output is a decodable image: the fake
@@ -41,6 +45,7 @@ import json
 import os
 import shutil
 import sys
+import time
 from pathlib import Path
 
 DEFAULT_PROFILE = """[Version]
@@ -77,8 +82,19 @@ if args == ["-v"]:
 
 
 if os.environ.get("FAKE_ARGS_LOG"):
-    with open(os.environ["FAKE_ARGS_LOG"], "a") as log:
-        log.write(json.dumps(args) + "\n")
+    lock = os.environ["FAKE_ARGS_LOG"] + ".lock"
+    while True:
+        try:
+            held = os.open(lock, os.O_CREAT | os.O_EXCL)
+            break
+        except FileExistsError:
+            time.sleep(0.005)
+    try:
+        with open(os.environ["FAKE_ARGS_LOG"], "a") as log:
+            log.write(json.dumps(args) + "\n")
+    finally:
+        os.close(held)
+        os.unlink(lock)
 
 
 def value(flag):
@@ -105,6 +121,12 @@ if "-x" in args:
             }
             for x, y in zip(coords[::2], coords[1::2], strict=True)
         ]
+        xs = coords[::2]
+        if os.environ.get("FAKE_SPOTS_FAIL_X") in xs:
+            print("sampling failed", file=sys.stderr)
+            sys.exit(3)
+        if os.environ.get("FAKE_SPOTS_SLOW_X") == xs[0]:
+            time.sleep(1)
         print("some banner line")
         print("ART-SPOTS " + json.dumps({"width": 6000, "height": 4000, "spots": spots}))
     sys.exit(0)

@@ -39,6 +39,8 @@ from art_mcp.schema import (
     PPVERSION,
     TOOLS,
     Adjustments,
+    AdjustmentsArg,
+    EditItem,
     RawEdit,
     art_default,
     crop_bounds_problem,
@@ -133,12 +135,13 @@ class EditResult(BaseModel):
         return data
 
 
-MAX_EDIT_PATHS = 50
-"""The most images one ``edit_profile`` call takes."""
+MAX_BATCH_IMAGES = 50
+"""The most images one batch call (``edit_profile``, ``reset_profile``,
+``open_image`` with several) takes."""
 
 
 class ImageEdit(BaseModel):
-    """One image's part of an ``edit_profile`` call with `paths`."""
+    """One image's part of an ``edit_profile`` call with `paths` or `items`."""
 
     path: str
     """The path as requested."""
@@ -155,8 +158,8 @@ class ImageEdit(BaseModel):
 
 
 class EditBatch(BaseModel):
-    """What an ``edit_profile`` call with `paths` reports: one entry per image,
-    not each one's change set."""
+    """What an ``edit_profile`` call with `paths` or `items` reports: one entry
+    per image, not each one's change set."""
 
     items: list[ImageEdit]
     """One per requested path, in request order."""
@@ -165,7 +168,7 @@ class EditBatch(BaseModel):
 
 class EditOutput(RootModel[EditResult | EditBatch]):
     """The output schema of ``edit_profile``: a single image's ``EditResult``
-    (with `path`) or an ``EditBatch`` (with `paths`). It is an object either
+    (with `path`) or an ``EditBatch`` (with `paths` or `items`). It is an object either
     way, which is what a tool's output schema must be."""
 
     model_config = ConfigDict(json_schema_extra={"type": "object"})
@@ -183,26 +186,74 @@ def failed_edit(path: str, error: str) -> ImageEdit:
     return ImageEdit(path=path, changed=None, error=error)
 
 
-def check_edit_targets(
-    path: str | None, paths: list[str] | None, full: bool, error: Callable[[Any, str], Exception]
+def check_batch_paths(
+    path: str | None, paths: list[str] | None, error: Callable[[Any, str], Exception]
 ) -> list[str] | None:
-    """The images an ``edit_profile`` call is for: ``paths``, or None for the
-    one ``path``. Raises ``error("out_of_range", ...)`` unless exactly one of
-    the two is given, ``paths`` holds 1 to ``MAX_EDIT_PATHS`` entries and
-    ``full`` isn't asked of several images."""
+    """The images a batch call is for: ``paths``, or None for the one ``path``.
+    Raises ``error("out_of_range", ...)`` unless exactly one of the two is
+    given and ``paths`` holds 1 to ``MAX_BATCH_IMAGES`` entries."""
     if path is not None and paths is not None:
         raise error("out_of_range", "give path or paths, not both")
     if path is None and paths is None:
         raise error("out_of_range", "give path or paths: one image or several")
     if paths is None:
         return None
-    if full:
-        raise error("out_of_range", "full is for one image: use path, not paths")
     if not paths:
         raise error("out_of_range", "paths is empty")
-    if len(paths) > MAX_EDIT_PATHS:
-        raise error("out_of_range", f"paths has {len(paths)} entries; the most one call takes is {MAX_EDIT_PATHS}")
+    if len(paths) > MAX_BATCH_IMAGES:
+        raise error("out_of_range", f"paths has {len(paths)} entries; the most one call takes is {MAX_BATCH_IMAGES}")
     return paths
+
+
+def check_edit_targets(
+    path: str | None, paths: list[str] | None, full: bool, error: Callable[[Any, str], Exception]
+) -> list[str] | None:
+    """The images an ``edit_profile`` call with `path` or `paths` is for
+    (``check_batch_paths``), and ``full`` isn't asked of several."""
+    targets = check_batch_paths(path, paths, error)
+    if targets is not None and full:
+        raise error("out_of_range", "full is for one image: use path, not paths")
+    return targets
+
+
+def edit_requests(
+    path: str | None,
+    paths: list[str] | None,
+    items: list[EditItem] | None,
+    adjustments: AdjustmentsArg,
+    raw_edits: list[RawEdit] | None,
+    full: bool,
+    error: Callable[[Any, str], Exception],
+) -> list[EditItem] | None:
+    """The edits an ``edit_profile`` call is for: None for the one ``path``,
+    else one ``EditItem`` per image, in request order: those of ``items``, or
+    for each of ``paths`` the call's own ``adjustments`` and ``raw_edits``.
+    Raises ``error("out_of_range", ...)`` unless exactly one of ``path``,
+    ``paths`` and ``items`` is given, ``paths`` or ``items`` holds 1 to
+    ``MAX_BATCH_IMAGES`` entries, ``full`` isn't asked of several images and
+    ``items`` don't come with a call-wide edit."""
+    given = [name for name, value in (("path", path), ("paths", paths), ("items", items)) if value is not None]
+    if not given:
+        raise error(
+            "out_of_range",
+            "give path or paths, or items: one image, several with the same edit, or one edit per image",
+        )
+    if items is None:
+        targets = check_edit_targets(path, paths, full, error)
+        if targets is None:
+            return None
+        return [EditItem(path=target, adjustments=adjustments, raw_edits=raw_edits) for target in targets]
+    if len(given) > 1:
+        raise error("out_of_range", f"give path, paths or items, not {' and '.join(given)}")
+    if full:
+        raise error("out_of_range", "full is for one image: use path, not items")
+    if adjustments or raw_edits:
+        raise error("out_of_range", "with items, adjustments and raw_edits go in each item, not beside them")
+    if not items:
+        raise error("out_of_range", "items is empty")
+    if len(items) > MAX_BATCH_IMAGES:
+        raise error("out_of_range", f"items has {len(items)} entries; the most one call takes is {MAX_BATCH_IMAGES}")
+    return items
 
 
 def _arp_value(value: Any) -> str:

@@ -44,21 +44,33 @@ spots in the picture. A frame without any film base visible is fine.
      (what the server did on its own), `drawn` (curves), `warnings`; `created`
      names a new `color_correction` region or mask shape (the keys ART fills
      in at their defaults are counted there, not listed). It is
-     the check that the edit did what you meant; no `get_profile` is needed.
+     the check that the edit did what you meant, with one blind spot: a value
+     already at its default never shows (a linear tone curve, `exposure`
+     disabled on a profile that has it disabled). To confirm a base edit took,
+     `get_profile(path, groups=["Exposure", "ToneCurve", "Film Negative"])` or
+     the per-group `keys` counts of the preset you save from it
+     (`save_partial_profile`) say so.
 3. **Orientation.** Coarse rotation is per frame (frames of one roll differed:
    90 vs 270). `render_preview(max_size=1024, inline=true)` returns the image
    in the result, nothing to read (without `inline` it returns a JPEG path: Read it).
    For several frames, one `contact_sheet(images, record=false, thumb_size=700)`
    and one read show them all (see Pitfalls).
    If wrong, set `[Coarse Transformation] Rotate=90` (0, 90, 180, 270) and preview again.
-4. **Crop off the film holder/border** with `adjustments.crop` `{x, y, w, h}`
-   in frame pixels (after coarse rotation). Do this BEFORE `image_stats`: the
-   white holder dominated clipping (32% `clipped_high` uncropped). Preview px
-   to frame px: `scale = frame_width / preview_width`, with the frame size
-   from any `sample_spots` result (`width`, `height`); the preview of an
-   uncropped image shows the whole frame, so `x = px * scale`. Re-preview.
-5. **Sample neutrals** with `sample_spots(spots, size=32..64)`, 16 per call, in
-   frame pixels, several calls (aim for 20+ candidates). Choose neutrals by
+4. **Crop off the film holder/border** with `adjustments.crop` `{enabled: true,
+   fixed_ratio: false, x, y, w, h}` in frame pixels (after coarse rotation).
+   Do this BEFORE `image_stats`: the white holder dominated clipping (32%
+   `clipped_high` uncropped). Find the edge by eye on a preview or measure it:
+   `sample_spots` along each of the 4 sides (a few spots per side, a small
+   `size`, one call) shows where the holder level (about `g` < 200 in the
+   negative's linear values on one roll's scans) jumps to picture level (above
+   about 600); crop inside the four jumps with a margin, then preview and look
+   (no holder left, no picture cut off). Preview px to frame px: `scale =
+   frame_width / preview_width`, with the frame size from any `sample_spots`
+   result (`width`, `height`); the preview of an uncropped image shows the
+   whole frame, so `x = px * scale`.
+5. **Sample neutrals** with `sample_spots(spots, size=32..64)`: up to 64 spots
+   per call (more is refused), in frame pixels, so a frame's 20+ candidates go
+   in one call. Choose neutrals by
    MATERIAL, not by how grey they look (list in reference.md): white paint,
    bare/galvanised metal, concrete, white trainers, midday overcast sky are good;
    natural stone, black fabric, glass, foliage, painted machinery, and sky at
@@ -70,7 +82,8 @@ spots in the picture. A frame without any film base visible is fine.
    values. To map a preview pixel to frame pixels, see Pitfalls.
    To find candidates faster, run `suggest_neutrals(path)` once the inversion
    and the crop are set: it proposes flat, low-saturation cells spread from
-   dark to light, in the frame pixels `sample_spots` takes (on the test roll
+   dark to light, in the frame pixels `sample_spots` takes (hand its
+   candidates over unchanged; on the test roll
    about twice the hit rate of a regular grid, on frames from other rolls only
    slightly better). It narrows where to look and cannot
    tell the material: look at the preview, drop what is not white paint, metal
@@ -107,9 +120,10 @@ spots in the picture. A frame without any film base visible is fine.
    level.
 8. **Check**: `image_stats` (crop is applied; `paths` takes a whole roll in one
    call, and `detail="compact"` keeps just clipping and the percentiles 0.1, 50,
-   99.9). Raise `L` in steps (11800 ->
-   15000 -> ...) until `clipped_high` is about 0 in every channel; `lum` p99.9
-   of 220-245 is typical. Lamps and speculars in a lit interior clip 0.4 to 1%
+   99.9). The shapes differ: with `path` the statistics are the result's top
+   level, with `paths` they are under `items[i].stats`. Raise `L` in steps
+   (11800 -> 15000 -> ...) until `clipped_high` is about 0 in every channel;
+   `lum` p99.9 of 220-245 is typical. Lamps and speculars in a lit interior clip 0.4 to 1%
    at any `L`, and that is fine: judge `clipped_high` on a `region` away from
    them (`{x, y, w, h}`, fractions of the image as in `render_preview`), or
    accept it. A bright sky clipping one channel (blue first) is a trade-off
@@ -152,15 +166,25 @@ Do each thing once, not per frame: the base settings are identical for every
 frame, the ratios for the whole roll once fitted, and a group's output level
 and black adjustments within the group. So reset any frame that loaded a
 sidecar (step 3; a preset sets only the keys it holds, old ones would stay),
-and after the first frame's base edit `save_partial_profile(path,
+in one call, `reset_profile(paths=[...], to="default")` (likewise
+`open_image(paths=[...], profile=...)` for opening), and after the first
+frame's base edit `save_partial_profile(path,
 dest="base.arp", vs="default")` and give it to the others in one call,
 `apply_preset(paths=[the rest], profile="base.arp")` (one identical one-off
 edit: `edit_profile(paths=[...], adjustments=...)`); after the fit, apply the
 ratios the same way. What stays per frame: rotation, crop, `RefInput` (the
 white balance, on that frame's own neutral line) and fine tuning.
 `apply_preset(..., exclude=[...])` drops groups or `Group/Key` entries of the
-preset first: use it (for example `Exposure/Compensation`, `ToneCurve`) when a
-group preset must not overwrite a frame's own EV or curve.
+preset first: use it when a group preset must not overwrite what a frame
+already has of its own (step 3 below lists the keys).
+
+The per-frame values (white balance `ref_input`, `L`, black offsets, black
+point, EV, crop) differ from frame to frame: send them with ONE
+`edit_profile(items=[{path, adjustments, raw_edits}, ...])`, each image its
+own edit, not one call per frame and value (one roll run made about 140
+`edit_profile` calls, mostly per-frame values); the same edit for many frames is
+`paths=[...]`. Measure with one `image_stats(paths=[...])`, set the new
+values with one `items` call, and repeat.
 
 Keep a record with `contact_sheet(images, folder=<a work folder for the roll,
 not the exports folder>, label=...)` (it creates `sheets/` in `folder`): one
@@ -204,7 +228,10 @@ same frames of two passes side by side (a few frames: `images`).
    the group's reference green (step 4; reference.md, "Reference point on the
    neutral line"). So exclude `RefInput`, rotation and crop; the
    representative's EV (`Exposure/Compensation`) is in it too, exclude it when
-   frames get their own. Read the returned `keys` (per-group counts; `verbose=true` lists them) and the file. Open each
+   frames get their own. Its curve, black offset and `RefOutput` are the
+   group's STARTING values: a frame tunes its own (step 3), and a preset
+   applied after that overwrites them. Read the returned `keys` (per-group
+   counts; `verbose=true` lists them) and the file. Open each
    frame from it (step 3), or use it with `art-cli -p` / ART's profile loading.
 3. Each other frame: look at `profile_from` of every `open_image` result:
    `"sidecar"` means the user's old edits came along. Start every frame of the
@@ -215,16 +242,24 @@ same frames of two passes side by side (a few frames: `images`).
    sidecar, never whatever was lying there. The preset carries the base
    settings, the roll's ratios, the group's output level and the black
    adjustments: no need to repeat those `edit_profile`s. Then per frame:
-   rotation (preview first), crop, `ref_input` from that frame's own neutrals
-   (a few spots; a neutral's `avg` or a point on the roll's line) with
-   `ref_output = [L, L, L]` of the group in the same request (`ref_input`
-   alone re-derives the level from the frame's current look, not the group's
+   rotation (preview first), crop (when the holder moves only a little between
+   frames, one common conservative crop inside every frame's border does for the
+   roll, `edit_profile(paths=[...], adjustments={"crop": ...})`; on one roll the
+   left border ranged 170 to 270 px and the top 150 to 180), `ref_input` from
+   that frame's own neutrals (a few spots; a neutral's `avg` or a point on the
+   roll's line) with `ref_output = [L, L, L]` of the group in the same request
+   (`ref_input` alone re-derives the level from the frame's current look, not the group's
    `L`), output level and black point re-checked with `image_stats`. To give a
    frame its group's settings without losing its crop and reference spot
    (frames already open and set up, a preset changed since), use
-   `apply_preset(paths=[...], profile="<group preset>.arp")` on the open
-   frames, in one call for the whole group, rather than reopening them: the
-   preset's keys win and everything else of the frame stays.
+   `apply_preset(paths=[...], profile="<group preset>.arp", exclude=[...])` on
+   the open frames, in one call for the whole group, rather than reopening
+   them: the preset's keys win and everything else of the frame stays. The
+   preset's keys include the ones a frame tuned for itself, and without
+   `exclude` they overwrite its own curve (black point), level and EV: exclude
+   what is per frame, e.g. `["ToneCurve", "Exposure/Compensation", "Film
+   Negative/RefOutput", "ColorCorrection"]` (the black offset), less what the
+   frames did not tune.
 4. Every frame needs its own white balance, even in one roll: the exponents
    carry over, the light does not (blue offsets ranged +0.04..+0.39 across one
    roll: morning, afternoon, shade, greenhouse). Sample neutrals in the frame,
@@ -257,7 +292,7 @@ same frames of two passes side by side (a few frames: `images`).
    black offset in `color_correction`. When a frame's `L` differs from the
    frame the offset and black point were set on, scale both (reference.md,
    "Changing L after the black adjustments"). Mixed light: balance on the
-   subject (reference.md).
+   subject (reference.md, "Mixed light"; a real lamp colour is kept).
 
 ## Pitfalls
 

@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 from mcp.client.client import Client
+from test_artcli_run import peak_overlap
 
 from art_mcp.metadata import Exiftool
 from art_mcp.preview import PreviewFolder
@@ -12,6 +13,7 @@ from art_mcp.render.artcli import ArtCli
 from art_mcp.render.server import build_server
 
 FAKE = Path(__file__).with_name("fake_artcli.py")
+CTL = Path(__file__).with_name("fake_artcli_ctl.py")
 pytestmark = pytest.mark.anyio
 
 
@@ -393,6 +395,153 @@ async def test_reset_to_sidecar_without_one_is_not_found(server, image):
     assert "not_found" in result.content[0].text
 
 
+# -- reset_profile(paths): several images at once ------------------------------------
+
+
+@pytest.fixture
+def roll(tmp_path):
+    """Three raws; the first two have a sidecar (Compensation=1)."""
+    folder = tmp_path / "roll"
+    folder.mkdir()
+    frames = []
+    for n in range(3):
+        frame = folder / f"FILM_{n}.ARW"
+        frame.write_bytes(b"raw")
+        if n < 2:
+            frame.with_name(frame.name + ".arp").write_text("[Exposure]\nEnabled=true\nCompensation=1\n")
+        frames.append(frame)
+    return frames
+
+
+async def open_roll(client, roll):
+    for frame in roll:
+        opened = await client.call_tool("open_image", {"path": str(frame)})
+        assert not opened.is_error, opened.content
+
+
+async def edit_roll(client, roll, value="3"):
+    result = await client.call_tool(
+        "edit_profile", {"paths": [str(f) for f in roll], "raw_edits": [set_compensation(value)]}
+    )
+    assert not result.is_error, result.content
+
+
+async def test_reset_of_several_images_reloads_each_and_reports_one_compact_entry_per_image(server, roll):
+    paths = [str(f) for f in roll]
+    async with Client(server) as client:
+        await open_roll(client, roll)
+        await edit_roll(client, roll)
+        to_default = await client.call_tool("reset_profile", {"paths": paths, "to": "default"})
+        after_default = [await compensation(client, f) for f in roll]
+        await edit_roll(client, roll)
+        to_sidecar = await client.call_tool("reset_profile", {"paths": paths, "to": "sidecar"})
+        after_sidecar = [await compensation(client, f) for f in roll]
+
+    assert not to_default.is_error, to_default.content
+    assert to_default.structured_content == {
+        "items": [{"path": p, "profile_from": "default"} for p in paths], "failed": 0,
+    }  # in request order, each with the path as given
+    assert after_default == [0, 0, 0]
+    assert not to_sidecar.is_error, to_sidecar.content
+    ok1, ok2, no_sidecar = to_sidecar.structured_content["items"]
+    assert (ok1, ok2) == ({"path": paths[0], "profile_from": "sidecar"}, {"path": paths[1], "profile_from": "sidecar"})
+    assert set(no_sidecar) == {"path", "error"} and no_sidecar["error"].startswith("not_found")
+    assert to_sidecar.structured_content["failed"] == 1
+    assert after_sidecar == [1, 1, 3]  # the third one has no sidecar: its working profile is as it was
+
+
+async def test_an_image_that_is_not_open_is_its_own_reset_error_and_the_others_still_reset(server, roll):
+    async with Client(server) as client:
+        await open_roll(client, roll[:1] + roll[2:])  # roll[1] is not open
+        await edit_roll(client, roll[:1] + roll[2:])
+        result = await client.call_tool("reset_profile", {"paths": [str(f) for f in roll], "to": "default"})
+        after = [await compensation(client, f) for f in (roll[0], roll[2])]
+
+    ok1, missing, ok2 = result.structured_content["items"]
+    assert not result.is_error, result.content
+    assert set(missing) == {"path", "error"} and missing["error"].startswith("not_open")
+    assert (ok1["profile_from"], ok2["profile_from"]) == ("default", "default")
+    assert result.structured_content["failed"] == 1
+    assert after == [0, 0]
+
+
+async def test_the_same_image_twice_in_a_reset_is_reset_twice(server, image):
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await client.call_tool("reset_profile", {"paths": [str(image), str(image)], "to": "default"})
+
+    assert [i["profile_from"] for i in result.structured_content["items"]] == ["default", "default"]
+
+
+@pytest.mark.parametrize(
+    ("args", "text"),
+    [
+        ({"path": "a.ARW", "paths": ["a.ARW"]}, "not both"),
+        ({}, "path or paths"),
+        ({"paths": []}, "paths is empty"),
+        ({"paths": [f"{i}.ARW" for i in range(51)]}, "51 entries; the most one call takes is 50"),
+    ],
+)
+async def test_a_bad_choice_of_images_to_reset_is_out_of_range_before_anything_changes(server, image, args, text):
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        await edit_roll(client, [image], "3")
+        result = await client.call_tool("reset_profile", {"to": "default", **args})
+        value = await compensation(client, image)
+
+    assert result.is_error and "out_of_range" in result.content[0].text and text in result.content[0].text
+    assert value == 3
+
+
+async def test_reset_of_several_images_reports_progress_per_image(server, roll):
+    seen = []
+
+    async def on_progress(progress, total, message):
+        seen.append((progress, total))
+
+    async with Client(server) as client:
+        await open_roll(client, roll)
+        await client.call_tool(
+            "reset_profile", {"paths": [str(f) for f in roll], "to": "default"}, progress_callback=on_progress
+        )
+
+    assert sorted(seen) == [(1, 3), (2, 3), (3, 3)]
+
+
+def pooled_server(tmp_path, max_processes=2):
+    """A server whose art-cli can be slowed down and watched (``FAKE_ARTCLI_LOG``, ``FAKE_ARTCLI_SLEEP``)."""
+    config = tmp_path / "config"
+    config.mkdir(exist_ok=True)
+    cli = ArtCli((sys.executable, str(CTL)), max_processes=max_processes)
+    return build_server(cli, config, PreviewFolder(tmp_path / "previews"))
+
+
+async def test_reset_of_several_images_runs_through_the_bounded_pool(tmp_path, roll, monkeypatch):
+    log = tmp_path / "runs"
+    log.mkdir()
+    async with Client(pooled_server(tmp_path)) as client:
+        await open_roll(client, roll)
+        monkeypatch.setenv("FAKE_ARTCLI_LOG", str(log))
+        monkeypatch.setenv("FAKE_ARTCLI_SLEEP", "0.3")
+        result = await client.call_tool("reset_profile", {"paths": [str(f) for f in roll] * 2, "to": "default"})
+
+    assert not result.is_error, result.content
+    assert result.structured_content["failed"] == 0
+    assert peak_overlap(log) == (6, 2)  # six resolves, two at a time: the cap, and in parallel
+
+
+async def test_the_tool_describes_paths_and_its_two_result_shapes_for_reset(server):
+    async with Client(server) as client:
+        tools = await client.list_tools()
+
+    tool = next(t for t in tools.tools if t.name == "reset_profile")
+    assert tool.input_schema["required"] == ["to"]  # one of path, paths: checked by the tool
+    assert {"type": "array", "items": {"type": "string"}} in tool.input_schema["properties"]["paths"]["anyOf"]
+    assert "`paths`" in tool.description and "50" in tool.description
+    assert {"ResetResult", "ResetBatch", "ResetItem"} <= tool.output_schema["$defs"].keys()
+    assert tool.output_schema["type"] == "object"
+
+
 FAKE_EXIFTOOL = Path(__file__).with_name("fake_exiftool.py")
 
 
@@ -515,6 +664,24 @@ async def test_open_image_still_opens_when_metadata_cannot_be_read(tmp_path, ima
         opened = await client.call_tool("open_image", {"path": str(image)})
 
     assert not opened.is_error and opened.structured_content["metadata"] is None
+
+
+async def test_open_image_of_several_images_keeps_each_ones_metadata_summary(tmp_path, tagged):
+    other = tagged.with_name("IMG_2.ARW")
+    other.write_bytes(b"raw")  # exiftool has nothing on this one: no summary, but it opens
+    async with Client(exif_server(tmp_path)) as client:
+        opened = await client.call_tool("open_image", {"paths": [str(tagged), str(other)]})
+
+    first, second = opened.structured_content["items"]
+    assert not opened.is_error, opened.content
+    assert first["metadata"] == {
+        "camera": "SONY ILCE-7M3",
+        "lens": "FE 35mm F1.8",
+        "capture_date": "2025-12-28T12:04:04",
+        "width": 6000,
+        "height": 4000,
+    }
+    assert second == {"path": str(other), "profile_from": "default"}  # no `metadata`, no `error`
 
 
 def error_text(result):

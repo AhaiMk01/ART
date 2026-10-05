@@ -3,14 +3,17 @@ import json
 import pytest
 
 from art_mcp.profile import (
+    EditItem,
     ImageEdit,
     RawEdit,
     UnknownKey,
     WorkingChanges,
+    check_batch_paths,
     check_edit_targets,
     check_exclusions,
     drop_excluded,
     edit_item,
+    edit_requests,
     edit_result,
     failed_edit,
     read_format,
@@ -253,6 +256,75 @@ def test_edit_targets_are_one_path_or_a_list_of_up_to_fifty():
 def test_bad_edit_targets_are_out_of_range(path, paths, full, text):
     with pytest.raises(ValueError, match=f"out_of_range: .*{text}"):
         check_edit_targets(path, paths, full, oops)
+
+
+def test_batch_paths_are_one_path_or_a_list_of_up_to_fifty():
+    assert check_batch_paths("a.ARW", None, oops) is None
+    assert check_batch_paths(None, ["a.ARW", "b.ARW"], oops) == ["a.ARW", "b.ARW"]
+    assert check_batch_paths(None, [f"{i}.ARW" for i in range(50)], oops) is not None
+
+
+@pytest.mark.parametrize(
+    ("path", "paths", "text"),
+    [
+        ("a.ARW", ["b.ARW"], "not both"),
+        (None, None, "path or paths"),
+        (None, [], "paths is empty"),
+        (None, [f"{i}.ARW" for i in range(51)], "51 entries; the most one call takes is 50"),
+    ],
+)
+def test_bad_batch_paths_are_out_of_range(path, paths, text):
+    with pytest.raises(ValueError, match=f"out_of_range: .*{text}"):
+        check_batch_paths(path, paths, oops)
+
+
+SHARED = {"exposure": {"compensation": 1}}
+SHARED_RAW = [edit("Exposure", "Black", "5")]
+
+
+def test_edit_requests_are_the_one_path_none_or_one_edit_per_image():
+    assert edit_requests("a.ARW", None, None, SHARED, None, False, oops) is None
+    # paths: every image gets the call's own edit; items: each its own
+    assert edit_requests(None, ["a.ARW", "b.ARW"], None, SHARED, SHARED_RAW, False, oops) == [
+        EditItem(path="a.ARW", adjustments=SHARED, raw_edits=SHARED_RAW),
+        EditItem(path="b.ARW", adjustments=SHARED, raw_edits=SHARED_RAW),
+    ]
+    items = [EditItem(path="a.ARW", adjustments=SHARED), EditItem(path="b.ARW", raw_edits=SHARED_RAW)]
+    assert edit_requests(None, None, items, None, None, False, oops) == items
+    assert edit_requests(None, None, items * 25, None, None, False, oops) is not None  # fifty
+
+
+@pytest.mark.parametrize(
+    ("given", "text"),
+    [
+        ({}, "path or paths, or items"),
+        ({"path": "a.ARW", "paths": ["a.ARW"]}, "not both"),  # the call before items
+        ({"path": "a.ARW", "items": [EditItem(path="a.ARW")]}, "not path and items"),
+        ({"paths": ["a.ARW"], "items": [EditItem(path="a.ARW")]}, "not paths and items"),
+        ({"path": "a.ARW", "paths": ["a.ARW"], "items": [EditItem(path="a.ARW")]}, "not path and paths and items"),
+        ({"items": []}, "items is empty"),
+        ({"items": [EditItem(path="a.ARW")] * 51}, "items has 51 entries; the most one call takes is 50"),
+        ({"items": [EditItem(path="a.ARW")], "full": True}, "full is for one image"),
+        ({"items": [EditItem(path="a.ARW")], "adjustments": SHARED}, "in each item"),
+        ({"items": [EditItem(path="a.ARW")], "raw_edits": SHARED_RAW}, "in each item"),
+    ],
+)
+def test_bad_edit_requests_are_out_of_range(given, text):
+    args = {"path": None, "paths": None, "items": None, "adjustments": None, "raw_edits": None, "full": False}
+    with pytest.raises(ValueError, match=f"out_of_range: .*{text}"):
+        edit_requests(**(args | given), error=oops)
+
+
+def test_an_edit_item_is_a_path_with_its_own_adjustments_and_raw_edits_and_nothing_else():
+    raw = {"group": "Exposure", "key": "Black", "value": "5"}
+    item = EditItem.model_validate({"path": "a.ARW", "adjustments": SHARED, "raw_edits": [raw]})
+
+    assert item.adjustments == SHARED and item.raw_edits == SHARED_RAW
+    assert EditItem(path="a.ARW").adjustments is None
+    with pytest.raises(ValueError):
+        EditItem.model_validate({"path": "a.ARW", "adjusments": SHARED})
+    with pytest.raises(ValueError):
+        EditItem.model_validate({"adjustments": SHARED})
 
 
 def test_exclusions_name_a_group_or_a_group_and_key_of_the_profile():

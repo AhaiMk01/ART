@@ -21,6 +21,9 @@ from art_mcp.render.artcli import Rect, region_rect
 SPACES = ("working", "input")
 MIN_SIZE, MAX_SIZE = 2, 256
 MAX_SPOTS = 16
+"""The most spots one run takes (art-cli's ``-x``, the control channel's ``sample_spots`` op)."""
+MAX_SPOTS_PER_CALL = 64
+"""The most the ``sample_spots`` tool takes in one call: the servers run them in runs of ``MAX_SPOTS``."""
 DEFAULT_SIZE = 32
 SPOTS_PREFIX = "ART-SPOTS "
 
@@ -35,11 +38,13 @@ SKILLS_POINTER = (
 
 SAMPLE_SPOTS_DOC = """Read what ART's own pickers read: linear values of square spots of the image.
 
-`spots`: 1 to 16 {x, y} in whole pixels of the frame (the raw image after
-coarse rotation and the raw border; the same coordinates as [Crop]), each
-the centre of a `size` x `size` square (2 to 256). Outside the frame is
-out_of_range. `space`: "working" = the working profile's working space,
-"input" = camera space.
+`spots`: 1 to 64 spots per call, each {x, y} in whole pixels of the frame (the
+raw image after coarse rotation and the raw border; the same coordinates as
+[Crop]), the centre of a `size` x `size` square (2 to 256). Outside the frame
+is out_of_range. More than 16 are sampled in several runs but come back as one
+result, in request order; if a run fails, so does the call (no partial result)
+and the error says which spots it covered. `space`: "working" = the working
+profile's working space, "input" = camera space.
 
 Mapping a preview pixel (px, py) to the frame: a Render whole-image preview
 shows the crop when one is enabled, so x = crop.x + px * crop.w / preview_w
@@ -65,8 +70,8 @@ def _spot_problem(
         return f"size must be {MIN_SIZE} to {MAX_SIZE}"
     if space not in SPACES:
         return f"space must be one of {', '.join(SPACES)}, not {space!r}"
-    if not 1 <= len(spots) <= MAX_SPOTS:
-        return f"give 1 to {MAX_SPOTS} spots, not {len(spots)}"
+    if not 1 <= len(spots) <= MAX_SPOTS_PER_CALL:
+        return f"give 1 to {MAX_SPOTS_PER_CALL} spots, not {len(spots)}"
     if frame is not None:
         for x, y in spots:
             if not (0 <= x < frame[0] and 0 <= y < frame[1]):
@@ -120,6 +125,24 @@ class SpotSamples(BaseModel):
     spots: list[SpotValues]
 
 
+def spot_runs(count: int) -> list[range]:
+    """Which of ``count`` spots go in each run: consecutive index ranges of at
+    most ``MAX_SPOTS``, in request order."""
+    return [range(start, min(start + MAX_SPOTS, count)) for start in range(0, count, MAX_SPOTS)]
+
+
+def merge_samples(parts: list[SpotSamples]) -> SpotSamples:
+    """One result from the runs' results, in run order: the first one's frame,
+    space and size, every run's spots."""
+    return parts[0].model_copy(update={"spots": [spot for part in parts for spot in part.spots]})
+
+
+def covering(run: range, count: int) -> str:
+    """Which spots (numbered from 1, as the caller counts them) a failed run
+    covered, for the end of its error message."""
+    return f"spots {run.start + 1} to {run.stop} of {count}; no result returned"
+
+
 def parse_spots_output(text: str, size: int, space: str) -> SpotSamples | None:
     """The result from art-cli's output: None when it has no ``ART-SPOTS``
     line (a build without spot sampling); ValueError when the line is
@@ -160,7 +183,10 @@ field with nothing to say (`bins`, `histogram`, `region`) is left out. `paths`
 (1 to 50, instead of `path`): many images in one call, the other arguments the
 same for all; returns `items` (`{path, stats}` or `{path, error}` per image, in
 request order; one that can't be measured doesn't stop the others) and `failed`;
-`detail` then defaults to "compact". `width`/`height`: the whole rendered image.
+`detail` then defaults to "compact". Result shape: with `path` the statistics are
+the result's top level (`r`, `g`, `b`, `lum`, `width`, `height`, ...); with `paths`
+they are under `items[i].stats` (each item `{path, stats}` or `{path, error}`).
+`width`/`height`: the whole rendered image.
 `max_size`: long edge, 1 to 2576. Anything the image shows counts, including a
 border, a mount or bright lamps: crop first (Render applies the working
 profile's crop; Live's preview is uncropped), or give `region` {x, y, w, h},

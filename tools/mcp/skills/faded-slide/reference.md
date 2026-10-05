@@ -46,7 +46,7 @@ Percentiles on the first: blue 67 vs red 23 at p1 but 238 vs 201 at p99 before.
 
 Edge fading leaves bands or corners with a different cast. Measure a grid on a render
 that does NOT yet include the region 2 correction: `render_preview`/`image_stats`
-give no per-patch values, so use `sample_spots` (16 spots a call, `size` 20) on a
+give no per-patch values, so use `sample_spots` (up to 64 spots a call, `size` 20) on a
 grid (e.g. 11 columns x 10 rows, 20 x 20 px patches on a 1024 px preview, converted to
 frame pixels) and compare the channel difference that shows the fault (b - r, after
 region 1). Identify the geometry from where the difference is non-zero. Example slide:

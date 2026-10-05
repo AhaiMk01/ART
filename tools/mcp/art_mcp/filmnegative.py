@@ -36,7 +36,7 @@ BORDER_PERCENT = 20
 """ART's median border cut (``getMedians(input, 20)``)."""
 SPOT_SIZE = 64
 SAMPLE_BATCH = 16
-"""Spots per ``sample_spots`` call (its limit)."""
+"""Spots per sampling run (``MAX_SPOTS``, the most one ``art-cli -x`` or channel request takes)."""
 
 Triple = tuple[float, float, float]
 Group = dict[str, str]

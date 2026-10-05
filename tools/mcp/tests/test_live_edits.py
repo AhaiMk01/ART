@@ -327,6 +327,136 @@ async def test_open_image_gives_up_after_its_timeout(art, editor, tmp_path):
     assert result.is_error and "timeout:" in text_of(result)
 
 
+# -- open_image(paths): several images, one after the other ---------------------------
+
+
+@pytest.fixture
+def newcomers(editor, tmp_path):
+    """Two images ART can open (and takes a moment to load), next to the open `a.ARW`."""
+    paths = [str(tmp_path / "new1.ARW"), str(tmp_path / "new2.ARW")]
+    editor.loadable.update(paths)
+    editor.open_delay = 0.3
+    return paths
+
+
+def opened_in_order(art):
+    return [
+        json.loads(line)["args"]["path"] for line in art.received if json.loads(line).get("op") == "open"
+    ]
+
+
+async def test_several_images_open_one_after_the_other_each_waited_for_and_one_entry_each(
+    art, editor, image, newcomers
+):
+    paths = [newcomers[0], image, newcomers[1]]
+    async with Client(live(art)) as client:
+        result = await client.call_tool("open_image", {"paths": paths})
+        status = await client.call_tool("status", {})
+
+    assert not result.is_error, result.content
+    assert set(result.structured_content) == {"items", "failed"} and result.structured_content["failed"] == 0
+    assert result.structured_content["items"] == [
+        {"path": newcomers[0], "already_open": False},
+        {"path": image, "already_open": True},
+        {"path": newcomers[1], "already_open": False},
+    ]  # in request order, `profile_applied` left out when there is none
+    assert opened_in_order(art) == paths
+    assert {i["path"] for i in status.structured_content["images"]} == set(paths)  # all loaded when it returns
+
+
+async def test_several_images_get_the_same_profile_each_as_one_history_entry(art, editor, image, newcomers, tmp_path):
+    preset = tmp_path / "roll.arp"
+    preset.write_text("[Exposure]\nCompensation=1.5\n")
+    paths = [newcomers[0], image, newcomers[1]]
+    async with Client(live(art)) as client:
+        result = await client.call_tool("open_image", {"paths": paths, "profile": str(preset)})
+
+    assert not result.is_error, result.content
+    assert [i["profile_applied"] for i in result.structured_content["items"]] == [str(preset)] * 3
+    assert [a["label"] for a in editor.applied] == ["Agent: roll.arp"] * 3
+    for path in paths:
+        assert editor.labels(path)[-1] == "Agent: roll.arp"
+        assert editor.profile(path)["Exposure"]["Compensation"] == "1.5"
+    assert editor.labels(newcomers[0]) == ["Photo loaded", "Agent: roll.arp"]
+
+
+async def test_an_image_that_will_not_open_is_its_own_error_and_the_others_still_open(art, editor, newcomers, tmp_path):
+    gone = str(tmp_path / "gone.ARW")
+    async with Client(live(art)) as client:
+        result = await client.call_tool("open_image", {"paths": [newcomers[0], gone, newcomers[1]]})
+
+    ok1, missing, ok2 = result.structured_content["items"]
+    assert not result.is_error, result.content
+    assert set(missing) == {"path", "error"} and missing["path"] == gone and missing["error"].startswith("not_found:")
+    assert (ok1["already_open"], ok2["already_open"]) == (False, False)
+    assert result.structured_content["failed"] == 1
+
+
+async def test_an_image_art_does_not_finish_loading_in_time_is_its_own_timeout(art, editor, newcomers):
+    editor.open_delay = 5
+    async with Client(live(art, open_timeout=0.4)) as client:
+        result = await client.call_tool("open_image", {"paths": newcomers})
+
+    assert [i["error"].split(":")[0] for i in result.structured_content["items"]] == ["timeout", "timeout"]
+    assert result.structured_content["failed"] == 2
+
+
+async def test_a_profile_art_refuses_is_that_images_error_and_the_image_stays_open(art, editor, newcomers, tmp_path):
+    preset = tmp_path / "roll.arp"
+    preset.write_text("[Exposure]\nCompensation=1.5\n")
+    art.ops["apply_profile"] = fail("bad_request", "ART could not load these values; nothing was changed")
+    async with Client(live(art)) as client:
+        result = await client.call_tool("open_image", {"paths": newcomers, "profile": str(preset)})
+        status = await client.call_tool("status", {})
+
+    assert [i["error"].startswith("bad_request:") for i in result.structured_content["items"]] == [True, True]
+    assert "the image is open" in result.structured_content["items"][0]["error"]
+    assert set(newcomers) <= {i["path"] for i in status.structured_content["images"]}
+
+
+@pytest.mark.parametrize(("text", "code"), [(None, "not_found"), ("not a profile", "bad_request")])
+async def test_an_unusable_profile_fails_the_call_before_any_image_is_opened(
+    art, editor, newcomers, tmp_path, text, code
+):
+    preset = tmp_path / "roll.arp"
+    if text is not None:
+        preset.write_text(text)
+    async with Client(live(art)) as client:
+        result = await client.call_tool("open_image", {"paths": newcomers, "profile": str(preset)})
+
+    assert result.is_error and f"{code}:" in text_of(result), text_of(result)
+    assert opened_in_order(art) == []
+
+
+@pytest.mark.parametrize(
+    ("args", "text"),
+    [
+        ({"path": "a.ARW", "paths": ["a.ARW"]}, "not both"),
+        ({}, "path or paths"),
+        ({"paths": []}, "paths is empty"),
+        ({"paths": [f"{i}.ARW" for i in range(51)]}, "51 entries; the most one call takes is 50"),
+    ],
+)
+async def test_a_bad_choice_of_images_to_open_is_out_of_range_and_opens_nothing(art, editor, args, text):
+    async with Client(live(art)) as client:
+        result = await client.call_tool("open_image", args)
+
+    assert result.is_error and "out_of_range:" in text_of(result) and text in text_of(result)
+    assert opened_in_order(art) == []
+
+
+async def test_the_tool_describes_paths_and_its_two_result_shapes_for_open(art, editor):
+    async with Client(live(art)) as client:
+        tools = await client.list_tools()
+
+    tool = next(t for t in tools.tools if t.name == "open_image")
+    assert not tool.input_schema.get("required")  # one of path, paths: checked by the tool
+    assert {"type": "array", "items": {"type": "string"}} in tool.input_schema["properties"]["paths"]["anyOf"]
+    assert "`paths`" in tool.description and "50" in tool.description
+    assert {"OpenedInEditor", "OpenedBatch", "OpenedItem"} <= tool.output_schema["$defs"].keys()
+    assert tool.output_schema["type"] == "object"
+
+
 async def test_save_sidecar_is_the_editors_own_save(art, editor, image):
     async with Client(live(art)) as client:
         result = await client.call_tool("save_sidecar", {"path": image})
@@ -530,3 +660,113 @@ async def test_the_tool_describes_paths_and_its_two_result_shapes(art, editor):
     assert "`paths`" in tool.description and "50" in tool.description and "History entry" in tool.description
     assert {"LiveEditResult", "LiveEditBatch", "LiveImageEdit"} <= tool.output_schema["$defs"].keys()
     assert tool.output_schema["type"] == "object"
+
+
+# -- edit_profile(items): its own edit for each image --------------------------------
+
+
+def exposure_item(image, value, **extra):
+    return {"path": image, "adjustments": {"exposure": {"compensation": value}}, **extra}
+
+
+async def test_items_give_each_image_its_own_edit_each_as_its_own_labelled_history_entry(art, editor, images):
+    async with Client(live(art)) as client:
+        result = await client.call_tool("edit_profile", {"items": [
+            exposure_item(images[0], 1.0),
+            exposure_item(images[1], 2.0, raw_edits=[{"group": "Exposure", "key": "Black", "value": "5"}]),
+            {"path": images[2], "adjustments": {"white_balance": {"temperature": 6500}}},
+        ]})  # fmt: skip
+
+    assert not result.is_error, result.content
+    assert set(result.structured_content) == {"items", "failed"}  # the shape of the `paths` form
+    assert result.structured_content["failed"] == 0
+    assert result.structured_content["items"] == [
+        {"path": images[0], "changed": 1, "implied": {}, "warnings": [], "error": None, "history_position": 1},
+        {"path": images[1], "changed": 2, "implied": {}, "warnings": [], "error": None, "history_position": 1},
+        {"path": images[2], "changed": 1, "implied": {"White Balance": {"Setting": "CustomTemp"}}, "warnings": [],
+         "error": None, "history_position": 1},
+    ]  # in request order
+    assert [a["label"] for a in editor.applied] == ["Agent: Exposure", "Agent: Exposure", "Agent: White Balance"]
+    assert editor.profile(images[0])["Exposure"]["Compensation"] == "1"
+    assert editor.profile(images[1])["Exposure"] == {"Enabled": "true", "Compensation": "2", "Black": "5"}
+    assert editor.profile(images[2])["White Balance"]["Temperature"] == "6500"
+    assert editor.profile(images[0])["Exposure"].get("Black") == "0"  # the others' edits did not reach it
+
+
+async def test_two_items_for_one_image_are_each_a_history_entry_in_request_order(art, editor, images):
+    async with Client(live(art)) as client:
+        result = await client.call_tool("edit_profile", {"items": [
+            exposure_item(images[0], 1.0), exposure_item(images[1], 4.0), exposure_item(images[0], 2.0),
+            exposure_item(images[0], 2.0),
+        ]})  # fmt: skip
+
+    items = result.structured_content["items"]
+    assert [(i["changed"], i["history_position"]) for i in items] == [(1, 1), (1, 1), (1, 2), (0, 2)]
+    assert editor.labels(images[0]) == ["Photo loaded", "Agent: Exposure", "Agent: Exposure"]  # none for the no-op
+    assert editor.profile(images[0])["Exposure"]["Compensation"] == "2"
+    assert len(editor.applied) == 3
+
+
+async def test_an_item_that_fails_is_its_own_error_and_the_others_still_change(art, editor, images, tmp_path):
+    gone = str(tmp_path / "gone.ARW")
+    async with Client(live(art)) as client:
+        result = await client.call_tool("edit_profile", {"items": [
+            exposure_item(images[0], 1.0),
+            exposure_item(gone, 1.0),
+            {"path": images[2], "adjustments": {"crop": {"x": 100, "y": 100, "w": 5900, "h": 3900}}},  # 3000x2000
+            exposure_item(images[1], 99),
+            {"path": images[1], "raw_edits": [{"group": "Exposure", "key": "Nope", "value": "5"}]},
+            exposure_item(images[1], 3.0),
+        ]})  # fmt: skip
+
+    assert not result.is_error, result.content
+    ok, missing, big_crop, too_big, no_key, last = result.structured_content["items"]
+    assert missing["error"].startswith("not_open:") and missing["changed"] is None
+    assert big_crop["error"].startswith("out_of_range:") and "3000x2000" in big_crop["error"]
+    assert too_big["error"].startswith("out_of_range:") and "-12..12" in too_big["error"]
+    assert no_key["error"].startswith("unknown_key:") and "[Exposure] Nope" in no_key["error"]
+    assert (ok["error"], last["error"], ok["changed"], last["changed"]) == (None, None, 1, 1)
+    assert result.structured_content["failed"] == 4
+    assert [a["label"] for a in editor.applied] == ["Agent: Exposure", "Agent: Exposure"]
+
+
+@pytest.mark.parametrize(
+    ("args", "text"),
+    [
+        ({"path": "a.ARW"}, "not path and items"),
+        ({"paths": ["a.ARW"]}, "not paths and items"),
+        ({"adjustments": {"exposure": {"compensation": 1.0}}}, "in each item"),
+        ({"raw_edits": [{"group": "Exposure", "key": "Black", "value": "5"}]}, "in each item"),
+        ({"full": True}, "full is for one image"),
+        ({"items": []}, "items is empty"),
+        ({"items": [{"path": f"{i}.ARW"} for i in range(51)]}, "items has 51 entries; the most one call takes is 50"),
+    ],
+)
+async def test_a_bad_call_with_items_is_out_of_range_and_sends_nothing(art, editor, image, args, text):
+    async with Client(live(art)) as client:
+        result = await client.call_tool("edit_profile", {"items": [exposure_item(image, 1.0)], **args})
+
+    assert result.is_error and "out_of_range:" in text_of(result) and text in text_of(result)
+    assert editor.applied == []
+
+
+async def test_an_item_the_schema_refuses_fails_the_call_before_anything_is_sent(art, editor, image):
+    async with Client(live(art)) as client:
+        no_path = await client.call_tool("edit_profile", {"items": [{"adjustments": {"exposure": {}}}]})
+        stray = await client.call_tool("edit_profile", {"items": [{"path": image, "adjusments": {}}]})
+
+    assert no_path.is_error and "path" in text_of(no_path)
+    assert stray.is_error and "adjusments" in text_of(stray)
+    assert editor.applied == []
+
+
+async def test_the_tool_describes_items_as_a_third_alternative(art, editor):
+    async with Client(live(art)) as client:
+        tools = await client.list_tools()
+
+    tool = next(t for t in tools.tools if t.name == "edit_profile")
+    schema = tool.input_schema
+    assert not schema.get("required")
+    item = schema["$defs"]["EditItem"]
+    assert item["required"] == ["path"] and set(item["properties"]) == {"path", "adjustments", "raw_edits"}
+    assert "`items`" in tool.description and "its own" in tool.description and "History entry" in tool.description

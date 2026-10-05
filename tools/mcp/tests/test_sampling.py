@@ -17,13 +17,29 @@ from art_mcp.preview import PreviewFolder
 from art_mcp.render.artcli import ArtCli, Rect, region_rect
 from art_mcp.render.preview_tools import Region
 from art_mcp.render.server import build_server as build_render
-from art_mcp.sampling import RegionTooSmall, check_stats_bins, check_stats_detail, check_stats_paths, image_stats
+from art_mcp.sampling import (
+    MAX_SPOTS,
+    MAX_SPOTS_PER_CALL,
+    RegionTooSmall,
+    check_spots,
+    check_stats_bins,
+    check_stats_detail,
+    check_stats_paths,
+    image_stats,
+    spot_runs,
+)
 
 FAKE = Path(__file__).with_name("fake_artcli.py")
 CTL = Path(__file__).with_name("fake_artcli_ctl.py")
 pytestmark = pytest.mark.anyio
 
 EDITOR_PROFILE = "[Exposure]\nCompensation=0\n"
+
+STATS_SHAPE = (
+    "with `path` the statistics are the result's top level (`r`, `g`, `b`, `lum`, `width`, `height`, ...); "
+    "with `paths` they are under `items[i].stats` (each item `{path, stats}` or `{path, error}`)"
+)
+"""What image_stats says about where its statistics are, whichever of `path` and `paths` is given."""
 
 
 @pytest.fixture
@@ -392,6 +408,38 @@ def test_check_stats_paths_takes_exactly_one_of_path_and_paths_of_one_to_fifty()
     assert many.startswith("out_of_range: ") and "51" in many and "50" in many
 
 
+
+# -- sample_spots takes up to 64 spots, in runs of at most 16 -----------------------------
+
+
+def spot_error(code, why):
+    return RuntimeError(f"{code}: {why}")
+
+
+def test_a_call_takes_1_to_64_spots_and_a_run_16():
+    assert (MAX_SPOTS, MAX_SPOTS_PER_CALL) == (16, 64)
+    for count in (1, 16, 17, 64):
+        check_spots([(1, 1)] * count, 32, "working", (6000, 4000), spot_error)
+    for count in (0, 65):
+        with pytest.raises(RuntimeError) as caught:
+            check_spots([(1, 1)] * count, 32, "working", None, spot_error)
+        assert str(caught.value) == f"out_of_range: give 1 to 64 spots, not {count}"
+
+
+@pytest.mark.parametrize(
+    ("count", "runs"),
+    [
+        (1, [(0, 1)]),
+        (16, [(0, 16)]),
+        (17, [(0, 16), (16, 17)]),
+        (40, [(0, 16), (16, 32), (32, 40)]),
+        (64, [(0, 16), (16, 32), (32, 48), (48, 64)]),
+    ],
+)
+def test_spot_runs_split_a_request_in_order_into_at_most_16(count, runs):
+    assert [(r.start, r.stop) for r in spot_runs(count)] == runs
+
+
 # -- Render server ---------------------------------------------------------------
 
 
@@ -462,7 +510,7 @@ async def test_render_sample_spots_default_size_and_input_space(render, image):
         {"spots": [{"x": 0, "y": 4000}]},
         {"spots": [{"x": -1, "y": 0}]},
         {"spots": []},
-        {"spots": [{"x": 1, "y": 1}] * 17},
+        {"spots": [{"x": 1, "y": 1}] * 65},
         {"spots": [{"x": 1, "y": 1}], "size": 1},
         {"spots": [{"x": 1, "y": 1}], "size": 257},
         {"spots": [{"x": 1, "y": 1}], "space": "srgb"},
@@ -499,6 +547,93 @@ async def test_render_sample_spots_not_open(render, image):
     assert result.is_error and "not_open" in result.content[0].text
 
 
+def forty_spots():
+    """40 distinct spots, x = 1..40 (the fake's avg is [x, y, size], so a result shows its spot)."""
+    return [{"x": n, "y": 100 + n} for n in range(1, 41)]
+
+
+def sampling_runs(log):
+    """The x of every spot of each art-cli run that sampled, in the order the runs started."""
+    runs = []
+    for call in logged(log):
+        if "-x" in call:
+            coords = call[call.index("-x") + 1].split(",")[2:]
+            runs.append([int(v) for v in coords[::2]])
+    return runs
+
+
+async def test_render_sample_spots_40_spots_make_3_runs_and_come_back_in_order(render, image, monkeypatch):
+    server, log = render
+    # the first run is the slowest: it finishes last, the answer still follows the request
+    monkeypatch.setenv("FAKE_SPOTS_SLOW_X", "1")
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        before = len(logged(log))
+        result = await client.call_tool("sample_spots", {"path": str(image), "spots": forty_spots(), "size": 8})
+
+    assert not result.is_error, result.content
+    runs = sampling_runs(log)
+    assert sorted(len(r) for r in runs) == [8, 16, 16]
+    assert sorted(sum(runs, [])) == list(range(1, 41))
+    sampled = result.structured_content
+    assert (sampled["width"], sampled["height"], sampled["space"], sampled["size"]) == (6000, 4000, "working", 8)
+    assert [(s["x"], s["y"]) for s in sampled["spots"]] == [(n, 100 + n) for n in range(1, 41)]
+    assert [s["avg"] for s in sampled["spots"]] == [[n, 100 + n, 8] for n in range(1, 41)]
+    assert [s["max"] for s in sampled["spots"]] == [[n + 1, 101 + n, 9] for n in range(1, 41)]
+    # the frame is measured once (a row and a column probe), not per run
+    assert len([a for a in logged(log)[before:] if "-x" not in a]) == 2
+
+
+async def test_render_sample_spots_takes_64_spots_in_4_runs_and_17_in_2(render, image):
+    server, log = render
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        many = [{"x": n, "y": 5} for n in range(1, 65)]
+        result = await client.call_tool("sample_spots", {"path": str(image), "spots": many})
+        assert not result.is_error, result.content
+        assert [s["x"] for s in result.structured_content["spots"]] == list(range(1, 65))
+        assert sorted(len(r) for r in sampling_runs(log)) == [16, 16, 16, 16]
+        start = len(sampling_runs(log))
+        result = await client.call_tool("sample_spots", {"path": str(image), "spots": many[:17]})
+        assert not result.is_error and len(result.structured_content["spots"]) == 17
+        assert sorted(len(r) for r in sampling_runs(log)[start:]) == [1, 16]
+
+
+async def test_render_sample_spots_16_spots_stay_one_run_with_the_plain_error(render, image, monkeypatch):
+    server, log = render
+    monkeypatch.setenv("FAKE_SPOTS_FAIL_X", "3")
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await client.call_tool("sample_spots", {"path": str(image), "spots": forty_spots()[:16]})
+
+    assert len(sampling_runs(log)) == 1
+    assert result.is_error and "render_failed: art-cli exited with 3: sampling failed" in result.content[0].text
+    assert "spots " not in result.content[0].text
+
+
+async def test_render_sample_spots_a_failing_run_fails_the_call_and_says_which_spots(render, image, monkeypatch):
+    server, _ = render
+    monkeypatch.setenv("FAKE_SPOTS_FAIL_X", "20")  # spot 20 is in the second run, spots 17 to 32
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await client.call_tool("sample_spots", {"path": str(image), "spots": forty_spots()})
+
+    assert result.is_error and not result.structured_content
+    text = result.content[0].text
+    assert "render_failed: art-cli exited with 3: sampling failed" in text
+    assert "(spots 17 to 32 of 40; no result returned)" in text
+
+
+async def test_render_sample_spots_40_spots_without_spot_sampling_is_unsupported(render, image, monkeypatch):
+    server, _ = render
+    monkeypatch.setenv("FAKE_SPOTS", "release")
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await client.call_tool("sample_spots", {"path": str(image), "spots": forty_spots()})
+
+    assert result.is_error and "unsupported: needs an ART build with spot sampling" in result.content[0].text
+
+
 async def test_sample_spots_description_is_generic_and_points_at_the_skills(render):
     server, _ = render
     async with Client(server) as client:
@@ -508,6 +643,7 @@ async def test_sample_spots_description_is_generic_and_points_at_the_skills(rend
         assert needle in text
     for gone in ("RedRatio", "RefInput", "RefOutput", "65535/24"):
         assert gone not in text
+    assert "1 to 64 spots per call" in text and "1 to 16" not in text
 
 
 @pytest.mark.parametrize("histogram", [False, True])
@@ -946,6 +1082,13 @@ async def test_render_image_stats_documents_detail_and_paths(render):
         assert needle in tool.description
 
 
+async def test_render_image_stats_says_where_the_statistics_are_for_path_and_for_paths(render):
+    server, _ = render
+    async with Client(server) as client:
+        tool = {t.name: t for t in (await client.list_tools()).tools}["image_stats"]
+    assert STATS_SHAPE in " ".join(tool.description.split())
+
+
 async def test_render_image_stats_results_are_small(tmp_path, monkeypatch):
     """The default result is about 700 characters, the compact one about 450 (370 with nothing clipped: the
     fractions are not rounded), twelve compact ones about 5 KB."""
@@ -1014,6 +1157,7 @@ async def test_live_sample_spots_sends_the_op_and_returns_its_result(art, tmp_pa
     [
         {"spots": [{"x": 6000, "y": 0}]},
         {"spots": []},
+        {"spots": [{"x": 1, "y": 1}] * 65},
         {"spots": [{"x": 1, "y": 1}], "size": 1},
         {"spots": [{"x": 1, "y": 1}], "space": "srgb"},
     ],
@@ -1145,6 +1289,12 @@ async def test_live_image_stats_region_of_a_few_pixels_is_out_of_range(art, tmp_
     assert not list((tmp_path / "previews").glob("*.png"))
 
 
+async def test_live_image_stats_says_where_the_statistics_are_for_path_and_for_paths(art):
+    async with Client(build_live(ControlChannel(art.config_dir))) as client:
+        tool = {t.name: t for t in (await client.list_tools()).tools}["image_stats"]
+    assert STATS_SHAPE in " ".join(tool.description.split())
+
+
 async def test_live_image_stats_documents_region_and_bins(art):
     async with Client(build_live(ControlChannel(art.config_dir))) as client:
         tool = {t.name: t for t in (await client.list_tools()).tools}["image_stats"]
@@ -1193,6 +1343,96 @@ async def test_live_sample_spots_unknown_op_is_unsupported(art, tmp_path):
 
     assert result.is_error
     assert "unsupported: needs an ART build with spot sampling" in result.content[0].text
+
+
+def echo_spots(req):
+    """ART's sample_spots op answering with one value per spot asked for: avg [x, y, size]."""
+    args = req["args"]
+    size = args["size"]
+    spots = [
+        {"x": x, "y": y, "avg": [x, y, size], "max": [x + 1, y + 1, size + 1]} for x, y in args["spots"]
+    ]
+    return answer({"width": 6000, "height": 4000, "spots": spots})(req)
+
+
+async def test_live_sample_spots_40_spots_make_3_requests_and_come_back_in_order(art, tmp_path):
+    photo = str(tmp_path / "a.ARW")
+    FakeEditor(art).add(photo, EDITOR_PROFILE)
+    art.ops["sample_spots"] = echo_spots
+    spots = [{"x": n, "y": 100 + n} for n in range(1, 41)]
+
+    async with Client(build_live(ControlChannel(art.config_dir))) as client:
+        result = await client.call_tool("sample_spots", {"path": photo, "spots": spots, "size": 8, "space": "input"})
+
+    assert not result.is_error, result.content
+    asked = requests(art, "sample_spots")
+    assert [[x for x, _ in req["args"]["spots"]] for req in asked] == [
+        list(range(1, 17)), list(range(17, 33)), list(range(33, 41))
+    ]  # fmt: skip
+    assert all(req["args"]["size"] == 8 and req["args"]["space"] == "input" for req in asked)
+    sampled = result.structured_content
+    assert (sampled["width"], sampled["height"], sampled["space"], sampled["size"]) == (6000, 4000, "input", 8)
+    assert [(s["x"], s["y"]) for s in sampled["spots"]] == [(n, 100 + n) for n in range(1, 41)]
+    assert [s["avg"] for s in sampled["spots"]] == [[n, 100 + n, 8] for n in range(1, 41)]
+
+
+async def test_live_sample_spots_17_spots_take_2_requests_and_64_take_4(art, tmp_path):
+    photo = str(tmp_path / "a.ARW")
+    FakeEditor(art).add(photo, EDITOR_PROFILE)
+    art.ops["sample_spots"] = echo_spots
+    spots = [{"x": n, "y": 5} for n in range(1, 65)]
+
+    async with Client(build_live(ControlChannel(art.config_dir))) as client:
+        result = await client.call_tool("sample_spots", {"path": photo, "spots": spots[:17]})
+        assert not result.is_error and len(result.structured_content["spots"]) == 17
+        assert [len(req["args"]["spots"]) for req in requests(art, "sample_spots")] == [16, 1]
+        result = await client.call_tool("sample_spots", {"path": photo, "spots": spots})
+        assert not result.is_error and [s["x"] for s in result.structured_content["spots"]] == list(range(1, 65))
+        assert [len(req["args"]["spots"]) for req in requests(art, "sample_spots")[2:]] == [16] * 4
+
+
+async def test_live_sample_spots_a_failing_request_fails_the_call_and_says_which_spots(art, tmp_path):
+    photo = str(tmp_path / "a.ARW")
+    FakeEditor(art).add(photo, EDITOR_PROFILE)
+    failing = fail("render_failed", "the editor lost the image")
+    art.ops["sample_spots"] = lambda req: failing(req) if req["args"]["spots"][0][0] == 17 else echo_spots(req)
+    spots = [{"x": n, "y": 5} for n in range(1, 41)]
+
+    async with Client(build_live(ControlChannel(art.config_dir))) as client:
+        result = await client.call_tool("sample_spots", {"path": photo, "spots": spots})
+
+    assert result.is_error and not result.structured_content
+    text = result.content[0].text
+    assert "render_failed: the editor lost the image" in text
+    assert text.endswith("(spots 17 to 32 of 40; no result returned)")
+    assert len(requests(art, "sample_spots")) == 2  # the third was not asked for
+
+
+async def test_live_sample_spots_16_spots_keep_the_plain_error(art, tmp_path):
+    photo = str(tmp_path / "a.ARW")
+    FakeEditor(art).add(photo, EDITOR_PROFILE)
+    art.ops["sample_spots"] = fail("render_failed", "the editor lost the image")
+
+    async with Client(build_live(ControlChannel(art.config_dir))) as client:
+        result = await client.call_tool("sample_spots", {"path": photo, "spots": [{"x": 1, "y": 1}] * 16})
+
+    assert result.is_error and result.content[0].text.endswith("render_failed: the editor lost the image")
+
+
+async def test_live_sample_spots_each_request_waits_for_a_busy_editor_by_itself(art, tmp_path):
+    photo = str(tmp_path / "a.ARW")
+    FakeEditor(art).add(photo, EDITOR_PROFILE)
+    busy = fail("busy", "the editor is processing")
+    replies = [echo_spots, busy, echo_spots]  # the second request finds it busy once, then it settles
+    art.ops["sample_spots"] = lambda req: replies.pop(0)(req)
+    spots = [{"x": n, "y": 5} for n in range(1, 33)]
+
+    async with Client(build_live(ControlChannel(art.config_dir))) as client:
+        result = await client.call_tool("sample_spots", {"path": photo, "spots": spots})
+
+    assert not result.is_error, result.content
+    assert [s["x"] for s in result.structured_content["spots"]] == list(range(1, 33))
+    assert len(requests(art, "sample_spots")) == 3
 
 
 # -- Live: detail levels and several images ----------------------------------------

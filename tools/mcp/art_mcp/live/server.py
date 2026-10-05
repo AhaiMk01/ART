@@ -41,10 +41,11 @@ from art_mcp.profile import (
     ProfileView,
     UnknownKey,
     WorkingChanges,
-    check_edit_targets,
+    check_batch_paths,
     check_groups,
     crop_problem,
     edit_item,
+    edit_requests,
     edit_result,
     edit_warnings,
     failed_edit,
@@ -67,6 +68,7 @@ from art_mcp.sampling import (
     Detail,
     ImageStats,
     ImageStatsResult,
+    OmitNone,
     RegionTooSmall,
     Spot,
     SpotSamples,
@@ -74,7 +76,10 @@ from art_mcp.sampling import (
     StatsItem,
     check_spots,
     check_stats_call,
+    covering,
+    merge_samples,
     parse_spots_reply,
+    spot_runs,
     stats_detail,
     stats_result,
 )
@@ -87,6 +92,7 @@ from art_mcp.schema import (
     Adjustments,
     AdjustmentsArg,
     AdjustmentsDescription,
+    EditItem,
     RawEdit,
     parse_adjustments,
 )
@@ -158,6 +164,35 @@ class OpenedInEditor(BaseModel):
     profile_applied: str | None = None
     """The `.arp` file applied over the editor's profile; null when none was
     given."""
+
+
+class OpenedItem(OmitNone):
+    """One image's part of an ``open_image`` call with `paths`."""
+
+    path: str
+    """The path as requested."""
+    already_open: bool | None = None
+    """As the single-image result; left out when this image failed."""
+    profile_applied: str | None = None
+    """As the single-image result; left out when no `profile` was given and
+    when this image failed."""
+    error: str | None = None
+    """`<code>: <message>` when this image failed (`not_found`, `timeout`, ART's
+    refusal of the profile; the others still open); left out otherwise."""
+
+
+class OpenedBatch(BaseModel):
+    items: list[OpenedItem]
+    """One per requested path, in request order."""
+    failed: int
+
+
+class OpenOutput(RootModel[OpenedInEditor | OpenedBatch]):
+    """The output schema of ``open_image``: one image's ``OpenedInEditor`` or,
+    with `paths`, one entry per image. It is an object either way, which is
+    what a tool's output schema must be."""
+
+    model_config = ConfigDict(json_schema_extra={"type": "object"})
 
 
 class SidecarSaved(BaseModel):
@@ -528,21 +563,25 @@ def build_server(
         raw_edits: list[RawEdit] | None = None,
         full: bool = False,
         paths: list[str] | None = None,
+        items: list[EditItem] | None = None,
     ) -> LiveEditOutput:
         """Change the processing profile of an image open in ART's editor
         (`path`), or the same change to several images (`paths`: 1 to 50 open
-        images; give one of the two), with typed `adjustments` of curated
+        images), or a different change to each (`items`: 1 to 50 entries
+        `{path, adjustments?, raw_edits?}`, each image getting its own; give
+        one of the three), with typed `adjustments` of curated
         tools (range-checked; see describe_adjustments) and/or `raw_edits`,
         each setting one `[Group] Key` (as shown by get_profile) to a string
         value; the group and key must already exist. All changes apply, or
-        none do. An adjustment and a raw edit may not set the same key.
-        Adjusting a disabled tool also enables it.
+        none do (per image with `paths` or `items`). An adjustment and a raw
+        edit may not set the same key. Adjusting a disabled tool also enables
+        it.
 
         The user sees the change at once, as one History entry labelled
-        `Agent: <tools>` that undo reverts (one per image with `paths`). Only
-        the changed values are sent, so the user's other settings are left
-        alone. Returns once the History entry exists (the preview may still be
-        processing).
+        `Agent: <tools>` that undo reverts (one per image with `paths`, one
+        per item with `items`). Only the changed values are sent, so the
+        user's other settings are left alone. Returns once the History entry
+        exists (the preview may still be processing).
 
         Returns only what changed: `changed` ([Group] -> Key -> new value),
         `implied` (changes you did not ask for, such as that enabling, in the
@@ -552,28 +591,31 @@ def build_server(
         `history_position`. `full` also returns the groups touched, as
         get_profile reads them.
 
-        With `paths` the result is `{items, failed}` instead: per image, in
-        request order, `{path, changed, implied, warnings, error,
+        With `paths` or `items` the result is `{items, failed}` instead: per
+        image, in request order, `{path, changed, implied, warnings, error,
         history_position}`, where `changed` is how many values the edit
         changed in that image (0: it had them already, so no History entry;
         the values are not listed) and `implied` as above. A problem with one
         image (not open, a key it lacks, a crop outside its frame) is that
         image's `error`, `<code>: <message>`, and the others still change.
-        `full` is for one image only."""
-        targets = check_edit_targets(path, paths, full, tool_error)
-        if targets is None:
+        With `items`, `adjustments` and `raw_edits` go in each item, not
+        beside them; items are applied one after the other in request order,
+        two for one image each as its own History entry. `full` is for one
+        image only."""
+        requests = edit_requests(path, paths, items, adjustments, raw_edits, full, tool_error)
+        if requests is None:
             assert path is not None
             return LiveEditOutput(edit_one(path, adjustments, raw_edits, full))
-        items: list[LiveImageEdit] = []
-        for target in targets:
+        edited: list[LiveImageEdit] = []
+        for request in requests:
             try:
-                result = edit_one(target, adjustments, raw_edits, False)
+                result = edit_one(request.path, request.adjustments, request.raw_edits, False)
             except ToolError as e:
-                items.append(LiveImageEdit(**failed_edit(target, str(e)).model_dump()))
+                edited.append(LiveImageEdit(**failed_edit(request.path, str(e)).model_dump()))
             else:
-                item = edit_item(target, result)
-                items.append(LiveImageEdit(**item.model_dump(), history_position=result.history_position))
-        return LiveEditOutput(LiveEditBatch(items=items, failed=sum(i.error is not None for i in items)))
+                item = edit_item(request.path, result)
+                edited.append(LiveImageEdit(**item.model_dump(), history_position=result.history_position))
+        return LiveEditOutput(LiveEditBatch(items=edited, failed=sum(i.error is not None for i in edited)))
 
     @server.tool()
     def undo(path: str) -> HistoryStep:
@@ -593,20 +635,9 @@ def build_server(
         except ToolError as e:
             raise ToolError(f"{e} (the image is open; its profile was not changed)") from e
 
-    @server.tool()
-    def open_image(path: str, profile: str | None = None) -> OpenedInEditor:
-        """Open an image in ART's editor (or bring it to the front if it is
-        open already), as opening it from ART's file browser does. Returns
-        once ART has loaded it. Fails with not_found if there is no such
-        file.
-
-        `profile`: an `.arp` file, a complete profile or a partial one, that
-        is applied once the image is loaded, over the profile the editor
-        holds (the image's sidecar or ART's default, plus any changes if the
-        image was open already). It is one History entry, `Agent: <file
-        name>`, that undo reverts; the sidecar is not written. The file is
-        checked before the image is opened."""
-        preset = profile_to_apply(profile) if profile is not None else None
+    def open_one(path: str, preset: tuple[Path, str] | None) -> OpenedInEditor:
+        """Open the image at ``path`` in ART's editor, wait until it has
+        loaded and apply ``preset`` (``profile_to_apply``) to it."""
         reply = call("open", {"path": art_path(path)})
         already = isinstance(reply, dict) and reply.get("already_open") is True
         deadline = time.monotonic() + open_timeout
@@ -626,6 +657,47 @@ def build_server(
                     "(it may still be loading; call status to check)",
                 )
             time.sleep(OPEN_POLL_SECONDS)
+
+    @server.tool()
+    def open_image(
+        path: str | None = None, profile: str | None = None, paths: list[str] | None = None
+    ) -> OpenOutput:
+        """Open an image in ART's editor (or bring it to the front if it is
+        open already), as opening it from ART's file browser does. Returns
+        once ART has loaded it. Fails with not_found if there is no such
+        file.
+
+        `profile`: an `.arp` file, a complete profile or a partial one, that
+        is applied once the image is loaded, over the profile the editor
+        holds (the image's sidecar or ART's default, plus any changes if the
+        image was open already). It is one History entry, `Agent: <file
+        name>`, that undo reverts; the sidecar is not written. The file is
+        checked before the image is opened.
+
+        `paths` (1 to 50 images; give `path` or `paths`) opens each one the
+        same way (the same `profile` for all), one after the other, waiting
+        for each to load. The result is `{items, failed}`: per image, in
+        request order, `{path, already_open, profile_applied}` as above
+        (`path` as you gave it; `profile_applied` left out when there is no
+        `profile`) or `{path, error}` (`not_found`, `timeout`, ART's refusal
+        of the profile), the others still open. A `profile` that is no
+        profile fails the call before any image is opened."""
+        targets = check_batch_paths(path, paths, tool_error)
+        preset = profile_to_apply(profile) if profile is not None else None
+        if targets is None:
+            assert path is not None
+            return OpenOutput(open_one(path, preset))
+        opened: list[OpenedItem] = []
+        for target in targets:
+            try:
+                result = open_one(target, preset)
+            except ToolError as e:
+                opened.append(OpenedItem(path=target, error=str(e)))
+            else:
+                opened.append(
+                    OpenedItem(path=target, already_open=result.already_open, profile_applied=result.profile_applied)
+                )
+        return OpenOutput(OpenedBatch(items=opened, failed=sum(i.error is not None for i in opened)))
 
     @server.tool()
     def save_sidecar(path: str) -> SidecarSaved:
@@ -818,7 +890,18 @@ def build_server(
         points = [(s.x, s.y) for s in spots]
         check_spots(points, size, space, None, tool_error)
         check_spots(points, size, space, image_size(path), tool_error)
-        return fetch_spots(path, points, size, space)
+        # ART's op takes at most MAX_SPOTS: ask in runs, one after the other, each with
+        # its own wait for a busy editor; a failing one fails the call.
+        runs = spot_runs(len(points))
+        parts = []
+        for run in runs:
+            try:
+                parts.append(fetch_spots(path, points[run.start : run.stop], size, space))
+            except ToolError as e:
+                if len(runs) == 1:
+                    raise
+                raise ToolError(f"{e} ({covering(run, len(points))})") from e
+        return merge_samples(parts)
 
     def film_estimate(path: str, adjustments: Adjustments | None, profile: KeyFile) -> Estimate | None:
         """ART's current Film Negative medians, sampled through the channel

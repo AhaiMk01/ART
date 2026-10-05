@@ -33,7 +33,7 @@ ratio that changes with brightness. ART's `color_correction` applies exactly tha
    several spots of the same stone agreeing prove nothing. Convert preview
    pixels to frame pixels (`sample_spots` takes frame coordinates; with no crop,
    `x = px * frame_w / preview_w`, frame size is in the `sample_spots` result; with a
-   crop, `x = crop.x + px * crop.w / preview_w`). Call `sample_spots` (max 16 per call; values are linear 0..65535,
+   crop, `x = crop.x + px * crop.w / preview_w`). Call `sample_spots` (max 64 per call; values are linear 0..65535,
    white-balanced, before any film negative tool; size 32 default; use a small `size` on small objects) and use `avg`.
 3. **Fit.** For each channel `c` in {r, b} against green, least squares of
    `ln(g/65535) = a + k * ln(c/65535)` over the spots (script in reference.md). Then
