@@ -15,6 +15,7 @@ import pytest
 from fake_live_art import FakeArt
 from mcp.client.client import Client
 
+from art_mcp.compactschema import compact_tool_schema
 from art_mcp.live.channel import ControlChannel
 from art_mcp.live.server import build_server as build_live
 from art_mcp.preview import PreviewFolder
@@ -28,9 +29,13 @@ EDIT_PROFILE_CEILING = 20_000
 """edit_profile's input schema in characters (compact JSON): 29,984 before it
 was compacted, about 16,600 now. The bound leaves room for a few more fields
 and fails if the schema grows back."""
-TOTAL_CEILING = {"render": 26_500, "live": 23_000}
-"""All of a server's input schemas together (Render about 26,300 now, the batch of render_preview the latest).
+TOTAL_CEILING = {"render": 24_000, "live": 21_000}
+"""All of a server's input schemas together, as a client is told them (Render about 23,400 now, Live
+20,400; 26,300 and 22,200 before the titles and null defaults were dropped from every tool's schema).
 Raise it deliberately for an option worth its characters; the bound is there to stop silent growth."""
+OUTPUT_CEILING = {"render": 20_000, "live": 15_000}
+"""All of a server's output schemas together: a client loads these as often as the input schemas
+(about 19,600 and 14,500 now, from 25,100 and 18,700)."""
 
 
 @pytest.fixture
@@ -210,3 +215,82 @@ async def test_describe_adjustments_keeps_the_full_documentation(servers):
         assert tool["description"]
         for field in tool["fields"].values():
             assert field["key"] and field["description"] and "default" in field
+
+
+# -- the schemas a client loads carry no annotation noise ------------------------------------------
+
+
+def schema_nodes(node, is_map=False):
+    """Every schema object in ``node`` (the keys of a `properties` or `$defs` map are names, not
+    schemas)."""
+    if isinstance(node, list):
+        for item in node:
+            yield from schema_nodes(item)
+    elif isinstance(node, dict):
+        if not is_map:
+            yield node
+        for key, value in node.items():
+            yield from schema_nodes(value, is_map=key in ("properties", "$defs") and isinstance(value, dict))
+        if is_map:
+            for value in node.values():
+                yield from schema_nodes(value)
+
+
+async def test_no_schema_has_a_title_or_a_null_default(tools):
+    for name, tool in tools.items():
+        for kind, schema in (("input", tool.input_schema), ("output", tool.output_schema)):
+            for node in schema_nodes(schema or {}):
+                assert not isinstance(node.get("title"), str), f"{name} {kind}: title {node.get('title')!r}"
+                assert node.get("default", 0) is not None, f"{name} {kind}: default null in {sorted(node)}"
+
+
+async def test_a_parameter_that_may_be_null_still_says_so(tools):
+    """Only annotations go: `path` of image_stats (a string or null) keeps its null, so a client
+    that sends null for an unset argument still validates."""
+    path = tools["image_stats"].input_schema["properties"]["path"]
+    assert {"type": "null"} in path["anyOf"] and "default" not in path
+
+
+def test_compact_tool_schema_drops_titles_and_null_defaults_only():
+    schema = {
+        "type": "object",
+        "title": "fArguments",
+        "properties": {
+            "title": {"type": "string", "title": "Title"},  # a parameter named title: the name stays
+            "size": {"type": "integer", "default": 5, "title": "Size"},
+            "region": {"anyOf": [{"$ref": "#/$defs/Region"}, {"type": "null"}], "default": None, "title": "Region"},
+        },
+        "$defs": {"Region": {"type": "object", "title": "Region", "properties": {"x": {"type": "number"}}}},
+        "required": ["title"],
+    }
+    before = json.dumps(schema)
+
+    compact = compact_tool_schema(schema)
+
+    assert compact == {
+        "type": "object",
+        "properties": {
+            "title": {"type": "string"},
+            "size": {"type": "integer", "default": 5},
+            "region": {"anyOf": [{"$ref": "#/$defs/Region"}, {"type": "null"}]},
+        },
+        "$defs": {"Region": {"type": "object", "properties": {"x": {"type": "number"}}}},
+        "required": ["title"],
+    }
+    assert json.dumps(schema) == before  # the argument is not changed
+    assert compact_tool_schema(compact) == compact  # and compacting again changes nothing
+
+
+async def test_the_schemas_a_client_loads_are_smaller_than_ever(tools, server_name):
+    inputs = sum(compact_size(t.input_schema) for t in tools.values())
+    outputs = sum(compact_size(t.output_schema) for t in tools.values() if t.output_schema)
+
+    assert inputs <= TOTAL_CEILING[server_name] and outputs <= OUTPUT_CEILING[server_name], (inputs, outputs)
+
+
+async def test_a_call_with_nulls_for_unset_arguments_still_works(servers, tmp_path):
+    from mcp.client.client import Client
+
+    async with Client(servers["render"]) as client:
+        result = await client.call_tool("image_stats", {"path": None, "paths": None, "region": None})
+    assert result.is_error and "out_of_range" in result.content[0].text  # refused for what it is, not as bad input

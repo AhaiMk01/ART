@@ -106,6 +106,51 @@ def compact_model_schema(schema: dict[str, Any], model: type) -> None:
         _compact_property(name, prop)
 
 
+SCHEMA_MAPS = ("properties", "$defs", "definitions")
+"""Keys whose value maps names to schemas: the names (a parameter called `title`) are not annotations."""
+
+
+def compact_tool_schema(node: Any) -> Any:
+    """``node`` (a tool's input or output schema, or a part of one) without the
+    annotations a model reads nothing from: every ``title`` and every
+    ``default: null``. A copy; ``node`` is not changed. Nothing that says what
+    is valid goes: a parameter that may be null still has its ``null``."""
+    if isinstance(node, list):
+        return [compact_tool_schema(item) for item in node]
+    if not isinstance(node, dict):
+        return node
+    compact: dict[str, Any] = {}
+    for key, value in node.items():
+        if key == "title" and isinstance(value, str):
+            continue
+        if key == "default" and value is None:
+            continue
+        if key in SCHEMA_MAPS and isinstance(value, dict):
+            compact[key] = {name: compact_tool_schema(schema) for name, schema in value.items()}
+        else:
+            compact[key] = compact_tool_schema(value)
+    return compact
+
+
+class CompactToolSchemas:
+    """Server middleware (``async (ctx, call_next)``) that thins the schemas in
+    a ``tools/list`` result with ``compact_tool_schema``: pydantic writes a
+    ``title`` on every parameter, field and model and a ``default: null`` on
+    every optional one, and a client loads all of it, input and output
+    schemas, with every session. Only what a client is told changes: calls are
+    validated against the tool's own parameters, as before."""
+
+    async def __call__(self, ctx: Any, call_next: Any) -> Any:
+        result = await call_next(ctx)
+        if ctx.method == "tools/list":
+            # What middleware sees of a result is the wire form: a dict, camelCase keys.
+            for tool in result.get("tools", []):
+                for key in ("inputSchema", "outputSchema"):
+                    if tool.get(key):
+                        tool[key] = compact_tool_schema(tool[key])
+        return result
+
+
 class CompactModel(BaseModel):
     """A model that rejects unknown fields and has a compact JSON schema."""
 

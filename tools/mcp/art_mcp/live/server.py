@@ -19,6 +19,7 @@ from mcp.types import CallToolResult, ContentBlock, ImageContent, TextContent
 from pydantic import BaseModel, ConfigDict, RootModel
 
 from art_mcp import artdir, calllog, keyfile
+from art_mcp.compactschema import CompactToolSchemas
 from art_mcp.filmnegative import Estimate, SamplingUnsupported, estimate_for
 from art_mcp.keyfile import KeyFile
 from art_mcp.live.channel import ArtNotRunning, ChannelError, ChannelTimeout, ControlChannel
@@ -983,6 +984,7 @@ def build_server(
         return stats_result(StatsBatch(items=items, failed=sum(item.error is not None for item in items)))
 
     calllog.install(server)
+    server.middleware.append(CompactToolSchemas())
     return server
 
 

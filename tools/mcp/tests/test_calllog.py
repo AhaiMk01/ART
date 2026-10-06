@@ -242,14 +242,16 @@ async def test_without_the_variable_nothing_is_written_and_no_hook_is_added(tmp_
 
     assert not result.is_error, result.content
     assert not list(tmp_path.rglob("*.jsonl"))
-    assert len(server.middleware) == len(MCPServer("bare").middleware)
+    assert not any(isinstance(m, CallLog) for m in server.middleware)
+    assert len(server.middleware) == len(MCPServer("bare").middleware) + 1  # the schema compaction, not a log
 
 
 async def test_an_empty_variable_is_off(tmp_path, monkeypatch):
     monkeypatch.setenv(ENV_VAR, "")
     server = render_server(tmp_path)
 
-    assert len(server.middleware) == len(MCPServer("bare").middleware)
+    assert not any(isinstance(m, CallLog) for m in server.middleware)
+    assert len(server.middleware) == len(MCPServer("bare").middleware) + 1  # the schema compaction, not a log
 
 
 async def test_an_unwritable_log_warns_once_and_the_calls_still_work(tmp_path, image, monkeypatch, capsys):

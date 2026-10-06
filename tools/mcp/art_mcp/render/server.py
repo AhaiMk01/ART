@@ -18,6 +18,7 @@ from pathlib import Path
 from mcp.server.mcpserver import MCPServer
 
 from art_mcp import artdir, calllog
+from art_mcp.compactschema import CompactToolSchemas
 from art_mcp.metadata import Exiftool
 from art_mcp.preview import PreviewFolder, default_root, sweep_stale
 from art_mcp.render import (
@@ -67,6 +68,7 @@ def build_server(
     ):
         feature.register(server, session)
     calllog.install(server)
+    server.middleware.append(CompactToolSchemas())
     return server
 
 
