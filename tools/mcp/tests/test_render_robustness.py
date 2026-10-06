@@ -9,6 +9,7 @@ import pytest
 from mcp.client.client import Client
 
 from art_mcp.preview import PreviewFolder
+from art_mcp.render import save_ops
 from art_mcp.render.artcli import ArtCli
 from art_mcp.render.server import build_server
 
@@ -52,6 +53,48 @@ async def test_a_hung_render_is_killed_and_reported_as_timeout(server, image, mo
     assert result.is_error
     assert error_text(result).startswith("timeout")
     assert time.monotonic() - started < 10
+
+
+async def test_a_save_waiting_for_a_render_does_not_stall_the_server(server, image, monkeypatch, tmp_path):
+    # save_sidecar takes the image's lock, which a render holds; waiting for it must leave the event
+    # loop (pings, other calls) running. The editor check, which waits for the lock off the loop,
+    # is skipped: the lock is busy only after it (a render started meanwhile, or while the user
+    # answers the conflict question).
+    monkeypatch.setattr(save_ops, "check_not_in_editor", lambda session, path: None)
+    log = tmp_path / "runs"
+    log.mkdir()
+    gaps: list[float] = []
+
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        monkeypatch.setenv("FAKE_ARTCLI_SLEEP", "1.5")
+        monkeypatch.setenv("FAKE_ARTCLI_LOG", str(log))
+
+        async def render():
+            result = await client.call_tool("render_preview", {"path": str(image)})
+            assert not result.is_error, result.content
+
+        async def tick():
+            while True:
+                before = time.monotonic()
+                await anyio.sleep(0.02)
+                gaps.append(time.monotonic() - before)
+
+        async def save():
+            with anyio.fail_after(30):
+                while not any(p.name.endswith("-start") for p in log.iterdir()):
+                    await anyio.sleep(0.02)
+            async with anyio.create_task_group() as ticking:
+                ticking.start_soon(tick)
+                result = await client.call_tool("save_sidecar", {"path": str(image)})
+                ticking.cancel_scope.cancel()
+            assert not result.is_error, result.content
+
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(render)
+            tg.start_soon(save)
+
+    assert gaps and max(gaps) < 0.5, f"the event loop ran at these intervals: {gaps}"
 
 
 async def test_a_skipped_output_is_render_failed(server, image, monkeypatch):

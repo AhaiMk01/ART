@@ -115,6 +115,12 @@ def profile_target(session: RenderSession, image: Path, dest: Path, out: OutputF
     return target
 
 
+def refuse_image_itself(image: Path, dest: Path) -> None:
+    """``exists`` when ``dest`` is ``image``: an export must never replace its source, even with ``overwrite``."""
+    if image_key(image.resolve()) == image_key(dest):
+        raise render_error("exists", f"{dest} is the image itself; export into another folder or format")
+
+
 def refuse_existing(dest: Path, profile: Path | None) -> None:
     for target in [dest] if profile is None else [dest, profile]:
         if target.exists():
@@ -150,9 +156,15 @@ def render_to(
         session.run(args, temp, timeout=session.cli.export_timeout)
         if out.write_profile and not temp_arp.is_file():
             raise no_profile_written()
+        replaced = dest.exists()
         move_over(temp, dest)
         if profile_dest is not None:
-            move_over(temp_arp, profile_dest)
+            try:
+                move_over(temp_arp, profile_dest)
+            except OSError:
+                if not replaced:
+                    dest.unlink(missing_ok=True)  # the export fails as a whole, so a retry is not "exists"
+                raise
     finally:
         for leftover in (profile, temp, temp_arp):
             leftover.unlink(missing_ok=True)
@@ -174,6 +186,7 @@ def export_image(
         dest = Path(output).resolve()
         if not dest.parent.is_dir():
             raise render_error("not_found", f"folder {dest.parent} does not exist")
+        refuse_image_itself(wp.image, dest)
         profile = profile_target(session, wp.image, dest, out)
         if not overwrite:
             refuse_existing(dest, profile)
@@ -330,8 +343,7 @@ def export_batch(
 
 def prepare(session: RenderSession, index: int, item: BatchItem, dest: Path, out: OutputFormat, overwrite: bool) -> Job:
     """One item's render job; raises the item's error."""
-    if image_key(Path(item.path).resolve()) == image_key(dest):
-        raise render_error("exists", f"{dest} is the image itself; export into another folder or format")
+    refuse_image_itself(Path(item.path), dest)
     if item.profiles is not None:
         image = Path(item.path).resolve()
         if not image.is_file():

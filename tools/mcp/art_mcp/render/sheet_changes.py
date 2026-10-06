@@ -169,7 +169,8 @@ def summarise(
     """The changes of ``(file name, its changes)`` pairs grouped by identical
     change, the ``limit`` most shared (then by group, key, before, after)
     listed and the rest counted in ``more``. A frame whose changes are None had
-    nothing to compare with and counts for nothing; None when no frame had."""
+    nothing to compare with: it adds no change, but it is a frame the changes
+    of the others were not made on; None when no frame had."""
     groups: dict[tuple[str, str, str | None, str | None], SharedChange] = {}
     compared = False
     frames = 0

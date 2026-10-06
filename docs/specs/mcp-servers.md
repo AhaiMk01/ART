@@ -46,7 +46,9 @@ From [Implementation language and SDK](https://github.com/AhaiMk01/ART/issues/7)
   on the control channel; `bad_reply` (ART's answer isn't the protocol); ART's
   own codes pass through (`bad_request`, `unknown_op`), except that for
   `sample_spots` ART's `unknown_op` (a fork build without spot sampling) becomes
-  `unsupported`, as in the Render server.
+  `unsupported`, as in the Render server. A file a Render operation could not
+  read or write, which it did not handle itself, is `render_failed` with the
+  system's message.
 - **Validation messages:** an out-of-range or unknown input names the field and
   the allowed range or values, for example `exposure.compensation=99 is outside
   -12..12 EV` or `tone_curve.mode='x' is not one of: Standard, ...`; several
@@ -143,7 +145,9 @@ From [Which processing profile values agents can change](https://github.com/Ahai
 Both compile into one partial profile. Rules:
 
 - Raw edits: the group and key must exist in a complete processing profile
-  (else `unknown_key`); values are passed unchecked.
+  (else `unknown_key`); values are passed unchecked, except that one with a
+  line break is `out_of_range` (it would start another key in the profile
+  text; a KeyFile writes a newline as `\n`).
 - Out-of-range adjustment: rejected with `out_of_range`, message names the
   range. No clamping.
 - An adjustment and a raw edit setting the same key in one request: rejected
@@ -918,7 +922,9 @@ From [Sidecar write policy for the Render server](https://github.com/AhaiMk01/AR
   `film-negative` skill. The tool description says this generically and points
   at the skills. The Live server has no `save_partial_profile`.
 - `export_image` renders the working profile as it is, saved or not. It writes
-  a `.arp` beside the output only with `write_profile=true` (art-cli `-O`).
+  a `.arp` beside the output only with `write_profile=true` (art-cli `-O`). An
+  `output` that is the image itself is `exists`, even with `overwrite` (as on
+  `export_batch` and a preview's `output`).
   `profile_name="source"` (with `write_profile`; also on `export_batch`) names
   that file after the image instead, in the output's folder, the way ART
   names the image's sidecar (`IMG.ARW.arp`, or `IMG.arp` with the user's
@@ -1060,9 +1066,10 @@ working profiles live there.
   listed; `more` counts the rest and a `warnings` entry then points at the pass
   JSON, which always has every change per frame. `changes` is null when no
   frame had an earlier pass (a first pass); it is `{groups: [], more: 0}` when
-  some did and nothing differs. A frame with nothing to compare with counts for
-  nothing; frames compared with different earlier passes (`since_pass`) are
-  grouped together.
+  some did and nothing differs. A frame with nothing to compare with adds no
+  change but is still a frame of the pass: a change made on all the others
+  names its frames, as it was not made on every frame; frames compared with
+  different earlier passes (`since_pass`) are grouped together.
 - **Where.** `folder` is where a `sheets` subfolder is created: any existing
   folder the caller chooses, for example the work folder; not the exports
   folder, the passes would mix with the exports (the old wording, "the batch's

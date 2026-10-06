@@ -98,6 +98,21 @@ async def test_out_of_range_names_the_range_and_changes_nothing(server, image):
     assert profile.structured_content["adjustments"]["white_balance"]["temperature"] == 6504
 
 
+async def test_a_raw_value_with_a_line_break_is_out_of_range_and_changes_nothing(server, image):
+    async with Client(server) as client:
+        await opened(client, image)
+        result = await client.call_tool(
+            "edit_profile",
+            {"path": str(image), "raw_edits": [{"group": "Exposure", "key": "Compensation", "value": "1\nBlack=9"}]},
+        )
+        profile = await client.call_tool("get_profile", {"path": str(image)})
+
+    assert result.is_error
+    assert error_text(result).startswith("out_of_range")
+    assert "[Exposure] Compensation" in error_text(result)
+    assert profile.structured_content["adjustments"]["exposure"]["compensation"] == 0
+
+
 async def test_unknown_adjustment_field_is_unknown_key(server, image):
     async with Client(server) as client:
         await opened(client, image)

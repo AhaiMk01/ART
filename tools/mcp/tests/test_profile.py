@@ -18,7 +18,7 @@ from art_mcp.profile import (
     failed_edit,
     read_format,
 )
-from art_mcp.schema import parse_adjustments
+from art_mcp.schema import AdjustmentError, parse_adjustments
 
 
 def profile():
@@ -42,6 +42,30 @@ def test_partial_profile_holds_only_the_keys_the_agent_changed():
         "Exposure": {"Compensation": "1"},
         "Sharpening": {"Enabled": "true"},
     }
+
+
+@pytest.mark.parametrize("line_break", ["\n", "\r", "\r\n", "\x0b", "\x0c", "\x1c", "\x85", "\u2028"])
+def test_a_raw_value_with_a_line_break_is_refused_and_nothing_changes(line_break):
+    # The profile text ART reads is one key=value per line: a line break would start another key.
+    changes = WorkingChanges(profile())
+
+    with pytest.raises(AdjustmentError, match=r"\[Exposure\] Compensation") as e:
+        changes.apply([
+            edit("Sharpening", "Enabled", "true"),
+            edit("Exposure", "Compensation", f"1{line_break}Enabled=true"),
+        ])
+
+    assert e.value.code == "out_of_range"
+    assert changes.partial_profile() == {}
+    assert changes.profile["Exposure"] == profile()["Exposure"]
+
+
+def test_a_raw_value_may_carry_the_escaped_newline_of_a_key_file():
+    changes = WorkingChanges(profile())
+
+    changes.apply([edit("Exposure", "Compensation", "a\\nb")])
+
+    assert changes.profile["Exposure"]["Compensation"] == "a\\nb"
 
 
 def test_changed_reports_final_values_once_and_skips_no_ops():

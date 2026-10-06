@@ -11,17 +11,20 @@ from typing import Any
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import CallToolResult, ContentBlock, ImageContent, TextContent
 
-from art_mcp.render.errors import RenderError
+from art_mcp.render.errors import RenderError, render_error
 
 
 @contextmanager
 def as_tool_errors() -> Iterator[None]:
     """Run an operation, turning its ``RenderError`` into the ``ToolError``
-    whose text starts with the error code."""
+    whose text starts with the error code. A file the operation could not
+    read or write (an ``OSError`` it did not handle) is ``render_failed``."""
     try:
         yield
     except RenderError as e:
         raise ToolError(str(e)) from e
+    except OSError as e:
+        raise ToolError(str(render_error("render_failed", str(e)))) from e
 
 
 def result_with_images(data: dict[str, Any], images: list[str], inline: bool) -> CallToolResult:

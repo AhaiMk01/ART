@@ -66,12 +66,12 @@ def register(server: MCPServer, session: RenderSession) -> None:
             await anyio.to_thread.run_sync(ops.check_not_in_editor, session, path)
             # Decide under the image lock, ask the user without it (the answer
             # can take minutes), then re-check and write under it again.
-            plan = ops.prepare_save(session, path)
+            plan = await anyio.to_thread.run_sync(ops.prepare_save, session, path)
             if plan.changed_on_disk and on_conflict is None:
                 on_conflict = await ask_user(ctx, plan.target, plan.theirs, plan.ours)
                 if on_conflict is None:
                     raise ops.conflict_error(plan)
-            return ops.commit_save(session, path, plan, on_conflict)
+            return await anyio.to_thread.run_sync(ops.commit_save, session, path, plan, on_conflict)
 
     @server.tool()
     def save_partial_profile(

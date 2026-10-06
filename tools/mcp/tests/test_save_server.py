@@ -9,6 +9,7 @@ from mcp.client.client import Client
 from mcp_types import ElicitResult
 
 from art_mcp import keyfile
+from art_mcp import sidecar as sidecar_files
 from art_mcp.preview import PreviewFolder
 from art_mcp.render.artcli import ArtCli
 from art_mcp.render.server import build_server
@@ -80,6 +81,20 @@ async def test_save_without_external_change_writes_sidecar_and_backs_up_the_old_
     assert keyfile.loads(sidecar.read_text())["Exposure"]["Compensation"] == "2"
     backup = sidecar.with_name(sidecar.name + ".bak")
     assert backup.read_text() == SIDECAR
+
+
+async def test_a_sidecar_that_cannot_be_written_is_a_render_failed_error(server, image, sidecar, monkeypatch):
+    def refuse(target, text):
+        raise PermissionError(13, "Permission denied", str(target))
+
+    monkeypatch.setattr(sidecar_files, "write_with_backup", refuse)
+    async with Client(server) as client:
+        await open_and_edit(client, image, edit("Exposure", "Compensation", "2"))
+        result = await client.call_tool("save_sidecar", {"path": str(image)})
+
+    assert result.is_error
+    assert "render_failed" in text_of(result) and "Permission denied" in text_of(result)
+    assert sidecar.read_text() == SIDECAR
 
 
 async def test_first_save_creates_the_sidecar_without_a_backup(server, image):

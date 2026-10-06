@@ -38,6 +38,7 @@ from art_mcp.keyfile import KeyFile
 from art_mcp.schema import (
     PPVERSION,
     TOOLS,
+    AdjustmentError,
     Adjustments,
     AdjustmentsArg,
     EditItem,
@@ -53,6 +54,9 @@ from art_mcp.schema import (
 from art_mcp.schema import Crop as CropAdjustment
 
 VERSION_GROUP = "Version"
+LINE_BREAKS = frozenset("\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029")
+"""What ends a line of profile text (as ``str.splitlines`` sees it). A value
+holding one would start another key; a KeyFile writes a newline as ``\\n``."""
 
 
 def version_warnings(ppversion: int | None) -> list[str]:
@@ -387,6 +391,12 @@ class WorkingChanges:
         if unknown:
             names = ", ".join(e.name for e in unknown)
             raise UnknownKey(f"not in this image's processing profile: {names}")
+        broken = [e for e in raw_edits if not LINE_BREAKS.isdisjoint(e.value)]
+        if broken:
+            names = ", ".join(e.name for e in broken)
+            raise AdjustmentError(
+                "out_of_range", f"a value can't hold a line break (write \\n for a newline): {names}"
+            )
         explicit, implied, created, warnings = (
             self._compile(adjustments, film_estimate) if adjustments else ([], [], [], [])
         )

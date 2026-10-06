@@ -9,6 +9,7 @@ from test_artcli_run import peak_overlap
 
 from art_mcp.metadata import Exiftool
 from art_mcp.preview import PreviewFolder
+from art_mcp.render import export_ops
 from art_mcp.render.artcli import ArtCli
 from art_mcp.render.server import build_server
 
@@ -222,6 +223,39 @@ async def test_write_profile_puts_the_working_profile_beside_the_output(server, 
         assert result.structured_content["profile_path"] == str(arp)
         assert "Compensation=1.5" in arp.read_text()
         assert not any(p.suffix in {".tmp"} for p in tmp_path.iterdir())
+
+
+async def test_an_export_whose_profile_cannot_be_placed_leaves_no_image_behind(server, image, tmp_path, monkeypatch):
+    out = tmp_path / "final.jpg"
+    move = export_ops.move_over
+
+    def refuse_the_profile(source, target):
+        if target.suffix == ".arp":
+            raise PermissionError("denied")
+        move(source, target)
+
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        monkeypatch.setattr(export_ops, "move_over", refuse_the_profile)
+        failed = await export(client, image, out, write_profile=True)
+        monkeypatch.setattr(export_ops, "move_over", move)
+
+        assert failed.is_error and "render_failed" in failed.content[0].text
+        assert not out.exists() and not (tmp_path / "final.jpg.arp").exists()
+        retried = await export(client, image, out, write_profile=True)  # not refused as "exists"
+        assert not retried.is_error, retried.content
+
+
+async def test_an_image_is_never_exported_over_itself(server, image):
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        refused = await export(client, image, image, overwrite=True)
+        spelled_otherwise = image.parent / ".." / image.parent.name / image.name
+        other_spelling = await export(client, image, spelled_otherwise, overwrite=True)
+
+    for result in (refused, other_spelling):
+        assert result.is_error and "exists" in result.content[0].text and "the image itself" in result.content[0].text
+    assert image.read_bytes() == b"raw"
 
 
 async def test_write_profile_respects_overwrite_for_the_arp(server, image, tmp_path):
