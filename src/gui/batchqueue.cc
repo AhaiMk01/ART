@@ -692,7 +692,7 @@ void BatchQueue::openItemInEditor(ThumbBrowserEntryBase *item)
     }
 }
 
-void BatchQueue::startProcessing()
+void BatchQueue::startProcessing(bool carry_on)
 {
 
     if (!processing) {
@@ -705,7 +705,7 @@ void BatchQueue::startProcessing()
             // tag it as processing and set sequence
             next->processing = true;
             next->error.clear();
-            next->sequence = sequence = 1;
+            next->sequence = carry_on ? ++sequence : (sequence = 1);
             processing = next;
 
             // remove from selection
@@ -839,7 +839,7 @@ void BatchQueue::failProcessing(const Glib::ustring &descr)
     saveBatchQueue();
     if (carry_on) {
         idle_register.add([this]() -> bool {
-            startProcessing();
+            startProcessing(true);
             return false;
         });
     } else {
@@ -852,8 +852,19 @@ void BatchQueue::failProcessing(const Glib::ustring &descr)
 
 void BatchQueue::error(const Glib::ustring &descr)
 {
-    if (processing && processing->processing) {
-        failProcessing(descr);
+    BatchQueueEntry *const failed = processing;
+    if (failed && failed->processing) {
+        // The batch processing thread reports an entry that could not be
+        // loaded: the queue, its buttons and the queue file are the GUI
+        // thread's, so it fails the entry.
+        idle_register.add([this, failed, descr]() -> bool {
+            if (processing == failed && failed->processing) {
+                failProcessing(descr);
+            }
+            reportError(descr);
+            return false;
+        });
+        return;
     }
     reportError(descr);
 }

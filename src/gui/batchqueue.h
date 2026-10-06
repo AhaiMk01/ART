@@ -69,7 +69,9 @@ public:
     void openItemInEditor(ThumbBrowserEntryBase *item);
     void openLastSelectedItemInEditor();
 
-    void startProcessing();
+    // `carry_on`: the queue went on past a failed entry, so the numbering of
+    // the output names (the `s` token) goes on too instead of restarting.
+    void startProcessing(bool carry_on = false);
 
     // What an entry is doing, for the Live control channel.
     struct EntryStatus {

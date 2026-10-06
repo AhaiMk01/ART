@@ -1263,8 +1263,11 @@ Assistants. The Live server never launches ART.
   source that can't be loaded, an output that can't be written or its
   folder created) records its message on the entry (`BatchQueueEntry::error`,
   also in its tooltip), moves it behind the others and the queue carries on
-  with the next entry (`BatchQueue::failProcessing`); it stops when only
-  failed entries are left, and a start tries those again. Before, a failed
+  with the next entry (`BatchQueue::failProcessing`, which for a load that
+  failed on the batch thread runs from an idle on the GUI thread); the
+  output numbering (the template's `s`) goes on past the failed entry rather
+  than restarting at 1. It stops when only failed entries are left, and a
+  start tries those again. Before, a failed
   load stopped the queue, and a failed save left it "running" with the
   entry stuck (and an output folder that couldn't be created dropped the
   entry unexported).
