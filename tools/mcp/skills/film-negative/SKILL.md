@@ -296,7 +296,11 @@ same frames of two passes side by side (a few frames: `images`).
    frames did not tune.
 4. Every frame needs its own white balance, even in one roll: the exponents
    carry over, the light does not (blue offsets ranged +0.04..+0.39 across one
-   roll: morning, afternoon, shade, greenhouse). Sample neutrals in the frame,
+   roll: morning, afternoon, shade, greenhouse). In a roll lit alike (one
+   hangar, one grey day) the intercepts agree (the red intercepts of one such
+   roll spread 0.017 over 12 frames) and the references come out the same: then one reference
+   for the group is the answer, and checking that a few frames agree is all
+   the per-frame work there is. Sample neutrals in the frame,
    check that its reliable ones lie on the roll's line (reference.md), keep
    only spots that agree on the intercepts, set `ref_input` on the line (at
    the group's reference green) and give the group's `ref_output` (a frame

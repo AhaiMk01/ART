@@ -60,6 +60,18 @@ RedRatio 1.575, a pooled fit (25 reliable spots in 8 frames) gave 1.334 and
 BlueRatio 0.737. With wrong exponents a per-frame white balance can make only
 one brightness neutral (whites neutral, mid-tones yellow).
 
+The ratios are not fixed numbers, and BlueRatio need not be below 1. ART's
+defaults (1.36 and 0.86) and the examples here (0.737, 0.857, 0.934) come from
+rolls shot partly or wholly outdoors; a roll shot entirely indoors under
+lamps fitted RedRatio 1.43 and BlueRatio 1.2 (69 spots in 5 frames, stable
+residuals), and the hand-tuned values on hangar frames of another roll were
+1.06 to 1.2. Judge a fit by its residuals and by whether neutrals stay neutral
+from dark to light, not by the default. What decides it is which spots go in:
+the same roll gave BlueRatio 1.45 from `suggest_neutrals` candidates alone and
+1.20 once bright white objects (airframe paint, white missile bodies) were
+added. Fit with bright and dark neutrals both, refit when the slope changes a
+lot after adding the other end, and trust the fit only when it is stable.
+
 Pooled fit: each frame gets its own intercept, all frames share one slope
 (within-frame regression). For channel c (r or b) against green, with
 `x = ln g`, `y = ln c` and per-frame means `xm_f`, `ym_f`:
