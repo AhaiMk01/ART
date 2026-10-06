@@ -311,7 +311,8 @@ how it got there. Each call is one *pass*:
   (the number of `changes` they have, null when there is nothing to compare
   with) instead of the lists, and the result's `changes` groups the identical
   change made on several frames into one entry,
-  `{group, key, before, after, images: [file names]}`, the most shared first
+  `{group, key, before, after, images: [file names]}` (`images` null for a change made on every
+  frame of a pass of more than 4 frames: the names would only repeat), the most shared first
   (then by group and key), at most 25 entries with `more` counting the rest
   (a `warnings` entry then names the JSON, which has every change per frame).
   A first pass (or one where no image had an earlier pass) has `changes` null

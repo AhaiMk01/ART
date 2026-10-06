@@ -1043,7 +1043,10 @@ working profiles live there.
   is nothing to compare with), and a top-level `changes`, the changes grouped
   by identical change (same group, key, before and after, after normalising),
   `{group, key, before, after, images}` with the file names of the frames it was
-  made on in sheet order. Groups are sorted by how many frames share them, then
+  made on in sheet order, or `images` null when it was made on every frame of a
+  pass of more than 4 frames (`NAMES_LISTED_UP_TO`; a base setting applied to 37
+  frames repeated 37 names, about 670 characters, per group: 6,726 characters of
+  summary became about 800 on a real pass). Groups are sorted by how many frames share them, then
   by group, key, before, after, and the first 25 (`MAX_SHARED_CHANGES`) are
   listed; `more` counts the rest and a `warnings` entry then points at the pass
   JSON, which always has every change per frame. `changes` is null when no

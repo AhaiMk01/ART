@@ -345,3 +345,46 @@ def test_frames_with_nothing_to_compare_count_for_nothing_and_changes_none_means
 
 def test_compared_frames_with_no_change_give_an_empty_summary_not_none():
     assert summarise([("A.ARW", []), ("B.ARW", [])]) == ChangeSummary(groups=[], more=0)
+
+
+# -- a change on every frame names none ---------------------------------------------
+
+
+def frames(count, with_change):
+    """`count` frames named F1.ARW..; the first `with_change` of them have `change("Black")`."""
+    return [(f"F{i}.ARW", [change("Black")] if i <= with_change else []) for i in range(1, count + 1)]
+
+
+def test_a_change_on_every_frame_of_a_pass_of_many_lists_no_names():
+    [group] = summarise(frames(6, with_change=6)).groups
+
+    assert (group.group, group.key) == ("Exposure", "Black") and group.images is None
+
+
+def test_a_change_on_some_frames_still_names_them():
+    [group] = summarise(frames(6, with_change=2)).groups
+
+    assert group.images == ["F1.ARW", "F2.ARW"]
+
+
+def test_a_small_pass_always_names_its_frames():
+    assert summarise(frames(4, with_change=4)).groups[0].images == ["F1.ARW", "F2.ARW", "F3.ARW", "F4.ARW"]
+    assert summarise(frames(5, with_change=5)).groups[0].images is None  # more than four: the names are noise
+
+
+def test_a_frame_with_nothing_to_compare_is_a_frame_the_change_was_not_made_on():
+    per_image = [("F0.ARW", None)] + frames(5, with_change=5)
+
+    [group] = summarise(per_image).groups
+
+    assert group.images == ["F1.ARW", "F2.ARW", "F3.ARW", "F4.ARW", "F5.ARW"]
+
+
+def test_entries_are_ordered_by_sharing_before_the_names_are_dropped():
+    per_image = [
+        (f"F{i}.ARW", [change("Everywhere")] + ([change("Some")] if i <= 3 else [])) for i in range(1, 7)
+    ]
+
+    groups = summarise(per_image).groups
+
+    assert [(g.key, g.images) for g in groups] == [("Everywhere", None), ("Some", ["F1.ARW", "F2.ARW", "F3.ARW"])]

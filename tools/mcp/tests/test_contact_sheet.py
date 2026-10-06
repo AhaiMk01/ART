@@ -829,3 +829,25 @@ async def test_comparing_needs_two_existing_passes_and_a_folder(server, images, 
     assert no_default.is_error and "out_of_range" in no_default.content[0].text
 
 
+
+
+async def test_a_change_made_on_every_frame_of_a_big_pass_is_one_entry_without_names(tmp_path, out):
+    folder = tmp_path / "many"
+    folder.mkdir()
+    photos = []
+    for index in range(1, 7):
+        photo = folder / f"FILM_{index}.ARW"
+        photo.write_bytes(b"raw")
+        photos.append(photo)
+    async with Client(make_server(tmp_path, "previews")) as client:
+        await open_all(client, photos)
+        await sheet(client, photos, out)
+        for photo in photos:
+            await client.call_tool("edit_profile", {"path": str(photo), "raw_edits": compensation("1.5")})
+        await client.call_tool("edit_profile", {"path": str(photos[0]), "raw_edits": black("40")})
+        second = await sheet(client, photos, out)
+
+    groups = second.structured_content["changes"]["groups"]
+    assert [(g["key"], g["images"]) for g in groups] == [("Compensation", None), ("Black", ["FILM_1.ARW"])]
+    assert [i["changed"] for i in second.structured_content["images"]] == [2, 1, 1, 1, 1, 1]
+    assert sum(len(i["changes"]) for i in record(second)["images"]) == 7  # the record keeps every change per frame

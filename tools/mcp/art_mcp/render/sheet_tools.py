@@ -41,8 +41,9 @@ def register(server: MCPServer, session: RenderSession) -> None:
         repeat those lists: per image `changed` (how many values differ; null
         the first time) and `changes`, what changed since the last pass
         grouped by identical change, `{group, key, before, after, images}`
-        with the file names of the frames it was made on, the most shared
-        first (at most 25, `more` counts the rest and the JSON has every
+        with the file names of the frames it was made on (`images` is null
+        for a change made on every frame of a pass of more than 4 frames), the
+        most shared first (at most 25, `more` counts the rest and the JSON has every
         change per frame; `changes` is null when no image had an earlier
         pass, as in the first). Earlier passes are never
         overwritten. `folder` is where the `sheets` subfolder is created: any

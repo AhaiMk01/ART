@@ -102,9 +102,10 @@ class SheetResult(Pass):
     images: list[SheetFrame]
     changes: ChangeSummary | None
     """What changed since the last pass, the same change on several frames being one entry with their
-    file names (`groups`: the most shared first, then by name; `more`: how many further ones are not
-    listed). Null when no frame had an earlier pass to compare with (a first pass), and with
-    `record=false`. Every change per frame is in the JSON."""
+    file names (`groups`: the most shared first, then by name; a change made on every frame of a
+    pass of more than 4 frames has `images` null instead of the names; `more`: how many further
+    ones are not listed). Null when no frame had an earlier pass to compare with (a first pass), and
+    with `record=false`. Every change per frame is in the JSON."""
     path: str
     """The sheet (a JPEG); open it to look at the frames. With `record=false` it is a file in the
     server's own temp folder."""

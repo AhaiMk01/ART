@@ -28,6 +28,12 @@ from art_mcp.keyfile import KeyFile
 MAX_SHARED_CHANGES = 25
 """How many groups of identical changes a summary lists."""
 
+NAMES_LISTED_UP_TO = 4
+"""A pass of at most this many frames always names the frames of a change. In a
+bigger pass a change made on every frame names none (``images`` is None): a
+base setting applied to 37 frames would repeat 37 file names, about 670
+characters, for each such change."""
+
 SIGNIFICANT_DIGITS = 7
 """How many digits of a decimal are shown: what a 32-bit float holds."""
 
@@ -55,8 +61,9 @@ class SharedChange(BaseModel):
     key: str
     before: str | None
     after: str | None
-    images: list[str]
-    """File names of the frames, in sheet order."""
+    images: list[str] | None
+    """File names of the frames, in sheet order; None when the change was made
+    on every frame of a pass of more than ``NAMES_LISTED_UP_TO`` frames."""
 
 
 class ChangeSummary(BaseModel):
@@ -165,7 +172,9 @@ def summarise(
     nothing to compare with and counts for nothing; None when no frame had."""
     groups: dict[tuple[str, str, str | None, str | None], SharedChange] = {}
     compared = False
+    frames = 0
     for name, changes in per_image:
+        frames += 1
         if changes is None:
             continue
         compared = True
@@ -174,11 +183,16 @@ def summarise(
                 (c.group, c.key, c.before, c.after),
                 SharedChange(group=c.group, key=c.key, before=c.before, after=c.after, images=[]),
             )
+            assert shared.images is not None  # only listed below, once every frame is counted
             shared.images.append(name)
     if not compared:
         return None
     ordered = sorted(
         groups.values(),
-        key=lambda g: (-len(g.images), g.group.casefold(), g.key.casefold(), g.before or "", g.after or ""),
+        key=lambda g: (-len(g.images or []), g.group.casefold(), g.key.casefold(), g.before or "", g.after or ""),
     )
+    if frames > NAMES_LISTED_UP_TO:
+        for shared in ordered:
+            if shared.images is not None and len(shared.images) == frames:
+                shared.images = None
     return ChangeSummary(groups=ordered[:limit], more=max(0, len(ordered) - limit))
