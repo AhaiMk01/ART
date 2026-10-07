@@ -216,8 +216,10 @@ int StdImageSource::load(const Glib::ustring &fname, int maxw_hint,
         plistener->setProgress(1.0);
     }
 
-    // this is probably a mistake if embedded profile is not D65
-    wb = ColorTemp(1.0, 1.0, 1.0, 1.0);
+    // Neutral camera multipliers. The 3-arg constructor keeps MULTIPLIERS
+    // mode. The 4-arg form solves a temperature and the round-trip is not
+    // identity: it shifts the multipliers by about 1e-4 on every non-raw file.
+    wb = ColorTemp(1.0, 1.0, 1.0);
 
     return 0;
 }
