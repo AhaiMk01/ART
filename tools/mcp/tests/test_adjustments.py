@@ -4,7 +4,7 @@ conflict, auto-enable, explicit disable, typed read format."""
 import pytest
 
 from art_mcp.profile import Conflict, RawEdit, WorkingChanges, read_format
-from art_mcp.schema import parse_adjustments
+from art_mcp.schema import PPVERSION, parse_adjustments
 
 
 def full_profile():
@@ -169,7 +169,7 @@ def test_a_value_that_does_not_fit_the_schema_stays_raw():
 
 def test_newer_profile_version_warns_that_the_schema_is_older():
     profile = full_profile()
-    profile["Version"]["Version"] = "1050"
+    profile["Version"]["Version"] = str(PPVERSION + 1)
 
     assert read_format(profile).warnings
     assert not read_format(full_profile()).warnings

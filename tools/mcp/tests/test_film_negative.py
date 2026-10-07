@@ -264,7 +264,7 @@ def test_paper_target_round_trips_and_does_not_drop_cineon_fields():
             method="density",
             target_mode="paper",
             paper_curve="ilford_mgfb_00",
-            paper_basis="working",
+            paper_basis="working|Rec2020",
             cineon_primaries="ProPhoto",
             cineon_reference_white=1.0,
         ),
@@ -272,13 +272,34 @@ def test_paper_target_round_trips_and_does_not_drop_cineon_fields():
     )
     assert values(result)["TargetMode"] == "paper"
     assert values(result)["PaperCurve"] == "ilford_mgfb_00"
-    assert values(result)["PaperBasis"] == "working"
+    assert values(result)["PaperBasis"] == "working|Rec2020"
     assert values(result)["CineonPrimaries"] == "ProPhoto"
     typed = read_format(changes.profile).adjustments["film_negative"]
     assert typed["target_mode"] == "paper"
     assert typed["paper_curve"] == "ilford_mgfb_00"
-    assert typed["paper_basis"] == "working"
+    assert typed["paper_basis"] == "working|Rec2020"
     assert typed["cineon_primaries"] == "ProPhoto"
+
+
+@pytest.mark.parametrize(
+    "basis", ["working", "input", "Rec2020", "working|", "|Rec2020", "output|Rec2020"]
+)
+def test_paper_basis_needs_a_space_and_a_profile(basis):
+    # ART refuses anything but `input|<profile>` or `working|<profile>` at render
+    # time (TP_FILMNEGATIVE_ERR_PAPER_BASIS); refuse it here, with the form.
+    changes = WorkingChanges(profile())
+    with pytest.raises(AdjustmentError) as e:
+        changes.edit(adj(method="density", paper_basis=basis), [])
+    assert e.value.code == "out_of_range"
+    assert "input|<profile>" in str(e.value)
+    assert changes.profile["Film Negative"].get("PaperBasis") is None
+
+
+@pytest.mark.parametrize("basis", ["", "input|(cameraICC)", "working|Rec2020"])
+def test_paper_basis_accepts_empty_or_space_and_profile(basis):
+    changes = WorkingChanges(profile())
+    result = changes.edit(adj(method="density", paper_basis=basis), [])
+    assert values(result)["PaperBasis"] == basis
 
 
 def test_density_fields_round_trip():

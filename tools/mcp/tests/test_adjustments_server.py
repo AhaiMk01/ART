@@ -13,6 +13,7 @@ from art_mcp.preview import PreviewFolder
 from art_mcp.render import profile_ops
 from art_mcp.render.artcli import ArtCli
 from art_mcp.render.server import build_server
+from art_mcp.schema import PPVERSION
 
 FAKE = Path(__file__).with_name("fake_artcli.py")
 pytestmark = pytest.mark.anyio
@@ -183,7 +184,7 @@ async def test_describe_adjustments_lists_both_tools_with_ranges_and_units(serve
 
     assert not result.is_error, result.content
     described = result.structured_content
-    assert described["schema_ppversion"] == 1050
+    assert described["schema_ppversion"] == PPVERSION
     comp = described["tools"]["exposure"]["fields"]["compensation"]
     assert (comp["minimum"], comp["maximum"], comp["unit"]) == (-12, 12, "EV")
     assert comp["key"] == "Compensation" and comp["description"]

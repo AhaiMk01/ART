@@ -1,3 +1,6 @@
+import re
+from pathlib import Path
+
 import pytest
 
 from art_mcp.schema import PPVERSION, AdjustmentError, parse_adjustments
@@ -9,7 +12,18 @@ def test_in_range_values_parse_and_only_set_fields_are_set():
     assert adj.exposure is not None and adj.exposure.compensation == 0.7
     assert adj.exposure.model_fields_set == {"compensation"}
     assert adj.white_balance is None
-    assert PPVERSION == 1050
+
+
+def test_the_schema_is_stamped_with_the_ppversion_of_this_checkout():
+    header = Path(__file__).parents[3] / "src" / "utils" / "ppversion.h"
+    if not header.exists():
+        pytest.skip("not inside an ART checkout")
+    match = re.search(r"#define\s+PPVERSION\s+(\d+)", header.read_text())
+    assert match is not None
+    assert PPVERSION == int(match.group(1)), (
+        "the schema's PPVERSION is out of date: re-check the ranges and fields "
+        "against ART, then update PPVERSION in art_mcp/schema.py"
+    )
 
 
 @pytest.mark.parametrize(

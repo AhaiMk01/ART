@@ -205,7 +205,7 @@ shapes for them are a later, separate effort.
   as before. Input schemas go from 26,294 to 23,370 characters on Render and
   from 22,165 to 20,435 on Live; the output schemas, which a client loads as
   often, from 25,077 to 19,612 and from 18,676 to 14,529.
-- The schema records the `PPVERSION` it was written for (currently 1045, in
+- The schema records the `PPVERSION` it was written for (currently 1053, in
   `src/utils/ppversion.h`). If ART reports a newer one, results carry a
   warning; edits keep working.
 
@@ -215,7 +215,7 @@ shapes for them are a later, separate effort.
 
 ```json
 {
-  "ppversion": 1045,
+  "ppversion": 1053,
   "adjustments": { "exposure": { "compensation": 0.0, "...": "..." }, "...": {} },
   "raw": { "ToneCurve": { "Enabled": "true", "Curve": "..." }, "...": {} },
   "warnings": []

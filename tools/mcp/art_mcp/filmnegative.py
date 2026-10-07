@@ -186,7 +186,7 @@ def check_matrix_coefficients(tool: FilmNegative, entries: Group | None) -> None
         return
     expected = IDENTITY_MATRIX if preset == "identity" else STATUS_M_MATRIX
     if len(tool.matrix) == 9 and all(
-        abs(a - b) <= 1e-9 for a, b in zip(tool.matrix, expected)
+        abs(a - b) <= 1e-9 for a, b in zip(tool.matrix, expected, strict=True)
     ):
         tool.matrix = None
         return
@@ -226,6 +226,22 @@ def check_cineon_lut_excludes_paper(tool: FilmNegative, entries: Group | None) -
             "film_negative: cineon_lut and target_mode paper are mutually exclusive; "
             "the paper curve is not applied when a Cineon print LUT is set",
         )
+
+
+def check_paper_basis(tool: FilmNegative, entries: Group | None) -> None:
+    """A paper basis is ``input|<profile>`` or ``working|<profile>``, or empty;
+    ART refuses any other form when it renders a paper target."""
+    basis = tool.paper_basis
+    if not basis:
+        return
+    space, bar, profile = basis.partition("|")
+    if space in ("input", "working") and bar and profile:
+        return
+    raise AdjustmentError(
+        "out_of_range",
+        f"film_negative: paper_basis {basis!r} must be input|<profile> or "
+        "working|<profile> (for example working|Rec2020), or empty",
+    )
 
 
 def _picker_applies(tool: FilmNegative, entries: Group) -> Triple | None:

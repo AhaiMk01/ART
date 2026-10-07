@@ -27,14 +27,15 @@ from art_mcp.curves import LinearCurve, PointCurve, curve_warnings, decode, draw
 from art_mcp.filmnegative import GROUP as FILM_GROUP
 from art_mcp.filmnegative import (
     Estimate,
-    check_legacy,
     check_cineon_lut_excludes_paper,
+    check_legacy,
     check_matrix_coefficients,
+    check_paper_basis,
+    film_base_edits,
     format_triple,
     is_legacy,
     parse_triple,
     picker_edits,
-    film_base_edits,
     read_matrix_field,
     read_triple_field,
 )
@@ -323,6 +324,7 @@ class WorkingChanges:
                 check_legacy(tool, self.profile.get(group))
                 check_matrix_coefficients(tool, self.profile.get(group))
                 check_cineon_lut_excludes_paper(tool, self.profile.get(group))
+                check_paper_basis(tool, self.profile.get(group))
                 explicit += film_base_edits(tool, self.profile, raw_source)
             values = {f: getattr(tool, f) for f in model.model_fields if getattr(tool, f) is not None}
             if not values:

@@ -11,7 +11,8 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationEr
 
 from art_mcp.compactschema import CompactModel, compact_model_schema, full_schema
 from art_mcp.curves import CurveSpec
-PPVERSION = 1050
+
+PPVERSION = 1053
 """The processing-profile version (``src/utils/ppversion.h``) this schema was
 written for."""
 
@@ -579,8 +580,9 @@ class FilmNegative(CompactModel):
     )
     paper_basis: str | None = F(
         "PaperBasis",
-        "Space the paper response is bound to: input, working, optionally |profile, "
-        "or empty if unbound. A non-empty mismatch refuses the conversion.",
+        "Space and profile the paper response is bound to, written input|<profile> or "
+        "working|<profile> (for example working|Rec2020), or empty if unbound. Any "
+        "other form is refused, and so is a mismatch with the active space or profile.",
         default="",
     )
     cineon_lut: str | None = F(
