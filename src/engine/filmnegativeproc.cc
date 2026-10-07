@@ -702,10 +702,11 @@ bool art::engine::ImProcFunctions::filmNegativeProcess(Imagefloat *input,
         return false;
     }
 
+    const FramesMetaData *meta =
+        imgsrc ? const_cast<ImageSource *>(imgsrc)->getMetaData() : nullptr;
+    const std::string camera = meta ? meta->getCamera() : std::string();
     const Glib::ustring sourceId =
-        (imgsrc && imgsrc->getMetaData())
-            ? Glib::ustring(imgsrc->getMetaData()->getCamera())
-            : Glib::ustring("Unknown");
+        camera.empty() ? Glib::ustring("Unknown") : Glib::ustring(camera);
 
     if (fnp.method == FilmNegativeParams::Method::DENSITY) {
         fnp.backCompat = FilmNegativeParams::BackCompat::CURRENT;
@@ -1359,7 +1360,7 @@ Glib::ustring prepareFilmNegativeCineonExport(
     if (!tiff16) {
         return art::utils::M("TP_FILMNEGATIVE_ERR_CINEON_FORMAT");
     }
-    if (!img || img->getType() != sImagefloat) {
+    if (!img) {
         return art::utils::M("TP_FILMNEGATIVE_ERR_CINEON_IMAGE");
     }
 

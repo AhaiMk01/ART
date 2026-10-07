@@ -12,6 +12,7 @@
 
 #include <glibmm/checksum.h>
 #include "color.h"
+#include "iccstore.h"
 #include "linalgebra.h"
 #include "../utils/multilangmgr.h"
 
