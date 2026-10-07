@@ -46,6 +46,9 @@ public:
 
     virtual bool getFilmNegativeSpot(art::engine::Coord spot, int spotSize,
                                      RGB &refInput, RGB &refOutput) = 0;
+    // Density + Negative only. On false, gains is unused and must not be applied.
+    virtual bool getFilmNegativeBaseGains(art::engine::Coord spot, int spotSize,
+                                          std::array<double, 3> &gains) = 0;
 };
 
 class FilmNegative final: public ToolParamBlock,
@@ -97,6 +100,7 @@ public:
 private:
     void editToggled();
     void refSpotToggled();
+    void filmBaseToggled();
 
     void readOutputSliders(RGB &refOutput);
     void writeOutputSliders(const RGB &refOutput);
@@ -112,6 +116,7 @@ private:
     const art::engine::ProcEvent evFilmNegativeColorSpace;
     const art::engine::ProcEvent evFilmNegativeMethod;
     const art::engine::ProcEvent evFilmNegativeDensity;
+    const art::engine::ProcEvent evFilmNegativeFilmBase;
     const art::engine::ProcEvent evFilmNegativeCineon;
     const art::engine::ProcEvent evFilmNegativeMatrix;
     const art::engine::ProcEvent evFilmNegativeTarget;
@@ -150,6 +155,8 @@ private:
     Gtk::Label *const refInputLabel;
     Gtk::ToggleButton *const refSpotButton;
     MyComboBoxText *refspotsize;
+    Gtk::ToggleButton *const filmBaseButton;
+    MyComboBoxText *filmBaseSize;
 
     Adjuster *const outputLevel;
     Adjuster *const greenBalance;
@@ -188,6 +195,7 @@ private:
 
     Gtk::Widget *spotPickerBox;
     Gtk::Widget *refSpotPickerBox;
+    Gtk::Widget *filmBasePickerBox;
     Gtk::Separator *sep;
 
     IdleRegister idle_register;

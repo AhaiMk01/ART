@@ -1599,6 +1599,10 @@ TP_FILMNEGATIVE_CHANNEL_GAMMA_B;Blue slope
 TP_FILMNEGATIVE_RGB_GAIN_R;Red gain
 TP_FILMNEGATIVE_RGB_GAIN_G;Green gain
 TP_FILMNEGATIVE_RGB_GAIN_B;Blue gain
+TP_FILMNEGATIVE_FILMBASE_DENSITY_PICK;Pick film-base rebate
+TP_FILMNEGATIVE_FILMBASE_DENSITY_TOOLTIP;Pick unexposed film (the rebate between frames). Sets all three printer-light gains so that spot maps to density 4.0 (linear 1e-4) before paper, LUT, and black offset. Contrast, Dmax, and the matrix are left unchanged. Refused if a gain would fall outside -3 to 3.
+TP_FILMNEGATIVE_FILMBASE_DENSITY_FAILED;Film-base pick failed. Printer-light gains were not changed.
+HISTORY_MSG_FILMNEGATIVE_FILMBASE_GAINS;Film Negative - Printer lights
 TP_FILMNEGATIVE_TARGET;Target:
 TP_FILMNEGATIVE_TARGET_LINEAR;Linear
 TP_FILMNEGATIVE_TARGET_PAPER;Paper

@@ -147,6 +147,9 @@ public:
 
     void setValue(double a);
     void setLimits(double vmin, double vmax, double vstep, double vdefault);
+    // Keyboard step (arrows) and page (Page Up/Down). Digits stay as set by
+    // setLimits.
+    void setIncrements(double step, double page);
     void setEnabled(bool enabled);
     void setDefault(double def, bool hard = false);
     // will let the adjuster throw it's "changed" signal when the mouse button

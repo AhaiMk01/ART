@@ -436,6 +436,13 @@ void Adjuster::setLimits(double vmin, double vmax, double vstep,
     spinChange.block(false);
 }
 
+void Adjuster::setIncrements(double step, double page)
+{
+    vStep = step;
+    spin->set_increments(step, page);
+    slider->set_increments(step, page);
+}
+
 void Adjuster::setAddMode(bool addM)
 {
     if (addM != addMode) {

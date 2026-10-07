@@ -16,7 +16,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include <algorithm>
+#include <array>
+
 #include <cmath>
 #include <iostream>
 #include <locale>
@@ -574,6 +575,80 @@ bool doProcess(Imagefloat *input, Imagefloat *output,
     return refsUpdated;
 }
 
+// Printer-light gains that map a rebate sample to density 4 (linear 1e-4)
+// before paper, LUT, and black offset. C is the matrix/channel-adjusted
+// density with the current RGBGains omitted. Writes gains only if every
+// channel is finite and inside [-3, 3].
+bool filmBaseGainsFromAverage(const float avg[3],
+                              const FilmNegativeParams &params,
+                              const ColorManagementParams &icm, bool isRaw,
+                              std::array<double, 3> &gains)
+{
+    if (params.method != FilmNegativeParams::Method::DENSITY ||
+        params.filmType != FilmNegativeParams::FilmType::NEGATIVE) {
+        return false;
+    }
+    float densityMatrix[9];
+    if (!activeDensityMatrix(params, icm, nullptr, densityMatrix)) {
+        return false;
+    }
+
+    const float inputGamma =
+        resolvedInputGamma(params, sourceTransfer(isRaw, icm), nullptr);
+    const float S = 65535.f;
+    const float densityGamma = static_cast<float>(params.densityGamma);
+    const float densityDmax = static_cast<float>(params.densityDmax);
+    const float p = 0.7f;
+    const float P = 4.1f - densityDmax;
+    const float channelGamma[3] = {
+        static_cast<float>(params.channelGamma[0]),
+        static_cast<float>(params.channelGamma[1]),
+        static_cast<float>(params.channelGamma[2])};
+
+    float A[3];
+    for (int c = 0; c < 3; ++c) {
+        if (!std::isfinite(avg[c]) || !(avg[c] > 0.f)) {
+            return false;
+        }
+        float norm = avg[c] / S;
+        if (inputGamma != 1.f) {
+            const float sign = norm < 0.f ? -1.f : 1.f;
+            norm = sign * std::pow(std::fabs(norm), inputGamma);
+        }
+        if (!std::isfinite(norm)) {
+            return false;
+        }
+        const float Tc = norm > 1e-10f ? norm : 1e-10f;
+        const float Dc = -std::log10(Tc);
+        A[c] = densityDmax - p - densityGamma * (Dc - p);
+        if (!std::isfinite(A[c])) {
+            return false;
+        }
+    }
+
+    float B[3];
+    for (int row = 0; row < 3; ++row) {
+        float sum = 0.f;
+        for (int col = 0; col < 3; ++col) {
+            sum += densityMatrix[row * 3 + col] * (A[col] - P);
+        }
+        B[row] = P + sum;
+    }
+
+    std::array<double, 3> computed;
+    for (int c = 0; c < 3; ++c) {
+        // Current printer lights are not part of C.
+        const float density = P + channelGamma[c] * (B[c] - P);
+        const double gain = static_cast<double>(density) - 4.0;
+        if (!std::isfinite(gain) || gain < -3.0 || gain > 3.0) {
+            return false;
+        }
+        computed[c] = gain;
+    }
+    gains = computed;
+    return true;
+}
+
 } // namespace
 
 bool art::engine::ImProcFunctions::filmNegativeProcess(Imagefloat *input,
@@ -840,6 +915,39 @@ bool art::engine::ImProcCoordinator::getFilmNegativeSpot(int x, int y,
     refOutput.g = gmult * pow_F(avg.g, gexp);
     refOutput.b = bmult * pow_F(avg.b, bexp);
 
+    return true;
+}
+
+bool art::engine::ImProcCoordinator::getFilmNegativeBaseGains(
+    int x, int y, int spotSize, std::array<double, 3> &gains)
+{
+    art::utils::MyMutex::MyLock lock(mProcessing);
+    if (!imgsrc || spotSize < 1 || fw <= 0 || fh <= 0) {
+        return false;
+    }
+    if (params.filmNegative.method != FilmNegativeParams::Method::DENSITY ||
+        params.filmNegative.filmType !=
+            FilmNegativeParams::FilmType::NEGATIVE) {
+        return false;
+    }
+
+    const int tr = getCoarseBitMask(params.coarse);
+    const Coord2D p = translateCoord(ipf, fw, fh, x, y);
+    RGB avg, max;
+    getSpotAvgMax(imgsrc, currWB, params, p, tr, spotSize,
+                  params.filmNegative.colorSpace ==
+                          FilmNegativeParams::ColorSpace::INPUT
+                      ? SpotSpace::INPUT
+                      : SpotSpace::WORKING,
+                  avg, max, ipf.getGPUContext());
+
+    const float sample[3] = {avg.r, avg.g, avg.b};
+    std::array<double, 3> computed;
+    if (!filmBaseGainsFromAverage(sample, params.filmNegative, params.icm,
+                                  imgsrc->isRAW(), computed)) {
+        return false;
+    }
+    gains = computed;
     return true;
 }
 

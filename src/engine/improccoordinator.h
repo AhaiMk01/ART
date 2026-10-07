@@ -30,6 +30,7 @@
 #include "rtengine.h"
 
 #include <condition_variable>
+#include <array>
 #include <mutex>
 
 namespace art { namespace engine {
@@ -355,6 +356,13 @@ public:
     bool getFilmNegativeSpot(int x, int y, const int spotSize,
                              FilmNegativeParams::RGB &refInput,
                              FilmNegativeParams::RGB &refOutput);
+    // Density negative only. Samples the active basis after white balance
+    // (and working-space conversion when that is the inversion space), then
+    // returns gains = C - 4.0 without the current printer lights. False
+    // leaves the out-parameter unused: reversal, power-law, invalid sample,
+    // matrix refusal, or any gain outside [-3, 3].
+    bool getFilmNegativeBaseGains(int x, int y, int spotSize,
+                                  std::array<double, 3> &gains);
 
     /** Samples spots (frame pixels) like the film negative pickers do, on
      * the current state. NOT_READY if no image is processed yet; for

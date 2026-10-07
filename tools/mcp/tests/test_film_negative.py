@@ -790,3 +790,37 @@ async def test_live_falls_back_when_the_editor_cannot_sample(art, tmp_path):
     assert "brightness may change" in result.structured_content["warnings"][0]
     [applied] = editor.applied
     assert keyfile.loads(applied["profile"])["Film Negative"]["RefOutput"] == "2730.625;2730.625;2730.625"
+
+
+def test_film_base_pick_sets_all_three_gains_to_c_minus_four():
+    # Identity, gamma 1, Dmax 2.5, slope 1: Tc=0.1 -> C=1.5 -> gains=-2.5.
+    changes = WorkingChanges(profile())
+    sample = 0.1 * 65535
+    result = changes.edit(
+        adj(method="density", film_base_sample=[sample, sample, sample]), []
+    )
+
+    assert values(result)["RGBGains"] == "-2.5;-2.5;-2.5"
+    assert "DensityDmax" not in values(result)
+    assert "DensityGamma" not in values(result)
+    assert "Matrix" not in values(result)
+    assert "ChannelGamma" not in values(result)
+    assert changes.profile["Film Negative"]["RGBGains"] == "-2.5;-2.5;-2.5"
+
+
+def test_film_base_pick_refuses_reversal_and_an_out_of_range_gain():
+    reversal = WorkingChanges(profile())
+    with pytest.raises(AdjustmentError, match="reversal") as denied:
+        reversal.edit(
+            adj(method="density", film_type="reversal", film_base_sample=[6553.5] * 3),
+            [],
+        )
+    assert denied.value.code == "out_of_range"
+    assert "RGBGains" not in reversal.profile["Film Negative"]
+
+    # Green is near the floor, so its gain falls outside -3..3. Nothing is written.
+    dark = WorkingChanges(profile())
+    with pytest.raises(AdjustmentError, match="outside -3"):
+        dark.edit(adj(method="density", film_base_sample=[65535, 1, 65535]), [])
+    assert "RGBGains" not in dark.profile["Film Negative"]
+    assert dark.profile["Film Negative"]["RedRatio"] == "1"

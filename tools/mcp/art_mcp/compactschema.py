@@ -29,6 +29,7 @@ _compact: ContextVar[bool] = ContextVar("compact_schema", default=True)
 
 BOOKKEEPING = (
     "key", "art_default", "group", "stored_as", "default_from", "curve", "read_as", "rgb",
+    "ephemeral", "matrix", "allow_negative",
 )  # fmt: skip
 """The extras ``schema.F`` and ``schema.rgb_field`` put on a field: for
 ``describe_adjustments`` and the reading code, not for a caller."""

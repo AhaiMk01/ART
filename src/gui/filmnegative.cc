@@ -312,6 +312,8 @@ FilmNegative::FilmNegative()
           art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_METHOD")),
       evFilmNegativeDensity(ProcEventMapper::getInstance()->newEvent(
           art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_DENSITY")),
+      evFilmNegativeFilmBase(ProcEventMapper::getInstance()->newEvent(
+          art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_FILMBASE_GAINS")),
       evFilmNegativeCineon(ProcEventMapper::getInstance()->newEvent(
           0, "HISTORY_MSG_FILMNEGATIVE_CINEON")),
       evFilmNegativeMatrix(ProcEventMapper::getInstance()->newEvent(
@@ -337,6 +339,9 @@ FilmNegative::FilmNegative()
           Glib::ustring::compose(M("TP_FILMNEGATIVE_REF_LABEL"), "- - -")))),
       refSpotButton(
           Gtk::manage(new Gtk::ToggleButton(M("TP_FILMNEGATIVE_REF_PICK")))),
+      filmBaseButton(Gtk::manage(
+          new Gtk::ToggleButton(M("TP_FILMNEGATIVE_FILMBASE_DENSITY_PICK")))),
+      filmBaseSize(nullptr),
       outputLevel(createLevelAdjuster(
           this, M("TP_FILMNEGATIVE_OUT_LEVEL"))), // ref level
       greenBalance(
@@ -359,11 +364,11 @@ FilmNegative::FilmNegative()
       channelGammaB(createAdjuster(this, M("TP_FILMNEGATIVE_CHANNEL_GAMMA_B"),
                                    0.5, 2.0, 0.01, 1.0)),
       rgbGainR(createAdjuster(this, M("TP_FILMNEGATIVE_RGB_GAIN_R"), -3.0, 3.0,
-                              0.01, 0.0)),
+                              0.001, 0.0)),
       rgbGainG(createAdjuster(this, M("TP_FILMNEGATIVE_RGB_GAIN_G"), -3.0, 3.0,
-                              0.01, 0.0)),
+                              0.001, 0.0)),
       rgbGainB(createAdjuster(this, M("TP_FILMNEGATIVE_RGB_GAIN_B"), -3.0, 3.0,
-                              0.01, 0.0)),
+                              0.001, 0.0)),
       outputBlackOffset(createAdjuster(
           this, M("TP_FILMNEGATIVE_OUTPUT_BLACK_OFFSET"), 0.0, 0.05, 0.001,
           0.0)),
@@ -384,7 +389,8 @@ FilmNegative::FilmNegative()
       cineonLUTOutputPrimaries(Gtk::manage(new Gtk::Entry())),
       cineonLUTOutputTransfer(Gtk::manage(new MyComboBoxText())),
       cineonLUTGrid(nullptr),
-      spotPickerBox(nullptr), refSpotPickerBox(nullptr), sep(nullptr),
+      spotPickerBox(nullptr), refSpotPickerBox(nullptr),
+      filmBasePickerBox(nullptr), sep(nullptr),
       storedMatrix(
           art::engine::procparams::FilmNegativeParams::identityMatrix()),
       captureMatrixBasis(false), suppressMatrixEdit(false)
@@ -434,6 +440,18 @@ FilmNegative::FilmNegative()
     pack_start(*rgbGainR, Gtk::PACK_SHRINK, 0);
     pack_start(*rgbGainG, Gtk::PACK_SHRINK, 0);
     pack_start(*rgbGainB, Gtk::PACK_SHRINK, 0);
+    rgbGainR->setIncrements(0.001, 0.01);
+    rgbGainG->setIncrements(0.001, 0.01);
+    rgbGainB->setIncrements(0.001, 0.01);
+    setExpandAlignProperties(filmBaseButton, true, false, Gtk::ALIGN_FILL,
+                             Gtk::ALIGN_CENTER);
+    filmBaseButton->get_style_context()->add_class("independent");
+    filmBaseButton->set_tooltip_text(
+        M("TP_FILMNEGATIVE_FILMBASE_DENSITY_TOOLTIP"));
+    filmBaseButton->set_image(
+        *Gtk::manage(new RTImage("color-picker-small.svg")));
+    filmBasePickerBox = pack_spot_picker(filmBaseButton, filmBaseSize);
+    pack_start(*filmBasePickerBox, Gtk::PACK_SHRINK, 0);
     pack_start(*outputBlackOffset, Gtk::PACK_SHRINK, 0);
 
     targetMode->append(M("TP_FILMNEGATIVE_TARGET_LINEAR"));
@@ -630,6 +648,8 @@ FilmNegative::FilmNegative()
 
     refSpotButton->signal_toggled().connect(
         sigc::mem_fun(*this, &FilmNegative::refSpotToggled));
+    filmBaseButton->signal_toggled().connect(
+        sigc::mem_fun(*this, &FilmNegative::filmBaseToggled));
 
     updateVisibility();
     // Editing geometry; create the spot rectangle
@@ -928,6 +948,13 @@ void FilmNegative::updateVisibility()
         rgbGainR->hide();
         rgbGainG->hide();
         rgbGainB->hide();
+        if (filmBasePickerBox) {
+            filmBasePickerBox->hide();
+        }
+        filmBaseButton->set_sensitive(false);
+        if (filmBaseButton->get_active()) {
+            switchOffEditMode();
+        }
         outputBlackOffset->hide();
         if (matrixPresetGrid) {
             matrixPresetGrid->hide();
@@ -990,8 +1017,19 @@ void FilmNegative::updateVisibility()
         FilmType ft = FilmType(filmType->get_active_row_number());
         if (ft == FilmType::NEGATIVE) {
             densityDmax->show();
+            if (filmBasePickerBox) {
+                filmBasePickerBox->show();
+            }
+            filmBaseButton->set_sensitive(true);
         } else {
             densityDmax->hide();
+            if (filmBasePickerBox) {
+                filmBasePickerBox->hide();
+            }
+            filmBaseButton->set_sensitive(false);
+            if (filmBaseButton->get_active()) {
+                switchOffEditMode();
+            }
         }
         channelGammaR->show();
         channelGammaG->show();
@@ -1323,6 +1361,34 @@ bool FilmNegative::button1Pressed(int modifierKey)
                                        round(refInputValues.g),
                                        round(refInputValues.b)));
             switchOffEditMode();
+        } else if (filmBaseButton->get_active()) {
+            const int sz = 2 << filmBaseSize->get_active_row_number();
+            std::array<double, 3> gains;
+            if (fnp && fnp->getFilmNegativeBaseGains(provider->posImage, sz,
+                                                     gains)) {
+                disableListener();
+                rgbGainR->setValue(gains[0]);
+                rgbGainG->setValue(gains[1]);
+                rgbGainB->setValue(gains[2]);
+                enableListener();
+                if (getEnabled()) {
+                    listener->panelChanged(
+                        evFilmNegativeFilmBase,
+                        Glib::ustring::compose(
+                            "R=%1 G=%2 B=%3", rgbGainR->getValue(),
+                            rgbGainG->getValue(), rgbGainB->getValue()));
+                }
+            } else {
+                Gtk::MessageDialog dialog(
+                    M("TP_FILMNEGATIVE_FILMBASE_DENSITY_FAILED"), false,
+                    Gtk::MESSAGE_ERROR, Gtk::BUTTONS_OK, true);
+                if (auto *win =
+                        dynamic_cast<Gtk::Window *>(get_toplevel())) {
+                    dialog.set_transient_for(*win);
+                }
+                dialog.run();
+            }
+            switchOffEditMode();
         } else {
             switchOffEditMode();
         }
@@ -1352,6 +1418,7 @@ void FilmNegative::switchOffEditMode()
     unsubscribe();
     spotButton->set_active(false);
     refSpotButton->set_active(false);
+    filmBaseButton->set_active(false);
 }
 
 void FilmNegative::editToggled()
@@ -1359,6 +1426,7 @@ void FilmNegative::editToggled()
     if (spotButton->get_active()) {
 
         refSpotButton->set_active(false);
+        filmBaseButton->set_active(false);
         refSpotCoords.clear();
 
         subscribe();
@@ -1382,6 +1450,7 @@ void FilmNegative::refSpotToggled()
     if (refSpotButton->get_active()) {
 
         spotButton->set_active(false);
+        filmBaseButton->set_active(false);
         refSpotCoords.clear();
 
         subscribe();
@@ -1395,6 +1464,25 @@ void FilmNegative::refSpotToggled()
             static_cast<Rectangle *>(mouseOverGeometry.at(0));
         imgRect->setXYWH(0, 0, w, h);
 
+    } else {
+        refSpotCoords.clear();
+        unsubscribe();
+    }
+}
+
+void FilmNegative::filmBaseToggled()
+{
+    if (filmBaseButton->get_active()) {
+        spotButton->set_active(false);
+        refSpotButton->set_active(false);
+        refSpotCoords.clear();
+        subscribe();
+
+        int w, h;
+        getEditProvider()->getImageSize(w, h);
+        Rectangle *const imgRect =
+            static_cast<Rectangle *>(mouseOverGeometry.at(0));
+        imgRect->setXYWH(0, 0, w, h);
     } else {
         refSpotCoords.clear();
         unsubscribe();

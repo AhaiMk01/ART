@@ -1336,5 +1336,13 @@ bool ToolPanelCoordinator::getFilmNegativeSpot(art::engine::Coord spot,
                spot.x, spot.y, spotSize, refInput, refOutput);
 }
 
+bool ToolPanelCoordinator::getFilmNegativeBaseGains(
+    art::engine::Coord spot, int spotSize, std::array<double, 3> &gains)
+{
+    return ipc && static_cast<art::engine::ImProcCoordinator *>(ipc)
+                      ->getFilmNegativeBaseGains(spot.x, spot.y, spotSize,
+                                                 gains);
+}
+
 
 } } // namespace art::gui

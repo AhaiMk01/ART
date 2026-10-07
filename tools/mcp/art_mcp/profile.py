@@ -34,6 +34,7 @@ from art_mcp.filmnegative import (
     is_legacy,
     parse_triple,
     picker_edits,
+    film_base_edits,
     read_matrix_field,
     read_triple_field,
 )
@@ -298,7 +299,8 @@ class WorkingChanges:
         return stored == "false"
 
     def _compile(
-        self, adjustments: Adjustments, film_estimate: Estimate | None = None
+        self, adjustments: Adjustments, film_estimate: Estimate | None = None,
+        raw_source: bool | None = None,
     ) -> tuple[list[RawEdit], list[RawEdit], list[Created], list[str]]:
         """The (explicit, implied) edits an adjustments request amounts to,
         what it creates (with the keys ART gets at their defaults) and warnings
@@ -321,10 +323,14 @@ class WorkingChanges:
                 check_legacy(tool, self.profile.get(group))
                 check_matrix_coefficients(tool, self.profile.get(group))
                 check_cineon_lut_excludes_paper(tool, self.profile.get(group))
+                explicit += film_base_edits(tool, self.profile, raw_source)
             values = {f: getattr(tool, f) for f in model.model_fields if getattr(tool, f) is not None}
             if not values:
                 continue
             for f, v in values.items():
+                extra = model.model_fields[f].json_schema_extra
+                if isinstance(extra, dict) and extra.get("ephemeral"):
+                    continue
                 if isinstance(v, list):  # a reference: r;g;b
                     if parse_triple(self._value(group, field_key(model, f))) == tuple(v):
                         continue  # already that value: not a change
@@ -378,6 +384,8 @@ class WorkingChanges:
         adjustments: Adjustments | None,
         raw_edits: list[RawEdit],
         film_estimate: Estimate | None = None,
+        *,
+        raw_source: bool | None = None,
     ) -> EditOutcome:
         """Apply adjustments and raw edits together, all or nothing.
 
@@ -403,7 +411,7 @@ class WorkingChanges:
                 "out_of_range", f"a value can't hold a line break (write \\n for a newline): {names}"
             )
         explicit, implied, created, warnings = (
-            self._compile(adjustments, film_estimate) if adjustments else ([], [], [], [])
+            self._compile(adjustments, film_estimate, raw_source) if adjustments else ([], [], [], [])
         )
         defaults = [e for c in created for e in c.defaults]
         raw_names = {e.name for e in raw_edits}
@@ -566,11 +574,13 @@ def typed_adjustments(profile: KeyFile) -> tuple[dict[str, dict[str, Any]], set[
             continue  # legacy forms stay raw
         values: dict[str, Any] = {}
         for field, info in model.model_fields.items():
+            extra = info.json_schema_extra
+            assert isinstance(extra, dict)
+            if extra.get("ephemeral"):
+                continue
             key = field_key(model, field)
             field_grp = field_group(model, field, group)
             stored = profile.get(field_grp, {}).get(key)
-            extra = info.json_schema_extra
-            assert isinstance(extra, dict)
             if extra.get("rgb"):
                 allow_neg = bool(extra.get("allow_negative", False))
                 triple = (

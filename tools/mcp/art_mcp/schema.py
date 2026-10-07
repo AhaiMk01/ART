@@ -485,6 +485,16 @@ class FilmNegative(CompactModel):
         default=[0.0, 0.0, 0.0],
         allow_negative=True,
     )
+    film_base_sample: list[float] | None = Field(
+        None,
+        min_length=3,
+        max_length=3,
+        description=(
+            "Not stored. sample_spots average before inversion. Density "
+            "negative only: sets RGBGains to C-4.0, or changes nothing."
+        ),
+        json_schema_extra={"ephemeral": True, "key": "", "art_default": None},
+    )
     channel_gamma: list[Annotated[float, Field(ge=0.5, le=2.0)]] | None = rgb_field(
         "ChannelGamma",
         "[r, g, b]: per-channel density contrast slopes (0.5 to 2.0)",
@@ -720,6 +730,8 @@ def describe_adjustments() -> AdjustmentsDescription:
             properties = model.model_json_schema()["properties"]
         fields: dict[str, FieldDescription] = {}
         for field, prop in properties.items():
+            if _extra(model, field).get("ephemeral"):
+                continue
             # Optional fields come as anyOf [<real schema>, null]: flatten.
             real = next((p for p in prop.get("anyOf", [prop]) if p.get("type") != "null"), prop)
             fields[field] = FieldDescription(
