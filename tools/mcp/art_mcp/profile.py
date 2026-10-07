@@ -28,6 +28,7 @@ from art_mcp.filmnegative import GROUP as FILM_GROUP
 from art_mcp.filmnegative import (
     Estimate,
     check_legacy,
+    check_cineon_lut_excludes_paper,
     check_matrix_coefficients,
     format_triple,
     is_legacy,
@@ -319,6 +320,7 @@ class WorkingChanges:
             if name == "film_negative":
                 check_legacy(tool, self.profile.get(group))
                 check_matrix_coefficients(tool, self.profile.get(group))
+                check_cineon_lut_excludes_paper(tool, self.profile.get(group))
             values = {f: getattr(tool, f) for f in model.model_fields if getattr(tool, f) is not None}
             if not values:
                 continue

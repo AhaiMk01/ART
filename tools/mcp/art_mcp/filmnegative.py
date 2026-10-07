@@ -182,6 +182,25 @@ def check_legacy(tool: FilmNegative, entries: Group | None) -> None:
         )
 
 
+def check_cineon_lut_excludes_paper(tool: FilmNegative, entries: Group | None) -> None:
+    """A Cineon print LUT and a paper target cannot both be active."""
+    entries = entries or {}
+    lut = tool.cineon_lut if tool.cineon_lut is not None else entries.get("CineonLUT", "")
+    if tool.target_mode is not None:
+        mode = tool.target_mode
+    else:
+        stored = entries.get("TargetMode", "0")
+        mode = {"0": "linear", "1": "paper", "2": "cineon", "paper": "paper"}.get(
+            stored, stored
+        )
+    if lut and mode == "paper":
+        raise AdjustmentError(
+            "out_of_range",
+            "film_negative: cineon_lut and target_mode paper are mutually exclusive; "
+            "the paper curve is not applied when a Cineon print LUT is set",
+        )
+
+
 def _picker_applies(tool: FilmNegative, entries: Group) -> Triple | None:
     """The new ``ref_input`` when the picker rule applies: it is set, not the
     value already stored, and the request gives no ``ref_output``."""

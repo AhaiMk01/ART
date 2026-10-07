@@ -11,7 +11,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationEr
 
 from art_mcp.compactschema import CompactModel, compact_model_schema, full_schema
 from art_mcp.curves import CurveSpec
-PPVERSION = 1049
+PPVERSION = 1050
 """The processing-profile version (``src/utils/ppversion.h``) this schema was
 written for."""
 
@@ -573,6 +573,29 @@ class FilmNegative(CompactModel):
         "Space the paper response is bound to: input, working, or empty if unbound. "
         "A later mismatch is an error; the curve is not applied in another basis.",
         default="",
+    )
+    cineon_lut: str | None = F(
+        "CineonLUT",
+        "Path of an external Cineon-input .cube print LUT. Empty means none. "
+        "Mutually exclusive with target_mode paper: the paper curve is not applied "
+        "when this is set. A missing file is a processing error, not a substitute.",
+        default="",
+    )
+    cineon_lut_input_primaries: str | None = F(
+        "CineonLUTInputPrimaries",
+        "ICC working-profile name of the LUT input primaries. Empty encodes Cineon in the current working RGB",
+        default="",
+    )
+    cineon_lut_output_primaries: str | None = F(
+        "CineonLUTOutputPrimaries",
+        "ICC working-profile name of the LUT output primaries. Empty keeps the result in the working RGB",
+        default="",
+    )
+    cineon_lut_output_transfer: Literal["linear", "srgb", "gamma_2_4"] | None = F(
+        "CineonLUTOutputTransfer",
+        "How the .cube output is decoded back to linear: linear, srgb or gamma_2_4. "
+        "A LUT that declares another log output is rejected",
+        default="linear",
     )
 
 

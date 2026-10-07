@@ -1575,6 +1575,17 @@ struct FilmNegativeParams {
     // Empty means the working profile selected at export.
     Glib::ustring cineonPrimaries;
     double cineonReferenceWhite;
+    // Empty CineonLUT means no print LUT. Mutually exclusive with paper.
+    Glib::ustring cineonLUT;
+    Glib::ustring cineonLUTInputPrimaries;
+    Glib::ustring cineonLUTOutputPrimaries;
+    enum class CineonLUTOutputTransfer {
+        LINEAR = 0,
+        SRGB,
+        GAMMA_2_4,
+        UNSUPPORTED
+    };
+    CineonLUTOutputTransfer cineonLUTOutputTransfer;
     static std::array<double, 9> identityMatrix();
     static std::array<double, 9> statusMReferenceMatrix();
     /// Versioned JSON binding of color space plus input/working profile.

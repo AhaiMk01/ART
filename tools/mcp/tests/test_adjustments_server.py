@@ -183,7 +183,7 @@ async def test_describe_adjustments_lists_both_tools_with_ranges_and_units(serve
 
     assert not result.is_error, result.content
     described = result.structured_content
-    assert described["schema_ppversion"] == 1049
+    assert described["schema_ppversion"] == 1050
     comp = described["tools"]["exposure"]["fields"]["compensation"]
     assert (comp["minimum"], comp["maximum"], comp["unit"]) == (-12, 12, "EV")
     assert comp["key"] == "Compensation" and comp["description"]

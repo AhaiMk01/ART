@@ -377,6 +377,13 @@ FilmNegative::FilmNegative()
       matrixCoeffs(Gtk::manage(new Gtk::Entry())),
       calibrationNote(Gtk::manage(new Gtk::Entry())),
       paperCurve(Gtk::manage(new MyComboBoxText())), paperCurveGrid(nullptr),
+      paperBasisValue(),
+      cineonLUTFile(Gtk::manage(new MyFileChooserButton(
+          M("TP_FILMNEGATIVE_CINEON_LUT")))),
+      cineonLUTInputPrimaries(Gtk::manage(new Gtk::Entry())),
+      cineonLUTOutputPrimaries(Gtk::manage(new Gtk::Entry())),
+      cineonLUTOutputTransfer(Gtk::manage(new MyComboBoxText())),
+      cineonLUTGrid(nullptr),
       spotPickerBox(nullptr), refSpotPickerBox(nullptr), sep(nullptr),
       storedMatrix(
           art::engine::procparams::FilmNegativeParams::identityMatrix()),
@@ -522,6 +529,47 @@ FilmNegative::FilmNegative()
     paperCurve->signal_changed().connect(
         sigc::mem_fun(*this, &FilmNegative::paperCurveChanged));
     paperCurve->show();
+    {
+        Glib::RefPtr<Gtk::FileFilter> filter = Gtk::FileFilter::create();
+        filter->set_name("Cube LUT");
+        filter->add_pattern("*.cube");
+        filter->add_pattern("*.CUBE");
+        cineonLUTFile->add_filter(filter);
+    }
+    cineonLUTFile->set_tooltip_text(M("TP_FILMNEGATIVE_CINEON_LUT_TOOLTIP"));
+    cineonLUTOutputTransfer->append(
+        M("TP_FILMNEGATIVE_CINEON_LUT_TRANSFER_LINEAR"));
+    cineonLUTOutputTransfer->append(
+        M("TP_FILMNEGATIVE_CINEON_LUT_TRANSFER_SRGB"));
+    cineonLUTOutputTransfer->append(
+        M("TP_FILMNEGATIVE_CINEON_LUT_TRANSFER_GAMMA"));
+    cineonLUTOutputTransfer->set_active(0);
+    cineonLUTGrid = Gtk::manage(new Gtk::Grid());
+    cineonLUTGrid->attach(
+        *Gtk::manage(new Gtk::Label(M("TP_FILMNEGATIVE_CINEON_LUT"))), 0, 0, 1,
+        1);
+    cineonLUTGrid->attach(*cineonLUTFile, 1, 0, 1, 1);
+    cineonLUTGrid->attach(
+        *Gtk::manage(new Gtk::Label(M("TP_FILMNEGATIVE_CINEON_LUT_INPUT"))), 0,
+        1, 1, 1);
+    cineonLUTGrid->attach(*cineonLUTInputPrimaries, 1, 1, 1, 1);
+    cineonLUTGrid->attach(
+        *Gtk::manage(new Gtk::Label(M("TP_FILMNEGATIVE_CINEON_LUT_OUTPUT"))), 0,
+        2, 1, 1);
+    cineonLUTGrid->attach(*cineonLUTOutputPrimaries, 1, 2, 1, 1);
+    cineonLUTGrid->attach(
+        *Gtk::manage(new Gtk::Label(M("TP_FILMNEGATIVE_CINEON_LUT_TRANSFER"))),
+        0, 3, 1, 1);
+    cineonLUTGrid->attach(*cineonLUTOutputTransfer, 1, 3, 1, 1);
+    pack_start(*cineonLUTGrid);
+    cineonLUTFile->signal_selection_changed().connect(
+        sigc::mem_fun(*this, &FilmNegative::cineonLutChanged));
+    cineonLUTInputPrimaries->signal_changed().connect(
+        sigc::mem_fun(*this, &FilmNegative::cineonLutFieldsChanged));
+    cineonLUTOutputPrimaries->signal_changed().connect(
+        sigc::mem_fun(*this, &FilmNegative::cineonLutFieldsChanged));
+    cineonLUTOutputTransfer->signal_changed().connect(
+        sigc::mem_fun(*this, &FilmNegative::cineonLutFieldsChanged));
 
     setExpandAlignProperties(spotButton, true, false, Gtk::ALIGN_FILL,
                              Gtk::ALIGN_CENTER);
@@ -666,6 +714,16 @@ void FilmNegative::read(const art::engine::procparams::ProcParams *pp)
                            pp->filmNegative.paperCurve);
         paperCurve->set_active_id(pp->filmNegative.paperCurve);
     }
+    if (pp->filmNegative.cineonLUT.empty()) {
+        cineonLUTFile->unselect_all();
+    } else {
+        cineonLUTFile->set_filename(pp->filmNegative.cineonLUT);
+    }
+    cineonLUTInputPrimaries->set_text(pp->filmNegative.cineonLUTInputPrimaries);
+    cineonLUTOutputPrimaries->set_text(
+        pp->filmNegative.cineonLUTOutputPrimaries);
+    cineonLUTOutputTransfer->set_active(CLAMP(
+        (int)pp->filmNegative.cineonLUTOutputTransfer, 0, 2));
     outputBlackOffset->setValue(pp->filmNegative.outputBlackOffset);
 
     storedMatrix = pp->filmNegative.matrix;
@@ -749,6 +807,18 @@ void FilmNegative::write(art::engine::procparams::ProcParams *pp)
     pp->filmNegative.calibrationNote = calibrationNote->get_text();
     pp->filmNegative.paperCurve = paperCurve->get_active_id();
     pp->filmNegative.paperBasis = paperBasisValue;
+    pp->filmNegative.cineonLUT = cineonLUTFile->get_filename();
+    pp->filmNegative.cineonLUTInputPrimaries =
+        cineonLUTInputPrimaries->get_text();
+    pp->filmNegative.cineonLUTOutputPrimaries =
+        cineonLUTOutputPrimaries->get_text();
+    pp->filmNegative.cineonLUTOutputTransfer =
+        art::engine::procparams::FilmNegativeParams::CineonLUTOutputTransfer(
+            CLAMP(cineonLUTOutputTransfer->get_active_row_number(), 0, 2));
+    if (!pp->filmNegative.cineonLUT.empty() &&
+        pp->filmNegative.targetMode == TargetMode::PAPER) {
+        pp->filmNegative.targetMode = TargetMode::LINEAR;
+    }
 
     pp->filmNegative.enabled = getEnabled();
 
@@ -785,6 +855,17 @@ void FilmNegative::setDefaults(
     cineonReferenceWhite->setValue(defParams->filmNegative.cineonReferenceWhite);
     paperCurve->set_active_id(defParams->filmNegative.paperCurve);
     paperBasisValue = defParams->filmNegative.paperBasis;
+    if (defParams->filmNegative.cineonLUT.empty()) {
+        cineonLUTFile->unselect_all();
+    } else {
+        cineonLUTFile->set_filename(defParams->filmNegative.cineonLUT);
+    }
+    cineonLUTInputPrimaries->set_text(
+        defParams->filmNegative.cineonLUTInputPrimaries);
+    cineonLUTOutputPrimaries->set_text(
+        defParams->filmNegative.cineonLUTOutputPrimaries);
+    cineonLUTOutputTransfer->set_active(
+        CLAMP((int)defParams->filmNegative.cineonLUTOutputTransfer, 0, 2));
     outputBlackOffset->setValue(defParams->filmNegative.outputBlackOffset);
 
     initial_params = defParams->filmNegative;
@@ -929,10 +1010,16 @@ void FilmNegative::updateVisibility()
     }
 
     TargetMode tm = TargetMode(CLAMP(targetMode->get_active_row_number(), 0, 2));
-    if (m == Method::DENSITY && tm == TargetMode::PAPER) {
+    if (m == Method::DENSITY && tm == TargetMode::PAPER &&
+        cineonLUTFile->get_filename().empty()) {
         paperCurveGrid->show();
     } else {
         paperCurveGrid->hide();
+    }
+    if (m == Method::DENSITY && cineonLUTGrid) {
+        cineonLUTGrid->show();
+    } else if (cineonLUTGrid) {
+        cineonLUTGrid->hide();
     }
     if (tm == TargetMode::CINEON) {
         cineonPrimaries->get_parent()->show();
@@ -1022,12 +1109,36 @@ void FilmNegative::targetModeChanged()
 {
     if (listener &&
         TargetMode(targetMode->get_active_row_number()) == TargetMode::PAPER) {
+        if (!cineonLUTFile->get_filename().empty()) {
+            cineonLUTFile->unselect_all();
+        }
         capturePaperBasis();
     }
     updateVisibility();
     if (listener) {
         listener->panelChanged(evFilmNegativeCineon,
                                targetMode->get_active_text());
+    }
+}
+
+void FilmNegative::cineonLutChanged()
+{
+    if (!cineonLUTFile->get_filename().empty() &&
+        TargetMode(targetMode->get_active_row_number()) == TargetMode::PAPER) {
+        targetMode->set_active((int)TargetMode::LINEAR);
+    }
+    updateVisibility();
+    if (listener && getEnabled()) {
+        listener->panelChanged(evFilmNegativeCineon,
+                               cineonLUTFile->get_filename());
+    }
+}
+
+void FilmNegative::cineonLutFieldsChanged()
+{
+    if (listener && getEnabled()) {
+        listener->panelChanged(evFilmNegativeCineon,
+                               cineonLUTOutputTransfer->get_active_text());
     }
 }
 

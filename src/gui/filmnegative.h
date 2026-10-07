@@ -75,6 +75,8 @@ public:
     void calibrationNoteEdited();
     void applyMatrixPresetDisplay();
     void paperCurveChanged();
+    void cineonLutChanged();
+    void cineonLutFieldsChanged();
     void capturePaperBasis();
     void updateVisibility();
     void filmRefValuesChanged(const RGB &refInput,
@@ -178,6 +180,11 @@ private:
     MyComboBoxText *const paperCurve;
     Gtk::Grid *paperCurveGrid;
     Glib::ustring paperBasisValue;
+    MyFileChooserButton *const cineonLUTFile;
+    Gtk::Entry *const cineonLUTInputPrimaries;
+    Gtk::Entry *const cineonLUTOutputPrimaries;
+    MyComboBoxText *const cineonLUTOutputTransfer;
+    Gtk::Grid *cineonLUTGrid;
 
     Gtk::Widget *spotPickerBox;
     Gtk::Widget *refSpotPickerBox;

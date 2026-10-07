@@ -170,7 +170,11 @@ with a warning. An explicit `ref_output` wins. Legacy profiles (`BackCompat`,
 `RedBase`) stay under `raw`. `target_mode` is `linear`, `paper` or `cineon`
 (stored 0/1/2); the editor buffer stays linear. `cineon_primaries` (empty =
 the current working profile) and `cineon_reference_white` (1e-6..1e6, default
-1) are stored for a Cineon 16-bit TIFF export.
+1) are stored for a Cineon 16-bit TIFF export. `cineon_lut` (empty = none) is
+an external Cineon-input `.cube` print LUT, with `cineon_lut_input_primaries`,
+`cineon_lut_output_primaries` and `cineon_lut_output_transfer`
+(`linear`/`srgb`/`gamma_2_4`). It is mutually exclusive with `target_mode`
+paper.
 `RedBase`) stay under `raw`. `output_black_offset` (0 to 0.05, default 0,
 key `OutputBlackOffset`) is subtracted from the density path's normalized
 linear output and floored at 0; 0 leaves that linear value unchanged.
@@ -213,7 +217,7 @@ in the temp folder whose process is gone.
 
 Results of `get_profile`, `edit_profile` and `describe_adjustments` carry a
 `warnings` list when ART's profile version is newer than the schema's
-(`PPVERSION` 1049); edits keep working.
+(`PPVERSION` 1050); edits keep working.
 
 ## Previews
 

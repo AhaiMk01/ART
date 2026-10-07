@@ -92,6 +92,10 @@ def test_describe_lists_the_fields_with_ranges_and_keys():
         "target_mode": "TargetMode", "cineon_primaries": "CineonPrimaries",
         "cineon_reference_white": "CineonReferenceWhite",
         "paper_curve": "PaperCurve", "paper_basis": "PaperBasis",
+        "cineon_lut": "CineonLUT",
+        "cineon_lut_input_primaries": "CineonLUTInputPrimaries",
+        "cineon_lut_output_primaries": "CineonLUTOutputPrimaries",
+        "cineon_lut_output_transfer": "CineonLUTOutputTransfer",
         "output_black_offset": "OutputBlackOffset",
     }  # fmt: skip
     ranges = {n: (f.minimum, f.maximum) for n, f in tool.fields.items()}
@@ -106,6 +110,9 @@ def test_describe_lists_the_fields_with_ranges_and_keys():
     assert tool.fields["color_space"].enum == ["working", "input"]
     assert tool.fields["matrix_preset"].enum == ["identity", "status_m_reference", "custom"]
     assert tool.fields["target_mode"].enum == ["linear", "paper", "cineon"]
+    assert tool.fields["cineon_lut_output_transfer"].enum == [
+        "linear", "srgb", "gamma_2_4"
+    ]
     assert tool.fields["cineon_reference_white"].minimum == 1e-6
     assert tool.fields["cineon_reference_white"].maximum == 1e6
     for needle in ("mult_c", "65535/24", "0.2126729", "ref_output", "Legacy"):
@@ -144,6 +151,8 @@ def test_get_profile_reads_it_back_typed_and_consumes_the_keys():
         "matrix_basis": "", "calibration_note": "",
         "target_mode": "linear", "cineon_primaries": "", "cineon_reference_white": 1.0,
         "paper_curve": "kodak_endura_premier", "paper_basis": "",
+        "cineon_lut": "", "cineon_lut_input_primaries": "",
+        "cineon_lut_output_primaries": "", "cineon_lut_output_transfer": "linear",
         "output_black_offset": 0.0,
     }  # fmt: skip
     assert "Film Negative" not in view.raw
@@ -157,6 +166,43 @@ def test_a_typed_edit_round_trips_through_the_read_format():
 
     assert typed["color_space"] == "input" and typed["ref_input"] == [1.0, 2.0, 3.0]
 
+
+
+def test_cineon_lut_fields_round_trip():
+    changes = WorkingChanges(profile())
+    result = changes.edit(
+        adj(
+            cineon_lut="C:/luts/print.cube",
+            cineon_lut_input_primaries="ProPhoto",
+            cineon_lut_output_primaries="sRGB",
+            cineon_lut_output_transfer="gamma_2_4",
+        ),
+        [],
+    )
+    assert values(result) == {
+        "CineonLUT": "C:/luts/print.cube",
+        "CineonLUTInputPrimaries": "ProPhoto",
+        "CineonLUTOutputPrimaries": "sRGB",
+        "CineonLUTOutputTransfer": "gamma_2_4",
+    }
+    typed = read_format(changes.profile).adjustments["film_negative"]
+    assert typed["cineon_lut"] == "C:/luts/print.cube"
+    assert typed["cineon_lut_input_primaries"] == "ProPhoto"
+    assert typed["cineon_lut_output_primaries"] == "sRGB"
+    assert typed["cineon_lut_output_transfer"] == "gamma_2_4"
+
+
+def test_paper_and_cineon_lut_are_mutually_exclusive():
+    with pytest.raises(AdjustmentError, match="mutually exclusive"):
+        WorkingChanges(profile()).edit(
+            adj(target_mode="paper", cineon_lut="print.cube"), []
+        )
+    stored = profile(extra="TargetMode=1\n")
+    with pytest.raises(AdjustmentError, match="mutually exclusive"):
+        WorkingChanges(stored).edit(adj(cineon_lut="print.cube"), [])
+    stored_lut = profile(extra="CineonLUT=print.cube\n")
+    with pytest.raises(AdjustmentError, match="mutually exclusive"):
+        WorkingChanges(stored_lut).edit(adj(target_mode="paper"), [])
 
 @pytest.mark.parametrize("extra", ["BackCompat=1\n", "BackCompat=2\nRedBase=5\n"])
 def test_legacy_profiles_stay_raw(extra):

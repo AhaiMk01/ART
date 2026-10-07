@@ -42,6 +42,7 @@
 #include "color.h"
 #include "iccstore.h"
 #include "rt_math.h"
+#include "cineonlut.h"
 #include "papercurve.h"
 
 namespace art { namespace engine {
@@ -333,8 +334,11 @@ void doProcessDensity(Imagefloat *input, Imagefloat *output,
         outputBlackOffset = 0.f;
     }
 
+    // A Cineon print LUT replaces the paper curve. Do not apply both.
+    const bool cineonLutActive = !params.cineonLUT.empty();
     const bool paperTarget =
-        params.targetMode == FilmNegativeParams::TargetMode::PAPER;
+        params.targetMode == FilmNegativeParams::TargetMode::PAPER &&
+        !cineonLutActive;
     bool paperOk = false;
     if (paperTarget) {
         if (!findPaperCurve(params.paperCurve)) {
@@ -492,6 +496,7 @@ bool doProcess(Imagefloat *input, Imagefloat *output,
             return false;
         }
         doProcessDensity(input, output, params, src, pl, densityMatrix);
+        applyCineonPrintLut(output, params, icmParams, pl);
         return false;
     }
     bool refsUpdated = false;
@@ -564,6 +569,7 @@ bool doProcess(Imagefloat *input, Imagefloat *output,
             blineout[j] = CLIP(bmult * pow_F(blinein[j], bexp));
         }
     }
+    applyCineonPrintLut(output, params, icmParams, pl);
 
     return refsUpdated;
 }
@@ -593,6 +599,7 @@ bool art::engine::ImProcFunctions::filmNegativeProcess(Imagefloat *input,
             return false;
         }
         doProcessDensity(input, output, fnp, src, plistener, densityMatrix);
+        applyCineonPrintLut(output, fnp, this->params->icm, plistener);
         return false;
     }
 

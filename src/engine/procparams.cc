@@ -2876,8 +2876,10 @@ FilmNegativeParams::FilmNegativeParams()
       calibrationNote(), rgbGains({0.0, 0.0, 0.0}),
       channelGamma({1.0, 1.0, 1.0}), outputBlackOffset(0.0),
       targetMode(TargetMode::LINEAR), cineonPrimaries(),
-      cineonReferenceWhite(1.0), paperCurve("kodak_endura_premier"),
-      paperBasis()
+      cineonReferenceWhite(1.0), cineonLUT(), cineonLUTInputPrimaries(),
+      cineonLUTOutputPrimaries(),
+      cineonLUTOutputTransfer(CineonLUTOutputTransfer::LINEAR),
+      paperCurve("kodak_endura_premier"), paperBasis()
 {
 }
 
@@ -2917,7 +2919,11 @@ bool FilmNegativeParams::operator==(const FilmNegativeParams &other) const
            cineonPrimaries == other.cineonPrimaries &&
            cineonReferenceWhite == other.cineonReferenceWhite &&
            outputBlackOffset == other.outputBlackOffset &&
-           paperCurve == other.paperCurve && paperBasis == other.paperBasis;
+           paperCurve == other.paperCurve && paperBasis == other.paperBasis &&
+           cineonLUT == other.cineonLUT &&
+           cineonLUTInputPrimaries == other.cineonLUTInputPrimaries &&
+           cineonLUTOutputPrimaries == other.cineonLUTOutputPrimaries &&
+           cineonLUTOutputTransfer == other.cineonLUTOutputTransfer;
 }
 
 bool FilmNegativeParams::operator!=(const FilmNegativeParams &other) const
@@ -4257,6 +4263,26 @@ int ProcParams::save(ProgressListener *pl, bool save_general, KeyFile &keyFile,
                           filmNegative.cineonPrimaries, keyFile);
             saveToKeyfile("Film Negative", "CineonReferenceWhite",
                           filmNegative.cineonReferenceWhite, keyFile);
+            saveToKeyfile("Film Negative", "CineonLUT",
+                          filenameToUri(filmNegative.cineonLUT, basedir),
+                          keyFile);
+            saveToKeyfile("Film Negative", "CineonLUTInputPrimaries",
+                          filmNegative.cineonLUTInputPrimaries, keyFile);
+            saveToKeyfile("Film Negative", "CineonLUTOutputPrimaries",
+                          filmNegative.cineonLUTOutputPrimaries, keyFile);
+            {
+                const char *transfer = "linear";
+                if (filmNegative.cineonLUTOutputTransfer ==
+                    FilmNegativeParams::CineonLUTOutputTransfer::SRGB) {
+                    transfer = "srgb";
+                } else if (filmNegative.cineonLUTOutputTransfer ==
+                           FilmNegativeParams::CineonLUTOutputTransfer::
+                               GAMMA_2_4) {
+                    transfer = "gamma_2_4";
+                }
+                saveToKeyfile("Film Negative", "CineonLUTOutputTransfer",
+                              Glib::ustring(transfer), keyFile);
+            }
         }
 
         // MetaData
@@ -6568,6 +6594,33 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                 if (assignFromKeyfile(keyFile, "Film Negative", "PaperBasis",
                                       basis)) {
                     filmNegative.paperBasis = basis;
+                }
+            }
+            assignFromKeyfile(keyFile, "Film Negative", "CineonLUT",
+                              filmNegative.cineonLUT);
+            filmNegative.cineonLUT =
+                filenameFromUri(filmNegative.cineonLUT, basedir);
+            assignFromKeyfile(keyFile, "Film Negative",
+                              "CineonLUTInputPrimaries",
+                              filmNegative.cineonLUTInputPrimaries);
+            assignFromKeyfile(keyFile, "Film Negative",
+                              "CineonLUTOutputPrimaries",
+                              filmNegative.cineonLUTOutputPrimaries);
+            Glib::ustring lutTransfer;
+            if (assignFromKeyfile(keyFile, "Film Negative",
+                                  "CineonLUTOutputTransfer", lutTransfer)) {
+                if (lutTransfer == "srgb") {
+                    filmNegative.cineonLUTOutputTransfer =
+                        FilmNegativeParams::CineonLUTOutputTransfer::SRGB;
+                } else if (lutTransfer == "gamma_2_4") {
+                    filmNegative.cineonLUTOutputTransfer =
+                        FilmNegativeParams::CineonLUTOutputTransfer::GAMMA_2_4;
+                } else if (lutTransfer == "linear") {
+                    filmNegative.cineonLUTOutputTransfer =
+                        FilmNegativeParams::CineonLUTOutputTransfer::LINEAR;
+                } else {
+                    filmNegative.cineonLUTOutputTransfer =
+                        FilmNegativeParams::CineonLUTOutputTransfer::UNSUPPORTED;
                 }
             }
         }

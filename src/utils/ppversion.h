@@ -5,10 +5,12 @@ namespace art { namespace utils {
 
 // This number has to be incremented whenever the ARP file format is modified or
 // the behaviour of a tool changes
-#define PPVERSION 1049
+#define PPVERSION 1050
 
 /*
   Log of version changes
+  1050  2026-10-07
+        film negative: managed Cineon print LUT (#54)
   1049  2026-10-07
         film negative: row-major density matrix, basis binding, calibration note
   1048  2026-10-07
