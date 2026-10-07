@@ -2696,7 +2696,7 @@ FilmNegativeParams::FilmNegativeParams()
       redRatio(1.36), greenExp(1.5), blueRatio(0.86),
       refInput({0.0, 0.0, 0.0}), refOutput({0.0, 0.0, 0.0}),
       colorSpace(ColorSpace::WORKING), backCompat(BackCompat::CURRENT),
-      densityGamma(1.0), densityDmax(2.5),
+      inputGamma(1.0), densityGamma(1.0), densityDmax(2.5),
       rgbGains({0.0, 0.0, 0.0}), channelGamma({1.0, 1.0, 1.0}),
       outputBlackOffset(0.0)
 {
@@ -2727,6 +2727,7 @@ bool FilmNegativeParams::operator==(const FilmNegativeParams &other) const
            greenExp == other.greenExp && blueRatio == other.blueRatio &&
            refInput == other.refInput && refOutput == other.refOutput &&
            colorSpace == other.colorSpace && backCompat == other.backCompat &&
+           inputGamma == other.inputGamma &&
            densityGamma == other.densityGamma &&
            densityDmax == other.densityDmax && rgbGains == other.rgbGains &&
            channelGamma == other.channelGamma &&
@@ -4035,6 +4036,8 @@ int ProcParams::save(ProgressListener *pl, bool save_general, KeyFile &keyFile,
                 saveToKeyfile("Film Negative", "BackCompat",
                               toUnderlying(filmNegative.backCompat), keyFile);
             }
+            saveToKeyfile("Film Negative", "InputGamma",
+                          filmNegative.inputGamma, keyFile);
             saveToKeyfile("Film Negative", "DensityGamma",
                           filmNegative.densityGamma, keyFile);
             saveToKeyfile("Film Negative", "DensityDmax",
@@ -6254,6 +6257,7 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                     }
                 }
 
+
                 assignFromKeyfile(keyFile, "Film Negative", "DensityGamma",
                                   filmNegative.densityGamma);
                 assignFromKeyfile(keyFile, "Film Negative", "DensityDmax",
@@ -6276,6 +6280,10 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
             } else {
                 filmNegative.method = FilmNegativeParams::Method::POWER_LAW;
             }
+            // Missing key keeps the default (1). Present on any version so a
+            // partial profile is not dropped when Version was not bumped.
+            assignFromKeyfile(keyFile, "Film Negative", "InputGamma",
+                              filmNegative.inputGamma);
         }
 
         if (keyFile.has_group("MetaData") && RELEVANT_(metadata)) {

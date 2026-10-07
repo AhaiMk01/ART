@@ -217,13 +217,55 @@ void convertColorSpace(Imagefloat* input, const TMatrix &src2xyz, const TMatrix
 }
 */
 
+enum class SourceTransfer { UNPROFILED_SCAN, RAW, PROFILED };
+
+SourceTransfer sourceTransfer(bool isRaw, const ColorManagementParams &icm)
+{
+    if (isRaw) {
+        return SourceTransfer::RAW;
+    }
+    if (icm.inputProfile == ColorManagementParams::NoProfileString) {
+        return SourceTransfer::UNPROFILED_SCAN;
+    }
+    return SourceTransfer::PROFILED;
+}
+
+// Unity is a no-op. A non-unity override is applied only for an explicitly
+// unprofiled non-RAW scan; otherwise it is left unapplied and reported.
+float resolvedInputGamma(const FilmNegativeParams &params, SourceTransfer src,
+                         ProgressListener *pl)
+{
+    if (params.inputGamma == 1.0) {
+        return 1.f;
+    }
+    if (src == SourceTransfer::UNPROFILED_SCAN) {
+        return static_cast<float>(params.inputGamma);
+    }
+    const char *why =
+        src == SourceTransfer::RAW
+            ? "RAW input is already linear. Set InputGamma to 1; a non-unity "
+              "scanner override was not applied, to avoid double-decoding."
+            : "this input is already profile-linearized. Set InputGamma to 1, "
+              "or set the input profile to \"(none)\" for an explicitly "
+              "unprofiled power-encoded non-RAW scan. The override was not "
+              "applied, to avoid double-decoding.";
+    std::cerr << "Film Negative: " << why << " (InputGamma=" << params.inputGamma
+              << ")\n";
+    if (pl) {
+        pl->error(Glib::ustring("Film Negative: ") + why);
+    }
+    return 1.f;
+}
+
 void doProcessDensity(Imagefloat *input, Imagefloat *output,
-                      const FilmNegativeParams &params)
+                      const FilmNegativeParams &params, SourceTransfer src,
+                      ProgressListener *pl)
 {
     input->syncCpu();
     output->syncCpuForWrite();
 
     const float S = 65535.f;
+    const float inputGamma = resolvedInputGamma(params, src, pl);
     const float densityGamma = static_cast<float>(params.densityGamma);
     const float densityDmax = static_cast<float>(params.densityDmax);
     const float p = 0.7f;
@@ -277,6 +319,12 @@ void doProcessDensity(Imagefloat *input, Imagefloat *output,
                     Tc = 1e-10f;
                 } else {
                     float norm = sample / S;
+                    // sign(x)*|x|^InputGamma on normalized source RGB. Unity
+                    // skips this so decoded linear values are unchanged.
+                    if (inputGamma != 1.f) {
+                        const float sign = norm < 0.f ? -1.f : 1.f;
+                        norm = sign * std::pow(std::fabs(norm), inputGamma);
+                    }
                     Tc = norm > 1e-10f ? norm : 1e-10f;
                 }
 
@@ -327,13 +375,14 @@ void doProcessDensity(Imagefloat *input, Imagefloat *output,
  */
 bool doProcess(Imagefloat *input, Imagefloat *output,
                const FilmNegativeParams &params,
-               const ColorManagementParams &icmParams, RGB &refIn, RGB &refOut)
+               const ColorManagementParams &icmParams, RGB &refIn, RGB &refOut,
+               SourceTransfer src, ProgressListener *pl)
 {
     input->syncCpu();
     output->syncCpuForWrite();
 
     if (params.method == FilmNegativeParams::Method::DENSITY) {
-        doProcessDensity(input, output, params);
+        doProcessDensity(input, output, params, src, pl);
         return false;
     }
     bool refsUpdated = false;
@@ -427,7 +476,9 @@ bool art::engine::ImProcFunctions::filmNegativeProcess(Imagefloat *input,
 
     if (fnp.method == FilmNegativeParams::Method::DENSITY) {
         fnp.backCompat = FilmNegativeParams::BackCompat::CURRENT;
-        doProcessDensity(input, output, fnp);
+        const SourceTransfer src =
+            sourceTransfer(imgsrc && imgsrc->isRAW(), this->params->icm);
+        doProcessDensity(input, output, fnp, src, plistener);
         return false;
     }
 
@@ -506,15 +557,17 @@ bool art::engine::ImProcFunctions::filmNegativeProcess(Imagefloat *input,
 
     // Perform actual inversion. Return true if reference values are computed
     // from medians
-    paramsUpdated |=
-        doProcess(input, output, fnp, this->params->icm, refIn, refOut);
+    paramsUpdated |= doProcess(
+        input, output, fnp, this->params->icm, refIn, refOut,
+        sourceTransfer(imgsrc && imgsrc->isRAW(), this->params->icm),
+        plistener);
 
     return paramsUpdated;
 }
 
 void art::engine::ImProcFunctions::filmNegativeProcess(
     art::engine::Imagefloat *input, art::engine::Imagefloat *output,
-    const procparams::FilmNegativeParams &params)
+    const procparams::FilmNegativeParams &params, bool rawSource)
 {
     // BENCHFUNMICRO
 
@@ -524,7 +577,8 @@ void art::engine::ImProcFunctions::filmNegativeProcess(
 
     RGB refIn = params.refInput, refOut = params.refOutput;
 
-    doProcess(input, output, params, this->params->icm, refIn, refOut);
+    doProcess(input, output, params, this->params->icm, refIn, refOut,
+              sourceTransfer(rawSource, this->params->icm), plistener);
 }
 
 namespace {

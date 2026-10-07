@@ -1092,7 +1092,7 @@ IImage8 *Thumbnail::processImage(const procparams::ProcParams &params,
             FilmNegativeParams::BackCompat::CURRENT &&
         params.filmNegative.colorSpace ==
             FilmNegativeParams::ColorSpace::INPUT) {
-        ipf.filmNegativeProcess(baseImg, baseImg, params.filmNegative);
+        ipf.filmNegativeProcess(baseImg, baseImg, params.filmNegative, isRaw);
     }
 
     // perform color space transformation
@@ -1112,7 +1112,7 @@ IImage8 *Thumbnail::processImage(const procparams::ProcParams &params,
             FilmNegativeParams::BackCompat::CURRENT &&
         params.filmNegative.colorSpace !=
             FilmNegativeParams::ColorSpace::INPUT) {
-        ipf.filmNegativeProcess(baseImg, baseImg, params.filmNegative);
+        ipf.filmNegativeProcess(baseImg, baseImg, params.filmNegative, isRaw);
     }
 
     int origFW;

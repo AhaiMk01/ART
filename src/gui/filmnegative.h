@@ -143,6 +143,7 @@ private:
 
     Gtk::Grid *csGrid;
 
+    Adjuster *const inputGamma;
     Adjuster *const densityGamma;
     Adjuster *const densityDmax;
     Adjuster *const channelGammaR;
