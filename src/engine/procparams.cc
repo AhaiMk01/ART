@@ -2836,9 +2836,7 @@ bool FilmNegativeParams::matrixBasisMatches(const Glib::ustring &stored,
 {
     int version = 0;
     if (!jsonIntField(stored, "v", version) || version != 1) {
-        message =
-            "MatrixBasis is not version 1 JSON. Select Identity or rebind "
-            "the matrix to the current processing space and profile.";
+        message = art::utils::M("TP_FILMNEGATIVE_ERR_MATRIX_BASIS_VERSION");
         return false;
     }
     const bool input = colorSpace == ColorSpace::INPUT;
@@ -2854,14 +2852,12 @@ bool FilmNegativeParams::matrixBasisMatches(const Glib::ustring &stored,
         return true;
     }
     message = Glib::ustring::compose(
-        "bound color_space=%1 profile=\"%2\" does not match active "
-        "color_space=%3 profile=\"%4\". Select Identity or re-select the "
-        "matrix preset to rebind; coefficients are not reused in another "
-        "basis.",
+        art::utils::M("TP_FILMNEGATIVE_ERR_MATRIX_BASIS_MISMATCH"),
         boundSpace, boundProfile, space, profile);
     if (!boundContent.empty() && !content.empty() &&
         boundContent != content) {
-        message += " Custom profile content changed.";
+        message += " ";
+        message += art::utils::M("TP_FILMNEGATIVE_ERR_MATRIX_BASIS_CONTENT");
     }
     return false;
 }
@@ -4233,10 +4229,20 @@ int ProcParams::save(ProgressListener *pl, bool save_general, KeyFile &keyFile,
         if (RELEVANT_(filmNegative)) {
             saveToKeyfile("Film Negative", "Enabled", filmNegative.enabled,
                           keyFile);
-            saveToKeyfile("Film Negative", "Method",
-                          toUnderlying(filmNegative.method), keyFile);
-            saveToKeyfile("Film Negative", "FilmType",
-                          toUnderlying(filmNegative.filmType), keyFile);
+            saveToKeyfile(
+                "Film Negative", "Method",
+                Glib::ustring(filmNegative.method ==
+                                      FilmNegativeParams::Method::DENSITY
+                                  ? "density"
+                                  : "power_law"),
+                keyFile);
+            saveToKeyfile(
+                "Film Negative", "FilmType",
+                Glib::ustring(filmNegative.filmType ==
+                                      FilmNegativeParams::FilmType::REVERSAL
+                                  ? "reversal"
+                                  : "negative"),
+                keyFile);
             saveToKeyfile("Film Negative", "RedRatio", filmNegative.redRatio,
                           keyFile);
             saveToKeyfile("Film Negative", "GreenExponent",
@@ -4282,8 +4288,17 @@ int ProcParams::save(ProgressListener *pl, bool save_general, KeyFile &keyFile,
                 saveToKeyfile("Film Negative", "ChannelGamma", cg, keyFile);
                 saveToKeyfile("Film Negative", "OutputBlackOffset",
                               filmNegative.outputBlackOffset, keyFile);
-                saveToKeyfile("Film Negative", "MatrixPreset",
-                              toUnderlying(filmNegative.matrixPreset), keyFile);
+                saveToKeyfile(
+                    "Film Negative", "MatrixPreset",
+                    Glib::ustring(
+                        filmNegative.matrixPreset ==
+                                FilmNegativeParams::STATUS_M_REFERENCE
+                            ? "status_m_reference"
+                            : filmNegative.matrixPreset ==
+                                      FilmNegativeParams::CUSTOM
+                                  ? "custom"
+                                  : "identity"),
+                    keyFile);
                 std::vector<double> mx(filmNegative.matrix.begin(),
                                        filmNegative.matrix.end());
                 saveToKeyfile("Film Negative", "Matrix", mx, keyFile);
@@ -4296,8 +4311,17 @@ int ProcParams::save(ProgressListener *pl, bool save_general, KeyFile &keyFile,
                 saveToKeyfile("Film Negative", "PaperBasis",
                               filmNegative.paperBasis, keyFile);
             }
-            saveToKeyfile("Film Negative", "TargetMode",
-                          toUnderlying(filmNegative.targetMode), keyFile);
+            saveToKeyfile(
+                "Film Negative", "TargetMode",
+                Glib::ustring(
+                    filmNegative.targetMode ==
+                            FilmNegativeParams::TargetMode::PAPER
+                        ? "paper"
+                        : filmNegative.targetMode ==
+                                  FilmNegativeParams::TargetMode::CINEON
+                              ? "cineon"
+                              : "linear"),
+                keyFile);
             saveToKeyfile("Film Negative", "CineonPrimaries",
                           filmNegative.cineonPrimaries, keyFile);
             saveToKeyfile("Film Negative", "CineonReferenceWhite",
@@ -4458,6 +4482,92 @@ int ProcParams::load(ProgressListener *pl, const Glib::ustring &fname,
         return 1;
     }
 }
+
+namespace {
+
+struct FilmNegId {
+    const char *name;
+    int value;
+};
+
+std::string filmNegLower(const Glib::ustring &token)
+{
+    std::string out = token.c_str();
+    for (size_t i = 0; i < out.size(); ++i) {
+        const unsigned char c = static_cast<unsigned char>(out[i]);
+        if (c >= 'A' && c <= 'Z') {
+            out[i] = static_cast<char>(c - 'A' + 'a');
+        }
+    }
+    return out;
+}
+
+bool filmNegIntToken(const Glib::ustring &token, int &out)
+{
+    const char *s = token.c_str();
+    if (!s || !*s) {
+        return false;
+    }
+    int sign = 1;
+    if (*s == '+') {
+        ++s;
+    } else if (*s == '-') {
+        sign = -1;
+        ++s;
+    }
+    if (!*s) {
+        return false;
+    }
+    int v = 0;
+    for (; *s; ++s) {
+        if (*s < '0' || *s > '9') {
+            return false;
+        }
+        v = v * 10 + (*s - '0');
+    }
+    out = sign * v;
+    return true;
+}
+
+void filmNegLoadError(const KeyFile &keyFile, const char *key,
+                      const Glib::ustring &token)
+{
+    const Glib::ustring msg = Glib::ustring::compose(
+        art::utils::M("TP_FILMNEGATIVE_ERR_UNKNOWN_ENUM"), key, token);
+    std::cerr << msg << "\n";
+    if (keyFile.progressListener()) {
+        keyFile.progressListener()->error(msg);
+    }
+}
+
+// Known text ids and the previous integer form. An unknown token leaves
+// dest unchanged and is reported. It is not mapped onto a default.
+template <typename Enum>
+bool assignFilmNegEnum(const Glib::ustring &token, Enum &dest,
+                       const KeyFile &keyFile, const char *key,
+                       const FilmNegId *table, int count, int intMax)
+{
+    int asInt = 0;
+    if (filmNegIntToken(token, asInt)) {
+        if (asInt >= 0 && asInt <= intMax) {
+            dest = static_cast<Enum>(asInt);
+            return true;
+        }
+        filmNegLoadError(keyFile, key, token);
+        return false;
+    }
+    const std::string low = filmNegLower(token);
+    for (int i = 0; i < count; ++i) {
+        if (low == table[i].name) {
+            dest = static_cast<Enum>(table[i].value);
+            return true;
+        }
+    }
+    filmNegLoadError(keyFile, key, token);
+    return false;
+}
+
+} // namespace
 
 int ProcParams::load(ProgressListener *pl, bool load_general,
                      const KeyFile &keyFile, const art::gui::ParamsEdited *pedited,
@@ -6493,47 +6603,33 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
             }
 
             {
-                int m = 0;
-                if (assignFromKeyfile(keyFile, "Film Negative", "Method", m)) {
+                Glib::ustring s;
+                if (assignFromKeyfile(keyFile, "Film Negative", "Method", s)) {
+                    const FilmNegId methodIds[] = {
+                        {"power_law", 0},
+                        {"density", 1},
+                    };
+                    assignFilmNegEnum(s, filmNegative.method, keyFile, "Method",
+                                      methodIds, 2, 1);
+                } else if (filmNegativeMissingMethodSelectsPowerLaw(keyFile)) {
+                    // ProcParams::load: old sidecar / pre-feature partial
+                    // with old Film Negative keys and no Method.
                     filmNegative.method =
-                        static_cast<FilmNegativeParams::Method>(m);
-                } else {
-                    Glib::ustring s;
-                    if (assignFromKeyfile(keyFile, "Film Negative", "Method",
-                                          s)) {
-                        if (s == "density" || s == "Density" ||
-                            s == "DENSITY") {
-                            filmNegative.method =
-                                FilmNegativeParams::Method::DENSITY;
-                        } else {
-                            filmNegative.method =
-                                FilmNegativeParams::Method::POWER_LAW;
-                        }
-                    } else if (filmNegativeMissingMethodSelectsPowerLaw(
-                                   keyFile)) {
-                        // ProcParams::load: old sidecar / pre-feature partial
-                        // with old Film Negative keys and no Method.
-                        filmNegative.method =
-                            FilmNegativeParams::Method::POWER_LAW;
-                    }
+                        FilmNegativeParams::Method::POWER_LAW;
                 }
             }
 
             if (ppVersion >= 1046) {
-                int ft = 0;
-                if (assignFromKeyfile(keyFile, "Film Negative", "FilmType", ft)) {
-                    filmNegative.filmType =
-                        static_cast<FilmNegativeParams::FilmType>(ft);
-                } else {
+                {
                     Glib::ustring s;
-                    if (assignFromKeyfile(keyFile, "Film Negative", "FilmType", s)) {
-                        if (s == "reversal" || s == "Reversal" || s == "REVERSAL") {
-                            filmNegative.filmType =
-                                FilmNegativeParams::FilmType::REVERSAL;
-                        } else {
-                            filmNegative.filmType =
-                                FilmNegativeParams::FilmType::NEGATIVE;
-                        }
+                    if (assignFromKeyfile(keyFile, "Film Negative", "FilmType",
+                                          s)) {
+                        const FilmNegId filmTypeIds[] = {
+                            {"negative", 0},
+                            {"reversal", 1},
+                        };
+                        assignFilmNegEnum(s, filmNegative.filmType, keyFile,
+                                          "FilmType", filmTypeIds, 2, 1);
                     }
                 }
 
@@ -6557,14 +6653,18 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                 }
                 assignFromKeyfile(keyFile, "Film Negative", "OutputBlackOffset",
                                   filmNegative.outputBlackOffset);
-                int mp = 0;
-                if (assignFromKeyfile(keyFile, "Film Negative", "MatrixPreset",
-                                      mp)) {
-                    if (mp < IDENTITY || mp > CUSTOM) {
-                        mp = IDENTITY;
+                {
+                    Glib::ustring s;
+                    if (assignFromKeyfile(keyFile, "Film Negative",
+                                          "MatrixPreset", s)) {
+                        const FilmNegId presetIds[] = {
+                            {"identity", 0},
+                            {"status_m_reference", 1},
+                            {"custom", 2},
+                        };
+                        assignFilmNegEnum(s, filmNegative.matrixPreset, keyFile,
+                                          "MatrixPreset", presetIds, 3, 2);
                     }
-                    filmNegative.matrixPreset =
-                        static_cast<FilmNegativeParams::MatrixPreset>(mp);
                 }
                 if (assignFromKeyfile(keyFile, "Film Negative", "Matrix", v) &&
                     v.size() == 9) {
@@ -6581,44 +6681,17 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
             // partial profile is not dropped when Version was not bumped.
             assignFromKeyfile(keyFile, "Film Negative", "InputGamma",
                               filmNegative.inputGamma);
-            int tm = 0;
-            if (assignFromKeyfile(keyFile, "Film Negative", "TargetMode",
-                                  tm)) {
-                if (tm < 0 ||
-                    tm > static_cast<int>(
-                             FilmNegativeParams::TargetMode::CINEON)) {
-                    std::cerr << "Film Negative: unknown TargetMode " << tm
-                              << "; left as linear (not substituted)\n";
-                    tm = 0;
-                }
-                filmNegative.targetMode =
-                    static_cast<FilmNegativeParams::TargetMode>(tm);
-            } else {
+            {
                 Glib::ustring s;
                 if (assignFromKeyfile(keyFile, "Film Negative", "TargetMode",
                                       s)) {
-                    if (s == "paper" || s == "Paper" || s == "PAPER") {
-                        filmNegative.targetMode =
-                            FilmNegativeParams::TargetMode::PAPER;
-                    } else if (s == "cineon" || s == "Cineon" ||
-                               s == "CINEON") {
-                        filmNegative.targetMode =
-                            FilmNegativeParams::TargetMode::CINEON;
-                    } else if (s == "linear" || s == "Linear" ||
-                               s == "LINEAR") {
-                        filmNegative.targetMode =
-                            FilmNegativeParams::TargetMode::LINEAR;
-                    } else {
-                        std::cerr << "Film Negative: unknown TargetMode '"
-                                  << s
-                                  << "'; left unchanged (not substituted)\n";
-                        if (keyFile.progressListener()) {
-                            keyFile.progressListener()->error(
-                                Glib::ustring::compose(
-                                    "Film Negative: unknown TargetMode '%1'",
-                                    s));
-                        }
-                    }
+                    const FilmNegId targetIds[] = {
+                        {"linear", 0},
+                        {"paper", 1},
+                        {"cineon", 2},
+                    };
+                    assignFilmNegEnum(s, filmNegative.targetMode, keyFile,
+                                      "TargetMode", targetIds, 3, 2);
                 }
             }
             assignFromKeyfile(keyFile, "Film Negative", "CineonPrimaries",
@@ -6944,7 +7017,7 @@ bool KeyFilePartialProfile::applyTo(ProcParams &pp) const
         // partial with old keys and no Method must still select power_law
         // (KeyFilePartialProfile::applyTo, issue #46).
         if (filmNegativeMissingMethodSelectsPowerLaw(given)) {
-            merged.set_integer("Film Negative", "Method", 0);
+            merged.set_string("Film Negative", "Method", "power_law");
         }
         KeyFile result;
         if (!result.load_from_data(merged.to_data())) {

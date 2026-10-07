@@ -427,13 +427,13 @@ class FilmNegative(CompactModel):
     enabled: bool | None = F("Enabled", "Turn the tool on or off", default=False)
     method: Literal["power_law", "density"] | None = F(
         "Method",
-        "Conversion method: power_law (stored 0) or density (stored 1)",
-        stored_as={"power_law": "0", "density": "1"}, default="power_law",
+        "Conversion method: power_law or density (text id; 0/1 still load)",
+        read_as={"0": "power_law", "1": "density"}, default="power_law",
     )  # fmt: skip
     film_type: Literal["negative", "reversal"] | None = F(
         "FilmType",
-        "Film stock type: negative (stored 0) or reversal (stored 1)",
-        stored_as={"negative": "0", "reversal": "1"}, default="negative",
+        "Film stock type: negative or reversal (text id; 0/1 still load)",
+        read_as={"0": "negative", "1": "reversal"}, default="negative",
     )  # fmt: skip
     color_space: Literal["working", "input"] | None = F(
         "ColorSpace",
@@ -468,9 +468,8 @@ class FilmNegative(CompactModel):
         "Before density inversion, normalized source RGB is decoded as "
         "sign(x)*abs(x)^input_gamma. Only an explicitly unprofiled non-RAW scan "
         "(input profile \"(none)\") may use a non-unity value; RAW and "
-        "profile-linearized input require 1, and a non-unity value is left "
-        "unapplied so the file is not double-decoded. 1 leaves decoded linear "
-        "values unchanged.",
+        "profile-linearized input require 1. A non-unity value there is an "
+        "error and density inversion is not applied. 1 leaves linear values unchanged.",
         ge=0.5, le=2.8, default=1.0,
     )
     density_gamma: float | None = F(
@@ -502,17 +501,17 @@ class FilmNegative(CompactModel):
     )
     matrix_preset: Literal["identity", "status_m_reference", "custom"] | None = F(
         "MatrixPreset",
-        "Density matrix preset: identity (stored 0), status_m_reference (stored 1, "
-        "DiVERE Status M rows) or custom (stored 2). Identity ignores stored "
+        "Density matrix preset: identity, status_m_reference (DiVERE Status M "
+        "rows) or custom (text id; 0/1/2 still load). Identity ignores stored "
         "coefficients and any matrix_basis. Coefficient edits require custom.",
-        stored_as={"identity": "0", "status_m_reference": "1", "custom": "2"},
+        read_as={"0": "identity", "1": "status_m_reference", "2": "custom"},
         default="identity",
     )
     target_mode: Literal["linear", "paper", "cineon"] | None = F(
         "TargetMode",
-        "Export target: linear (stored 0), paper (stored 1) or cineon (stored 2). "
+        "Export target: linear, paper or cineon (text id; 0/1/2 still load). "
         "The editor buffer stays linear; cineon is encoded only when saving a 16-bit integer TIFF",
-        stored_as={"linear": "0", "paper": "1", "cineon": "2"}, default="linear",
+        read_as={"0": "linear", "1": "paper", "2": "cineon"}, default="linear",
     )  # fmt: skip
     cineon_primaries: str | None = F(
         "CineonPrimaries",
@@ -580,8 +579,8 @@ class FilmNegative(CompactModel):
     )
     paper_basis: str | None = F(
         "PaperBasis",
-        "Space the paper response is bound to: input, working, or empty if unbound. "
-        "A later mismatch is an error; the curve is not applied in another basis.",
+        "Space the paper response is bound to: input, working, optionally |profile, "
+        "or empty if unbound. A non-empty mismatch refuses the conversion.",
         default="",
     )
     cineon_lut: str | None = F(

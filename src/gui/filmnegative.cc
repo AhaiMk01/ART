@@ -382,7 +382,7 @@ FilmNegative::FilmNegative()
       matrixCoeffs(Gtk::manage(new Gtk::Entry())),
       calibrationNote(Gtk::manage(new Gtk::Entry())),
       paperCurve(Gtk::manage(new MyComboBoxText())), paperCurveGrid(nullptr),
-      paperBasisValue(),
+      paperBasisValue(), capturePaperBasisFlag(false),
       cineonLUTFile(Gtk::manage(new MyFileChooserButton(
           M("TP_FILMNEGATIVE_CINEON_LUT")))),
       cineonLUTInputPrimaries(Gtk::manage(new Gtk::Entry())),
@@ -826,6 +826,19 @@ void FilmNegative::write(art::engine::procparams::ProcParams *pp)
     pp->filmNegative.matrixBasis = matrixBasis;
     pp->filmNegative.calibrationNote = calibrationNote->get_text();
     pp->filmNegative.paperCurve = paperCurve->get_active_id();
+    if (capturePaperBasisFlag &&
+        pp->filmNegative.targetMode == TargetMode::PAPER) {
+        const bool input =
+            pp->filmNegative.colorSpace ==
+            art::engine::procparams::FilmNegativeParams::ColorSpace::INPUT;
+        const Glib::ustring profile =
+            input ? pp->icm.inputProfile : pp->icm.workingProfile;
+        paperBasisValue = input ? "input" : "working";
+        if (!profile.empty()) {
+            paperBasisValue += "|" + profile;
+        }
+        capturePaperBasisFlag = false;
+    }
     pp->filmNegative.paperBasis = paperBasisValue;
     pp->filmNegative.cineonLUT = cineonLUTFile->get_filename();
     pp->filmNegative.cineonLUTInputPrimaries =
@@ -1137,10 +1150,7 @@ void FilmNegative::filmTypeChanged()
 
 void FilmNegative::capturePaperBasis()
 {
-    paperBasisValue =
-        ColorSpace(colorSpace->get_active_row_number()) == ColorSpace::INPUT
-            ? "input"
-            : "working";
+    capturePaperBasisFlag = true;
 }
 
 void FilmNegative::targetModeChanged()

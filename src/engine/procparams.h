@@ -1598,8 +1598,8 @@ struct FilmNegativeParams {
                                    Glib::ustring &message);
     // Stable curve identifier. Inactive unless targetMode is PAPER.
     Glib::ustring paperCurve;
-    // "input" or "working", or empty when unbound. Mismatch skips paper.
-    Glib::ustring paperBasis;
+    // "input" or "working", optionally "input|profile" / "working|profile".
+    // Empty when unbound. A non-empty mismatch refuses the conversion.
 
     FilmNegativeParams();
 

@@ -725,9 +725,11 @@ bool sampleSpots(ProcessingJob *job, const SpotRequest &req, SpotResult &res,
  * integer TIFF (`format` "tif", `bits` 16, `isFloat` false) and return an
  * empty string. The editor pipeline is left linear; this runs once, at save.
  * Any other format returns an error and does not write code values. Linear
- * scene values are `pixel / 65535`. */
+ * scene values are `pixel / 65535`. A non-empty cineonPrimaries name is
+ * converted with the existing matrix-profile helper, or the export fails. */
 Glib::ustring prepareFilmNegativeCineonExport(
     IImagefloat *img, const procparams::FilmNegativeParams &fnp,
+    const procparams::ColorManagementParams &icm,
     const Glib::ustring &format, int bits, bool isFloat);
 
 /** This class is used to control the batch processing. The class implementing

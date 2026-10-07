@@ -139,16 +139,42 @@ def read_matrix_field(stored: str | None) -> list[float] | None:
     return values
 
 
+def _stored_name(stored: str | None, mapping: dict[str, str], default: str) -> str:
+    """Text ids, plus the integer form written before they were stable."""
+    if stored is None:
+        return default
+    return mapping.get(stored, stored)
+
+
+_PRESET = {
+    "0": "identity",
+    "1": "status_m_reference",
+    "2": "custom",
+    "identity": "identity",
+    "status_m_reference": "status_m_reference",
+    "custom": "custom",
+}
+_METHOD = {"0": "power_law", "1": "density", "power_law": "power_law", "density": "density"}
+_FILM_TYPE = {
+    "0": "negative",
+    "1": "reversal",
+    "negative": "negative",
+    "reversal": "reversal",
+}
+_TARGET = {
+    "0": "linear",
+    "1": "paper",
+    "2": "cineon",
+    "linear": "linear",
+    "paper": "paper",
+    "cineon": "cineon",
+}
+
+
 def _preset_name(tool: FilmNegative, entries: Group | None) -> str:
     if tool.matrix_preset is not None:
         return tool.matrix_preset
-    stored = (entries or {}).get("MatrixPreset", "0")
-    return {
-        "0": "identity",
-        "1": "status_m_reference",
-        "2": "custom",
-    }.get(stored, "identity")
-
+    return _stored_name((entries or {}).get("MatrixPreset"), _PRESET, "identity")
 
 def check_matrix_coefficients(tool: FilmNegative, entries: Group | None) -> None:
     """Coefficient edits require Custom. Sending the preset's own coefficients
@@ -192,10 +218,8 @@ def check_cineon_lut_excludes_paper(tool: FilmNegative, entries: Group | None) -
     if tool.target_mode is not None:
         mode = tool.target_mode
     else:
-        stored = entries.get("TargetMode", "0")
-        mode = {"0": "linear", "1": "paper", "2": "cineon", "paper": "paper"}.get(
-            stored, stored
-        )
+        stored = entries.get("TargetMode")
+        mode = _stored_name(stored, _TARGET, "linear")
     if lut and mode == "paper":
         raise AdjustmentError(
             "out_of_range",
@@ -490,10 +514,10 @@ def film_base_edits(
     entries = profile.get(GROUP) or {}
     method = tool.method
     if method is None:
-        method = "density" if entries.get("Method") == "1" else "power_law"
+        method = _stored_name(entries.get("Method"), _METHOD, "power_law")
     film_type = tool.film_type
     if film_type is None:
-        film_type = "reversal" if entries.get("FilmType") == "1" else "negative"
+        film_type = _stored_name(entries.get("FilmType"), _FILM_TYPE, "negative")
     if method != "density":
         raise AdjustmentError(
             "out_of_range",

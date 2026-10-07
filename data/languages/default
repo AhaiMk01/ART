@@ -1602,6 +1602,31 @@ TP_FILMNEGATIVE_RGB_GAIN_B;Blue gain
 TP_FILMNEGATIVE_FILMBASE_DENSITY_PICK;Pick film-base rebate
 TP_FILMNEGATIVE_FILMBASE_DENSITY_TOOLTIP;Pick unexposed film (the rebate between frames). Sets all three printer-light gains so that spot maps to density 4.0 (linear 1e-4) before paper, LUT, and black offset. Contrast, Dmax, and the matrix are left unchanged. Refused if a gain would fall outside -3 to 3.
 TP_FILMNEGATIVE_FILMBASE_DENSITY_FAILED;Film-base pick failed. Printer-light gains were not changed.
+TP_FILMNEGATIVE_ERR_UNKNOWN_ENUM;Film Negative: unknown %1 '%2'. Left unchanged
+TP_FILMNEGATIVE_ERR_INPUT_GAMMA_RAW;Film Negative: RAW input is already linear (InputGamma=%1). The override was not applied and the scan was not inverted
+TP_FILMNEGATIVE_ERR_INPUT_GAMMA_PROFILED;Film Negative: this input is already profile-linearized (InputGamma=%1). Set InputGamma to 1, or set the input profile to "(none)" for an unprofiled scan. The override was not applied and the scan was not inverted
+TP_FILMNEGATIVE_ERR_MATRIX_NONFINITE;Film Negative: custom density matrix has a non-finite coefficient. Enter finite coefficients or select Identity
+TP_FILMNEGATIVE_ERR_MATRIX_BASIS_EMPTY;Film Negative: a non-identity density matrix has no MatrixBasis. Select Identity or rebind the matrix. The conversion was not applied
+TP_FILMNEGATIVE_ERR_MATRIX_BASIS_VERSION;Film Negative: MatrixBasis is not version 1 JSON. Select Identity or rebind the matrix to the current processing space and profile
+TP_FILMNEGATIVE_ERR_MATRIX_BASIS_MISMATCH;Film Negative: bound color_space=%1 profile="%2" does not match active color_space=%3 profile="%4". Select Identity or re-select the matrix preset to rebind. Coefficients are not reused in another basis
+TP_FILMNEGATIVE_ERR_MATRIX_BASIS_CONTENT;Custom profile content changed.
+TP_FILMNEGATIVE_ERR_PAPER_CURVE;Film Negative: unknown paper curve '%1'. Paper response not applied
+TP_FILMNEGATIVE_ERR_PAPER_BASIS;Film Negative: paper basis does not match the inversion color space. Conversion was not applied. Rebind PaperBasis
+TP_FILMNEGATIVE_ERR_NONFINITE;Film Negative: non-finite sample detected. That pixel was left unchanged
+TP_FILMNEGATIVE_ERR_CINEON_FORMAT;Film Negative: Cineon film-negative target requires a 16-bit integer TIFF. Refusing to write another format
+TP_FILMNEGATIVE_ERR_CINEON_IMAGE;Film Negative: Cineon export needs a floating-point image
+TP_FILMNEGATIVE_ERR_CINEON_TRANSFER;Film Negative: output profile '%1' is not a verified linear transfer. Set the output profile to "(none)" or a linear profile. Cineon was not encoded
+TP_FILMNEGATIVE_ERR_CINEON_PRIMARIES;Film Negative: cannot convert linear RGB into Cineon primaries '%1'. Export was not encoded
+TP_FILMNEGATIVE_ERR_LUT_MISSING;Film Negative: Cineon print LUT file is missing: '%1'. Set CineonLUT to an existing .cube file. No other LUT was used
+TP_FILMNEGATIVE_ERR_LUT_UNREADABLE;Film Negative: Cineon print LUT could not be read: '%1'. Check that the file is readable. No other LUT was used
+TP_FILMNEGATIVE_ERR_LUT_LOG;Film Negative: Cineon print LUT '%1' %2. Refusing the file. No other LUT was used
+TP_FILMNEGATIVE_ERR_LUT_BAD;Film Negative: Cineon print LUT '%1' is not usable (%2). No other LUT was used
+TP_FILMNEGATIVE_ERR_LUT_TRANSFER;Film Negative: CineonLUTOutputTransfer is not linear, srgb or gamma_2_4. The print LUT was not applied
+TP_FILMNEGATIVE_ERR_LUT_NOT_3D;file is not a 3D .cube (LUT_3D_SIZE is required). A 1D LUT is not a Cineon print LUT
+TP_FILMNEGATIVE_ERR_LUT_LENGTH;3D lattice length does not match LUT_3D_SIZE
+TP_FILMNEGATIVE_ERR_LUT_DOMAIN;DOMAIN_MAX must be greater than DOMAIN_MIN
+TP_FILMNEGATIVE_ERR_LUT_SIZE;LUT_3D_SIZE must be between 2 and 128
+TP_FILMNEGATIVE_ERR_LUT_LOG_DETAIL;declares an unsupported log output transfer '%1'. Supported decoded outputs are linear, sRGB and gamma 2.4
 HISTORY_MSG_FILMNEGATIVE_FILMBASE_GAINS;Film Negative - Printer lights
 TP_FILMNEGATIVE_TARGET;Target:
 TP_FILMNEGATIVE_TARGET_LINEAR;Linear

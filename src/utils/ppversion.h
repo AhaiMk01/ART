@@ -5,10 +5,13 @@ namespace art { namespace utils {
 
 // This number has to be incremented whenever the ARP file format is modified or
 // the behaviour of a tool changes
-#define PPVERSION 1050
+#define PPVERSION 1051
 
 /*
   Log of version changes
+  1051  2026-10-07
+        film negative: Method, FilmType, MatrixPreset and TargetMode stored as
+        text ids. Integer sidecars still load. Unknown tokens are not substituted
   1050  2026-10-07
         film negative: managed Cineon print LUT (#54)
   1049  2026-10-07

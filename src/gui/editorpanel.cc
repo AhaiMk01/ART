@@ -2129,7 +2129,8 @@ bool EditorPanel::idle_saveImage(ProgressConnector<art::engine::IImagefloat *> *
         bool saveFloat = sf.format == "tif" && sf.tiffFloat;
         Glib::ustring cineonError =
             art::engine::prepareFilmNegativeCineonExport(
-                img, pparams.filmNegative, sf.format, saveBits, saveFloat);
+                img, pparams.filmNegative, pparams.icm, sf.format, saveBits,
+                saveFloat);
         if (!cineonError.empty()) {
             img->free();
             Gtk::MessageDialog msgd(*parent, cineonError, false,
@@ -2491,7 +2492,8 @@ bool EditorPanel::saveImmediately(const Glib::ustring &filename,
         bool saveFloat = gimpPlugin || (fmt == "tif" && sf.tiffFloat);
         Glib::ustring cineonError =
             art::engine::prepareFilmNegativeCineonExport(
-                img, pparams.filmNegative, fmt, saveBits, saveFloat);
+                img, pparams.filmNegative, pparams.icm, fmt, saveBits,
+                saveFloat);
         if (!cineonError.empty()) {
             parent->error(cineonError);
             img->free();
@@ -2611,7 +2613,8 @@ bool EditorPanel::idle_sendToGimp(
         }
         Glib::ustring cineonError =
             art::engine::prepareFilmNegativeCineonExport(
-                img, gimpParams.filmNegative, "tif", sf.tiffBits, sf.tiffFloat);
+                img, gimpParams.filmNegative, gimpParams.icm, "tif",
+                sf.tiffBits, sf.tiffFloat);
         if (!cineonError.empty()) {
             img->free();
             Gtk::MessageDialog msgd(*parent, cineonError, false,

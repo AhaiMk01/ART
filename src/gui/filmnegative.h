@@ -187,6 +187,7 @@ private:
     MyComboBoxText *const paperCurve;
     Gtk::Grid *paperCurveGrid;
     Glib::ustring paperBasisValue;
+    bool capturePaperBasisFlag;
     MyFileChooserButton *const cineonLUTFile;
     Gtk::Entry *const cineonLUTInputPrimaries;
     Gtk::Entry *const cineonLUTOutputPrimaries;

@@ -1127,8 +1127,8 @@ art::engine::ProcessingJob *BatchQueue::imageReady(art::engine::IImagefloat *img
         bool saveFloat = saveFormat.format == "tif" && saveFormat.tiffFloat;
         Glib::ustring cineonError =
             art::engine::prepareFilmNegativeCineonExport(
-                img, processing->params.filmNegative, saveFormat.format,
-                saveBits, saveFloat);
+                img, processing->params.filmNegative, processing->params.icm,
+                saveFormat.format, saveBits, saveFloat);
         if (!cineonError.empty()) {
             err = 1;
             failure = cineonError + ": " + fname;

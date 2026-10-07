@@ -1121,7 +1121,8 @@ int processLineParams(int argc, char **argv)
 
         // save image to disk
         Glib::ustring cineonError = art::engine::prepareFilmNegativeCineonExport(
-            resultImage, currentParams.filmNegative, outputType, bits, isFloat);
+            resultImage, currentParams.filmNegative, currentParams.icm,
+            outputType, bits, isFloat);
         if (!cineonError.empty()) {
             errors++;
             std::cerr << "Error: " << cineonError << std::endl;

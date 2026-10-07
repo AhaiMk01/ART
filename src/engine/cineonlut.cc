@@ -13,6 +13,7 @@
 #include "color.h"
 #include "iccstore.h"
 #include "linalgebra.h"
+#include "../utils/multilangmgr.h"
 
 namespace art { namespace engine {
 
@@ -110,9 +111,9 @@ bool headerDeclaresLogOutput(const std::string &line, std::string &declared)
 
 void report(ProgressListener *pl, const Glib::ustring &msg)
 {
-    std::cerr << "Film Negative: " << msg << "\n";
+    std::cerr << msg << "\n";
     if (pl) {
-        pl->error(Glib::ustring("Film Negative: ") + msg);
+        pl->error(msg);
     }
 }
 
@@ -133,10 +134,10 @@ bool parseCube(const std::string &text, CubeLut &cube, std::string &error,
             line.erase(line.size() - 1);
         }
         if (headerDeclaresLogOutput(line, logDeclared)) {
-            error = "declares an unsupported log output transfer '" +
-                    logDeclared +
-                    "'. Supported decoded outputs are linear, sRGB and "
-                    "gamma 2.4";
+            error = Glib::ustring::compose(
+                        art::utils::M("TP_FILMNEGATIVE_ERR_LUT_LOG_DETAIL"),
+                        logDeclared)
+                        .raw();
             return false;
         }
         std::string trimmed = line;
@@ -162,7 +163,7 @@ bool parseCube(const std::string &text, CubeLut &cube, std::string &error,
             ls >> cube.size;
             saw3d = true;
             if (cube.size < 2 || cube.size > 128) {
-                error = "LUT_3D_SIZE must be between 2 and 128";
+                error = art::utils::M("TP_FILMNEGATIVE_ERR_LUT_SIZE").raw();
                 return false;
             }
             continue;
@@ -189,19 +190,18 @@ bool parseCube(const std::string &text, CubeLut &cube, std::string &error,
         cube.rgb.push_back(b);
     }
     if (!saw3d || cube.size < 2) {
-        error = "file is not a 3D .cube (LUT_3D_SIZE is required). "
-                "A 1D LUT is not a Cineon print LUT";
+        error = art::utils::M("TP_FILMNEGATIVE_ERR_LUT_NOT_3D").raw();
         return false;
     }
     const size_t expect =
         static_cast<size_t>(cube.size) * cube.size * cube.size * 3;
     if (cube.rgb.size() != expect) {
-        error = "3D lattice length does not match LUT_3D_SIZE";
+        error = art::utils::M("TP_FILMNEGATIVE_ERR_LUT_LENGTH").raw();
         return false;
     }
     for (int c = 0; c < 3; ++c) {
         if (!(cube.domainMax[c] > cube.domainMin[c])) {
-            error = "DOMAIN_MAX must be greater than DOMAIN_MIN";
+            error = art::utils::M("TP_FILMNEGATIVE_ERR_LUT_DOMAIN").raw();
             return false;
         }
     }
@@ -215,9 +215,7 @@ bool loadCube(const Glib::ustring &path, CubeLut &out, ProgressListener *pl)
         std::lock_guard<std::mutex> lock(gCubeMutex);
         gCubeCache.erase(key);
         report(pl, Glib::ustring::compose(
-                       "Cineon print LUT file is missing: '%1'. Set CineonLUT "
-                       "to an existing .cube file; no other LUT was used",
-                       path));
+                       art::utils::M("TP_FILMNEGATIVE_ERR_LUT_MISSING"), path));
         return false;
     }
     std::ifstream in(Glib::filename_from_utf8(path).c_str(),
@@ -226,8 +224,7 @@ bool loadCube(const Glib::ustring &path, CubeLut &out, ProgressListener *pl)
         std::lock_guard<std::mutex> lock(gCubeMutex);
         gCubeCache.erase(key);
         report(pl, Glib::ustring::compose(
-                       "Cineon print LUT could not be read: '%1'. Check that "
-                       "the file is readable; no other LUT was used",
+                       art::utils::M("TP_FILMNEGATIVE_ERR_LUT_UNREADABLE"),
                        path));
         return false;
     }
@@ -252,14 +249,12 @@ bool loadCube(const Glib::ustring &path, CubeLut &out, ProgressListener *pl)
         gCubeCache.erase(key);
         if (!logDeclared.empty()) {
             report(pl, Glib::ustring::compose(
-                           "Cineon print LUT '%1' %2. Refusing the file; no "
-                           "other LUT was used",
-                           path, error));
+                           art::utils::M("TP_FILMNEGATIVE_ERR_LUT_LOG"), path,
+                           error));
         } else {
             report(pl, Glib::ustring::compose(
-                           "Cineon print LUT '%1' is not usable (%2). No other "
-                           "LUT was used",
-                           path, error));
+                           art::utils::M("TP_FILMNEGATIVE_ERR_LUT_BAD"), path,
+                           error));
         }
         return false;
     }
@@ -419,8 +414,7 @@ void applyCineonPrintLut(Imagefloat *img,
     }
     using Transfer = procparams::FilmNegativeParams::CineonLUTOutputTransfer;
     if (params.cineonLUTOutputTransfer == Transfer::UNSUPPORTED) {
-        report(pl, "CineonLUTOutputTransfer is not linear, srgb or "
-                   "gamma_2_4. The print LUT was not applied");
+        report(pl, art::utils::M("TP_FILMNEGATIVE_ERR_LUT_TRANSFER"));
         return;
     }
     CubeLut cube;

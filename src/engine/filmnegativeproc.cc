@@ -45,6 +45,9 @@
 #include "rt_math.h"
 #include "cineonlut.h"
 #include "papercurve.h"
+#include "../utils/multilangmgr.h"
+#include "imageio.h"
+#include "linalgebra.h"
 
 namespace art { namespace engine {
 
@@ -234,31 +237,33 @@ SourceTransfer sourceTransfer(bool isRaw, const ColorManagementParams &icm)
     return SourceTransfer::PROFILED;
 }
 
+void filmNegError(ProgressListener *pl, const Glib::ustring &msg)
+{
+    std::cerr << msg << "\n";
+    if (pl) {
+        pl->error(msg);
+    }
+}
+
 // Unity is a no-op. A non-unity override is applied only for an explicitly
-// unprofiled non-RAW scan; otherwise it is left unapplied and reported.
-float resolvedInputGamma(const FilmNegativeParams &params, SourceTransfer src,
-                         ProgressListener *pl)
+// unprofiled non-RAW scan. Otherwise the density inversion must not run.
+bool resolveInputGamma(const FilmNegativeParams &params, SourceTransfer src,
+                       ProgressListener *pl, float &gamma)
 {
     if (params.inputGamma == 1.0) {
-        return 1.f;
+        gamma = 1.f;
+        return true;
     }
     if (src == SourceTransfer::UNPROFILED_SCAN) {
-        return static_cast<float>(params.inputGamma);
+        gamma = static_cast<float>(params.inputGamma);
+        return true;
     }
-    const char *why =
-        src == SourceTransfer::RAW
-            ? "RAW input is already linear. Set InputGamma to 1; a non-unity "
-              "scanner override was not applied, to avoid double-decoding."
-            : "this input is already profile-linearized. Set InputGamma to 1, "
-              "or set the input profile to \"(none)\" for an explicitly "
-              "unprofiled power-encoded non-RAW scan. The override was not "
-              "applied, to avoid double-decoding.";
-    std::cerr << "Film Negative: " << why << " (InputGamma=" << params.inputGamma
-              << ")\n";
-    if (pl) {
-        pl->error(Glib::ustring("Film Negative: ") + why);
-    }
-    return 1.f;
+    const char *key = src == SourceTransfer::RAW
+                          ? "TP_FILMNEGATIVE_ERR_INPUT_GAMMA_RAW"
+                          : "TP_FILMNEGATIVE_ERR_INPUT_GAMMA_PROFILED";
+    filmNegError(pl, Glib::ustring::compose(art::utils::M(key),
+                                            params.inputGamma));
+    return false;
 }
 
 // Always writes linear RGB (0..65535). TargetMode::CINEON is an export
@@ -276,20 +281,19 @@ bool activeDensityMatrix(const FilmNegativeParams &params,
     }
     for (int i = 0; i < 9; ++i) {
         if (!std::isfinite(coeffs[i])) {
-            const char *why =
-                "custom density matrix has a non-finite coefficient. "
-                "Enter finite coefficients or select Identity.";
-            std::cerr << "Film Negative: " << why << "\n";
-            if (pl) {
-                pl->error(Glib::ustring("Film Negative: ") + why);
-            }
+            filmNegError(pl, art::utils::M(
+                                 "TP_FILMNEGATIVE_ERR_MATRIX_NONFINITE"));
             return false;
         }
         M[i] = static_cast<float>(coeffs[i]);
     }
-    if (params.matrixPreset == Preset::IDENTITY ||
-        params.matrixBasis.empty()) {
+    if (params.matrixPreset == Preset::IDENTITY) {
         return true;
+    }
+    if (params.matrixBasis.empty()) {
+        filmNegError(pl, art::utils::M(
+                             "TP_FILMNEGATIVE_ERR_MATRIX_BASIS_EMPTY"));
+        return false;
     }
     Glib::ustring message;
     if (FilmNegativeParams::matrixBasisMatches(params.matrixBasis,
@@ -297,22 +301,58 @@ bool activeDensityMatrix(const FilmNegativeParams &params,
                                                message)) {
         return true;
     }
-    std::cerr << "Film Negative: " << message << "\n";
-    if (pl) {
-        pl->error(Glib::ustring("Film Negative: ") + message);
-    }
+    filmNegError(pl, message);
     return false;
 }
 
-void doProcessDensity(Imagefloat *input, Imagefloat *output,
-                      const FilmNegativeParams &params, SourceTransfer src,
+bool paperBasisMatches(const FilmNegativeParams &params,
+                       const ColorManagementParams &icm)
+{
+    const Glib::ustring &stored = params.paperBasis;
+    if (stored.empty()) {
+        return true;
+    }
+    Glib::ustring space = stored;
+    Glib::ustring profile;
+    const auto bar = stored.find('|');
+    if (bar != Glib::ustring::npos) {
+        space = stored.substr(0, bar);
+        profile = stored.substr(bar + 1);
+    }
+    const bool input =
+        params.colorSpace == FilmNegativeParams::ColorSpace::INPUT;
+    if (space != (input ? "input" : "working")) {
+        return false;
+    }
+    const Glib::ustring active =
+        input ? icm.inputProfile : icm.workingProfile;
+    return profile.empty() || profile == active;
+}
+
+void leaveUnconverted(Imagefloat *input, Imagefloat *output)
+{
+    // In-place drivers ignore a false return and continue the export, so the
+    // scan must stay uninverted. A distinct output buffer is copied.
+    if (input != output) {
+        input->copyTo(output);
+    }
+}
+
+bool doProcessDensity(Imagefloat *input, Imagefloat *output,
+                      const FilmNegativeParams &params,
+                      const ColorManagementParams &icm, SourceTransfer src,
                       ProgressListener *pl, const float densityMatrix[9])
 {
     input->syncCpu();
     output->syncCpuForWrite();
 
     const float S = 65535.f;
-    const float inputGamma = resolvedInputGamma(params, src, pl);
+    float inputGamma = 1.f;
+    if (!resolveInputGamma(params, src, pl, inputGamma)) {
+        // Export is not aborted here: in-place drivers keep the scan uninverted.
+        leaveUnconverted(input, output);
+        return false;
+    }
     const float densityGamma = static_cast<float>(params.densityGamma);
     const float densityDmax = static_cast<float>(params.densityDmax);
     const float p = 0.7f;
@@ -342,31 +382,15 @@ void doProcessDensity(Imagefloat *input, Imagefloat *output,
         !cineonLutActive;
     bool paperOk = false;
     if (paperTarget) {
+        if (!paperBasisMatches(params, icm)) {
+            filmNegError(pl, art::utils::M("TP_FILMNEGATIVE_ERR_PAPER_BASIS"));
+            leaveUnconverted(input, output);
+            return false;
+        }
         if (!findPaperCurve(params.paperCurve)) {
-            std::cerr << "Film Negative: unknown paper curve '"
-                      << params.paperCurve
-                      << "'; paper response not applied\n";
-            if (pl) {
-                pl->error(Glib::ustring::compose(
-                    "Film Negative: unknown paper curve '%1'; paper response "
-                    "not applied",
-                    params.paperCurve));
-            }
-        } else if (!params.paperBasis.empty() &&
-                   params.paperBasis !=
-                       (params.colorSpace ==
-                                FilmNegativeParams::ColorSpace::INPUT
-                            ? "input"
-                            : "working")) {
-            std::cerr << "Film Negative: paper basis '" << params.paperBasis
-                      << "' does not match the inversion color space; paper "
-                         "response not applied. Rebind PaperBasis.\n";
-            if (pl) {
-                pl->error(
-                    "Film Negative: paper basis does not match the inversion "
-                    "color space; paper response not applied. Rebind "
-                    "PaperBasis.");
-            }
+            filmNegError(pl, Glib::ustring::compose(
+                                 art::utils::M("TP_FILMNEGATIVE_ERR_PAPER_CURVE"),
+                                 params.paperCurve));
         } else {
             paperOk = true;
         }
@@ -392,25 +416,27 @@ void doProcessDensity(Imagefloat *input, Imagefloat *output,
 
         for (int j = 0; j < rwidth; ++j) {
             float in[3] = {rlinein[j], glinein[j], blinein[j]};
+            if (!std::isfinite(in[0]) || !std::isfinite(in[1]) ||
+                !std::isfinite(in[2])) {
+                nonFiniteCount++;
+                rlineout[j] = in[0];
+                glineout[j] = in[1];
+                blineout[j] = in[2];
+                continue;
+            }
             float A[3];
             double density[3];
 
             for (int c = 0; c < 3; ++c) {
                 float sample = in[c];
-                float Tc;
-                if (!std::isfinite(sample)) {
-                    nonFiniteCount++;
-                    Tc = 1e-10f;
-                } else {
-                    float norm = sample / S;
-                    // sign(x)*|x|^InputGamma on normalized source RGB. Unity
-                    // skips this so decoded linear values are unchanged.
-                    if (inputGamma != 1.f) {
-                        const float sign = norm < 0.f ? -1.f : 1.f;
-                        norm = sign * std::pow(std::fabs(norm), inputGamma);
-                    }
-                    Tc = norm > 1e-10f ? norm : 1e-10f;
+                float norm = sample / S;
+                // sign(x)*|x|^InputGamma on normalized source RGB. Unity
+                // skips this so decoded linear values are unchanged.
+                if (inputGamma != 1.f) {
+                    const float sign = norm < 0.f ? -1.f : 1.f;
+                    norm = sign * std::pow(std::fabs(norm), inputGamma);
                 }
+                const float Tc = norm > 1e-10f ? norm : 1e-10f;
 
                 float Dc = -std::log10(Tc);
                 float Ac;
@@ -473,8 +499,9 @@ void doProcessDensity(Imagefloat *input, Imagefloat *output,
     }
 
     if (nonFiniteCount > 0) {
-        std::cerr << "Film Negative: non-finite sample detected in input image\n";
+        filmNegError(pl, art::utils::M("TP_FILMNEGATIVE_ERR_NONFINITE"));
     }
+    return true;
 }
 
 /**
@@ -496,7 +523,10 @@ bool doProcess(Imagefloat *input, Imagefloat *output,
         if (!activeDensityMatrix(params, icmParams, pl, densityMatrix)) {
             return false;
         }
-        doProcessDensity(input, output, params, src, pl, densityMatrix);
+        if (!doProcessDensity(input, output, params, icmParams, src, pl,
+                              densityMatrix)) {
+            return false;
+        }
         applyCineonPrintLut(output, params, icmParams, pl);
         return false;
     }
@@ -593,8 +623,11 @@ bool filmBaseGainsFromAverage(const float avg[3],
         return false;
     }
 
-    const float inputGamma =
-        resolvedInputGamma(params, sourceTransfer(isRaw, icm), nullptr);
+    float inputGamma = 1.f;
+    if (!resolveInputGamma(params, sourceTransfer(isRaw, icm), nullptr,
+                           inputGamma)) {
+        return false;
+    }
     const float S = 65535.f;
     const float densityGamma = static_cast<float>(params.densityGamma);
     const float densityDmax = static_cast<float>(params.densityDmax);
@@ -673,7 +706,11 @@ bool art::engine::ImProcFunctions::filmNegativeProcess(Imagefloat *input,
                                  densityMatrix)) {
             return false;
         }
-        doProcessDensity(input, output, fnp, src, plistener, densityMatrix);
+        // Export is not aborted here: in-place drivers keep the scan uninverted.
+        if (!doProcessDensity(input, output, fnp, this->params->icm, src,
+                              plistener, densityMatrix)) {
+            return false;
+        }
         applyCineonPrintLut(output, fnp, this->params->icm, plistener);
         return false;
     }
@@ -1215,10 +1252,77 @@ double cineonNormalized(double linear01, double referenceWhite)
     return (685.0 + 300.0 * std::log10(x * (1.0 - b) + b)) / 1023.0;
 }
 
+// Transfer is verified for "(none)" (working RGB stays linear), the known
+// sRGB "No ICM" path, and ART profiles getProfileParametricTRC can read.
+// A named profile whose transfer is not reported is refused.
+bool cineonSourceIsLinear(const procparams::ColorManagementParams &icm,
+                          Glib::ustring &basis, Glib::ustring &error)
+{
+    const Glib::ustring &out = icm.outputProfile;
+    if (out == procparams::ColorManagementParams::NoProfileString) {
+        basis = icm.workingProfile;
+        return true;
+    }
+    const Glib::ustring shown =
+        out.empty() ? procparams::ColorManagementParams::NoICMString : out;
+    if (out.empty() ||
+        out == procparams::ColorManagementParams::NoICMString) {
+        error = Glib::ustring::compose(
+            art::utils::M("TP_FILMNEGATIVE_ERR_CINEON_TRANSFER"), shown);
+        return false;
+    }
+    cmsHPROFILE prof = ICCStore::getInstance()->getProfile(out);
+    float gamma = 0.f;
+    float slope = 0.f;
+    if (!prof || !ICCStore::getProfileParametricTRC(prof, gamma, slope) ||
+        gamma != 1.f || slope != 0.f) {
+        error = Glib::ustring::compose(
+            art::utils::M("TP_FILMNEGATIVE_ERR_CINEON_TRANSFER"), shown);
+        return false;
+    }
+    basis = out;
+    return true;
+}
+
+bool convertLinearBasis(Imagefloat *img, const Glib::ustring &from,
+                        const Glib::ustring &to)
+{
+    if (from == to) {
+        return true;
+    }
+    if (from.empty() || to.empty()) {
+        return false;
+    }
+    Mat33<float> fromM;
+    Mat33<float> toM;
+    Mat33<float> toInv;
+    if (!ICCStore::getInstance()->getProfileMatrix(from, fromM) ||
+        !ICCStore::getInstance()->getProfileMatrix(to, toM) ||
+        !inverse(toM, toInv)) {
+        return false;
+    }
+    const Mat33<float> conv = dot_product(toInv, fromM);
+    const int height = img->getHeight();
+    const int width = img->getWidth();
+    for (int row = 0; row < height; ++row) {
+        for (int col = 0; col < width; ++col) {
+            Vec3<float> rgb(img->r(row, col) / 65535.f,
+                            img->g(row, col) / 65535.f,
+                            img->b(row, col) / 65535.f);
+            rgb = dot_product(conv, rgb);
+            img->r(row, col) = rgb[0] * 65535.f;
+            img->g(row, col) = rgb[1] * 65535.f;
+            img->b(row, col) = rgb[2] * 65535.f;
+        }
+    }
+    return true;
+}
+
 } // namespace
 
 Glib::ustring prepareFilmNegativeCineonExport(
     IImagefloat *img, const procparams::FilmNegativeParams &fnp,
+    const procparams::ColorManagementParams &icm,
     const Glib::ustring &format, int bits, bool isFloat)
 {
     if (fnp.targetMode != procparams::FilmNegativeParams::TargetMode::CINEON) {
@@ -1227,16 +1331,28 @@ Glib::ustring prepareFilmNegativeCineonExport(
 
     const bool tiff16 = format == "tif" && bits == 16 && !isFloat;
     if (!tiff16) {
-        return Glib::ustring(
-            "Cineon film-negative target requires a 16-bit integer TIFF; "
-            "refusing to write another format");
+        return art::utils::M("TP_FILMNEGATIVE_ERR_CINEON_FORMAT");
     }
     if (!img || img->getType() != sImagefloat) {
-        return Glib::ustring("Cineon export needs a floating-point image");
+        return art::utils::M("TP_FILMNEGATIVE_ERR_CINEON_IMAGE");
+    }
+
+    Glib::ustring basis;
+    Glib::ustring transferError;
+    if (!cineonSourceIsLinear(icm, basis, transferError)) {
+        return transferError;
     }
 
     Imagefloat *out = static_cast<Imagefloat *>(img);
     out->syncCpuForWrite();
+
+    const Glib::ustring target =
+        fnp.cineonPrimaries.empty() ? icm.workingProfile : fnp.cineonPrimaries;
+    if (!convertLinearBasis(out, basis, target)) {
+        return Glib::ustring::compose(
+            art::utils::M("TP_FILMNEGATIVE_ERR_CINEON_PRIMARIES"),
+            target.empty() ? Glib::ustring("(empty)") : target);
+    }
 
     double referenceWhite = fnp.cineonReferenceWhite;
     if (referenceWhite < 1e-6) {
@@ -1264,6 +1380,16 @@ Glib::ustring prepareFilmNegativeCineonExport(
             out->b(row, col) = quantize(out->b(row, col));
         }
     }
+
+    // Do not embed a linear or sRGB ICC that describes these code values as
+    // scene-linear or display-encoded RGB.
+    out->setOutputProfile(nullptr, 0);
+    std::ostringstream rw;
+    rw.imbue(std::locale::classic());
+    rw << referenceWhite;
+    out->setSaveAnnotation(Glib::ustring::compose(
+        "Cineon full-range encoding, primaries=%1, reference white=%2", target,
+        Glib::ustring(rw.str())));
     return Glib::ustring();
 }
 

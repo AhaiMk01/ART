@@ -269,7 +269,7 @@ def test_paper_target_round_trips_and_does_not_drop_cineon_fields():
         ),
         [],
     )
-    assert values(result)["TargetMode"] == "1"
+    assert values(result)["TargetMode"] == "paper"
     assert values(result)["PaperCurve"] == "ilford_mgfb_00"
     assert values(result)["PaperBasis"] == "working"
     assert values(result)["CineonPrimaries"] == "ProPhoto"
@@ -294,8 +294,8 @@ def test_density_fields_round_trip():
         [],
     )
     assert values(result) == {
-        "Method": "1",
-        "FilmType": "1",
+        "Method": "density",
+        "FilmType": "reversal",
         "DensityGamma": "1.5",
         "DensityDmax": "3",
         "RGBGains": "-0.5;0.2;1",
@@ -322,7 +322,7 @@ def test_custom_matrix_round_trips():
         ),
         [],
     )
-    assert values(result)["MatrixPreset"] == "2"
+    assert values(result)["MatrixPreset"] == "custom"
     assert values(result)["Matrix"] == "1.1;0.2;0;0;0.9;0;0;0;1"
     assert values(result)["MatrixBasis"] == basis
     assert values(result)["CalibrationNote"] == "Portra, tungsten, Epson"
@@ -391,11 +391,23 @@ def test_input_gamma_round_trips_and_defaults_to_one():
     changes = WorkingChanges(profile())
     result = changes.edit(adj(method="density", input_gamma=1.8), [])
     assert values(result)["InputGamma"] == "1.8"
-    assert values(result)["Method"] == "1"
+    assert values(result)["Method"] == "density"
     typed = read_format(changes.profile).adjustments["film_negative"]
     assert typed["input_gamma"] == 1.8
     # a profile that omits the key keeps the unity default
     assert read_format(profile()).adjustments["film_negative"]["input_gamma"] == 1.0
+
+
+def test_integer_enum_sidecars_still_read_as_names():
+    stored = profile(
+        extra="Method=1\nFilmType=1\nMatrixPreset=2\nTargetMode=2\n"
+    )
+    typed = read_format(stored).adjustments["film_negative"]
+    assert typed["method"] == "density"
+    assert typed["film_type"] == "reversal"
+    assert typed["matrix_preset"] == "custom"
+    assert typed["target_mode"] == "cineon"
+
 
 
 def test_input_gamma_linearizes_a_power_encoded_scan_once():
