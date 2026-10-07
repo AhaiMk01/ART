@@ -147,6 +147,7 @@ private:
 
     Gtk::Grid *csGrid;
 
+    Adjuster *const inputGamma;
     Adjuster *const densityGamma;
     Adjuster *const densityDmax;
     Adjuster *const channelGammaR;
@@ -155,6 +156,7 @@ private:
     Adjuster *const rgbGainR;
     Adjuster *const rgbGainG;
     Adjuster *const rgbGainB;
+    Adjuster *const outputBlackOffset;
 
     MyComboBoxText *const targetMode;
     Gtk::Grid *targetModeGrid;

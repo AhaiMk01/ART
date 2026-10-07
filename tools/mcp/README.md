@@ -171,6 +171,9 @@ with a warning. An explicit `ref_output` wins. Legacy profiles (`BackCompat`,
 (stored 0/1/2); the editor buffer stays linear. `cineon_primaries` (empty =
 the current working profile) and `cineon_reference_white` (1e-6..1e6, default
 1) are stored for a Cineon 16-bit TIFF export.
+`RedBase`) stay under `raw`. `output_black_offset` (0 to 0.05, default 0,
+key `OutputBlackOffset`) is subtracted from the density path's normalized
+linear output and floored at 0; 0 leaves that linear value unchanged.
 
 `tone_curve` takes `mode`, `mode2` (omitted = same as `mode`; `get_profile`
 always reports the effective one), `histogram_matching`, `contrast` (-100..100: ART's
@@ -210,7 +213,7 @@ in the temp folder whose process is gone.
 
 Results of `get_profile`, `edit_profile` and `describe_adjustments` carry a
 `warnings` list when ART's profile version is newer than the schema's
-(`PPVERSION` 1045); edits keep working.
+(`PPVERSION` 1047); edits keep working.
 
 ## Previews
 

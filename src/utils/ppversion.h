@@ -11,6 +11,8 @@ namespace art { namespace utils {
   Log of version changes
   1047  2026-10-07
         film negative: Cineon target, primaries and reference white
+        film negative: output black offset subtracted in normalized linear
+        film negative: InputGamma scanner source-transfer override (#48)
   1046  2026-10-07
         film negative: core density inversion engine and parameters
   1045  2026-05-25

@@ -2696,10 +2696,10 @@ FilmNegativeParams::FilmNegativeParams()
       redRatio(1.36), greenExp(1.5), blueRatio(0.86),
       refInput({0.0, 0.0, 0.0}), refOutput({0.0, 0.0, 0.0}),
       colorSpace(ColorSpace::WORKING), backCompat(BackCompat::CURRENT),
-      densityGamma(1.0), densityDmax(2.5), rgbGains({0.0, 0.0, 0.0}),
-      channelGamma({1.0, 1.0, 1.0}),
-      targetMode(TargetMode::LINEAR), cineonPrimaries(),
-      cineonReferenceWhite(1.0)
+      inputGamma(1.0), densityGamma(1.0), densityDmax(2.5),
+      rgbGains({0.0, 0.0, 0.0}), channelGamma({1.0, 1.0, 1.0}),
+      outputBlackOffset(0.0), targetMode(TargetMode::LINEAR),
+      cineonPrimaries(), cineonReferenceWhite(1.0)
 {
 }
 
@@ -2728,12 +2728,14 @@ bool FilmNegativeParams::operator==(const FilmNegativeParams &other) const
            greenExp == other.greenExp && blueRatio == other.blueRatio &&
            refInput == other.refInput && refOutput == other.refOutput &&
            colorSpace == other.colorSpace && backCompat == other.backCompat &&
+           inputGamma == other.inputGamma &&
            densityGamma == other.densityGamma &&
            densityDmax == other.densityDmax && rgbGains == other.rgbGains &&
            channelGamma == other.channelGamma &&
            targetMode == other.targetMode &&
            cineonPrimaries == other.cineonPrimaries &&
-           cineonReferenceWhite == other.cineonReferenceWhite;
+           cineonReferenceWhite == other.cineonReferenceWhite &&
+           outputBlackOffset == other.outputBlackOffset;
 }
 
 bool FilmNegativeParams::operator!=(const FilmNegativeParams &other) const
@@ -4038,6 +4040,8 @@ int ProcParams::save(ProgressListener *pl, bool save_general, KeyFile &keyFile,
                 saveToKeyfile("Film Negative", "BackCompat",
                               toUnderlying(filmNegative.backCompat), keyFile);
             }
+            saveToKeyfile("Film Negative", "InputGamma",
+                          filmNegative.inputGamma, keyFile);
             saveToKeyfile("Film Negative", "DensityGamma",
                           filmNegative.densityGamma, keyFile);
             saveToKeyfile("Film Negative", "DensityDmax",
@@ -4049,6 +4053,8 @@ int ProcParams::save(ProgressListener *pl, bool save_general, KeyFile &keyFile,
                 std::vector<double> cg(filmNegative.channelGamma.begin(),
                                        filmNegative.channelGamma.end());
                 saveToKeyfile("Film Negative", "ChannelGamma", cg, keyFile);
+                saveToKeyfile("Film Negative", "OutputBlackOffset",
+                              filmNegative.outputBlackOffset, keyFile);
             }
             saveToKeyfile("Film Negative", "TargetMode",
                           toUnderlying(filmNegative.targetMode), keyFile);
@@ -6261,6 +6267,7 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                     }
                 }
 
+
                 assignFromKeyfile(keyFile, "Film Negative", "DensityGamma",
                                   filmNegative.densityGamma);
                 assignFromKeyfile(keyFile, "Film Negative", "DensityDmax",
@@ -6278,46 +6285,52 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                     filmNegative.channelGamma[1] = v[1];
                     filmNegative.channelGamma[2] = v[2];
                 }
+                assignFromKeyfile(keyFile, "Film Negative", "OutputBlackOffset",
+                                  filmNegative.outputBlackOffset);
             } else {
                 filmNegative.method = FilmNegativeParams::Method::POWER_LAW;
             }
-
-                int tm = 0;
+            // Missing key keeps the default. Present on any version so a
+            // partial profile is not dropped when Version was not bumped.
+            assignFromKeyfile(keyFile, "Film Negative", "InputGamma",
+                              filmNegative.inputGamma);
+            int tm = 0;
+            if (assignFromKeyfile(keyFile, "Film Negative", "TargetMode",
+                                  tm)) {
+                if (tm < 0 ||
+                    tm > static_cast<int>(
+                             FilmNegativeParams::TargetMode::CINEON)) {
+                    tm = 0;
+                }
+                filmNegative.targetMode =
+                    static_cast<FilmNegativeParams::TargetMode>(tm);
+            } else {
+                Glib::ustring s;
                 if (assignFromKeyfile(keyFile, "Film Negative", "TargetMode",
-                                      tm)) {
-                    if (tm < 0 || tm > static_cast<int>(
-                                          FilmNegativeParams::TargetMode::CINEON)) {
-                        tm = 0;
-                    }
-                    filmNegative.targetMode =
-                        static_cast<FilmNegativeParams::TargetMode>(tm);
-                } else {
-                    Glib::ustring s;
-                    if (assignFromKeyfile(keyFile, "Film Negative", "TargetMode",
-                                          s)) {
-                        if (s == "paper" || s == "Paper" || s == "PAPER") {
-                            filmNegative.targetMode =
-                                FilmNegativeParams::TargetMode::PAPER;
-                        } else if (s == "cineon" || s == "Cineon" ||
-                                   s == "CINEON") {
-                            filmNegative.targetMode =
-                                FilmNegativeParams::TargetMode::CINEON;
-                        } else {
-                            filmNegative.targetMode =
-                                FilmNegativeParams::TargetMode::LINEAR;
-                        }
+                                      s)) {
+                    if (s == "paper" || s == "Paper" || s == "PAPER") {
+                        filmNegative.targetMode =
+                            FilmNegativeParams::TargetMode::PAPER;
+                    } else if (s == "cineon" || s == "Cineon" ||
+                               s == "CINEON") {
+                        filmNegative.targetMode =
+                            FilmNegativeParams::TargetMode::CINEON;
+                    } else {
+                        filmNegative.targetMode =
+                            FilmNegativeParams::TargetMode::LINEAR;
                     }
                 }
-                assignFromKeyfile(keyFile, "Film Negative", "CineonPrimaries",
-                                  filmNegative.cineonPrimaries);
-                assignFromKeyfile(keyFile, "Film Negative",
-                                  "CineonReferenceWhite",
-                                  filmNegative.cineonReferenceWhite);
-                if (filmNegative.cineonReferenceWhite < 1e-6) {
-                    filmNegative.cineonReferenceWhite = 1e-6;
-                } else if (filmNegative.cineonReferenceWhite > 1e6) {
-                    filmNegative.cineonReferenceWhite = 1e6;
-                }
+            }
+            assignFromKeyfile(keyFile, "Film Negative", "CineonPrimaries",
+                              filmNegative.cineonPrimaries);
+            assignFromKeyfile(keyFile, "Film Negative",
+                              "CineonReferenceWhite",
+                              filmNegative.cineonReferenceWhite);
+            if (filmNegative.cineonReferenceWhite < 1e-6) {
+                filmNegative.cineonReferenceWhite = 1e-6;
+            } else if (filmNegative.cineonReferenceWhite > 1e6) {
+                filmNegative.cineonReferenceWhite = 1e6;
+            }
         }
 
         if (keyFile.has_group("MetaData") && RELEVANT_(metadata)) {

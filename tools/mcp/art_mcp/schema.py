@@ -462,6 +462,17 @@ class FilmNegative(CompactModel):
         "neutral at level L, unequal = a deliberate tint; [0, 0, 0] = unset (65535/24 grey)",
         default=[0.0, 0.0, 0.0],
     )
+    input_gamma: float | None = F(
+        "InputGamma",
+        "Scanner source-transfer override, exponent 0.5 to 2.8 (default 1). "
+        "Before density inversion, normalized source RGB is decoded as "
+        "sign(x)*abs(x)^input_gamma. Only an explicitly unprofiled non-RAW scan "
+        "(input profile \"(none)\") may use a non-unity value; RAW and "
+        "profile-linearized input require 1, and a non-unity value is left "
+        "unapplied so the file is not double-decoded. 1 leaves decoded linear "
+        "values unchanged.",
+        ge=0.5, le=2.8, default=1.0,
+    )
     density_gamma: float | None = F(
         "DensityGamma", "Density conversion gamma", ge=0.1, le=4.0, default=1.0
     )
@@ -478,6 +489,11 @@ class FilmNegative(CompactModel):
         "ChannelGamma",
         "[r, g, b]: per-channel density contrast slopes (0.5 to 2.0)",
         default=[1.0, 1.0, 1.0],
+    )
+    output_black_offset: float | None = F(
+        "OutputBlackOffset",
+        "Subtracted from normalized linear output after density conversion, then floored at 0",
+        ge=0.0, le=0.05, default=0.0,
     )
     target_mode: Literal["linear", "paper", "cineon"] | None = F(
         "TargetMode",
