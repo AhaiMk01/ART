@@ -315,7 +315,7 @@ FilmNegative::FilmNegative()
       evFilmNegativeFilmBase(ProcEventMapper::getInstance()->newEvent(
           art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_FILMBASE_GAINS")),
       evFilmNegativeCineon(ProcEventMapper::getInstance()->newEvent(
-          0, "HISTORY_MSG_FILMNEGATIVE_CINEON")),
+          art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_CINEON")),
       evFilmNegativeMatrix(ProcEventMapper::getInstance()->newEvent(
           art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_MATRIX")),
       evFilmNegativeTarget(ProcEventMapper::getInstance()->newEvent(
