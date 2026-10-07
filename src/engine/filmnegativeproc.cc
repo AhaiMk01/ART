@@ -516,7 +516,7 @@ bool doProcess(Imagefloat *input, Imagefloat *output,
                const FilmNegativeParams &params,
                const ColorManagementParams &icmParams, RGB &refIn, RGB &refOut,
                SourceTransfer src, const Glib::ustring &sourceId,
-               ProgressListener *pl, bool *contractFailed)
+               ProgressListener *pl)
 {
     input->syncCpu();
     output->syncCpuForWrite();
@@ -603,9 +603,8 @@ bool doProcess(Imagefloat *input, Imagefloat *output,
             blineout[j] = CLIP(bmult * pow_F(blinein[j], bexp));
         }
     }
-    if (!applyCineonPrintLut(output, params, icmParams, pl) && contractFailed) {
-        *contractFailed = true;
-    }
+    // The Cineon print LUT belongs to the Density method only: a LUT left from
+    // density mode must not recolour or abort a Power-law render.
     return refsUpdated;
 }
 
@@ -802,14 +801,10 @@ bool art::engine::ImProcFunctions::filmNegativeProcess(Imagefloat *input,
 
     // Perform actual inversion. Return true if reference values are computed
     // from medians
-    bool lutFailed = false;
     paramsUpdated |= doProcess(
         input, output, fnp, this->params->icm, refIn, refOut,
         sourceTransfer(imgsrc && imgsrc->isRAW(), this->params->icm), sourceId,
-        plistener, &lutFailed);
-    if (lutFailed) {
-        filmNegContractFailed = true;
-    }
+        plistener);
 
     return paramsUpdated;
 }
@@ -824,11 +819,9 @@ void art::engine::ImProcFunctions::filmNegativeProcess(
     }
 
     RGB refIn = params.refInput, refOut = params.refOutput;
-    bool contractFailed = false;
     doProcess(input, output, params, this->params->icm, refIn, refOut,
-              sourceTransfer(rawSource, this->params->icm), sourceId, plistener,
-              &contractFailed);
-    filmNegContractFailed = contractFailed;
+              sourceTransfer(rawSource, this->params->icm), sourceId, plistener);
+    filmNegContractFailed = false;
 }
 
 namespace {

@@ -1125,10 +1125,16 @@ art::engine::ProcessingJob *BatchQueue::imageReady(art::engine::IImagefloat *img
         int saveBits = saveFormat.format == "tif" ? saveFormat.tiffBits
                                                    : saveFormat.pngBits;
         bool saveFloat = saveFormat.format == "tif" && saveFormat.tiffFloat;
+        // The render applied the batch profile to the job's own copy of the
+        // params, so a target set or cleared there decides the encoding too.
+        art::engine::procparams::ProcParams rendered = processing->params;
+        if (batch_profile_ && processing->use_batch_profile) {
+            batch_profile_->applyTo(rendered);
+        }
         Glib::ustring cineonError =
             art::engine::prepareFilmNegativeCineonExport(
-                img, processing->params.filmNegative, processing->params.icm,
-                saveFormat.format, saveBits, saveFloat);
+                img, rendered.filmNegative, rendered.icm, saveFormat.format,
+                saveBits, saveFloat);
         if (!cineonError.empty()) {
             err = 1;
             failure = cineonError + ": " + fname;
@@ -1151,7 +1157,10 @@ art::engine::ProcessingJob *BatchQueue::imageReady(art::engine::IImagefloat *img
         img->free();
 
         if (err) {
-            failure = M("MAIN_MSG_CANNOTSAVE") + ": " + fname;
+            // a Cineon refusal already says why
+            if (failure.empty()) {
+                failure = M("MAIN_MSG_CANNOTSAVE") + ": " + fname;
+            }
         } else if (saveFormat.saveParams) {
             // We keep the extension to avoid overwriting the profile when we
             // have the same output filename with different extension
