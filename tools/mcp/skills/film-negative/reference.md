@@ -1,7 +1,6 @@
 # Film negative reference
 
-Two methods. `power_law` is the formula below. `density` is the later section.
-Do not feed a power-law reference spot into density gains.
+The procedure is the skill. This file is the formulas. A new inversion uses "Density method". "Power-law" and the grade sections after it apply when an old sidecar stays on `power_law`. A power-law `ref_input` is not a density gain.
 
 ## Power-law
 
@@ -47,7 +46,7 @@ Cineon, export only: `x = L / CineonReferenceWhite`,
 `b = 10^((95 - 685) / 300)`,
 `y = (685 + 300 * log10(max(0, x) * (1 - b) + b)) / 1023`.
 Black is 95/1023, reference white is 685/1023, linear 0.18 is about
-467.838/1023. Quantize `y * 65535` for 16-bit. The working image stays linear.
+467.838/1023. With reference white 1, linear `1e-4` is code 95 and linear 1 is code 685. Quantize `y * 65535` for 16-bit. The working image stays linear. An 8-bit preview cannot show `1e-4`.
 ## Fitting RedRatio and BlueRatio
 
 Over the neutral spots (`avg` r, g, b): least squares slope of ln r against
@@ -263,8 +262,9 @@ the whole frame), and lower `L` when it is.
 
 ## Per-channel black point
 
-Under bluish light (hangar lamps, shade) the inverted shadows can sit blue
-while mid-tones are neutral: the channels' black levels differ, which
+Power-law grade only. A density inversion places the clear end with the rebate pick and the dense end with `Dmax`. These offsets grade a power-law positive; they do not set those ends.
+
+Under bluish light (hangar lamps, shade) the inverted shadows can sit blue while mid-tones are neutral: the channels' black levels differ, which
 `ref_input` can't fix (it moves the whole line). Lower that channel's black
 with `color_correction`: one region, RGB mode, an `offset` on that channel
 only (e.g. `b` -0.1), no mask. It works in linear working-space values (0..1
