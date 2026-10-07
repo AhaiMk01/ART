@@ -66,18 +66,61 @@ def get_imageio_releases():
     return RelInfo(rel)
 
 
-def getdlls(opts):
-    res = []
-    d = os.getcwd()
-    p = subprocess.Popen(['ldd', os.path.join(d, 'ART.exe')],
-                         stdout=subprocess.PIPE)
+def get_dll_imports(path):
+    p = subprocess.Popen(['objdump', '-p', path], stdout=subprocess.PIPE)
     out, _ = p.communicate()
-    for line in out.decode('utf-8').splitlines():
-        if ' => ' in line:
-            bits = line.split()
-            lib = bits[2]
-            if not lib.lower().startswith('/c/windows/'):
-                res.append(opts.msys + lib)
+    res = []
+    for line in out.decode('utf-8', errors='replace').splitlines():
+        line = line.strip()
+        if line.startswith('DLL Name:'):
+            res.append(line.split(':', 1)[1].strip())
+    return res
+
+
+def getdlls(opts):
+    # NOTE: we used to rely on `ldd`, which for PE binaries traces the
+    # loader at runtime instead of doing static analysis. This makes it
+    # racy: repeated invocations on the very same executable can return
+    # different (and incomplete) dependency lists, silently dropping
+    # transitively-needed DLLs from the bundle (see e.g. issue with
+    # libyaml-cpp.dll missing from a released build). objdump reads the
+    # PE import table statically and is deterministic, so we do our own
+    # recursive dependency resolution instead.
+    search_dirs = []
+    for p in os.environ.get('PATH', '').split(os.pathsep):
+        pn = p.replace('\\', '/')
+        if pn.lower().startswith(opts.msys.lower()):
+            search_dirs.append(pn)
+    for sub in ('ucrt64/bin', 'ucrt64/usr/local/bin',
+                'mingw64/bin', 'mingw64/usr/local/bin',
+                'clang64/bin', 'clang64/usr/local/bin'):
+        cand = opts.msys + '/' + sub
+        if cand not in search_dirs:
+            search_dirs.append(cand)
+
+    def find_dll(name):
+        for d in search_dirs:
+            cand = d + '/' + name
+            if os.path.isfile(cand):
+                return cand
+        return None
+
+    d = os.getcwd()
+    seen = set()
+    res = []
+    to_visit = [os.path.join(d, 'ART.exe'), os.path.join(d, 'ART-cli.exe')]
+    while to_visit:
+        cur = to_visit.pop()
+        for name in get_dll_imports(cur):
+            if name.lower() in seen:
+                continue
+            seen.add(name.lower())
+            path = find_dll(name)
+            if path is None:
+                # not one of ours (system DLL, API set, etc.) -- skip
+                continue
+            res.append(path)
+            to_visit.append(path)
     return res
 
 
@@ -179,7 +222,7 @@ def main():
         if opts.verbose:
             print('copying: %s' % lib)
         bn = os.path.basename(lib)
-        if msys_env is None and lib.startswith(opts.msys) \
+        if msys_env is None and lib.lower().startswith(opts.msys.lower()) \
            and bn.startswith('libgtk'):
             msys_env = lib[len(opts.msys) + 1:].split('/')[0]
         shutil.copy2(lib, os.path.join(opts.outdir, bn))

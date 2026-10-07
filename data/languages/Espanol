@@ -2101,3 +2101,10 @@ RENAME_DIALOG_FILENAMES_COPY;Archivos a copiar
 PROGRESSBAR_FILE_RENAME;Renombrando archivos...
 PROGRESSBAR_FILE_COPY;Copiando archivos...
 PROGRESSBAR_FILE_DELETE;Eliminando archivos...
+HISTORY_MSG_ICM_DCP_LOOK_PIPELINE_POS;Perfil de entrada - Aplicación del look DCP
+PROGRESSBAR_READY_TIME;Listo - %1
+QUEUE_LASTEXPORT_TIME;Última exportación: %1
+TP_ICM_DCP_LOOK_PIPELINE_POS;Aplicación del look
+TP_ICM_DCP_LOOK_PIPELINE_POS_EARLY;Al principio del pipeline
+TP_ICM_DCP_LOOK_PIPELINE_POS_LATE;Más tarde en el pipeline
+TP_ICM_DCP_LOOK_PIPELINE_POS_TOOLTIP;Controla cuándo se aplican en el pipeline de procesamiento los modificadores de look del perfil DCP (tabla de look, exposición base y curva de tonos). Aplicar el look antes (antes de la Corrección de color/tono) se ajusta más a las especificaciones originales de Adobe DNG, pero puede producir altas luces quemadas que no se pueden recuperar con las herramientas de edición local

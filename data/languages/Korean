@@ -22,7 +22,7 @@
 #21 2026-02-16  Ohnishi, Yasuo, updates for 1.26.2
 #22 2026-04-26  Ohnishi, Yasuo, updates for 1.26.4
 #23 2026-06-10  Ohnishi, Yasuo, updates for 1.26.6
-#24 2026-09-30  Ohnishi, Yasuo, updates for 1.26.10
+#24 2026-10-07  Ohnishi, Yasuo, updates for 1.26.10
 ABOUT_TAB_BUILD;버전
 ABOUT_TAB_CREDITS;크레디트
 ABOUT_TAB_LICENSE;저작권
@@ -1297,6 +1297,7 @@ PROGRESSBAR_NOIMAGES;화상이 없습니다.
 PROGRESSBAR_PROCESSING;화상처리 중...
 PROGRESSBAR_PROCESSING_PROFILESAVED;처리 프로파일을 보존했습니다.
 PROGRESSBAR_READY;준비완료
+PROGRESSBAR_READY_TIME;진행 상황 - %1
 PROGRESSBAR_SAVEJPEG;JPEG 파일보존 중...
 PROGRESSBAR_SAVEPNG;PNG파일보존 중...
 PROGRESSBAR_SAVETIFF;TIFF파일보존 중...
@@ -1313,6 +1314,7 @@ QUEUE_AUTOSTART;자동시작
 QUEUE_AUTOSTART_TOOLTIP;새어운 raw파일이 오면 자동적으로 형상처리를 시작합니다.
 QUEUE_DESTFILENAME;패스와 파일명
 QUEUE_FORMAT_TITLE;파일형식
+QUEUE_LASTEXPORT_TIME;최종 출력: %1
 QUEUE_LOCATION_FOLDER;폴더에 보존
 QUEUE_LOCATION_TEMPLATE;템플릿 쓰기
 QUEUE_LOCATION_TEMPLATE_TOOLTIP;원본 사진의 위치, 평가, 휴지통 또는 큐의 위치를 ​​기준으로 출력 위치를 지정합니다. \n\n예를 들면 다음의 패스명을 사용하는 경우...:\n<b>/home/tom/photos/2010-10-31/photo1.raw</b>\n서식문자열은 다음과 같습니다.:\n<b>%d4</b> = <i>home</i>\n<b>%d3</b> = <i>tom</i>\n<b>%d2</b> = <i>photos</i>\n<b>%d1</b> = <i>2010-10-31</i> \n<b>%f</b> = <i>photo1</i>\n<b>%p1</b> = <i>/home/tom/photos/2010-10-31/</i>\n<b>%p2</b> = <i>/home/tom/photos/</i>\n<b>%p3</b> = <i>/home/tom/</i>\n<b>%p4</b> = <i>/home/</i>\n\n<b>%r</b>은 사진 등급으로 대체됩니다. 사진에 등급이 없는 경우 '<i>0</i>'가 사용됩니다. 사진이 휴지통에 있는 경우 '<i>x</i>'가 사용됩니다. \n\n<b>%s1</b>, ..., <b>%s9</b>는 대기열이 시작될 때 대기열의 사진의 첫 번째 위치로 바뀝니다. 숫자는 자릿수를 의미합니다. 예를 들어 <b>%s3</b>의 결과는 <i>001</i>입니다. \n\n<b>%n</b>은 현재 적용된 스냅샷의 이름으로 바뀝니다. 스냅샷이 없거나 스냅샷이 선택되면 빈 문자열이 사용됩니다.<b>%n</b> 대신 <b>%u</b>를 사용하여 스냅샷 이름의 공백을 밑줄로 바꿀 수 있습니다. \n\n출력 이미지를 원본 이미지와 함께 저장하려면 다음과 같이 작성하십시오.\n<b>%p1/%f</b>\n\n 원본 사진 폴더에 '<i>converted</i>'라는 폴더에 출력 이미지를 저장하려면 다음과 같이 작성하십시오.\n<b>%p1/converted/%f</b>\n \n출력 이미지를 \n'<i>/home/tom/photos/converted/2010-10-31</i>'에 저장하려는 경우, 다음과 같이 씁니다:\n<b>%p2/ converted/%d1/%f</b>
