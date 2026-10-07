@@ -11,7 +11,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationEr
 
 from art_mcp.compactschema import CompactModel, compact_model_schema, full_schema
 from art_mcp.curves import CurveSpec
-PPVERSION = 1048
+PPVERSION = 1049
 """The processing-profile version (``src/utils/ppversion.h``) this schema was
 written for."""
 
@@ -545,6 +545,36 @@ class FilmNegative(CompactModel):
         "Subtracted from normalized linear output after density conversion, then floored at 0",
         ge=0.0, le=0.05, default=0.0,
     )
+    paper_curve: Literal[
+        "kodak_2383",
+        "kodak_2393",
+        "kodak_ektacolor_edge",
+        "kodak_endura_premier",
+        "kodak_portra_endura",
+        "kodak_supra_endura",
+        "kodak_ultra_endura",
+        "ilford_mgfb_00",
+        "ilford_mgfb_0",
+        "ilford_mgfb_1",
+        "ilford_mgfb_2",
+        "ilford_mgfb_3",
+        "ilford_mgfb_4",
+        "ilford_mgfb_5",
+    ] | None = F(
+        "PaperCurve",
+        "Reference print curve applied when target_mode is paper. Shared RGB "
+        "response, then the per-channel curve, in density space before "
+        "10^(-C). Ilford grades do not desaturate. An unknown id is refused, "
+        "not replaced. Inactive for linear and cineon, but kept.",
+        default="kodak_endura_premier",
+    )
+    paper_basis: str | None = F(
+        "PaperBasis",
+        "Space the paper response is bound to: input, working, or empty if unbound. "
+        "A later mismatch is an error; the curve is not applied in another basis.",
+        default="",
+    )
+
 
 class Adjustments(CompactModel):
     """Typed changes to curated tools. Set only what should change."""

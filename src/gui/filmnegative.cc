@@ -316,6 +316,8 @@ FilmNegative::FilmNegative()
           0, "HISTORY_MSG_FILMNEGATIVE_CINEON")),
       evFilmNegativeMatrix(ProcEventMapper::getInstance()->newEvent(
           art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_MATRIX")),
+      evFilmNegativeTarget(ProcEventMapper::getInstance()->newEvent(
+          art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_TARGET")),
       refInputValues({0.f, 0.f, 0.f}), paramsUpgraded(false),
       refLuminance({{0.f, 0.f, 0.f}, 0.f}), fnp(nullptr),
       method(Gtk::manage(new MyComboBoxText())), methodGrid(nullptr),
@@ -374,6 +376,7 @@ FilmNegative::FilmNegative()
           new Gtk::Label(M("TP_FILMNEGATIVE_MATRIX_CUSTOM_NOTE")))),
       matrixCoeffs(Gtk::manage(new Gtk::Entry())),
       calibrationNote(Gtk::manage(new Gtk::Entry())),
+      paperCurve(Gtk::manage(new MyComboBoxText())), paperCurveGrid(nullptr),
       spotPickerBox(nullptr), refSpotPickerBox(nullptr), sep(nullptr),
       storedMatrix(
           art::engine::procparams::FilmNegativeParams::identityMatrix()),
@@ -487,6 +490,38 @@ FilmNegative::FilmNegative()
         sigc::mem_fun(*this, &FilmNegative::calibrationNoteEdited));
     pack_start(*calibrationNote, Gtk::PACK_SHRINK, 0);
     applyMatrixPresetDisplay();
+    paperCurve->append("kodak_2383", M("TP_FILMNEGATIVE_PAPER_KODAK_2383"));
+    paperCurve->append("kodak_2393", M("TP_FILMNEGATIVE_PAPER_KODAK_2393"));
+    paperCurve->append("kodak_ektacolor_edge",
+                       M("TP_FILMNEGATIVE_PAPER_KODAK_EKTACOLOR_EDGE"));
+    paperCurve->append("kodak_endura_premier",
+                       M("TP_FILMNEGATIVE_PAPER_KODAK_ENDURA_PREMIER"));
+    paperCurve->append("kodak_portra_endura",
+                       M("TP_FILMNEGATIVE_PAPER_KODAK_PORTRA_ENDURA"));
+    paperCurve->append("kodak_supra_endura",
+                       M("TP_FILMNEGATIVE_PAPER_KODAK_SUPRA_ENDURA"));
+    paperCurve->append("kodak_ultra_endura",
+                       M("TP_FILMNEGATIVE_PAPER_KODAK_ULTRA_ENDURA"));
+    paperCurve->append("ilford_mgfb_00", M("TP_FILMNEGATIVE_PAPER_ILFORD_00"));
+    paperCurve->append("ilford_mgfb_0", M("TP_FILMNEGATIVE_PAPER_ILFORD_0"));
+    paperCurve->append("ilford_mgfb_1", M("TP_FILMNEGATIVE_PAPER_ILFORD_1"));
+    paperCurve->append("ilford_mgfb_2", M("TP_FILMNEGATIVE_PAPER_ILFORD_2"));
+    paperCurve->append("ilford_mgfb_3", M("TP_FILMNEGATIVE_PAPER_ILFORD_3"));
+    paperCurve->append("ilford_mgfb_4", M("TP_FILMNEGATIVE_PAPER_ILFORD_4"));
+    paperCurve->append("ilford_mgfb_5", M("TP_FILMNEGATIVE_PAPER_ILFORD_5"));
+    setExpandAlignProperties(paperCurve, true, false, Gtk::ALIGN_FILL,
+                             Gtk::ALIGN_CENTER);
+    paperCurve->set_tooltip_text(M("TP_FILMNEGATIVE_PAPER_CURVE_TOOLTIP"));
+    paperCurveGrid = Gtk::manage(new Gtk::Grid());
+    Gtk::Label *paperLabel =
+        Gtk::manage(new Gtk::Label(M("TP_FILMNEGATIVE_PAPER_CURVE")));
+    paperCurveGrid->attach(*paperLabel, 0, 0, 1, 1);
+    paperCurveGrid->attach(*paperCurve, 1, 0, 1, 1);
+    pack_start(*paperCurveGrid);
+    paperCurve->set_active_id("kodak_endura_premier");
+    paperCurve->signal_changed().connect(
+        sigc::mem_fun(*this, &FilmNegative::paperCurveChanged));
+    paperCurve->show();
 
     setExpandAlignProperties(spotButton, true, false, Gtk::ALIGN_FILL,
                              Gtk::ALIGN_CENTER);
@@ -625,6 +660,12 @@ void FilmNegative::read(const art::engine::procparams::ProcParams *pp)
     targetMode->set_active(CLAMP((int)pp->filmNegative.targetMode, 0, 2));
     cineonPrimaries->set_text(pp->filmNegative.cineonPrimaries);
     cineonReferenceWhite->setValue(pp->filmNegative.cineonReferenceWhite);
+    paperBasisValue = pp->filmNegative.paperBasis;
+    if (!paperCurve->set_active_id(pp->filmNegative.paperCurve)) {
+        paperCurve->append(pp->filmNegative.paperCurve,
+                           pp->filmNegative.paperCurve);
+        paperCurve->set_active_id(pp->filmNegative.paperCurve);
+    }
     outputBlackOffset->setValue(pp->filmNegative.outputBlackOffset);
 
     storedMatrix = pp->filmNegative.matrix;
@@ -706,6 +747,8 @@ void FilmNegative::write(art::engine::procparams::ProcParams *pp)
     }
     pp->filmNegative.matrixBasis = matrixBasis;
     pp->filmNegative.calibrationNote = calibrationNote->get_text();
+    pp->filmNegative.paperCurve = paperCurve->get_active_id();
+    pp->filmNegative.paperBasis = paperBasisValue;
 
     pp->filmNegative.enabled = getEnabled();
 
@@ -740,6 +783,8 @@ void FilmNegative::setDefaults(
     targetMode->set_active((int)defParams->filmNegative.targetMode);
     cineonPrimaries->set_text(defParams->filmNegative.cineonPrimaries);
     cineonReferenceWhite->setValue(defParams->filmNegative.cineonReferenceWhite);
+    paperCurve->set_active_id(defParams->filmNegative.paperCurve);
+    paperBasisValue = defParams->filmNegative.paperBasis;
     outputBlackOffset->setValue(defParams->filmNegative.outputBlackOffset);
 
     initial_params = defParams->filmNegative;
@@ -837,6 +882,8 @@ void FilmNegative::updateVisibility()
         if (refSpotPickerBox) {
             refSpotPickerBox->show();
         }
+        targetModeGrid->hide();
+        paperCurveGrid->hide();
     } else { // DENSITY
         csGrid->hide();
         greenExp->hide();
@@ -878,9 +925,15 @@ void FilmNegative::updateVisibility()
         matrixCustomNote->show();
         matrixCoeffs->show();
         calibrationNote->show();
+        targetModeGrid->show();
     }
 
     TargetMode tm = TargetMode(CLAMP(targetMode->get_active_row_number(), 0, 2));
+    if (m == Method::DENSITY && tm == TargetMode::PAPER) {
+        paperCurveGrid->show();
+    } else {
+        paperCurveGrid->hide();
+    }
     if (tm == TargetMode::CINEON) {
         cineonPrimaries->get_parent()->show();
         cineonReferenceWhite->show();
@@ -957,12 +1010,36 @@ void FilmNegative::filmTypeChanged()
     }
 }
 
+void FilmNegative::capturePaperBasis()
+{
+    paperBasisValue =
+        ColorSpace(colorSpace->get_active_row_number()) == ColorSpace::INPUT
+            ? "input"
+            : "working";
+}
+
 void FilmNegative::targetModeChanged()
 {
+    if (listener &&
+        TargetMode(targetMode->get_active_row_number()) == TargetMode::PAPER) {
+        capturePaperBasis();
+    }
     updateVisibility();
     if (listener) {
         listener->panelChanged(evFilmNegativeCineon,
                                targetMode->get_active_text());
+    }
+}
+
+void FilmNegative::paperCurveChanged()
+{
+    if (listener &&
+        TargetMode(targetMode->get_active_row_number()) == TargetMode::PAPER) {
+        capturePaperBasis();
+    }
+    if (listener) {
+        listener->panelChanged(evFilmNegativeTarget,
+                               paperCurve->get_active_text());
     }
 }
 

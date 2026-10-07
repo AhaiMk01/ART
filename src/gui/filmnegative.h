@@ -74,6 +74,8 @@ public:
     void matrixEdited();
     void calibrationNoteEdited();
     void applyMatrixPresetDisplay();
+    void paperCurveChanged();
+    void capturePaperBasis();
     void updateVisibility();
     void filmRefValuesChanged(const RGB &refInput,
                               const RGB &refOutput) override;
@@ -110,6 +112,7 @@ private:
     const art::engine::ProcEvent evFilmNegativeDensity;
     const art::engine::ProcEvent evFilmNegativeCineon;
     const art::engine::ProcEvent evFilmNegativeMatrix;
+    const art::engine::ProcEvent evFilmNegativeTarget;
     std::vector<art::engine::Coord> refSpotCoords;
 
     RGB refInputValues;
@@ -172,6 +175,9 @@ private:
     Gtk::Label *const matrixCustomNote;
     Gtk::Entry *const matrixCoeffs;
     Gtk::Entry *const calibrationNote;
+    MyComboBoxText *const paperCurve;
+    Gtk::Grid *paperCurveGrid;
+    Glib::ustring paperBasisValue;
 
     Gtk::Widget *spotPickerBox;
     Gtk::Widget *refSpotPickerBox;

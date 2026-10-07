@@ -1568,7 +1568,8 @@ struct FilmNegativeParams {
     double outputBlackOffset;
 
     // Export target. The density tool always writes linear RGB; CINEON is
-    // applied only when saving a 16-bit integer TIFF.
+    // applied only when saving a 16-bit integer TIFF. PAPER applies the
+    // reference print curve before the exponential conversion.
     enum class TargetMode { LINEAR = 0, PAPER, CINEON };
     TargetMode targetMode;
     // Empty means the working profile selected at export.
@@ -1584,6 +1585,10 @@ struct FilmNegativeParams {
                                    ColorSpace colorSpace,
                                    const ColorManagementParams &icm,
                                    Glib::ustring &message);
+    // Stable curve identifier. Inactive unless targetMode is PAPER.
+    Glib::ustring paperCurve;
+    // "input" or "working", or empty when unbound. Mismatch skips paper.
+    Glib::ustring paperBasis;
 
     FilmNegativeParams();
 

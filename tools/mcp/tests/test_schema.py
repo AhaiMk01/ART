@@ -9,7 +9,7 @@ def test_in_range_values_parse_and_only_set_fields_are_set():
     assert adj.exposure is not None and adj.exposure.compensation == 0.7
     assert adj.exposure.model_fields_set == {"compensation"}
     assert adj.white_balance is None
-    assert PPVERSION == 1048
+    assert PPVERSION == 1049
 
 
 @pytest.mark.parametrize(
