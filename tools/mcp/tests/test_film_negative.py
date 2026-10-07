@@ -89,6 +89,7 @@ def test_describe_lists_the_fields_with_ranges_and_keys():
         "rgb_gains": "RGBGains", "channel_gamma": "ChannelGamma",
         "target_mode": "TargetMode", "cineon_primaries": "CineonPrimaries",
         "cineon_reference_white": "CineonReferenceWhite",
+        "paper_curve": "PaperCurve", "paper_basis": "PaperBasis",
         "output_black_offset": "OutputBlackOffset",
     }  # fmt: skip
     ranges = {n: (f.minimum, f.maximum) for n, f in tool.fields.items()}
@@ -136,6 +137,7 @@ def test_get_profile_reads_it_back_typed_and_consumes_the_keys():
         "density_gamma": 1.0, "density_dmax": 2.5, "input_gamma": 1.0,
         "rgb_gains": [0.0, 0.0, 0.0], "channel_gamma": [1.0, 1.0, 1.0],
         "target_mode": "linear", "cineon_primaries": "", "cineon_reference_white": 1.0,
+        "paper_curve": "kodak_endura_premier", "paper_basis": "",
         "output_black_offset": 0.0,
     }  # fmt: skip
     assert "Film Negative" not in view.raw
@@ -190,12 +192,37 @@ def test_a_value_outside_the_schema_stays_raw():
         {"channel_gamma": [0.4, 1, 1]}, {"channel_gamma": [1, 2.1, 1]},
         {"rgb_gains": [1, 2]}, {"channel_gamma": [1, 2, 3, 4]},
         {"output_black_offset": -0.001}, {"output_black_offset": 0.051},
+        {"paper_curve": "not_a_curve"}, {"target_mode": "print"},
     ],
 )  # fmt: skip
 def test_out_of_range_values_are_refused(fields):
     with pytest.raises(AdjustmentError) as e:
         parse_adjustments({"film_negative": fields})
     assert e.value.code == "out_of_range"
+
+
+def test_paper_target_round_trips_and_does_not_drop_cineon_fields():
+    changes = WorkingChanges(profile())
+    result = changes.edit(
+        adj(
+            method="density",
+            target_mode="paper",
+            paper_curve="ilford_mgfb_00",
+            paper_basis="working",
+            cineon_primaries="ProPhoto",
+            cineon_reference_white=1.0,
+        ),
+        [],
+    )
+    assert values(result)["TargetMode"] == "1"
+    assert values(result)["PaperCurve"] == "ilford_mgfb_00"
+    assert values(result)["PaperBasis"] == "working"
+    assert values(result)["CineonPrimaries"] == "ProPhoto"
+    typed = read_format(changes.profile).adjustments["film_negative"]
+    assert typed["target_mode"] == "paper"
+    assert typed["paper_curve"] == "ilford_mgfb_00"
+    assert typed["paper_basis"] == "working"
+    assert typed["cineon_primaries"] == "ProPhoto"
 
 
 def test_density_fields_round_trip():

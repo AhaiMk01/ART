@@ -2699,7 +2699,9 @@ FilmNegativeParams::FilmNegativeParams()
       inputGamma(1.0), densityGamma(1.0), densityDmax(2.5),
       rgbGains({0.0, 0.0, 0.0}), channelGamma({1.0, 1.0, 1.0}),
       outputBlackOffset(0.0), targetMode(TargetMode::LINEAR),
-      cineonPrimaries(), cineonReferenceWhite(1.0)
+      outputBlackOffset(0.0), targetMode(TargetMode::LINEAR),
+      cineonPrimaries(), cineonReferenceWhite(1.0),
+      paperCurve("kodak_endura_premier"), paperBasis()
 {
 }
 
@@ -2732,10 +2734,13 @@ bool FilmNegativeParams::operator==(const FilmNegativeParams &other) const
            densityGamma == other.densityGamma &&
            densityDmax == other.densityDmax && rgbGains == other.rgbGains &&
            channelGamma == other.channelGamma &&
+           channelGamma == other.channelGamma &&
            targetMode == other.targetMode &&
            cineonPrimaries == other.cineonPrimaries &&
            cineonReferenceWhite == other.cineonReferenceWhite &&
-           outputBlackOffset == other.outputBlackOffset;
+           outputBlackOffset == other.outputBlackOffset &&
+           paperCurve == other.paperCurve &&
+           paperBasis == other.paperBasis;
 }
 
 bool FilmNegativeParams::operator!=(const FilmNegativeParams &other) const
@@ -4055,6 +4060,10 @@ int ProcParams::save(ProgressListener *pl, bool save_general, KeyFile &keyFile,
                 saveToKeyfile("Film Negative", "ChannelGamma", cg, keyFile);
                 saveToKeyfile("Film Negative", "OutputBlackOffset",
                               filmNegative.outputBlackOffset, keyFile);
+                saveToKeyfile("Film Negative", "PaperCurve",
+                              filmNegative.paperCurve, keyFile);
+                saveToKeyfile("Film Negative", "PaperBasis",
+                              filmNegative.paperBasis, keyFile);
             }
             saveToKeyfile("Film Negative", "TargetMode",
                           toUnderlying(filmNegative.targetMode), keyFile);
@@ -6300,6 +6309,8 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                 if (tm < 0 ||
                     tm > static_cast<int>(
                              FilmNegativeParams::TargetMode::CINEON)) {
+                    std::cerr << "Film Negative: unknown TargetMode " << tm
+                              << "; left as linear (not substituted)\n";
                     tm = 0;
                 }
                 filmNegative.targetMode =
@@ -6315,9 +6326,20 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                                s == "CINEON") {
                         filmNegative.targetMode =
                             FilmNegativeParams::TargetMode::CINEON;
-                    } else {
+                    } else if (s == "linear" || s == "Linear" ||
+                               s == "LINEAR") {
                         filmNegative.targetMode =
                             FilmNegativeParams::TargetMode::LINEAR;
+                    } else {
+                        std::cerr << "Film Negative: unknown TargetMode '"
+                                  << s
+                                  << "'; left unchanged (not substituted)\n";
+                        if (keyFile.progressListener()) {
+                            keyFile.progressListener()->error(
+                                Glib::ustring::compose(
+                                    "Film Negative: unknown TargetMode '%1'",
+                                    s));
+                        }
                     }
                 }
             }
@@ -6330,6 +6352,18 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                 filmNegative.cineonReferenceWhite = 1e-6;
             } else if (filmNegative.cineonReferenceWhite > 1e6) {
                 filmNegative.cineonReferenceWhite = 1e6;
+            }
+            {
+                Glib::ustring curve;
+                if (assignFromKeyfile(keyFile, "Film Negative", "PaperCurve",
+                                      curve)) {
+                    filmNegative.paperCurve = curve;
+                }
+                Glib::ustring basis;
+                if (assignFromKeyfile(keyFile, "Film Negative", "PaperBasis",
+                                      basis)) {
+                    filmNegative.paperBasis = basis;
+                }
             }
         }
 

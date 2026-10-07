@@ -42,6 +42,7 @@
 #include "color.h"
 #include "iccstore.h"
 #include "rt_math.h"
+#include "papercurve.h"
 
 namespace art { namespace engine {
 
@@ -291,6 +292,39 @@ void doProcessDensity(Imagefloat *input, Imagefloat *output,
         outputBlackOffset = 0.f;
     }
 
+    const bool paperTarget =
+        params.targetMode == FilmNegativeParams::TargetMode::PAPER;
+    bool paperOk = false;
+    if (paperTarget) {
+        if (!findPaperCurve(params.paperCurve)) {
+            std::cerr << "Film Negative: unknown paper curve '"
+                      << params.paperCurve
+                      << "'; paper response not applied\n";
+            if (pl) {
+                pl->error(Glib::ustring::compose(
+                    "Film Negative: unknown paper curve '%1'; paper response "
+                    "not applied",
+                    params.paperCurve));
+            }
+        } else if (!params.paperBasis.empty() &&
+                   params.paperBasis !=
+                       (params.colorSpace ==
+                                FilmNegativeParams::ColorSpace::INPUT
+                            ? "input"
+                            : "working")) {
+            std::cerr << "Film Negative: paper basis '" << params.paperBasis
+                      << "' does not match the inversion color space; paper "
+                         "response not applied. Rebind PaperBasis.\n";
+            if (pl) {
+                pl->error(
+                    "Film Negative: paper basis does not match the inversion "
+                    "color space; paper response not applied. Rebind "
+                    "PaperBasis.");
+            }
+        } else {
+            paperOk = true;
+        }
+    }
     const bool isNegative =
         (params.filmType == FilmNegativeParams::FilmType::NEGATIVE);
 
@@ -312,7 +346,7 @@ void doProcessDensity(Imagefloat *input, Imagefloat *output,
 
         for (int j = 0; j < rwidth; ++j) {
             float in[3] = {rlinein[j], glinein[j], blinein[j]};
-            float out[3];
+            double density[3];
 
             for (int c = 0; c < 3; ++c) {
                 float sample = in[c];
@@ -340,8 +374,18 @@ void doProcessDensity(Imagefloat *input, Imagefloat *output,
                 }
 
                 // Identity matrix: Bi = Ai
-                float Ci = P + channelGamma[c] * (Ac - P) - rgbGains[c];
-                float Lc = std::pow(10.f, -Ci);
+                density[c] = P + channelGamma[c] * (Ac - P) - rgbGains[c];
+            }
+
+            // Cineon returns the linear result (encoding is a later ticket).
+            // Unknown curves are not replaced by another response.
+            if (paperOk) {
+                applyPaperCurves(density[0], density[1], density[2],
+                                 params.paperCurve);
+            }
+
+            for (int c = 0; c < 3; ++c) {
+                float Lc = static_cast<float>(std::pow(10.0, -density[c]));
                 // After linear conversion (and any paper response): subtract
                 // the output black offset in normalized linear, floor at 0.
                 // Do not upper-clamp. Never write inf/nan.
@@ -356,12 +400,14 @@ void doProcessDensity(Imagefloat *input, Imagefloat *output,
                 if (!std::isfinite(scaled)) {
                     scaled = 0.f;
                 }
-                out[c] = scaled;
+                if (c == 0) {
+                    rlineout[j] = scaled;
+                } else if (c == 1) {
+                    glineout[j] = scaled;
+                } else {
+                    blineout[j] = scaled;
+                }
             }
-
-            rlineout[j] = out[0];
-            glineout[j] = out[1];
-            blineout[j] = out[2];
         }
     }
 

@@ -70,6 +70,8 @@ public:
     void filmTypeChanged();
     void targetModeChanged();
     void cineonPrimariesChanged();
+    void paperCurveChanged();
+    void capturePaperBasis();
     void updateVisibility();
     void filmRefValuesChanged(const RGB &refInput,
                               const RGB &refOutput) override;
@@ -105,6 +107,7 @@ private:
     const art::engine::ProcEvent evFilmNegativeMethod;
     const art::engine::ProcEvent evFilmNegativeDensity;
     const art::engine::ProcEvent evFilmNegativeCineon;
+    const art::engine::ProcEvent evFilmNegativeTarget;
     std::vector<art::engine::Coord> refSpotCoords;
 
     RGB refInputValues;
@@ -162,6 +165,9 @@ private:
     Gtk::Grid *targetModeGrid;
     Gtk::Entry *const cineonPrimaries;
     Adjuster *const cineonReferenceWhite;
+    MyComboBoxText *const paperCurve;
+    Gtk::Grid *paperCurveGrid;
+    Glib::ustring paperBasisValue;
 
     Gtk::Widget *spotPickerBox;
     Gtk::Widget *refSpotPickerBox;
