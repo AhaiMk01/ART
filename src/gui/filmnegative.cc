@@ -16,7 +16,10 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include <cmath>
+#include <cstdlib>
 #include <iomanip>
+#include <sstream>
 
 #include "filmnegative.h"
 
@@ -34,6 +37,54 @@ using namespace utils;
 namespace {
 
 double toAdjuster(double v) { return CLAMP(std::log2(v), 6, 16) - 6; }
+Glib::ustring formatMatrix(const std::array<double, 9> &m)
+{
+    std::ostringstream os;
+    os.imbue(std::locale::classic());
+    os.setf(std::ios::fixed);
+    os.precision(4);
+    for (int i = 0; i < 9; ++i) {
+        if (i) {
+            os << ';';
+        }
+        os << m[i];
+    }
+    return os.str();
+}
+
+bool parseMatrix(const Glib::ustring &text, std::array<double, 9> &m)
+{
+    std::array<double, 9> parsed = m;
+    int n = 0;
+    std::string token;
+    const std::string raw = text.raw();
+    for (size_t i = 0; i <= raw.size(); ++i) {
+        const char c = i < raw.size() ? raw[i] : ';';
+        if (c == ';' || c == ',' || c == ' ' || c == '\t') {
+            if (token.empty()) {
+                continue;
+            }
+            if (n >= 9) {
+                return false;
+            }
+            char *end = nullptr;
+            parsed[n] = std::strtod(token.c_str(), &end);
+            if (end == token.c_str() || !std::isfinite(parsed[n])) {
+                return false;
+            }
+            ++n;
+            token.clear();
+        } else {
+            token += c;
+        }
+    }
+    if (n != 9) {
+        return false;
+    }
+    m = parsed;
+    return true;
+}
+
 
 double fromAdjuster(double v) { return std::pow(2, v + 6); }
 
@@ -263,6 +314,8 @@ FilmNegative::FilmNegative()
           art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_DENSITY")),
       evFilmNegativeCineon(ProcEventMapper::getInstance()->newEvent(
           0, "HISTORY_MSG_FILMNEGATIVE_CINEON")),
+      evFilmNegativeMatrix(ProcEventMapper::getInstance()->newEvent(
+          art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_MATRIX")),
       refInputValues({0.f, 0.f, 0.f}), paramsUpgraded(false),
       refLuminance({{0.f, 0.f, 0.f}, 0.f}), fnp(nullptr),
       method(Gtk::manage(new MyComboBoxText())), methodGrid(nullptr),
@@ -316,7 +369,15 @@ FilmNegative::FilmNegative()
       cineonPrimaries(Gtk::manage(new Gtk::Entry())),
       cineonReferenceWhite(createAdjuster(
           this, M("TP_FILMNEGATIVE_CINEON_REFWHITE"), 1e-6, 1e6, 0.01, 1.0)),
-      spotPickerBox(nullptr), refSpotPickerBox(nullptr), sep(nullptr)
+      matrixPreset(Gtk::manage(new MyComboBoxText())), matrixPresetGrid(nullptr),
+      matrixCustomNote(Gtk::manage(
+          new Gtk::Label(M("TP_FILMNEGATIVE_MATRIX_CUSTOM_NOTE")))),
+      matrixCoeffs(Gtk::manage(new Gtk::Entry())),
+      calibrationNote(Gtk::manage(new Gtk::Entry())),
+      spotPickerBox(nullptr), refSpotPickerBox(nullptr), sep(nullptr),
+      storedMatrix(
+          art::engine::procparams::FilmNegativeParams::identityMatrix()),
+      captureMatrixBasis(false), suppressMatrixEdit(false)
 {
     EvToolReset.set_action(art::engine::ALLNORAW);
 
@@ -391,6 +452,41 @@ FilmNegative::FilmNegative()
     cineonPrimaries->signal_changed().connect(
         sigc::mem_fun(*this, &FilmNegative::cineonPrimariesChanged));
     pack_start(*cineonReferenceWhite, Gtk::PACK_SHRINK, 0);
+    matrixPreset->append(M("TP_FILMNEGATIVE_MATRIX_IDENTITY"));
+    matrixPreset->append(M("TP_FILMNEGATIVE_MATRIX_STATUS_M"));
+    matrixPreset->append(M("TP_FILMNEGATIVE_MATRIX_CUSTOM"));
+    matrixPreset->set_tooltip_markup(M("TP_FILMNEGATIVE_MATRIX_PRESET_TOOLTIP"));
+    setExpandAlignProperties(matrixPreset, true, false, Gtk::ALIGN_FILL,
+                             Gtk::ALIGN_CENTER);
+    matrixPresetGrid = Gtk::manage(new Gtk::Grid());
+    Gtk::Label *matrixLabel =
+        Gtk::manage(new Gtk::Label(M("TP_FILMNEGATIVE_MATRIX_PRESET")));
+    matrixPresetGrid->attach(*matrixLabel, 0, 0, 1, 1);
+    matrixPresetGrid->attach(*matrixPreset, 1, 0, 1, 1);
+    pack_start(*matrixPresetGrid);
+    matrixPreset->set_active(0);
+    matrixPreset->signal_changed().connect(
+        sigc::mem_fun(*this, &FilmNegative::matrixPresetChanged));
+    matrixPreset->show();
+
+    matrixCustomNote->set_line_wrap(true);
+    matrixCustomNote->set_max_width_chars(40);
+    matrixCustomNote->set_halign(Gtk::ALIGN_START);
+    pack_start(*matrixCustomNote, Gtk::PACK_SHRINK, 0);
+
+    matrixCoeffs->set_tooltip_text(M("TP_FILMNEGATIVE_MATRIX_CUSTOM_NOTE"));
+    pack_start(*matrixCoeffs, Gtk::PACK_SHRINK, 0);
+    matrixCoeffs->signal_changed().connect(
+        sigc::mem_fun(*this, &FilmNegative::matrixEdited));
+
+    Gtk::Label *noteLabel =
+        Gtk::manage(new Gtk::Label(M("TP_FILMNEGATIVE_CALIBRATION_NOTE")));
+    noteLabel->set_halign(Gtk::ALIGN_START);
+    pack_start(*noteLabel, Gtk::PACK_SHRINK, 0);
+    calibrationNote->signal_changed().connect(
+        sigc::mem_fun(*this, &FilmNegative::calibrationNoteEdited));
+    pack_start(*calibrationNote, Gtk::PACK_SHRINK, 0);
+    applyMatrixPresetDisplay();
 
     setExpandAlignProperties(spotButton, true, false, Gtk::ALIGN_FILL,
                              Gtk::ALIGN_CENTER);
@@ -531,6 +627,14 @@ void FilmNegative::read(const art::engine::procparams::ProcParams *pp)
     cineonReferenceWhite->setValue(pp->filmNegative.cineonReferenceWhite);
     outputBlackOffset->setValue(pp->filmNegative.outputBlackOffset);
 
+    storedMatrix = pp->filmNegative.matrix;
+    matrixBasis = pp->filmNegative.matrixBasis;
+    captureMatrixBasis = false;
+    suppressMatrixEdit = true;
+    calibrationNote->set_text(pp->filmNegative.calibrationNote);
+    matrixPreset->set_active(CLAMP((int)pp->filmNegative.matrixPreset, 0, 2));
+    suppressMatrixEdit = false;
+
     refInputValues = pp->filmNegative.refInput;
 
     // If reference input values are not set in params, estimated values will be
@@ -582,6 +686,26 @@ void FilmNegative::write(art::engine::procparams::ProcParams *pp)
         TargetMode(CLAMP(targetMode->get_active_row_number(), 0, 2));
     pp->filmNegative.cineonPrimaries = cineonPrimaries->get_text();
     pp->filmNegative.cineonReferenceWhite = cineonReferenceWhite->getValue();
+    pp->filmNegative.matrixPreset =
+        art::engine::procparams::FilmNegativeParams::MatrixPreset(
+            CLAMP(matrixPreset->get_active_row_number(), 0, 2));
+    if (pp->filmNegative.matrixPreset ==
+        art::engine::procparams::FilmNegativeParams::CUSTOM) {
+        std::array<double, 9> edited = storedMatrix;
+        if (parseMatrix(matrixCoeffs->get_text(), edited)) {
+            storedMatrix = edited;
+        }
+    }
+    pp->filmNegative.matrix = storedMatrix;
+    if (captureMatrixBasis &&
+        pp->filmNegative.matrixPreset !=
+            art::engine::procparams::FilmNegativeParams::IDENTITY) {
+        matrixBasis = art::engine::procparams::FilmNegativeParams::makeMatrixBasis(
+            pp->filmNegative.colorSpace, pp->icm);
+        captureMatrixBasis = false;
+    }
+    pp->filmNegative.matrixBasis = matrixBasis;
+    pp->filmNegative.calibrationNote = calibrationNote->get_text();
 
     pp->filmNegative.enabled = getEnabled();
 
@@ -679,7 +803,12 @@ void FilmNegative::updateVisibility()
         rgbGainG->hide();
         rgbGainB->hide();
         outputBlackOffset->hide();
-
+        if (matrixPresetGrid) {
+            matrixPresetGrid->hide();
+        }
+        matrixCustomNote->hide();
+        matrixCoeffs->hide();
+        calibrationNote->hide();
         csGrid->set_visible(
             !(initial_params.backCompat == BackCompat::CURRENT &&
               initial_params.colorSpace ==
@@ -743,6 +872,12 @@ void FilmNegative::updateVisibility()
         rgbGainG->show();
         rgbGainB->show();
         outputBlackOffset->show();
+        if (matrixPresetGrid) {
+            matrixPresetGrid->show();
+        }
+        matrixCustomNote->show();
+        matrixCoeffs->show();
+        calibrationNote->show();
     }
 
     TargetMode tm = TargetMode(CLAMP(targetMode->get_active_row_number(), 0, 2));
@@ -753,6 +888,55 @@ void FilmNegative::updateVisibility()
         cineonPrimaries->get_parent()->hide();
         cineonReferenceWhite->hide();
     }
+}
+
+void FilmNegative::applyMatrixPresetDisplay()
+{
+    using Params = art::engine::procparams::FilmNegativeParams;
+    const int row = CLAMP(matrixPreset->get_active_row_number(), 0, 2);
+    std::array<double, 9> shown = Params::identityMatrix();
+    bool editable = false;
+    if (row == (int)Params::STATUS_M_REFERENCE) {
+        shown = Params::statusMReferenceMatrix();
+    } else if (row == (int)Params::CUSTOM) {
+        shown = storedMatrix;
+        editable = true;
+    }
+    suppressMatrixEdit = true;
+    matrixCoeffs->set_text(formatMatrix(shown));
+    matrixCoeffs->set_sensitive(editable);
+    suppressMatrixEdit = false;
+}
+
+void FilmNegative::matrixPresetChanged()
+{
+    applyMatrixPresetDisplay();
+    if (listener && getEnabled()) {
+        if (matrixPreset->get_active_row_number() != 0) {
+            captureMatrixBasis = true;
+        }
+        listener->panelChanged(evFilmNegativeMatrix,
+                               matrixPreset->get_active_text());
+    }
+}
+
+void FilmNegative::matrixEdited()
+{
+    if (suppressMatrixEdit || !listener || !getEnabled()) {
+        return;
+    }
+    if (matrixPreset->get_active_row_number() != 2) {
+        return;
+    }
+    listener->panelChanged(evFilmNegativeMatrix, matrixCoeffs->get_text());
+}
+
+void FilmNegative::calibrationNoteEdited()
+{
+    if (suppressMatrixEdit || !listener || !getEnabled()) {
+        return;
+    }
+    listener->panelChanged(evFilmNegativeMatrix, calibrationNote->get_text());
 }
 
 void FilmNegative::methodChanged()

@@ -28,10 +28,12 @@ from art_mcp.filmnegative import GROUP as FILM_GROUP
 from art_mcp.filmnegative import (
     Estimate,
     check_legacy,
+    check_matrix_coefficients,
     format_triple,
     is_legacy,
     parse_triple,
     picker_edits,
+    read_matrix_field,
     read_triple_field,
 )
 from art_mcp.keyfile import KeyFile
@@ -314,11 +316,12 @@ class WorkingChanges:
                 implied += cc_implied
                 created += cc_created
                 continue
+            if name == "film_negative":
+                check_legacy(tool, self.profile.get(group))
+                check_matrix_coefficients(tool, self.profile.get(group))
             values = {f: getattr(tool, f) for f in model.model_fields if getattr(tool, f) is not None}
             if not values:
                 continue
-            if name == "film_negative":
-                check_legacy(tool, self.profile.get(group))
             for f, v in values.items():
                 if isinstance(v, list):  # a reference: r;g;b
                     if parse_triple(self._value(group, field_key(model, f))) == tuple(v):
@@ -576,6 +579,14 @@ def typed_adjustments(profile: KeyFile) -> tuple[dict[str, dict[str, Any]], set[
                 if triple is None:
                     continue
                 values[field] = triple
+                if stored is not None:
+                    consumed.add((field_grp, key))
+                continue
+            if extra.get("matrix"):
+                matrix = read_matrix_field(stored) if stored is not None else extra["art_default"]
+                if matrix is None:
+                    continue
+                values[field] = matrix
                 if stored is not None:
                     consumed.add((field_grp, key))
                 continue

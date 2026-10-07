@@ -70,6 +70,10 @@ public:
     void filmTypeChanged();
     void targetModeChanged();
     void cineonPrimariesChanged();
+    void matrixPresetChanged();
+    void matrixEdited();
+    void calibrationNoteEdited();
+    void applyMatrixPresetDisplay();
     void updateVisibility();
     void filmRefValuesChanged(const RGB &refInput,
                               const RGB &refOutput) override;
@@ -105,6 +109,7 @@ private:
     const art::engine::ProcEvent evFilmNegativeMethod;
     const art::engine::ProcEvent evFilmNegativeDensity;
     const art::engine::ProcEvent evFilmNegativeCineon;
+    const art::engine::ProcEvent evFilmNegativeMatrix;
     std::vector<art::engine::Coord> refSpotCoords;
 
     RGB refInputValues;
@@ -162,6 +167,11 @@ private:
     Gtk::Grid *targetModeGrid;
     Gtk::Entry *const cineonPrimaries;
     Adjuster *const cineonReferenceWhite;
+    MyComboBoxText *const matrixPreset;
+    Gtk::Grid *matrixPresetGrid;
+    Gtk::Label *const matrixCustomNote;
+    Gtk::Entry *const matrixCoeffs;
+    Gtk::Entry *const calibrationNote;
 
     Gtk::Widget *spotPickerBox;
     Gtk::Widget *refSpotPickerBox;
@@ -170,6 +180,10 @@ private:
     IdleRegister idle_register;
 
     art::engine::procparams::FilmNegativeParams initial_params;
+    std::array<double, 9> storedMatrix;
+    Glib::ustring matrixBasis;
+    bool captureMatrixBasis;
+    bool suppressMatrixEdit;
 };
 
 

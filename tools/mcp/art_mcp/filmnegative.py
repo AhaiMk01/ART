@@ -111,6 +111,63 @@ def read_color_space(entries: Group) -> str:
     return "input" if entries.get("ColorSpace") == "0" else "working"
 
 
+IDENTITY_MATRIX = (1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)
+STATUS_M_MATRIX = (
+    1.0197, 0.0317, 0.0091,
+    -0.0052, 0.8933, 0.0521,
+    0.0131, -0.0011, 0.9712,
+)
+
+
+def read_matrix_field(stored: str | None) -> list[float] | None:
+    """Nine semicolon-separated coefficients, or None if the stored text
+    is not nine finite numbers in -10..10."""
+    if stored is None:
+        return None
+    parts = [p for p in stored.split(";") if p != ""]
+    if len(parts) != 9:
+        return None
+    try:
+        values = [float(p) for p in parts]
+    except ValueError:
+        return None
+    if any(not (-10.0 <= v <= 10.0) for v in values):
+        return None
+    return values
+
+
+def _preset_name(tool: FilmNegative, entries: Group | None) -> str:
+    if tool.matrix_preset is not None:
+        return tool.matrix_preset
+    stored = (entries or {}).get("MatrixPreset", "0")
+    return {
+        "0": "identity",
+        "1": "status_m_reference",
+        "2": "custom",
+    }.get(stored, "identity")
+
+
+def check_matrix_coefficients(tool: FilmNegative, entries: Group | None) -> None:
+    """Coefficient edits require Custom. Sending the preset's own coefficients
+    is not a change and is dropped."""
+    if tool.matrix is None:
+        return
+    preset = _preset_name(tool, entries)
+    if preset == "custom":
+        return
+    expected = IDENTITY_MATRIX if preset == "identity" else STATUS_M_MATRIX
+    if len(tool.matrix) == 9 and all(
+        abs(a - b) <= 1e-9 for a, b in zip(tool.matrix, expected)
+    ):
+        tool.matrix = None
+        return
+    raise AdjustmentError(
+        "out_of_range",
+        "film_negative: matrix coefficients can be edited only when "
+        "matrix_preset is custom; select custom or omit matrix",
+    )
+
+
 def check_legacy(tool: FilmNegative, entries: Group | None) -> None:
     """Typed edits (other than ``enabled``) are refused on a legacy profile:
     ART would read the references through its V1/V2 conversion."""

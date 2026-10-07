@@ -1605,6 +1605,14 @@ TP_FILMNEGATIVE_TARGET_CINEON;Cineon
 TP_FILMNEGATIVE_CINEON_PRIMARIES;Cineon primaries
 TP_FILMNEGATIVE_CINEON_PRIMARIES_TOOLTIP;Colour primaries for a Cineon export. Leave empty to use the current working profile.
 TP_FILMNEGATIVE_CINEON_REFWHITE;Cineon reference white
+TP_FILMNEGATIVE_MATRIX_PRESET;Matrix preset:
+TP_FILMNEGATIVE_MATRIX_IDENTITY;Identity
+TP_FILMNEGATIVE_MATRIX_STATUS_M;Status M reference
+TP_FILMNEGATIVE_MATRIX_CUSTOM;Custom
+TP_FILMNEGATIVE_MATRIX_CUSTOM_NOTE;Custom matrix coefficients are editable (row-major, nine semicolon-separated values).
+TP_FILMNEGATIVE_CALIBRATION_NOTE;Calibration note:
+TP_FILMNEGATIVE_MATRIX_PRESET_TOOLTIP;Status M is an empirical DiVERE reference, not a characterized measurement of this scan. A non-identity matrix is bound to the current processing space and profile. Changing that space or profile requires re-selecting the preset, or choosing Identity.
+HISTORY_MSG_FILMNEGATIVE_MATRIX;Film Negative - Density matrix
 TP_FILMNEGATIVE_OUTPUT_BLACK_OFFSET;Output black offset
 TP_FILMNEGATIVE_PICK;Pick neutral spots
 TP_FILMNEGATIVE_RED;Red ratio

@@ -1556,6 +1556,13 @@ struct FilmNegativeParams {
     double inputGamma;
     double densityGamma;
     double densityDmax;
+
+    enum MatrixPreset { IDENTITY = 0, STATUS_M_REFERENCE, CUSTOM };
+    MatrixPreset matrixPreset;
+    std::array<double, 9> matrix;
+    Glib::ustring matrixBasis;
+    Glib::ustring calibrationNote;
+
     std::array<double, 3> rgbGains;
     std::array<double, 3> channelGamma;
     double outputBlackOffset;
@@ -1567,6 +1574,16 @@ struct FilmNegativeParams {
     // Empty means the working profile selected at export.
     Glib::ustring cineonPrimaries;
     double cineonReferenceWhite;
+    static std::array<double, 9> identityMatrix();
+    static std::array<double, 9> statusMReferenceMatrix();
+    /// Versioned JSON binding of color space plus input/working profile.
+    static Glib::ustring makeMatrixBasis(ColorSpace colorSpace,
+                                         const ColorManagementParams &icm);
+    /// False when a non-empty basis does not match the active space/profile.
+    static bool matrixBasisMatches(const Glib::ustring &stored,
+                                   ColorSpace colorSpace,
+                                   const ColorManagementParams &icm,
+                                   Glib::ustring &message);
 
     FilmNegativeParams();
 

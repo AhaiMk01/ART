@@ -11,7 +11,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationEr
 
 from art_mcp.compactschema import CompactModel, compact_model_schema, full_schema
 from art_mcp.curves import CurveSpec
-PPVERSION = 1047
+PPVERSION = 1048
 """The processing-profile version (``src/utils/ppversion.h``) this schema was
 written for."""
 
@@ -490,10 +490,13 @@ class FilmNegative(CompactModel):
         "[r, g, b]: per-channel density contrast slopes (0.5 to 2.0)",
         default=[1.0, 1.0, 1.0],
     )
-    output_black_offset: float | None = F(
-        "OutputBlackOffset",
-        "Subtracted from normalized linear output after density conversion, then floored at 0",
-        ge=0.0, le=0.05, default=0.0,
+    matrix_preset: Literal["identity", "status_m_reference", "custom"] | None = F(
+        "MatrixPreset",
+        "Density matrix preset: identity (stored 0), status_m_reference (stored 1, "
+        "DiVERE Status M rows) or custom (stored 2). Identity ignores stored "
+        "coefficients and any matrix_basis. Coefficient edits require custom.",
+        stored_as={"identity": "0", "status_m_reference": "1", "custom": "2"},
+        default="identity",
     )
     target_mode: Literal["linear", "paper", "cineon"] | None = F(
         "TargetMode",
@@ -511,7 +514,37 @@ class FilmNegative(CompactModel):
         "Linear reference white for the Cineon encode (1 = full scale)",
         ge=1e-6, le=1e6, default=1.0,
     )
-
+    matrix: list[Annotated[float, Field(ge=-10.0, le=10.0)]] | None = Field(
+        None,
+        min_length=9,
+        max_length=9,
+        description=(
+            "Nine row-major density-matrix coefficients, each -10 to 10. "
+            "Stored as semicolon-separated numbers. Edited only when matrix_preset is custom."
+        ),
+        json_schema_extra={
+            "key": "Matrix",
+            "art_default": [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0],
+            "matrix": True,
+        },
+    )
+    matrix_basis: str | None = F(
+        "MatrixBasis",
+        "Versioned JSON binding of the processing space and input/working profile. "
+        "Empty is allowed for identity. A non-empty basis that does not match the "
+        "active space or profile fails the render instead of rebinding.",
+        default="",
+    )
+    calibration_note: str | None = F(
+        "CalibrationNote",
+        "Free-text note of film, light source and scanner or camera conditions",
+        default="",
+    )
+    output_black_offset: float | None = F(
+        "OutputBlackOffset",
+        "Subtracted from normalized linear output after density conversion, then floored at 0",
+        ge=0.0, le=0.05, default=0.0,
+    )
 
 class Adjustments(CompactModel):
     """Typed changes to curated tools. Set only what should change."""

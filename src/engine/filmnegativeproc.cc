@@ -260,9 +260,50 @@ float resolvedInputGamma(const FilmNegativeParams &params, SourceTransfer src,
 
 // Always writes linear RGB (0..65535). TargetMode::CINEON is an export
 // encoding, applied once in prepareFilmNegativeCineonExport, never here.
+bool activeDensityMatrix(const FilmNegativeParams &params,
+                         const ColorManagementParams &icm, ProgressListener *pl,
+                         float M[9])
+{
+    using Preset = FilmNegativeParams::MatrixPreset;
+    std::array<double, 9> coeffs = FilmNegativeParams::identityMatrix();
+    if (params.matrixPreset == Preset::STATUS_M_REFERENCE) {
+        coeffs = FilmNegativeParams::statusMReferenceMatrix();
+    } else if (params.matrixPreset == Preset::CUSTOM) {
+        coeffs = params.matrix;
+    }
+    for (int i = 0; i < 9; ++i) {
+        if (!std::isfinite(coeffs[i])) {
+            const char *why =
+                "custom density matrix has a non-finite coefficient. "
+                "Enter finite coefficients or select Identity.";
+            std::cerr << "Film Negative: " << why << "\n";
+            if (pl) {
+                pl->error(Glib::ustring("Film Negative: ") + why);
+            }
+            return false;
+        }
+        M[i] = static_cast<float>(coeffs[i]);
+    }
+    if (params.matrixPreset == Preset::IDENTITY ||
+        params.matrixBasis.empty()) {
+        return true;
+    }
+    Glib::ustring message;
+    if (FilmNegativeParams::matrixBasisMatches(params.matrixBasis,
+                                               params.colorSpace, icm,
+                                               message)) {
+        return true;
+    }
+    std::cerr << "Film Negative: " << message << "\n";
+    if (pl) {
+        pl->error(Glib::ustring("Film Negative: ") + message);
+    }
+    return false;
+}
+
 void doProcessDensity(Imagefloat *input, Imagefloat *output,
                       const FilmNegativeParams &params, SourceTransfer src,
-                      ProgressListener *pl)
+                      ProgressListener *pl, const float densityMatrix[9])
 {
     input->syncCpu();
     output->syncCpuForWrite();
@@ -312,6 +353,7 @@ void doProcessDensity(Imagefloat *input, Imagefloat *output,
 
         for (int j = 0; j < rwidth; ++j) {
             float in[3] = {rlinein[j], glinein[j], blinein[j]};
+            float A[3];
             float out[3];
 
             for (int c = 0; c < 3; ++c) {
@@ -339,8 +381,22 @@ void doProcessDensity(Imagefloat *input, Imagefloat *output,
                     Ac = p + densityGamma * (Dc - p);
                 }
 
-                // Identity matrix: Bi = Ai
-                float Ci = P + channelGamma[c] * (Ac - P) - rgbGains[c];
+                A[c] = Ac;
+            }
+
+            // B_i = P + sum_j M_ij * (A_j - P). Do not update channels
+            // before the sum. Identity preset already forced M = I.
+            float B[3];
+            for (int row = 0; row < 3; ++row) {
+                float sum = 0.f;
+                for (int col = 0; col < 3; ++col) {
+                    sum += densityMatrix[row * 3 + col] * (A[col] - P);
+                }
+                B[row] = P + sum;
+            }
+
+            for (int c = 0; c < 3; ++c) {
+                float Ci = P + channelGamma[c] * (B[c] - P) - rgbGains[c];
                 float Lc = std::pow(10.f, -Ci);
                 // After linear conversion (and any paper response): subtract
                 // the output black offset in normalized linear, floor at 0.
@@ -385,7 +441,11 @@ bool doProcess(Imagefloat *input, Imagefloat *output,
     output->syncCpuForWrite();
 
     if (params.method == FilmNegativeParams::Method::DENSITY) {
-        doProcessDensity(input, output, params, src, pl);
+        float densityMatrix[9];
+        if (!activeDensityMatrix(params, icmParams, pl, densityMatrix)) {
+            return false;
+        }
+        doProcessDensity(input, output, params, src, pl, densityMatrix);
         return false;
     }
     bool refsUpdated = false;
@@ -481,7 +541,12 @@ bool art::engine::ImProcFunctions::filmNegativeProcess(Imagefloat *input,
         fnp.backCompat = FilmNegativeParams::BackCompat::CURRENT;
         const SourceTransfer src =
             sourceTransfer(imgsrc && imgsrc->isRAW(), this->params->icm);
-        doProcessDensity(input, output, fnp, src, plistener);
+        float densityMatrix[9];
+        if (!activeDensityMatrix(fnp, this->params->icm, plistener,
+                                 densityMatrix)) {
+            return false;
+        }
+        doProcessDensity(input, output, fnp, src, plistener, densityMatrix);
         return false;
     }
 

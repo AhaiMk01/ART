@@ -5,10 +5,12 @@ namespace art { namespace utils {
 
 // This number has to be incremented whenever the ARP file format is modified or
 // the behaviour of a tool changes
-#define PPVERSION 1047
+#define PPVERSION 1048
 
 /*
   Log of version changes
+  1048  2026-10-07
+        film negative: row-major density matrix, basis binding, calibration note
   1047  2026-10-07
         film negative: Cineon target, primaries and reference white
         film negative: output black offset subtracted in normalized linear

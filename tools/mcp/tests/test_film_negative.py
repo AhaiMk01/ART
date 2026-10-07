@@ -87,6 +87,8 @@ def test_describe_lists_the_fields_with_ranges_and_keys():
         "input_gamma": "InputGamma",
         "density_gamma": "DensityGamma", "density_dmax": "DensityDmax",
         "rgb_gains": "RGBGains", "channel_gamma": "ChannelGamma",
+        "matrix_preset": "MatrixPreset", "matrix": "Matrix",
+        "matrix_basis": "MatrixBasis", "calibration_note": "CalibrationNote",
         "target_mode": "TargetMode", "cineon_primaries": "CineonPrimaries",
         "cineon_reference_white": "CineonReferenceWhite",
         "output_black_offset": "OutputBlackOffset",
@@ -101,6 +103,7 @@ def test_describe_lists_the_fields_with_ranges_and_keys():
     assert tool.fields["method"].enum == ["power_law", "density"]
     assert tool.fields["film_type"].enum == ["negative", "reversal"]
     assert tool.fields["color_space"].enum == ["working", "input"]
+    assert tool.fields["matrix_preset"].enum == ["identity", "status_m_reference", "custom"]
     assert tool.fields["target_mode"].enum == ["linear", "paper", "cineon"]
     assert tool.fields["cineon_reference_white"].minimum == 1e-6
     assert tool.fields["cineon_reference_white"].maximum == 1e6
@@ -135,6 +138,9 @@ def test_get_profile_reads_it_back_typed_and_consumes_the_keys():
         "ref_output": [10672.1363] * 3,
         "density_gamma": 1.0, "density_dmax": 2.5, "input_gamma": 1.0,
         "rgb_gains": [0.0, 0.0, 0.0], "channel_gamma": [1.0, 1.0, 1.0],
+        "matrix_preset": "identity",
+        "matrix": [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0],
+        "matrix_basis": "", "calibration_note": "",
         "target_mode": "linear", "cineon_primaries": "", "cineon_reference_white": 1.0,
         "output_black_offset": 0.0,
     }  # fmt: skip
@@ -190,6 +196,9 @@ def test_a_value_outside_the_schema_stays_raw():
         {"channel_gamma": [0.4, 1, 1]}, {"channel_gamma": [1, 2.1, 1]},
         {"rgb_gains": [1, 2]}, {"channel_gamma": [1, 2, 3, 4]},
         {"output_black_offset": -0.001}, {"output_black_offset": 0.051},
+        {"matrix": [1, 0, 0, 0, 1, 0, 0, 0]},
+        {"matrix": [11, 0, 0, 0, 1, 0, 0, 0, 1]},
+        {"matrix_preset": "status_m"},
     ],
 )  # fmt: skip
 def test_out_of_range_values_are_refused(fields):
@@ -227,6 +236,64 @@ def test_density_fields_round_trip():
     assert typed["rgb_gains"] == [-0.5, 0.2, 1.0]
     assert typed["channel_gamma"] == [0.8, 1.2, 1.5]
 
+
+def test_custom_matrix_round_trips():
+    basis = '{"v":1,"color_space":"working","profile":"ProPhoto"}'
+    changes = WorkingChanges(profile())
+    result = changes.edit(
+        adj(
+            matrix_preset="custom",
+            matrix=[1.1, 0.2, 0, 0, 0.9, 0, 0, 0, 1],
+            matrix_basis=basis,
+            calibration_note="Portra, tungsten, Epson",
+        ),
+        [],
+    )
+    assert values(result)["MatrixPreset"] == "2"
+    assert values(result)["Matrix"] == "1.1;0.2;0;0;0.9;0;0;0;1"
+    assert values(result)["MatrixBasis"] == basis
+    assert values(result)["CalibrationNote"] == "Portra, tungsten, Epson"
+    typed = read_format(changes.profile).adjustments["film_negative"]
+    assert typed["matrix_preset"] == "custom"
+    assert typed["matrix"] == [1.1, 0.2, 0.0, 0.0, 0.9, 0.0, 0.0, 0.0, 1.0]
+    assert typed["matrix_basis"] == basis
+    assert typed["calibration_note"] == "Portra, tungsten, Epson"
+
+
+def test_matrix_coefficients_are_refused_unless_preset_is_custom():
+    with pytest.raises(AdjustmentError, match="custom") as e:
+        WorkingChanges(profile()).edit(adj(matrix=[0.2, 0, 0, 0, 1, 0, 0, 0, 1]), [])
+    assert e.value.code == "out_of_range"
+    with pytest.raises(AdjustmentError, match="custom"):
+        WorkingChanges(profile()).edit(
+            adj(matrix_preset="status_m_reference", matrix=[1, 0, 0, 0, 1, 0, 0, 0, 1]),
+            [],
+        )
+    # the preset's own coefficients are not a coefficient change
+    result = WorkingChanges(profile()).edit(
+        adj(matrix=[1, 0, 0, 0, 1, 0, 0, 0, 1]), []
+    )
+    assert "Matrix" not in values(result)
+
+
+def test_reference_matrix_is_row_vector_times_rows():
+    # Independent of the engine: R displacement (1, 0, 0) times the DiVERE
+    # rows is the first column of the row-major matrix.
+    rows = (
+        (1.0197, 0.0317, 0.0091),
+        (-0.0052, 0.8933, 0.0521),
+        (0.0131, -0.0011, 0.9712),
+    )
+    delta = (1.0, 0.0, 0.0)
+    got = tuple(sum(rows[i][j] * delta[j] for j in range(3)) for i in range(3))
+    assert got == (1.0197, -0.0052, 0.0131)
+    # Identity leaves channel slopes unmixed: C_i uses only A_i.
+    P = 1.6
+    A = (1.0, 2.0, 3.0)
+    h = (1.5, 0.5, 2.0)
+    g = (0.1, 0.0, -0.2)
+    C = tuple(P + h[i] * (A[i] - P) - g[i] for i in range(3))
+    assert C == (P + 1.5 * (1.0 - P) - 0.1, P + 0.5 * (2.0 - P), P + 2.0 * (3.0 - P) + 0.2)
 
 def test_output_black_offset_round_trips():
     changes = WorkingChanges(profile())

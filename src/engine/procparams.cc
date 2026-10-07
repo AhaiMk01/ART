@@ -17,6 +17,8 @@
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <cstdint>
+#include <cstdlib>
 #include <iostream>
 #include <iterator>
 #include <map>
@@ -2691,15 +2693,190 @@ Glib::ustring RAWParams::getFlatFieldBlurTypeString(FlatFieldBlurType type)
     return getFlatFieldBlurTypeStrings()[toUnderlying(type)];
 }
 
+namespace {
+
+Glib::ustring jsonEscape(const Glib::ustring &text)
+{
+    Glib::ustring out;
+    for (auto c : text) {
+        if (c == '\\' || c == '"') {
+            out += '\\';
+        }
+        out += c;
+    }
+    return out;
+}
+
+Glib::ustring jsonStringField(const Glib::ustring &json, const char *key)
+{
+    const Glib::ustring needle = Glib::ustring("\"") + key + "\"";
+    auto pos = json.find(needle);
+    if (pos == Glib::ustring::npos) {
+        return Glib::ustring();
+    }
+    pos = json.find(':', pos + needle.length());
+    if (pos == Glib::ustring::npos) {
+        return Glib::ustring();
+    }
+    ++pos;
+    while (pos < json.length() &&
+           (json[pos] == ' ' || json[pos] == '\t')) {
+        ++pos;
+    }
+    if (pos >= json.length() || json[pos] != '"') {
+        return Glib::ustring();
+    }
+    ++pos;
+    Glib::ustring out;
+    for (; pos < json.length(); ++pos) {
+        char c = json[pos];
+        if (c == '\\' && pos + 1 < json.length()) {
+            out += json[++pos];
+            continue;
+        }
+        if (c == '"') {
+            break;
+        }
+        out += c;
+    }
+    return out;
+}
+
+bool jsonIntField(const Glib::ustring &json, const char *key, int &value)
+{
+    const Glib::ustring needle = Glib::ustring("\"") + key + "\"";
+    auto pos = json.find(needle);
+    if (pos == Glib::ustring::npos) {
+        return false;
+    }
+    pos = json.find(':', pos + needle.length());
+    if (pos == Glib::ustring::npos) {
+        return false;
+    }
+    ++pos;
+    while (pos < json.length() &&
+           (json[pos] == ' ' || json[pos] == '\t')) {
+        ++pos;
+    }
+    if (pos >= json.length()) {
+        return false;
+    }
+    char *end = nullptr;
+    long parsed = std::strtol(json.c_str() + pos, &end, 10);
+    if (end == json.c_str() + pos) {
+        return false;
+    }
+    value = static_cast<int>(parsed);
+    return true;
+}
+
+Glib::ustring profileContentId(const Glib::ustring &profile)
+{
+    if (profile.empty()) {
+        return Glib::ustring();
+    }
+    ProfileContent content;
+    if (Glib::file_test(profile, Glib::FILE_TEST_IS_REGULAR)) {
+        content = ProfileContent(profile);
+    }
+    if (content.getData().empty()) {
+        content = ICCStore::getInstance()->getContent(profile);
+    }
+    const std::string &data = content.getData();
+    if (data.empty()) {
+        return Glib::ustring();
+    }
+    std::uint64_t hash = 14695981039346656037ull;
+    for (unsigned char byte : data) {
+        hash ^= byte;
+        hash *= 1099511628211ull;
+    }
+    std::ostringstream os;
+    os.imbue(std::locale::classic());
+    os << std::hex << hash;
+    return os.str();
+}
+
+} // namespace
+
+std::array<double, 9> FilmNegativeParams::identityMatrix()
+{
+    return {{1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0}};
+}
+
+std::array<double, 9> FilmNegativeParams::statusMReferenceMatrix()
+{
+    return {{1.0197, 0.0317, 0.0091, -0.0052, 0.8933, 0.0521, 0.0131, -0.0011,
+             0.9712}};
+}
+
+Glib::ustring
+FilmNegativeParams::makeMatrixBasis(ColorSpace colorSpace,
+                                    const ColorManagementParams &icm)
+{
+    const bool input = colorSpace == ColorSpace::INPUT;
+    const Glib::ustring profile =
+        input ? icm.inputProfile : icm.workingProfile;
+    const Glib::ustring content = profileContentId(profile);
+    std::ostringstream os;
+    os.imbue(std::locale::classic());
+    os << "{\"v\":1,\"color_space\":\"" << (input ? "input" : "working")
+       << "\",\"profile\":\"" << jsonEscape(profile).raw() << "\"";
+    if (!content.empty()) {
+        os << ",\"content\":\"" << content.raw() << "\"";
+    }
+    os << "}";
+    return os.str();
+}
+
+bool FilmNegativeParams::matrixBasisMatches(const Glib::ustring &stored,
+                                            ColorSpace colorSpace,
+                                            const ColorManagementParams &icm,
+                                            Glib::ustring &message)
+{
+    int version = 0;
+    if (!jsonIntField(stored, "v", version) || version != 1) {
+        message =
+            "MatrixBasis is not version 1 JSON. Select Identity or rebind "
+            "the matrix to the current processing space and profile.";
+        return false;
+    }
+    const bool input = colorSpace == ColorSpace::INPUT;
+    const Glib::ustring space = input ? "input" : "working";
+    const Glib::ustring profile =
+        input ? icm.inputProfile : icm.workingProfile;
+    const Glib::ustring boundSpace = jsonStringField(stored, "color_space");
+    const Glib::ustring boundProfile = jsonStringField(stored, "profile");
+    const Glib::ustring boundContent = jsonStringField(stored, "content");
+    const Glib::ustring content = profileContentId(profile);
+    if (boundSpace == space && boundProfile == profile &&
+        (boundContent.empty() || content.empty() || boundContent == content)) {
+        return true;
+    }
+    message = Glib::ustring::compose(
+        "bound color_space=%1 profile=\"%2\" does not match active "
+        "color_space=%3 profile=\"%4\". Select Identity or re-select the "
+        "matrix preset to rebind; coefficients are not reused in another "
+        "basis.",
+        boundSpace, boundProfile, space, profile);
+    if (!boundContent.empty() && !content.empty() &&
+        boundContent != content) {
+        message += " Custom profile content changed.";
+    }
+    return false;
+}
+
 FilmNegativeParams::FilmNegativeParams()
     : enabled(false), method(Method::POWER_LAW), filmType(FilmType::NEGATIVE),
       redRatio(1.36), greenExp(1.5), blueRatio(0.86),
       refInput({0.0, 0.0, 0.0}), refOutput({0.0, 0.0, 0.0}),
       colorSpace(ColorSpace::WORKING), backCompat(BackCompat::CURRENT),
       inputGamma(1.0), densityGamma(1.0), densityDmax(2.5),
-      rgbGains({0.0, 0.0, 0.0}), channelGamma({1.0, 1.0, 1.0}),
-      outputBlackOffset(0.0), targetMode(TargetMode::LINEAR),
-      cineonPrimaries(), cineonReferenceWhite(1.0)
+      matrixPreset(IDENTITY), matrix(identityMatrix()), matrixBasis(),
+      calibrationNote(), rgbGains({0.0, 0.0, 0.0}),
+      channelGamma({1.0, 1.0, 1.0}), outputBlackOffset(0.0),
+      targetMode(TargetMode::LINEAR), cineonPrimaries(),
+      cineonReferenceWhite(1.0)
 {
 }
 
@@ -2730,8 +2907,11 @@ bool FilmNegativeParams::operator==(const FilmNegativeParams &other) const
            colorSpace == other.colorSpace && backCompat == other.backCompat &&
            inputGamma == other.inputGamma &&
            densityGamma == other.densityGamma &&
-           densityDmax == other.densityDmax && rgbGains == other.rgbGains &&
-           channelGamma == other.channelGamma &&
+           densityDmax == other.densityDmax &&
+           matrixPreset == other.matrixPreset && matrix == other.matrix &&
+           matrixBasis == other.matrixBasis &&
+           calibrationNote == other.calibrationNote &&
+           rgbGains == other.rgbGains && channelGamma == other.channelGamma &&
            targetMode == other.targetMode &&
            cineonPrimaries == other.cineonPrimaries &&
            cineonReferenceWhite == other.cineonReferenceWhite &&
@@ -4055,6 +4235,15 @@ int ProcParams::save(ProgressListener *pl, bool save_general, KeyFile &keyFile,
                 saveToKeyfile("Film Negative", "ChannelGamma", cg, keyFile);
                 saveToKeyfile("Film Negative", "OutputBlackOffset",
                               filmNegative.outputBlackOffset, keyFile);
+                saveToKeyfile("Film Negative", "MatrixPreset",
+                              toUnderlying(filmNegative.matrixPreset), keyFile);
+                std::vector<double> mx(filmNegative.matrix.begin(),
+                                       filmNegative.matrix.end());
+                saveToKeyfile("Film Negative", "Matrix", mx, keyFile);
+                saveToKeyfile("Film Negative", "MatrixBasis",
+                              filmNegative.matrixBasis, keyFile);
+                saveToKeyfile("Film Negative", "CalibrationNote",
+                              filmNegative.calibrationNote, keyFile);
             }
             saveToKeyfile("Film Negative", "TargetMode",
                           toUnderlying(filmNegative.targetMode), keyFile);
@@ -6287,6 +6476,25 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                 }
                 assignFromKeyfile(keyFile, "Film Negative", "OutputBlackOffset",
                                   filmNegative.outputBlackOffset);
+                int mp = 0;
+                if (assignFromKeyfile(keyFile, "Film Negative", "MatrixPreset",
+                                      mp)) {
+                    if (mp < IDENTITY || mp > CUSTOM) {
+                        mp = IDENTITY;
+                    }
+                    filmNegative.matrixPreset =
+                        static_cast<FilmNegativeParams::MatrixPreset>(mp);
+                }
+                if (assignFromKeyfile(keyFile, "Film Negative", "Matrix", v) &&
+                    v.size() == 9) {
+                    for (int i = 0; i < 9; ++i) {
+                        filmNegative.matrix[i] = v[i];
+                    }
+                }
+                assignFromKeyfile(keyFile, "Film Negative", "MatrixBasis",
+                                  filmNegative.matrixBasis);
+                assignFromKeyfile(keyFile, "Film Negative", "CalibrationNote",
+                                  filmNegative.calibrationNote);
             } else {
                 filmNegative.method = FilmNegativeParams::Method::POWER_LAW;
             }

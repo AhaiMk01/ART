@@ -213,7 +213,7 @@ in the temp folder whose process is gone.
 
 Results of `get_profile`, `edit_profile` and `describe_adjustments` carry a
 `warnings` list when ART's profile version is newer than the schema's
-(`PPVERSION` 1047); edits keep working.
+(`PPVERSION` 1048); edits keep working.
 
 ## Previews
 
