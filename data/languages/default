@@ -1609,6 +1609,9 @@ TP_FILMNEGATIVE_ERR_MATRIX_NONFINITE;Film Negative: custom density matrix has a 
 TP_FILMNEGATIVE_ERR_MATRIX_BASIS_EMPTY;Film Negative: a non-identity density matrix has no MatrixBasis. Select Identity or rebind the matrix. The conversion was not applied
 TP_FILMNEGATIVE_ERR_MATRIX_BASIS_VERSION;Film Negative: MatrixBasis is not version 1 JSON. Select Identity or rebind the matrix to the current processing space and profile
 TP_FILMNEGATIVE_ERR_MATRIX_BASIS_MISMATCH;Film Negative: bound color_space=%1 profile="%2" does not match active color_space=%3 profile="%4". Select Identity or re-select the matrix preset to rebind. Coefficients are not reused in another basis
+TP_FILMNEGATIVE_ERR_MATRIX_BASIS_SOURCE;Input gamma or source identity does not match the binding. Rebind the matrix.
+TP_FILMNEGATIVE_ERR_LUT_HASH;Film Negative: Cineon print LUT '%1' content does not match the saved identity. The file was replaced or the identity was not recorded. No other LUT was used
+TP_FILMNEGATIVE_ERR_LUT_PRIMARIES;Film Negative: Cineon LUT primaries '%1' / '%2' are not invertible matrix profiles. The print LUT was not applied
 TP_FILMNEGATIVE_ERR_MATRIX_BASIS_CONTENT;Custom profile content changed.
 TP_FILMNEGATIVE_ERR_PAPER_CURVE;Film Negative: unknown paper curve '%1'. Paper response not applied
 TP_FILMNEGATIVE_ERR_PAPER_BASIS;Film Negative: paper basis does not match the inversion color space. Conversion was not applied. Rebind PaperBasis

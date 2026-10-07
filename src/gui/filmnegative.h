@@ -46,9 +46,12 @@ public:
 
     virtual bool getFilmNegativeSpot(art::engine::Coord spot, int spotSize,
                                      RGB &refInput, RGB &refOutput) = 0;
-    // Density + Negative only. On false, gains is unused and must not be applied.
     virtual bool getFilmNegativeBaseGains(art::engine::Coord spot, int spotSize,
                                           std::array<double, 3> &gains) = 0;
+    virtual Glib::ustring getFilmNegativeSourceId() const
+    {
+        return "Unknown";
+    }
 };
 
 class FilmNegative final: public ToolParamBlock,

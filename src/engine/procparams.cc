@@ -28,8 +28,8 @@
 #include <glib/gstdio.h>
 
 #include <fstream>
+#include <glibmm/checksum.h>
 #include <giomm.h>
-#include <sstream>
 
 #include "base64.h"
 #include "clutstore.h"
@@ -2812,7 +2812,9 @@ std::array<double, 9> FilmNegativeParams::statusMReferenceMatrix()
 
 Glib::ustring
 FilmNegativeParams::makeMatrixBasis(ColorSpace colorSpace,
-                                    const ColorManagementParams &icm)
+                                    const ColorManagementParams &icm,
+                                    double inputGamma,
+                                    const Glib::ustring &sourceId)
 {
     const bool input = colorSpace == ColorSpace::INPUT;
     const Glib::ustring profile =
@@ -2821,7 +2823,9 @@ FilmNegativeParams::makeMatrixBasis(ColorSpace colorSpace,
     std::ostringstream os;
     os.imbue(std::locale::classic());
     os << "{\"v\":1,\"color_space\":\"" << (input ? "input" : "working")
-       << "\",\"profile\":\"" << jsonEscape(profile).raw() << "\"";
+       << "\",\"profile\":\"" << jsonEscape(profile).raw() << "\""
+       << ",\"input_gamma\":\"" << inputGamma << "\""
+       << ",\"source\":\"" << jsonEscape(sourceId).raw() << "\"";
     if (!content.empty()) {
         os << ",\"content\":\"" << content.raw() << "\"";
     }
@@ -2832,6 +2836,8 @@ FilmNegativeParams::makeMatrixBasis(ColorSpace colorSpace,
 bool FilmNegativeParams::matrixBasisMatches(const Glib::ustring &stored,
                                             ColorSpace colorSpace,
                                             const ColorManagementParams &icm,
+                                            double inputGamma,
+                                            const Glib::ustring &sourceId,
                                             Glib::ustring &message)
 {
     int version = 0;
@@ -2846,18 +2852,32 @@ bool FilmNegativeParams::matrixBasisMatches(const Glib::ustring &stored,
     const Glib::ustring boundSpace = jsonStringField(stored, "color_space");
     const Glib::ustring boundProfile = jsonStringField(stored, "profile");
     const Glib::ustring boundContent = jsonStringField(stored, "content");
+    const Glib::ustring boundGamma = jsonStringField(stored, "input_gamma");
+    const Glib::ustring boundSource = jsonStringField(stored, "source");
     const Glib::ustring content = profileContentId(profile);
+    char *gammaEnd = nullptr;
+    const double parsedGamma =
+        boundGamma.empty() ? -1.0
+                           : std::strtod(boundGamma.c_str(), &gammaEnd);
+    const bool gammaOk = gammaEnd && gammaEnd != boundGamma.c_str() &&
+                         (parsedGamma - inputGamma) <= 1e-6 &&
+                         (parsedGamma - inputGamma) >= -1e-6;
+    // A missing content digest is not a match when either side has one.
     if (boundSpace == space && boundProfile == profile &&
-        (boundContent.empty() || content.empty() || boundContent == content)) {
+        boundContent == content && gammaOk && boundSource == sourceId &&
+        !boundSource.empty()) {
         return true;
     }
     message = Glib::ustring::compose(
         art::utils::M("TP_FILMNEGATIVE_ERR_MATRIX_BASIS_MISMATCH"),
         boundSpace, boundProfile, space, profile);
-    if (!boundContent.empty() && !content.empty() &&
-        boundContent != content) {
+    if (boundContent != content) {
         message += " ";
         message += art::utils::M("TP_FILMNEGATIVE_ERR_MATRIX_BASIS_CONTENT");
+    }
+    if (!gammaOk || boundSource != sourceId) {
+        message += " ";
+        message += art::utils::M("TP_FILMNEGATIVE_ERR_MATRIX_BASIS_SOURCE");
     }
     return false;
 }
@@ -2875,7 +2895,7 @@ FilmNegativeParams::FilmNegativeParams()
       cineonReferenceWhite(1.0), cineonLUT(), cineonLUTInputPrimaries(),
       cineonLUTOutputPrimaries(),
       cineonLUTOutputTransfer(CineonLUTOutputTransfer::LINEAR),
-      paperCurve("kodak_endura_premier"), paperBasis()
+      paperCurve("kodak_endura_premier"), paperBasis(), cineonLUTSha256()
 {
 }
 
@@ -2917,6 +2937,7 @@ bool FilmNegativeParams::operator==(const FilmNegativeParams &other) const
            outputBlackOffset == other.outputBlackOffset &&
            paperCurve == other.paperCurve && paperBasis == other.paperBasis &&
            cineonLUT == other.cineonLUT &&
+           cineonLUTSha256 == other.cineonLUTSha256 &&
            cineonLUTInputPrimaries == other.cineonLUTInputPrimaries &&
            cineonLUTOutputPrimaries == other.cineonLUTOutputPrimaries &&
            cineonLUTOutputTransfer == other.cineonLUTOutputTransfer;
@@ -4329,6 +4350,23 @@ int ProcParams::save(ProgressListener *pl, bool save_general, KeyFile &keyFile,
             saveToKeyfile("Film Negative", "CineonLUT",
                           filenameToUri(filmNegative.cineonLUT, basedir),
                           keyFile);
+            {
+                Glib::ustring sha = filmNegative.cineonLUTSha256;
+                if (sha.empty() && !filmNegative.cineonLUT.empty() &&
+                    Glib::file_test(filmNegative.cineonLUT,
+                                    Glib::FILE_TEST_IS_REGULAR)) {
+                    std::ifstream in(
+                        Glib::filename_from_utf8(filmNegative.cineonLUT).c_str(),
+                        std::ios::in | std::ios::binary);
+                    if (in) {
+                        std::ostringstream buf;
+                        buf << in.rdbuf();
+                        sha = Glib::Checksum::compute_checksum(
+                            Glib::Checksum::CHECKSUM_SHA256, buf.str());
+                    }
+                }
+                saveToKeyfile("Film Negative", "CineonLUTSha256", sha, keyFile);
+            }
             saveToKeyfile("Film Negative", "CineonLUTInputPrimaries",
                           filmNegative.cineonLUTInputPrimaries, keyFile);
             saveToKeyfile("Film Negative", "CineonLUTOutputPrimaries",
@@ -4581,6 +4619,7 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
 
     try {
         Glib::ustring basedir = Glib::path_get_dirname(fname);
+        bool filmNegIdError = false;
 
         if (load_general) {
             ppVersion = PPVERSION;
@@ -6609,8 +6648,10 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                         {"power_law", 0},
                         {"density", 1},
                     };
-                    assignFilmNegEnum(s, filmNegative.method, keyFile, "Method",
-                                      methodIds, 2, 1);
+                    if (!assignFilmNegEnum(s, filmNegative.method, keyFile,
+                                           "Method", methodIds, 2, 1)) {
+                        filmNegIdError = true;
+                    }
                 } else if (filmNegativeMissingMethodSelectsPowerLaw(keyFile)) {
                     // ProcParams::load: old sidecar / pre-feature partial
                     // with old Film Negative keys and no Method.
@@ -6628,8 +6669,10 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                             {"negative", 0},
                             {"reversal", 1},
                         };
-                        assignFilmNegEnum(s, filmNegative.filmType, keyFile,
-                                          "FilmType", filmTypeIds, 2, 1);
+                        if (!assignFilmNegEnum(s, filmNegative.filmType, keyFile,
+                                               "FilmType", filmTypeIds, 2, 1)) {
+                            filmNegIdError = true;
+                        }
                     }
                 }
 
@@ -6662,8 +6705,11 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                             {"status_m_reference", 1},
                             {"custom", 2},
                         };
-                        assignFilmNegEnum(s, filmNegative.matrixPreset, keyFile,
-                                          "MatrixPreset", presetIds, 3, 2);
+                        if (!assignFilmNegEnum(s, filmNegative.matrixPreset,
+                                               keyFile, "MatrixPreset",
+                                               presetIds, 3, 2)) {
+                            filmNegIdError = true;
+                        }
                     }
                 }
                 if (assignFromKeyfile(keyFile, "Film Negative", "Matrix", v) &&
@@ -6690,8 +6736,10 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                         {"paper", 1},
                         {"cineon", 2},
                     };
-                    assignFilmNegEnum(s, filmNegative.targetMode, keyFile,
-                                      "TargetMode", targetIds, 3, 2);
+                    if (!assignFilmNegEnum(s, filmNegative.targetMode, keyFile,
+                                           "TargetMode", targetIds, 3, 2)) {
+                        filmNegIdError = true;
+                    }
                 }
             }
             assignFromKeyfile(keyFile, "Film Negative", "CineonPrimaries",
@@ -6720,6 +6768,8 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                               filmNegative.cineonLUT);
             filmNegative.cineonLUT =
                 filenameFromUri(filmNegative.cineonLUT, basedir);
+            assignFromKeyfile(keyFile, "Film Negative", "CineonLUTSha256",
+                              filmNegative.cineonLUTSha256);
             assignFromKeyfile(keyFile, "Film Negative",
                               "CineonLUTInputPrimaries",
                               filmNegative.cineonLUTInputPrimaries);
@@ -6741,6 +6791,9 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                 } else {
                     filmNegative.cineonLUTOutputTransfer =
                         FilmNegativeParams::CineonLUTOutputTransfer::UNSUPPORTED;
+                    filmNegLoadError(keyFile, "CineonLUTOutputTransfer",
+                                     lutTransfer);
+                    filmNegIdError = true;
                 }
             }
         }
@@ -6809,6 +6862,12 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
             }
         }
 
+        if (filmNegIdError) {
+            if (resetOnError) {
+                setDefaults();
+            }
+            return 1;
+        }
         return 0;
     } catch (const Glib::Error &e) {
         // printf("-->%s\n", e.what().c_str());
@@ -6841,7 +6900,7 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
         return 1;
     }
 
-    return 0;
+
 
 #undef DO_APPEND_
 #undef APPEND_

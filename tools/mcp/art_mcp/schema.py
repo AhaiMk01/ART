@@ -587,7 +587,12 @@ class FilmNegative(CompactModel):
         "CineonLUT",
         "Path of an external Cineon-input .cube print LUT. Empty means none. "
         "Mutually exclusive with target_mode paper: the paper curve is not applied "
-        "when this is set. A missing file is a processing error, not a substitute.",
+        "when this is set. Pair with cineon_lut_sha256; a changed file is rejected.",
+        default="",
+    )
+    cineon_lut_sha256: str | None = F(
+        "CineonLUTSha256",
+        "SHA-256 of the .cube bytes. Required when cineon_lut is set",
         default="",
     )
     cineon_lut_input_primaries: str | None = F(

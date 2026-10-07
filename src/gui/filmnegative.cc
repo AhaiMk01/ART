@@ -819,8 +819,11 @@ void FilmNegative::write(art::engine::procparams::ProcParams *pp)
     if (captureMatrixBasis &&
         pp->filmNegative.matrixPreset !=
             art::engine::procparams::FilmNegativeParams::IDENTITY) {
+        const Glib::ustring source =
+            fnp ? fnp->getFilmNegativeSourceId() : Glib::ustring("Unknown");
         matrixBasis = art::engine::procparams::FilmNegativeParams::makeMatrixBasis(
-            pp->filmNegative.colorSpace, pp->icm);
+            pp->filmNegative.colorSpace, pp->icm, pp->filmNegative.inputGamma,
+            source);
         captureMatrixBasis = false;
     }
     pp->filmNegative.matrixBasis = matrixBasis;

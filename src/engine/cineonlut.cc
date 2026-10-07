@@ -10,8 +10,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <glibmm/checksum.h>
 #include "color.h"
-#include "iccstore.h"
 #include "linalgebra.h"
 #include "../utils/multilangmgr.h"
 
@@ -361,14 +361,12 @@ void mul3(const float m[3][3], float r, float g, float b, float &or_, float &og,
 }
 
 PrimariesMap primariesMap(const procparams::FilmNegativeParams &params,
-                          const procparams::ColorManagementParams &icm)
+                          const procparams::ColorManagementParams &icm,
+                          ProgressListener *pl, bool &ok)
 {
     PrimariesMap map;
     map.active = false;
-    // Matrix-shaper profiles only. If either name is empty or is not an
-    // invertible ICC matrix profile, Cineon is encoded in the current working
-    // RGB and the LUT result is treated as working RGB. A non-matrix colour
-    // path is not added here.
+    ok = true;
     const Glib::ustring &inName = params.cineonLUTInputPrimaries;
     const Glib::ustring &outName = params.cineonLUTOutputPrimaries;
     if (inName.empty() && outName.empty()) {
@@ -383,11 +381,10 @@ PrimariesMap primariesMap(const procparams::FilmNegativeParams &params,
         !ICCStore::getInstance()->getProfileMatrix(inProf, inM) ||
         !ICCStore::getInstance()->getProfileMatrix(outProf, outM) ||
         !inverse(workM, workInv) || !inverse(inM, inInv)) {
-        std::cerr << "Film Negative: Cineon LUT primaries '" << inProf
-                  << "' / '" << outProf
-                  << "' are not invertible matrix profiles. Encoding Cineon "
-                     "in the working RGB and returning the LUT result as "
-                     "working RGB.\n";
+        ok = false;
+        report(pl, Glib::ustring::compose(
+                       art::utils::M("TP_FILMNEGATIVE_ERR_LUT_PRIMARIES"),
+                       inProf, outProf));
         return map;
     }
     const Mat33<float> to = dot_product(inInv, workM);
@@ -404,22 +401,35 @@ PrimariesMap primariesMap(const procparams::FilmNegativeParams &params,
 
 } // namespace
 
-void applyCineonPrintLut(Imagefloat *img,
+bool applyCineonPrintLut(Imagefloat *img,
                          const procparams::FilmNegativeParams &params,
                          const procparams::ColorManagementParams &icm,
                          ProgressListener *pl)
 {
     if (!img || params.cineonLUT.empty()) {
-        return;
+        return true;
     }
     using Transfer = procparams::FilmNegativeParams::CineonLUTOutputTransfer;
     if (params.cineonLUTOutputTransfer == Transfer::UNSUPPORTED) {
         report(pl, art::utils::M("TP_FILMNEGATIVE_ERR_LUT_TRANSFER"));
-        return;
+        return false;
+    }
+    const Glib::ustring sha = cineonLutSha256(params.cineonLUT);
+    if (sha.empty() || params.cineonLUTSha256.empty() ||
+        sha != params.cineonLUTSha256) {
+        report(pl, Glib::ustring::compose(
+                       art::utils::M("TP_FILMNEGATIVE_ERR_LUT_HASH"),
+                       params.cineonLUT));
+        return false;
     }
     CubeLut cube;
     if (!loadCube(params.cineonLUT, cube, pl)) {
-        return;
+        return false;
+    }
+    bool primOk = true;
+    const PrimariesMap prim = primariesMap(params, icm, pl, primOk);
+    if (!primOk) {
+        return false;
     }
     double referenceWhite = params.cineonReferenceWhite;
     if (referenceWhite < 1e-6) {
@@ -469,6 +479,23 @@ void applyCineonPrintLut(Imagefloat *img,
             img->b(row, col) = store(lb);
         }
     }
+    return true;
+}
+
+Glib::ustring cineonLutSha256(const Glib::ustring &path)
+{
+    if (path.empty() || !Glib::file_test(path, Glib::FILE_TEST_IS_REGULAR)) {
+        return Glib::ustring();
+    }
+    std::ifstream in(Glib::filename_from_utf8(path).c_str(),
+                     std::ios::in | std::ios::binary);
+    if (!in) {
+        return Glib::ustring();
+    }
+    std::ostringstream buf;
+    buf << in.rdbuf();
+    return Glib::Checksum::compute_checksum(Glib::Checksum::CHECKSUM_SHA256,
+                                            buf.str());
 }
 
 }} // namespace art::engine

@@ -555,9 +555,12 @@ def film_base_edits(
             if color_space == "input"
             else icm.get("WorkingProfile", "Rec2020")
         )
-        if _json_string(basis, "color_space") != color_space or _json_string(
-            basis, "profile"
-        ) != active:
+        if (
+            _json_string(basis, "color_space") != color_space
+            or _json_string(basis, "profile") != active
+            or not _json_string(basis, "input_gamma")
+            or not _json_string(basis, "source")
+        ):
             raise AdjustmentError(
                 "out_of_range",
                 "film_negative: density matrix is not bound to the active "

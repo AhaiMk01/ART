@@ -93,6 +93,7 @@ def test_describe_lists_the_fields_with_ranges_and_keys():
         "cineon_reference_white": "CineonReferenceWhite",
         "paper_curve": "PaperCurve", "paper_basis": "PaperBasis",
         "cineon_lut": "CineonLUT",
+        "cineon_lut_sha256": "CineonLUTSha256",
         "cineon_lut_input_primaries": "CineonLUTInputPrimaries",
         "cineon_lut_output_primaries": "CineonLUTOutputPrimaries",
         "cineon_lut_output_transfer": "CineonLUTOutputTransfer",
@@ -151,7 +152,7 @@ def test_get_profile_reads_it_back_typed_and_consumes_the_keys():
         "matrix_basis": "", "calibration_note": "",
         "target_mode": "linear", "cineon_primaries": "", "cineon_reference_white": 1.0,
         "paper_curve": "kodak_endura_premier", "paper_basis": "",
-        "cineon_lut": "", "cineon_lut_input_primaries": "",
+        "cineon_lut": "", "cineon_lut_sha256": "", "cineon_lut_input_primaries": "",
         "cineon_lut_output_primaries": "", "cineon_lut_output_transfer": "linear",
         "output_black_offset": 0.0,
     }  # fmt: skip

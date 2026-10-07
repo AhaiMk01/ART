@@ -1344,5 +1344,16 @@ bool ToolPanelCoordinator::getFilmNegativeBaseGains(
                                                  gains);
 }
 
+Glib::ustring ToolPanelCoordinator::getFilmNegativeSourceId() const
+{
+    if (!ipc || !ipc->getInitialImage() ||
+        !ipc->getInitialImage()->getMetaData()) {
+        return "Unknown";
+    }
+    const std::string camera =
+        ipc->getInitialImage()->getMetaData()->getCamera();
+    return camera.empty() ? Glib::ustring("Unknown") : Glib::ustring(camera);
+}
+
 
 } } // namespace art::gui

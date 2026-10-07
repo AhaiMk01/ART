@@ -1559,15 +1559,16 @@ bool ImageIO::saveMetadata(const Glib::ustring &fname) const
     if (has_meta) {
         try {
             metadataInfo.saveToImage(pl, fname, false);
-            if (!profileData && !omitUnprofiledSrgbTag) {
-                Exiv2Metadata outmd(fname);
-                outmd.load();
-                outmd.exifData()["Exif.Photo.ColorSpace"] = 1;
-                outmd.saveToImage(nullptr, fname, true);
-            } else if (!saveAnnotation.empty()) {
+            if (!saveAnnotation.empty()) {
                 Exiv2Metadata outmd(fname);
                 outmd.load();
                 outmd.exifData()["Exif.Image.ImageDescription"] = saveAnnotation;
+                outmd.exifData()["Exif.Photo.ColorSpace"] = 65535;
+                outmd.saveToImage(nullptr, fname, true);
+            } else if (!profileData && !omitUnprofiledSrgbTag) {
+                Exiv2Metadata outmd(fname);
+                outmd.load();
+                outmd.exifData()["Exif.Photo.ColorSpace"] = 1;
                 outmd.saveToImage(nullptr, fname, true);
             }
         } catch (std::exception &exc) {

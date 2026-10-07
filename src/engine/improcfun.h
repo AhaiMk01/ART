@@ -251,6 +251,8 @@ public:
                              art::engine::Imagefloat *output,
                              const procparams::FilmNegativeParams &params,
                              bool rawSource);
+    /// True after a density contract failure in the last filmNegativeProcess.
+    bool filmNegativeContractFailed() const { return filmNegContractFailed; }
 
 private:
     cmsHPROFILE monitor;
@@ -281,6 +283,7 @@ private:
     bool show_sharpening_mask;
 
     ProgressListener *plistener;
+    bool filmNegContractFailed = false;
     int progress_step;
     int progress_end;
 

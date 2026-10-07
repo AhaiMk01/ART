@@ -1588,19 +1588,24 @@ struct FilmNegativeParams {
     CineonLUTOutputTransfer cineonLUTOutputTransfer;
     static std::array<double, 9> identityMatrix();
     static std::array<double, 9> statusMReferenceMatrix();
-    /// Versioned JSON binding of color space plus input/working profile.
+    /// Versioned JSON binding: space, profile, content, input_gamma, source.
     static Glib::ustring makeMatrixBasis(ColorSpace colorSpace,
-                                         const ColorManagementParams &icm);
-    /// False when a non-empty basis does not match the active space/profile.
+                                         const ColorManagementParams &icm,
+                                         double inputGamma,
+                                         const Glib::ustring &sourceId);
+    /// False when the stored binding does not match the active basis.
     static bool matrixBasisMatches(const Glib::ustring &stored,
                                    ColorSpace colorSpace,
                                    const ColorManagementParams &icm,
+                                   double inputGamma,
+                                   const Glib::ustring &sourceId,
                                    Glib::ustring &message);
     // Stable curve identifier. Inactive unless targetMode is PAPER.
     Glib::ustring paperCurve;
-    // "input" or "working", optionally "input|profile" / "working|profile".
-    // Empty when unbound. A non-empty mismatch refuses the conversion.
-
+    // "input|profile" or "working|profile". Empty is not a match.
+    Glib::ustring paperBasis;
+    // SHA-256 of the .cube bytes. Empty is not a content identity.
+    Glib::ustring cineonLUTSha256;
     FilmNegativeParams();
 
     bool operator==(const FilmNegativeParams &other) const;

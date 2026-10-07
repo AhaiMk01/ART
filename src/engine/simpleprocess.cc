@@ -81,7 +81,9 @@ private:
             return nullptr;
         }
 
-        stage_denoise();
+        if (!stage_denoise()) {
+            return nullptr;
+        }
         stage_transform();
         return stage_finish(false);
     }
@@ -103,7 +105,9 @@ private:
         }
 
         stage_early_resize();
-        stage_denoise();
+        if (!stage_denoise()) {
+            return nullptr;
+        }
         stage_transform();
         return stage_finish(true);
     }
@@ -333,7 +337,7 @@ private:
         return true;
     }
 
-    void stage_denoise()
+    bool stage_denoise()
     {
         procparams::ProcParams &params = job->pparams;
         ImProcFunctions &ipf = *(ipf_p.get());
@@ -350,6 +354,11 @@ private:
         if (params.filmNegative.enabled) {
             FilmNegativeParams copy = params.filmNegative;
             ipf.filmNegativeProcess(img, img, copy, params.raw, imgsrc, currWB);
+            if (ipf.filmNegativeContractFailed()) {
+                errorCode = 1;
+                stop = true;
+                return false;
+            }
         }
 
         if (!converted) {
@@ -364,6 +373,7 @@ private:
                 ipf.denoise(imgsrc, currWB, img, params.denoise);
             }
         }
+        return true;
     }
 
     void stage_transform()

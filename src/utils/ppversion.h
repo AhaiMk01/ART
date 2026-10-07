@@ -5,10 +5,14 @@ namespace art { namespace utils {
 
 // This number has to be incremented whenever the ARP file format is modified or
 // the behaviour of a tool changes
-#define PPVERSION 1051
+#define PPVERSION 1052
 
 /*
   Log of version changes
+  1052  2026-10-07
+        film negative: basis binding includes input gamma and source id;
+        a missing or mismatched binding, unknown identifier, or changed
+        Cineon LUT fails the render instead of continuing
   1051  2026-10-07
         film negative: Method, FilmType, MatrixPreset and TargetMode stored as
         text ids. Integer sidecars still load. Unknown tokens are not substituted
