@@ -308,6 +308,18 @@ void getFromKeyfile(const KeyFile &keyfile, const Glib::ustring &group_name,
     value.assign(tmpval.begin(), tmpval.end());
 }
 
+// A list of plain numbers (gains, a matrix), not a curve: read it as is, at
+// double precision, without the curve sanitising that std::vector<double> gets.
+struct NumberList {
+    std::vector<double> &values;
+};
+
+void getFromKeyfile(const KeyFile &keyfile, const Glib::ustring &group_name,
+                    const Glib::ustring &key, NumberList &value)
+{
+    value.values = keyfile.get_double_list(group_name, key);
+}
+
 void getFromKeyfile(const KeyFile &keyfile, const Glib::ustring &group_name,
                     const Glib::ustring &key, std::vector<std::string> &value)
 {
@@ -6681,8 +6693,13 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                                   filmNegative.densityGamma);
                 assignFromKeyfile(keyFile, "Film Negative", "DensityDmax",
                                   filmNegative.densityDmax);
+                // NumberList: a std::vector<double> would be passed through
+                // sanitizeCurve, which turns a 3-value list into a linear
+                // curve and then fails the size check.
                 std::vector<double> v;
-                if (assignFromKeyfile(keyFile, "Film Negative", "RGBGains", v)) {
+                NumberList list = {v};
+                if (assignFromKeyfile(keyFile, "Film Negative", "RGBGains",
+                                      list)) {
                     if (v.size() == 3) {
                         filmNegative.rgbGains[0] = v[0];
                         filmNegative.rgbGains[1] = v[1];
@@ -6695,7 +6712,7 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                     }
                 }
                 if (assignFromKeyfile(keyFile, "Film Negative", "ChannelGamma",
-                                      v)) {
+                                      list)) {
                     if (v.size() == 3) {
                         filmNegative.channelGamma[0] = v[0];
                         filmNegative.channelGamma[1] = v[1];
@@ -6725,7 +6742,8 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                         }
                     }
                 }
-                if (assignFromKeyfile(keyFile, "Film Negative", "Matrix", v)) {
+                if (assignFromKeyfile(keyFile, "Film Negative", "Matrix",
+                                      list)) {
                     if (v.size() == 9) {
                         for (int i = 0; i < 9; ++i) {
                             filmNegative.matrix[i] = v[i];
