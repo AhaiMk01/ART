@@ -249,7 +249,8 @@ public:
                              const ColorTemp &currWB);
     void filmNegativeProcess(art::engine::Imagefloat *input,
                              art::engine::Imagefloat *output,
-                             const procparams::FilmNegativeParams &params);
+                             const procparams::FilmNegativeParams &params,
+                             bool rawSource);
 
 private:
     cmsHPROFILE monitor;

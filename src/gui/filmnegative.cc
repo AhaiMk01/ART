@@ -289,6 +289,8 @@ FilmNegative::FilmNegative()
       blueBalance(createBalanceAdjuster(
           this, M("TP_FILMNEGATIVE_BLUEBALANCE"), -3.0, 3.0, 0.0,
           "circle-blue-small.svg", "circle-yellow-small.svg")), // blue balance
+      inputGamma(createAdjuster(this, M("TP_FILMNEGATIVE_INPUT_GAMMA"), 0.5,
+                                2.8, 0.01, 1.0)),
       densityGamma(createAdjuster(this, M("TP_FILMNEGATIVE_DENSITY_GAMMA"), 0.1,
                                   4.0, 0.01, 1.0)),
       densityDmax(createAdjuster(this, M("TP_FILMNEGATIVE_DENSITY_DMAX"), 0.0,
@@ -344,6 +346,7 @@ FilmNegative::FilmNegative()
     filmType->show();
 
     pack_start(*densityGamma, Gtk::PACK_SHRINK, 0);
+    pack_start(*inputGamma, Gtk::PACK_SHRINK, 0);
     pack_start(*densityDmax, Gtk::PACK_SHRINK, 0);
     pack_start(*channelGammaR, Gtk::PACK_SHRINK, 0);
     pack_start(*channelGammaG, Gtk::PACK_SHRINK, 0);
@@ -478,6 +481,7 @@ void FilmNegative::read(const art::engine::procparams::ProcParams *pp)
     blueRatio->setValue(pp->filmNegative.blueRatio);
 
     densityGamma->setValue(pp->filmNegative.densityGamma);
+    inputGamma->setValue(pp->filmNegative.inputGamma);
     densityDmax->setValue(pp->filmNegative.densityDmax);
     channelGammaR->setValue(pp->filmNegative.channelGamma[0]);
     channelGammaG->setValue(pp->filmNegative.channelGamma[1]);
@@ -523,6 +527,7 @@ void FilmNegative::write(art::engine::procparams::ProcParams *pp)
     pp->filmNegative.blueRatio = blueRatio->getValue();
 
     pp->filmNegative.densityGamma = densityGamma->getValue();
+    pp->filmNegative.inputGamma = inputGamma->getValue();
     pp->filmNegative.densityDmax = densityDmax->getValue();
     pp->filmNegative.channelGamma[0] = channelGammaR->getValue();
     pp->filmNegative.channelGamma[1] = channelGammaG->getValue();
@@ -553,6 +558,7 @@ void FilmNegative::setDefaults(
     blueRatio->setValue(defParams->filmNegative.blueRatio);
 
     densityGamma->setValue(defParams->filmNegative.densityGamma);
+    inputGamma->setValue(defParams->filmNegative.inputGamma);
     densityDmax->setValue(defParams->filmNegative.densityDmax);
     channelGammaR->setValue(defParams->filmNegative.channelGamma[0]);
     channelGammaG->setValue(defParams->filmNegative.channelGamma[1]);
@@ -589,15 +595,15 @@ void FilmNegative::adjusterChanged(Adjuster *a, double newval)
                 Glib::ustring::compose(
                     "Lev=%1 G=%2 B=%3", outputLevel->getValue(),
                     greenBalance->getValue(), blueBalance->getValue()));
-        } else if (a == densityGamma || a == densityDmax ||
+        } else if (a == inputGamma || a == densityGamma || a == densityDmax ||
                    a == channelGammaR || a == channelGammaG ||
                    a == channelGammaB || a == rgbGainR || a == rgbGainG ||
                    a == rgbGainB) {
             listener->panelChanged(
                 evFilmNegativeDensity,
                 Glib::ustring::compose(
-                    "DG=%1 Dmax=%2", densityGamma->getValue(),
-                    densityDmax->getValue()));
+                    "IG=%1 DG=%2 Dmax=%3", inputGamma->getValue(),
+                    densityGamma->getValue(), densityDmax->getValue()));
         }
     }
 }
@@ -608,6 +614,7 @@ void FilmNegative::updateVisibility()
     if (m == Method::POWER_LAW) {
         filmTypeGrid->hide();
         densityGamma->hide();
+        inputGamma->hide();
         densityDmax->hide();
         channelGammaR->hide();
         channelGammaG->hide();
@@ -665,6 +672,7 @@ void FilmNegative::updateVisibility()
 
         filmTypeGrid->show();
         densityGamma->show();
+        inputGamma->show();
         FilmType ft = FilmType(filmType->get_active_row_number());
         if (ft == FilmType::NEGATIVE) {
             densityDmax->show();

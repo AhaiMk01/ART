@@ -84,6 +84,7 @@ def test_describe_lists_the_fields_with_ranges_and_keys():
         "color_space": "ColorSpace", "red_ratio": "RedRatio",
         "green_exponent": "GreenExponent", "blue_ratio": "BlueRatio",
         "ref_input": "RefInput", "ref_output": "RefOutput",
+        "input_gamma": "InputGamma",
         "density_gamma": "DensityGamma", "density_dmax": "DensityDmax",
         "rgb_gains": "RGBGains", "channel_gamma": "ChannelGamma",
     }  # fmt: skip
@@ -92,6 +93,7 @@ def test_describe_lists_the_fields_with_ranges_and_keys():
     assert ranges["green_exponent"] == (0.3, 4)
     assert ranges["density_gamma"] == (0.1, 4.0)
     assert ranges["density_dmax"] == (0.0, 4.8)
+    assert ranges["input_gamma"] == (0.5, 2.8)
     assert tool.fields["method"].enum == ["power_law", "density"]
     assert tool.fields["film_type"].enum == ["negative", "reversal"]
     assert tool.fields["color_space"].enum == ["working", "input"]
@@ -124,7 +126,7 @@ def test_get_profile_reads_it_back_typed_and_consumes_the_keys():
         "color_space": "working", "red_ratio": 1.0, "green_exponent": 2.0,
         "blue_ratio": 0.5, "ref_input": [8656.9248, 4344.5332, 2811.6162],
         "ref_output": [10672.1363] * 3,
-        "density_gamma": 1.0, "density_dmax": 2.5,
+        "density_gamma": 1.0, "density_dmax": 2.5, "input_gamma": 1.0,
         "rgb_gains": [0.0, 0.0, 0.0], "channel_gamma": [1.0, 1.0, 1.0],
     }  # fmt: skip
     assert "Film Negative" not in view.raw
@@ -173,6 +175,7 @@ def test_a_value_outside_the_schema_stays_raw():
         {"color_space": "srgb"},
         {"density_gamma": 0.05}, {"density_gamma": 4.1},
         {"density_dmax": -0.1}, {"density_dmax": 4.9},
+        {"input_gamma": 0.49}, {"input_gamma": 2.81},
         {"method": "unknown"}, {"film_type": "unknown"},
         {"rgb_gains": [-3.1, 0, 0]}, {"rgb_gains": [0, 3.1, 0]},
         {"channel_gamma": [0.4, 1, 1]}, {"channel_gamma": [1, 2.1, 1]},
@@ -213,6 +216,44 @@ def test_density_fields_round_trip():
     assert typed["density_dmax"] == 3.0
     assert typed["rgb_gains"] == [-0.5, 0.2, 1.0]
     assert typed["channel_gamma"] == [0.8, 1.2, 1.5]
+
+
+def test_input_gamma_round_trips_and_defaults_to_one():
+    changes = WorkingChanges(profile())
+    result = changes.edit(adj(method="density", input_gamma=1.8), [])
+    assert values(result)["InputGamma"] == "1.8"
+    assert values(result)["Method"] == "1"
+    typed = read_format(changes.profile).adjustments["film_negative"]
+    assert typed["input_gamma"] == 1.8
+    # a profile that omits the key keeps the unity default
+    assert read_format(profile()).adjustments["film_negative"]["input_gamma"] == 1.0
+
+
+def test_input_gamma_linearizes_a_power_encoded_scan_once():
+    """sign(x)*abs(x)^InputGamma before density inversion.
+
+    A gamma-1.8 encoded mid grey (linear 0.18 stored as 0.18**(1/1.8)) must
+    come back to 0.18. Unity gamma leaves that encoded value unchanged.
+    Expected numbers are literals, not the implementation under test.
+    """
+    import math
+
+    encoded = 0.385711424751  # 0.18 ** (1/1.8)
+    linear = math.copysign(abs(encoded) ** 1.8, encoded)
+    assert math.isclose(linear, 0.18, rel_tol=1e-9)
+    assert math.copysign(abs(-encoded) ** 1.8, -encoded) == -linear
+    assert math.copysign(abs(encoded) ** 1.0, encoded) == encoded
+
+    dmax = 2.5
+    p = 0.7
+    anchor = 4.1 - dmax
+    Tc = linear
+    Dc = -math.log10(Tc)
+    Ac = dmax - p - 1.0 * (Dc - p)
+    Ci = anchor + 1.0 * (Ac - anchor)
+    Lc = 10.0 ** (-Ci)
+    assert math.isclose(Lc, (10.0 ** (-dmax)) / Tc, rel_tol=1e-9)
+    assert math.isclose(65535.0 * Lc, 1151.33259144, rel_tol=1e-7)
 
 
 def test_density_negative_math():

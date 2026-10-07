@@ -11,7 +11,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationEr
 
 from art_mcp.compactschema import CompactModel, compact_model_schema, full_schema
 from art_mcp.curves import CurveSpec
-PPVERSION = 1046
+PPVERSION = 1047
 """The processing-profile version (``src/utils/ppversion.h``) this schema was
 written for."""
 
@@ -461,6 +461,17 @@ class FilmNegative(CompactModel):
         "[r, g, b] >= 0: the linear output (0..65535) the reference gets; grey [L, L, L] = "
         "neutral at level L, unequal = a deliberate tint; [0, 0, 0] = unset (65535/24 grey)",
         default=[0.0, 0.0, 0.0],
+    )
+    input_gamma: float | None = F(
+        "InputGamma",
+        "Scanner source-transfer override, exponent 0.5 to 2.8 (default 1). "
+        "Before density inversion, normalized source RGB is decoded as "
+        "sign(x)*abs(x)^input_gamma. Only an explicitly unprofiled non-RAW scan "
+        "(input profile \"(none)\") may use a non-unity value; RAW and "
+        "profile-linearized input require 1, and a non-unity value is left "
+        "unapplied so the file is not double-decoded. 1 leaves decoded linear "
+        "values unchanged.",
+        ge=0.5, le=2.8, default=1.0,
     )
     density_gamma: float | None = F(
         "DensityGamma", "Density conversion gamma", ge=0.1, le=4.0, default=1.0

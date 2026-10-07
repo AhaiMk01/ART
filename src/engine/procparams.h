@@ -1551,6 +1551,9 @@ struct FilmNegativeParams {
     enum class BackCompat { CURRENT = 0, V1, V2 };
     BackCompat backCompat;
 
+    // Scanner source-transfer override, applied only to an explicitly
+    // unprofiled non-RAW scan. 1 is a no-op. Range 0.5..2.8.
+    double inputGamma;
     double densityGamma;
     double densityDmax;
     std::array<double, 3> rgbGains;
