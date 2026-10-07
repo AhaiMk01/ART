@@ -29,7 +29,7 @@ EDIT_PROFILE_CEILING = 20_000
 """edit_profile's input schema in characters (compact JSON): 29,984 before it
 was compacted, about 16,600 now. The bound leaves room for a few more fields
 and fails if the schema grows back."""
-TOTAL_CEILING = {"render": 24_000, "live": 21_000}
+TOTAL_CEILING = {"render": 25_000, "live": 22_000}
 """All of a server's input schemas together, as a client is told them (Render about 23,400 now, Live
 20,400; 26,300 and 22,200 before the titles and null defaults were dropped from every tool's schema).
 Raise it deliberately for an option worth its characters; the bound is there to stop silent growth."""

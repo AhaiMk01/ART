@@ -2692,9 +2692,12 @@ Glib::ustring RAWParams::getFlatFieldBlurTypeString(FlatFieldBlurType type)
 }
 
 FilmNegativeParams::FilmNegativeParams()
-    : enabled(false), redRatio(1.36), greenExp(1.5), blueRatio(0.86),
+    : enabled(false), method(Method::POWER_LAW), filmType(FilmType::NEGATIVE),
+      redRatio(1.36), greenExp(1.5), blueRatio(0.86),
       refInput({0.0, 0.0, 0.0}), refOutput({0.0, 0.0, 0.0}),
-      colorSpace(ColorSpace::WORKING), backCompat(BackCompat::CURRENT)
+      colorSpace(ColorSpace::WORKING), backCompat(BackCompat::CURRENT),
+      densityGamma(1.0), densityDmax(2.5),
+      rgbGains({0.0, 0.0, 0.0}), channelGamma({1.0, 1.0, 1.0})
 {
 }
 
@@ -2718,10 +2721,14 @@ FilmNegativeParams::RGB::operator*(const FilmNegativeParams::RGB &other) const
 
 bool FilmNegativeParams::operator==(const FilmNegativeParams &other) const
 {
-    return enabled == other.enabled && redRatio == other.redRatio &&
+    return enabled == other.enabled && method == other.method &&
+           filmType == other.filmType && redRatio == other.redRatio &&
            greenExp == other.greenExp && blueRatio == other.blueRatio &&
            refInput == other.refInput && refOutput == other.refOutput &&
-           colorSpace == other.colorSpace && backCompat == other.backCompat;
+           colorSpace == other.colorSpace && backCompat == other.backCompat &&
+           densityGamma == other.densityGamma &&
+           densityDmax == other.densityDmax && rgbGains == other.rgbGains &&
+           channelGamma == other.channelGamma;
 }
 
 bool FilmNegativeParams::operator!=(const FilmNegativeParams &other) const
@@ -3992,6 +3999,10 @@ int ProcParams::save(ProgressListener *pl, bool save_general, KeyFile &keyFile,
         if (RELEVANT_(filmNegative)) {
             saveToKeyfile("Film Negative", "Enabled", filmNegative.enabled,
                           keyFile);
+            saveToKeyfile("Film Negative", "Method",
+                          toUnderlying(filmNegative.method), keyFile);
+            saveToKeyfile("Film Negative", "FilmType",
+                          toUnderlying(filmNegative.filmType), keyFile);
             saveToKeyfile("Film Negative", "RedRatio", filmNegative.redRatio,
                           keyFile);
             saveToKeyfile("Film Negative", "GreenExponent",
@@ -4021,6 +4032,18 @@ int ProcParams::save(ProgressListener *pl, bool save_general, KeyFile &keyFile,
                 FilmNegativeParams::BackCompat::CURRENT) {
                 saveToKeyfile("Film Negative", "BackCompat",
                               toUnderlying(filmNegative.backCompat), keyFile);
+            }
+            saveToKeyfile("Film Negative", "DensityGamma",
+                          filmNegative.densityGamma, keyFile);
+            saveToKeyfile("Film Negative", "DensityDmax",
+                          filmNegative.densityDmax, keyFile);
+            {
+                std::vector<double> v(filmNegative.rgbGains.begin(),
+                                      filmNegative.rgbGains.end());
+                saveToKeyfile("Film Negative", "RGBGains", v, keyFile);
+                std::vector<double> cg(filmNegative.channelGamma.begin(),
+                                       filmNegative.channelGamma.end());
+                saveToKeyfile("Film Negative", "ChannelGamma", cg, keyFile);
             }
         }
 
@@ -6190,6 +6213,62 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                 filmNegative.refInput.r = -1.f;
                 filmNegative.refInput.g = -1.f;
                 filmNegative.refInput.b = -1.f;
+            }
+
+            if (ppVersion >= 1046) {
+                int m = 0;
+                if (assignFromKeyfile(keyFile, "Film Negative", "Method", m)) {
+                    filmNegative.method =
+                        static_cast<FilmNegativeParams::Method>(m);
+                } else {
+                    Glib::ustring s;
+                    if (assignFromKeyfile(keyFile, "Film Negative", "Method", s)) {
+                        if (s == "density" || s == "Density" || s == "DENSITY") {
+                            filmNegative.method =
+                                FilmNegativeParams::Method::DENSITY;
+                        } else {
+                            filmNegative.method =
+                                FilmNegativeParams::Method::POWER_LAW;
+                        }
+                    }
+                }
+
+                int ft = 0;
+                if (assignFromKeyfile(keyFile, "Film Negative", "FilmType", ft)) {
+                    filmNegative.filmType =
+                        static_cast<FilmNegativeParams::FilmType>(ft);
+                } else {
+                    Glib::ustring s;
+                    if (assignFromKeyfile(keyFile, "Film Negative", "FilmType", s)) {
+                        if (s == "reversal" || s == "Reversal" || s == "REVERSAL") {
+                            filmNegative.filmType =
+                                FilmNegativeParams::FilmType::REVERSAL;
+                        } else {
+                            filmNegative.filmType =
+                                FilmNegativeParams::FilmType::NEGATIVE;
+                        }
+                    }
+                }
+
+                assignFromKeyfile(keyFile, "Film Negative", "DensityGamma",
+                                  filmNegative.densityGamma);
+                assignFromKeyfile(keyFile, "Film Negative", "DensityDmax",
+                                  filmNegative.densityDmax);
+                std::vector<double> v;
+                if (assignFromKeyfile(keyFile, "Film Negative", "RGBGains", v) &&
+                    v.size() == 3) {
+                    filmNegative.rgbGains[0] = v[0];
+                    filmNegative.rgbGains[1] = v[1];
+                    filmNegative.rgbGains[2] = v[2];
+                }
+                if (assignFromKeyfile(keyFile, "Film Negative", "ChannelGamma", v) &&
+                    v.size() == 3) {
+                    filmNegative.channelGamma[0] = v[0];
+                    filmNegative.channelGamma[1] = v[1];
+                    filmNegative.channelGamma[2] = v[2];
+                }
+            } else {
+                filmNegative.method = FilmNegativeParams::Method::POWER_LAW;
             }
         }
 

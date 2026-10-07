@@ -52,6 +52,18 @@ Adjuster *createExponentAdjuster(AdjusterListener *listener,
     return adj;
 }
 
+Adjuster *createAdjuster(AdjusterListener *listener,
+                         const Glib::ustring &label, double minV,
+                         double maxV, double step, double defaultVal)
+{
+    Adjuster *const adj =
+        Gtk::manage(new Adjuster(label, minV, maxV, step, defaultVal));
+    adj->setAdjusterListener(listener);
+    adj->delay = std::max(options.adjusterMinDelay, options.adjusterMaxDelay);
+    adj->show();
+    return adj;
+}
+
 Adjuster *createLevelAdjuster(AdjusterListener *listener,
                               const Glib::ustring &label)
 {
@@ -245,8 +257,14 @@ FilmNegative::FilmNegative()
           art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_BALANCE")),
       evFilmNegativeColorSpace(ProcEventMapper::getInstance()->newEvent(
           art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_COLORSPACE")),
+      evFilmNegativeMethod(ProcEventMapper::getInstance()->newEvent(
+          art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_METHOD")),
+      evFilmNegativeDensity(ProcEventMapper::getInstance()->newEvent(
+          art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_DENSITY")),
       refInputValues({0.f, 0.f, 0.f}), paramsUpgraded(false),
       refLuminance({{0.f, 0.f, 0.f}, 0.f}), fnp(nullptr),
+      method(Gtk::manage(new MyComboBoxText())), methodGrid(nullptr),
+      filmType(Gtk::manage(new MyComboBoxText())), filmTypeGrid(nullptr),
       colorSpace(Gtk::manage(new MyComboBoxText())),
       greenExp(createExponentAdjuster(this, M("TP_FILMNEGATIVE_GREEN"), 0.3, 4,
                                       0.01,
@@ -270,9 +288,69 @@ FilmNegative::FilmNegative()
                                 "circle-green-small.svg")), // green balance
       blueBalance(createBalanceAdjuster(
           this, M("TP_FILMNEGATIVE_BLUEBALANCE"), -3.0, 3.0, 0.0,
-          "circle-blue-small.svg", "circle-yellow-small.svg")) // blue balance
+          "circle-blue-small.svg", "circle-yellow-small.svg")), // blue balance
+      densityGamma(createAdjuster(this, M("TP_FILMNEGATIVE_DENSITY_GAMMA"), 0.1,
+                                  4.0, 0.01, 1.0)),
+      densityDmax(createAdjuster(this, M("TP_FILMNEGATIVE_DENSITY_DMAX"), 0.0,
+                                 4.8, 0.01, 2.5)),
+      channelGammaR(createAdjuster(this, M("TP_FILMNEGATIVE_CHANNEL_GAMMA_R"),
+                                   0.5, 2.0, 0.01, 1.0)),
+      channelGammaG(createAdjuster(this, M("TP_FILMNEGATIVE_CHANNEL_GAMMA_G"),
+                                   0.5, 2.0, 0.01, 1.0)),
+      channelGammaB(createAdjuster(this, M("TP_FILMNEGATIVE_CHANNEL_GAMMA_B"),
+                                   0.5, 2.0, 0.01, 1.0)),
+      rgbGainR(createAdjuster(this, M("TP_FILMNEGATIVE_RGB_GAIN_R"), -3.0, 3.0,
+                              0.01, 0.0)),
+      rgbGainG(createAdjuster(this, M("TP_FILMNEGATIVE_RGB_GAIN_G"), -3.0, 3.0,
+                              0.01, 0.0)),
+      rgbGainB(createAdjuster(this, M("TP_FILMNEGATIVE_RGB_GAIN_B"), -3.0, 3.0,
+                              0.01, 0.0)),
+      spotPickerBox(nullptr), refSpotPickerBox(nullptr), sep(nullptr)
 {
     EvToolReset.set_action(art::engine::ALLNORAW);
+
+    method->append(M("TP_FILMNEGATIVE_METHOD_POWER_LAW"));
+    method->append(M("TP_FILMNEGATIVE_METHOD_DENSITY"));
+    setExpandAlignProperties(method, true, false, Gtk::ALIGN_FILL,
+                             Gtk::ALIGN_CENTER);
+
+    methodGrid = Gtk::manage(new Gtk::Grid());
+    Gtk::Label *methodLabel =
+        Gtk::manage(new Gtk::Label(M("TP_FILMNEGATIVE_METHOD")));
+    methodGrid->attach(*methodLabel, 0, 0, 1, 1);
+    methodGrid->attach(*method, 1, 0, 1, 1);
+    pack_start(*methodGrid);
+
+    method->set_active((int)Method::POWER_LAW);
+    method->signal_changed().connect(
+        sigc::mem_fun(*this, &FilmNegative::methodChanged));
+    method->show();
+
+    filmType->append(M("TP_FILMNEGATIVE_FILMTYPE_NEGATIVE"));
+    filmType->append(M("TP_FILMNEGATIVE_FILMTYPE_REVERSAL"));
+    setExpandAlignProperties(filmType, true, false, Gtk::ALIGN_FILL,
+                             Gtk::ALIGN_CENTER);
+
+    filmTypeGrid = Gtk::manage(new Gtk::Grid());
+    Gtk::Label *filmTypeLabel =
+        Gtk::manage(new Gtk::Label(M("TP_FILMNEGATIVE_FILMTYPE")));
+    filmTypeGrid->attach(*filmTypeLabel, 0, 0, 1, 1);
+    filmTypeGrid->attach(*filmType, 1, 0, 1, 1);
+    pack_start(*filmTypeGrid);
+
+    filmType->set_active((int)FilmType::NEGATIVE);
+    filmType->signal_changed().connect(
+        sigc::mem_fun(*this, &FilmNegative::filmTypeChanged));
+    filmType->show();
+
+    pack_start(*densityGamma, Gtk::PACK_SHRINK, 0);
+    pack_start(*densityDmax, Gtk::PACK_SHRINK, 0);
+    pack_start(*channelGammaR, Gtk::PACK_SHRINK, 0);
+    pack_start(*channelGammaG, Gtk::PACK_SHRINK, 0);
+    pack_start(*channelGammaB, Gtk::PACK_SHRINK, 0);
+    pack_start(*rgbGainR, Gtk::PACK_SHRINK, 0);
+    pack_start(*rgbGainG, Gtk::PACK_SHRINK, 0);
+    pack_start(*rgbGainB, Gtk::PACK_SHRINK, 0);
 
     setExpandAlignProperties(spotButton, true, false, Gtk::ALIGN_FILL,
                              Gtk::ALIGN_CENTER);
@@ -312,11 +390,10 @@ FilmNegative::FilmNegative()
     pack_start(*greenExp, Gtk::PACK_SHRINK, 0);
     pack_start(*redRatio, Gtk::PACK_SHRINK, 0);
     pack_start(*blueRatio, Gtk::PACK_SHRINK, 0);
-    // pack_start(*spotButton, Gtk::PACK_SHRINK, 0);
-    pack_start(*pack_spot_picker(spotButton, spotsize), Gtk::PACK_SHRINK, 0);
+    spotPickerBox = pack_spot_picker(spotButton, spotsize);
+    pack_start(*spotPickerBox, Gtk::PACK_SHRINK, 0);
 
-    Gtk::Separator *const sep =
-        Gtk::manage(new Gtk::Separator(Gtk::ORIENTATION_HORIZONTAL));
+    sep = Gtk::manage(new Gtk::Separator(Gtk::ORIENTATION_HORIZONTAL));
     sep->get_style_context()->add_class("grid-row-separator");
     pack_start(*sep, Gtk::PACK_SHRINK, 0);
 
@@ -326,9 +403,8 @@ FilmNegative::FilmNegative()
     pack_start(*blueBalance, Gtk::PACK_SHRINK, 0);
     pack_start(*greenBalance, Gtk::PACK_SHRINK, 0);
 
-    // pack_start(*refSpotButton, Gtk::PACK_SHRINK, 0);
-    pack_start(*pack_spot_picker(refSpotButton, refspotsize), Gtk::PACK_SHRINK,
-               0);
+    refSpotPickerBox = pack_spot_picker(refSpotButton, refspotsize);
+    pack_start(*refSpotPickerBox, Gtk::PACK_SHRINK, 0);
 
     spotButton->signal_toggled().connect(
         sigc::mem_fun(*this, &FilmNegative::editToggled));
@@ -336,6 +412,7 @@ FilmNegative::FilmNegative()
     refSpotButton->signal_toggled().connect(
         sigc::mem_fun(*this, &FilmNegative::refSpotToggled));
 
+    updateVisibility();
     // Editing geometry; create the spot rectangle
     Rectangle *const spotRect = new Rectangle();
     spotRect->filled = false;
@@ -390,10 +467,24 @@ void FilmNegative::read(const art::engine::procparams::ProcParams *pp)
     // Reset luminance reference each time params are read
     refLuminance.lum = 0.f;
 
+    initial_params = pp->filmNegative;
+
+    method->set_active(CLAMP((int)pp->filmNegative.method, 0, 1));
+    filmType->set_active(CLAMP((int)pp->filmNegative.filmType, 0, 1));
+
     colorSpace->set_active(CLAMP((int)pp->filmNegative.colorSpace, 0, 1));
     redRatio->setValue(pp->filmNegative.redRatio);
     greenExp->setValue(pp->filmNegative.greenExp);
     blueRatio->setValue(pp->filmNegative.blueRatio);
+
+    densityGamma->setValue(pp->filmNegative.densityGamma);
+    densityDmax->setValue(pp->filmNegative.densityDmax);
+    channelGammaR->setValue(pp->filmNegative.channelGamma[0]);
+    channelGammaG->setValue(pp->filmNegative.channelGamma[1]);
+    channelGammaB->setValue(pp->filmNegative.channelGamma[2]);
+    rgbGainR->setValue(pp->filmNegative.rgbGains[0]);
+    rgbGainG->setValue(pp->filmNegative.rgbGains[1]);
+    rgbGainB->setValue(pp->filmNegative.rgbGains[2]);
 
     refInputValues = pp->filmNegative.refInput;
 
@@ -402,20 +493,7 @@ void FilmNegative::read(const art::engine::procparams::ProcParams *pp)
     refInputLabel->set_markup(Glib::ustring::compose(
         M("TP_FILMNEGATIVE_REF_LABEL"), fmt(refInputValues)));
 
-    csGrid->set_visible(
-        !(pp->filmNegative.backCompat == BackCompat::CURRENT &&
-          pp->filmNegative.colorSpace ==
-              art::engine::procparams::FilmNegativeParams::ColorSpace::WORKING));
-
-    if (pp->filmNegative.backCompat == BackCompat::CURRENT) {
-        outputLevel->show();
-        blueBalance->show();
-        greenBalance->show();
-    } else {
-        outputLevel->hide();
-        blueBalance->hide();
-        greenBalance->hide();
-    }
+    updateVisibility();
 
     // If reference output values are not set in params, set the default output
     // chosen for median estimation: gray 1/24th of max
@@ -431,6 +509,11 @@ void FilmNegative::read(const art::engine::procparams::ProcParams *pp)
 
 void FilmNegative::write(art::engine::procparams::ProcParams *pp)
 {
+    pp->filmNegative.method =
+        Method(CLAMP(method->get_active_row_number(), 0, 1));
+    pp->filmNegative.filmType =
+        FilmType(CLAMP(filmType->get_active_row_number(), 0, 1));
+
     pp->filmNegative.colorSpace =
         art::engine::procparams::FilmNegativeParams::ColorSpace(
             colorSpace->get_active_row_number());
@@ -438,6 +521,15 @@ void FilmNegative::write(art::engine::procparams::ProcParams *pp)
     pp->filmNegative.redRatio = redRatio->getValue();
     pp->filmNegative.greenExp = greenExp->getValue();
     pp->filmNegative.blueRatio = blueRatio->getValue();
+
+    pp->filmNegative.densityGamma = densityGamma->getValue();
+    pp->filmNegative.densityDmax = densityDmax->getValue();
+    pp->filmNegative.channelGamma[0] = channelGammaR->getValue();
+    pp->filmNegative.channelGamma[1] = channelGammaG->getValue();
+    pp->filmNegative.channelGamma[2] = channelGammaB->getValue();
+    pp->filmNegative.rgbGains[0] = rgbGainR->getValue();
+    pp->filmNegative.rgbGains[1] = rgbGainG->getValue();
+    pp->filmNegative.rgbGains[2] = rgbGainB->getValue();
 
     pp->filmNegative.enabled = getEnabled();
 
@@ -453,14 +545,28 @@ void FilmNegative::write(art::engine::procparams::ProcParams *pp)
 void FilmNegative::setDefaults(
     const art::engine::procparams::ProcParams *defParams)
 {
+    method->set_active((int)defParams->filmNegative.method);
+    filmType->set_active((int)defParams->filmNegative.filmType);
+
     redRatio->setValue(defParams->filmNegative.redRatio);
     greenExp->setValue(defParams->filmNegative.greenExp);
     blueRatio->setValue(defParams->filmNegative.blueRatio);
+
+    densityGamma->setValue(defParams->filmNegative.densityGamma);
+    densityDmax->setValue(defParams->filmNegative.densityDmax);
+    channelGammaR->setValue(defParams->filmNegative.channelGamma[0]);
+    channelGammaG->setValue(defParams->filmNegative.channelGamma[1]);
+    channelGammaB->setValue(defParams->filmNegative.channelGamma[2]);
+    rgbGainR->setValue(defParams->filmNegative.rgbGains[0]);
+    rgbGainG->setValue(defParams->filmNegative.rgbGains[1]);
+    rgbGainB->setValue(defParams->filmNegative.rgbGains[2]);
 
     initial_params = defParams->filmNegative;
 
     float gray = art::engine::MAXVALF / 24.f;
     writeOutputSliders({gray, gray, gray});
+
+    updateVisibility();
 }
 
 void FilmNegative::adjusterChanged(Adjuster *a, double newval)
@@ -483,7 +589,112 @@ void FilmNegative::adjusterChanged(Adjuster *a, double newval)
                 Glib::ustring::compose(
                     "Lev=%1 G=%2 B=%3", outputLevel->getValue(),
                     greenBalance->getValue(), blueBalance->getValue()));
+        } else if (a == densityGamma || a == densityDmax ||
+                   a == channelGammaR || a == channelGammaG ||
+                   a == channelGammaB || a == rgbGainR || a == rgbGainG ||
+                   a == rgbGainB) {
+            listener->panelChanged(
+                evFilmNegativeDensity,
+                Glib::ustring::compose(
+                    "DG=%1 Dmax=%2", densityGamma->getValue(),
+                    densityDmax->getValue()));
         }
+    }
+}
+
+void FilmNegative::updateVisibility()
+{
+    Method m = Method(method->get_active_row_number());
+    if (m == Method::POWER_LAW) {
+        filmTypeGrid->hide();
+        densityGamma->hide();
+        densityDmax->hide();
+        channelGammaR->hide();
+        channelGammaG->hide();
+        channelGammaB->hide();
+        rgbGainR->hide();
+        rgbGainG->hide();
+        rgbGainB->hide();
+
+        csGrid->set_visible(
+            !(initial_params.backCompat == BackCompat::CURRENT &&
+              initial_params.colorSpace ==
+                  art::engine::procparams::FilmNegativeParams::ColorSpace::WORKING));
+        greenExp->show();
+        redRatio->show();
+        blueRatio->show();
+        if (spotPickerBox) {
+            spotPickerBox->show();
+        }
+        if (sep) {
+            sep->show();
+        }
+        refInputLabel->show();
+
+        if (initial_params.backCompat == BackCompat::CURRENT) {
+            outputLevel->show();
+            blueBalance->show();
+            greenBalance->show();
+        } else {
+            outputLevel->hide();
+            blueBalance->hide();
+            greenBalance->hide();
+        }
+
+        if (refSpotPickerBox) {
+            refSpotPickerBox->show();
+        }
+    } else { // DENSITY
+        csGrid->hide();
+        greenExp->hide();
+        redRatio->hide();
+        blueRatio->hide();
+        if (spotPickerBox) {
+            spotPickerBox->hide();
+        }
+        if (sep) {
+            sep->hide();
+        }
+        refInputLabel->hide();
+        outputLevel->hide();
+        blueBalance->hide();
+        greenBalance->hide();
+        if (refSpotPickerBox) {
+            refSpotPickerBox->hide();
+        }
+
+        filmTypeGrid->show();
+        densityGamma->show();
+        FilmType ft = FilmType(filmType->get_active_row_number());
+        if (ft == FilmType::NEGATIVE) {
+            densityDmax->show();
+        } else {
+            densityDmax->hide();
+        }
+        channelGammaR->show();
+        channelGammaG->show();
+        channelGammaB->show();
+        rgbGainR->show();
+        rgbGainG->show();
+        rgbGainB->show();
+    }
+}
+
+void FilmNegative::methodChanged()
+{
+    updateVisibility();
+    if (listener) {
+        listener->panelChanged(evFilmNegativeMethod,
+                               method->get_active_text());
+    }
+}
+
+void FilmNegative::filmTypeChanged()
+{
+    updateVisibility();
+    if (listener) {
+        listener->panelChanged(evFilmNegativeMethod,
+                               filmType->get_active_text());
     }
 }
 

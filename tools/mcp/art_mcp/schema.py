@@ -11,8 +11,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationEr
 
 from art_mcp.compactschema import CompactModel, compact_model_schema, full_schema
 from art_mcp.curves import CurveSpec
-
-PPVERSION = 1045
+PPVERSION = 1046
 """The processing-profile version (``src/utils/ppversion.h``) this schema was
 written for."""
 
@@ -381,14 +380,22 @@ class ColorCorrection(CompactModel):
     )
 
 
-def rgb_field(key: str, description: str, *, default: list[Any]) -> Any:
+def rgb_field(
+    key: str,
+    description: str,
+    *,
+    default: list[Any],
+    allow_negative: bool = False,
+) -> Any:
     """A curated field holding three numbers ``[r, g, b]`` (``rgb`` extra),
-    each at least 0, stored as ``r;g;b``."""
+    stored as ``r;g;b``."""
+    extra = {"key": key, "art_default": default, "rgb": True}
+    if allow_negative:
+        extra["allow_negative"] = True
     return Field(
         None, min_length=3, max_length=3, description=description,
-        json_schema_extra={"key": key, "art_default": default, "rgb": True},
+        json_schema_extra=extra,
     )  # fmt: skip
-
 
 class FilmNegative(CompactModel):
     """Film Negative: inverts a camera-scanned colour negative. Per channel
@@ -418,6 +425,16 @@ class FilmNegative(CompactModel):
     typed edits other than `enabled` are refused on them."""
 
     enabled: bool | None = F("Enabled", "Turn the tool on or off", default=False)
+    method: Literal["power_law", "density"] | None = F(
+        "Method",
+        "Conversion method: power_law (stored 0) or density (stored 1)",
+        stored_as={"power_law": "0", "density": "1"}, default="power_law",
+    )  # fmt: skip
+    film_type: Literal["negative", "reversal"] | None = F(
+        "FilmType",
+        "Film stock type: negative (stored 0) or reversal (stored 1)",
+        stored_as={"negative": "0", "reversal": "1"}, default="negative",
+    )  # fmt: skip
     color_space: Literal["working", "input"] | None = F(
         "ColorSpace",
         "Space the references and `sample_spots` values are in: working (stored 1) or the "
@@ -444,6 +461,23 @@ class FilmNegative(CompactModel):
         "[r, g, b] >= 0: the linear output (0..65535) the reference gets; grey [L, L, L] = "
         "neutral at level L, unequal = a deliberate tint; [0, 0, 0] = unset (65535/24 grey)",
         default=[0.0, 0.0, 0.0],
+    )
+    density_gamma: float | None = F(
+        "DensityGamma", "Density conversion gamma", ge=0.1, le=4.0, default=1.0
+    )
+    density_dmax: float | None = F(
+        "DensityDmax", "Maximum film density (Dmax), inactive for reversal", ge=0.0, le=4.8, default=2.5
+    )
+    rgb_gains: list[Annotated[float, Field(ge=-3.0, le=3.0)]] | None = rgb_field(
+        "RGBGains",
+        "[r, g, b]: per-channel printer-light exposure gains (-3.0 to 3.0)",
+        default=[0.0, 0.0, 0.0],
+        allow_negative=True,
+    )
+    channel_gamma: list[Annotated[float, Field(ge=0.5, le=2.0)]] | None = rgb_field(
+        "ChannelGamma",
+        "[r, g, b]: per-channel density contrast slopes (0.5 to 2.0)",
+        default=[1.0, 1.0, 1.0],
     )
 
 

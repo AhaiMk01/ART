@@ -567,7 +567,12 @@ def typed_adjustments(profile: KeyFile) -> tuple[dict[str, dict[str, Any]], set[
             extra = info.json_schema_extra
             assert isinstance(extra, dict)
             if extra.get("rgb"):
-                triple = read_triple_field(stored) if stored is not None else extra["art_default"]
+                allow_neg = bool(extra.get("allow_negative", False))
+                triple = (
+                    read_triple_field(stored, allow_negative=allow_neg)
+                    if stored is not None
+                    else extra["art_default"]
+                )
                 if triple is None:
                     continue
                 values[field] = triple

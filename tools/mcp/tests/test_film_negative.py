@@ -80,17 +80,23 @@ def test_describe_lists_the_fields_with_ranges_and_keys():
 
     assert tool.group == "Film Negative"
     assert {n: f.key for n, f in tool.fields.items()} == {
-        "enabled": "Enabled", "color_space": "ColorSpace", "red_ratio": "RedRatio",
+        "enabled": "Enabled", "method": "Method", "film_type": "FilmType",
+        "color_space": "ColorSpace", "red_ratio": "RedRatio",
         "green_exponent": "GreenExponent", "blue_ratio": "BlueRatio",
         "ref_input": "RefInput", "ref_output": "RefOutput",
+        "density_gamma": "DensityGamma", "density_dmax": "DensityDmax",
+        "rgb_gains": "RGBGains", "channel_gamma": "ChannelGamma",
     }  # fmt: skip
     ranges = {n: (f.minimum, f.maximum) for n, f in tool.fields.items()}
     assert ranges["red_ratio"] == (0.3, 5) and ranges["blue_ratio"] == (0.3, 5)
     assert ranges["green_exponent"] == (0.3, 4)
+    assert ranges["density_gamma"] == (0.1, 4.0)
+    assert ranges["density_dmax"] == (0.0, 4.8)
+    assert tool.fields["method"].enum == ["power_law", "density"]
+    assert tool.fields["film_type"].enum == ["negative", "reversal"]
     assert tool.fields["color_space"].enum == ["working", "input"]
     for needle in ("mult_c", "65535/24", "0.2126729", "ref_output", "Legacy"):
         assert needle in tool.description
-
 
 def test_edits_write_the_stored_keys():
     changes = WorkingChanges(profile())
@@ -114,9 +120,12 @@ def test_get_profile_reads_it_back_typed_and_consumes_the_keys():
     view = read_format(profile("8656.9248;4344.5332;2811.6162", "10672.1363;10672.1363;10672.1363"))
 
     assert view.adjustments["film_negative"] == {
-        "enabled": True, "color_space": "working", "red_ratio": 1.0, "green_exponent": 2.0,
+        "enabled": True, "method": "power_law", "film_type": "negative",
+        "color_space": "working", "red_ratio": 1.0, "green_exponent": 2.0,
         "blue_ratio": 0.5, "ref_input": [8656.9248, 4344.5332, 2811.6162],
         "ref_output": [10672.1363] * 3,
+        "density_gamma": 1.0, "density_dmax": 2.5,
+        "rgb_gains": [0.0, 0.0, 0.0], "channel_gamma": [1.0, 1.0, 1.0],
     }  # fmt: skip
     assert "Film Negative" not in view.raw
 
@@ -162,12 +171,70 @@ def test_a_value_outside_the_schema_stays_raw():
         {"red_ratio": 0.29}, {"red_ratio": 5.1}, {"green_exponent": 4.1}, {"blue_ratio": 0.2},
         {"ref_input": [1, 2]}, {"ref_input": [1, 2, 3, 4]}, {"ref_output": [1, -1, 3]},
         {"color_space": "srgb"},
+        {"density_gamma": 0.05}, {"density_gamma": 4.1},
+        {"density_dmax": -0.1}, {"density_dmax": 4.9},
+        {"method": "unknown"}, {"film_type": "unknown"},
+        {"rgb_gains": [-3.1, 0, 0]}, {"rgb_gains": [0, 3.1, 0]},
+        {"channel_gamma": [0.4, 1, 1]}, {"channel_gamma": [1, 2.1, 1]},
+        {"rgb_gains": [1, 2]}, {"channel_gamma": [1, 2, 3, 4]},
     ],
 )  # fmt: skip
 def test_out_of_range_values_are_refused(fields):
     with pytest.raises(AdjustmentError) as e:
         parse_adjustments({"film_negative": fields})
     assert e.value.code == "out_of_range"
+
+
+def test_density_fields_round_trip():
+    changes = WorkingChanges(profile())
+    result = changes.edit(
+        adj(
+            method="density",
+            film_type="reversal",
+            density_gamma=1.5,
+            density_dmax=3.0,
+            rgb_gains=[-0.5, 0.2, 1.0],
+            channel_gamma=[0.8, 1.2, 1.5],
+        ),
+        [],
+    )
+    assert values(result) == {
+        "Method": "1",
+        "FilmType": "1",
+        "DensityGamma": "1.5",
+        "DensityDmax": "3",
+        "RGBGains": "-0.5;0.2;1",
+        "ChannelGamma": "0.8;1.2;1.5",
+    }
+    typed = read_format(changes.profile).adjustments["film_negative"]
+    assert typed["method"] == "density"
+    assert typed["film_type"] == "reversal"
+    assert typed["density_gamma"] == 1.5
+    assert typed["density_dmax"] == 3.0
+    assert typed["rgb_gains"] == [-0.5, 0.2, 1.0]
+    assert typed["channel_gamma"] == [0.8, 1.2, 1.5]
+
+
+def test_density_negative_math():
+    import math
+
+    dmax = 2.5
+    gamma = 1.0
+    p = 0.7
+    anchor = 4.1 - dmax
+    expected_outputs = []
+    for Tc in [0.01, 0.1, 1.0]:
+        Dc = -math.log10(Tc)
+        Ac = dmax - p - gamma * (Dc - p)
+        Ci = anchor + 1.0 * (Ac - anchor) - 0.0
+        Lc = 10.0 ** (-Ci)
+        expected = (10.0 ** (-2.5)) / Tc
+        assert math.isclose(Lc, expected, rel_tol=1e-7)
+        expected_outputs.append(Lc)
+
+    assert math.isclose(expected_outputs[0], 0.316227766, rel_tol=1e-6)
+    assert math.isclose(expected_outputs[1], 0.031622777, rel_tol=1e-6)
+    assert math.isclose(expected_outputs[2], 0.003162278, rel_tol=1e-6)
 
 
 def test_enabling_is_implied_on_a_disabled_tool():

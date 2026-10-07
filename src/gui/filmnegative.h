@@ -36,8 +36,9 @@ namespace {
 using RGB = art::engine::procparams::FilmNegativeParams::RGB;
 using ColorSpace = art::engine::procparams::FilmNegativeParams::ColorSpace;
 using BackCompat = art::engine::procparams::FilmNegativeParams::BackCompat;
+using Method = art::engine::procparams::FilmNegativeParams::Method;
+using FilmType = art::engine::procparams::FilmNegativeParams::FilmType;
 } // namespace
-
 class FilmNegProvider {
 public:
     virtual ~FilmNegProvider() = default;
@@ -64,7 +65,9 @@ public:
     void adjusterChanged(Adjuster *a, double newval) override;
     void enabledChanged() override;
     void colorSpaceChanged();
-
+    void methodChanged();
+    void filmTypeChanged();
+    void updateVisibility();
     void filmRefValuesChanged(const RGB &refInput,
                               const RGB &refOutput) override;
 
@@ -96,7 +99,8 @@ private:
     const art::engine::ProcEvent evFilmNegativeRefSpot;
     const art::engine::ProcEvent evFilmNegativeBalance;
     const art::engine::ProcEvent evFilmNegativeColorSpace;
-
+    const art::engine::ProcEvent evFilmNegativeMethod;
+    const art::engine::ProcEvent evFilmNegativeDensity;
     std::vector<art::engine::Coord> refSpotCoords;
 
     RGB refInputValues;
@@ -115,6 +119,10 @@ private:
     } refLuminance;
 
     FilmNegProvider *fnp;
+    MyComboBoxText *const method;
+    Gtk::Grid *methodGrid;
+    MyComboBoxText *const filmType;
+    Gtk::Grid *filmTypeGrid;
 
     MyComboBoxText *const colorSpace;
 
@@ -134,6 +142,19 @@ private:
     Adjuster *const blueBalance;
 
     Gtk::Grid *csGrid;
+
+    Adjuster *const densityGamma;
+    Adjuster *const densityDmax;
+    Adjuster *const channelGammaR;
+    Adjuster *const channelGammaG;
+    Adjuster *const channelGammaB;
+    Adjuster *const rgbGainR;
+    Adjuster *const rgbGainG;
+    Adjuster *const rgbGainB;
+
+    Gtk::Widget *spotPickerBox;
+    Gtk::Widget *refSpotPickerBox;
+    Gtk::Separator *sep;
 
     IdleRegister idle_register;
 

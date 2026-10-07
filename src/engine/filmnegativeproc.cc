@@ -217,6 +217,89 @@ void convertColorSpace(Imagefloat* input, const TMatrix &src2xyz, const TMatrix
 }
 */
 
+void doProcessDensity(Imagefloat *input, Imagefloat *output,
+                      const FilmNegativeParams &params)
+{
+    input->syncCpu();
+    output->syncCpuForWrite();
+
+    const float S = 65535.f;
+    const float densityGamma = static_cast<float>(params.densityGamma);
+    const float densityDmax = static_cast<float>(params.densityDmax);
+    const float p = 0.7f;
+    const float P = (params.filmType == FilmNegativeParams::FilmType::NEGATIVE)
+                        ? (4.1f - densityDmax)
+                        : 0.7f;
+
+    const std::array<float, 3> channelGamma = {
+        static_cast<float>(params.channelGamma[0]),
+        static_cast<float>(params.channelGamma[1]),
+        static_cast<float>(params.channelGamma[2])};
+
+    const std::array<float, 3> rgbGains = {
+        static_cast<float>(params.rgbGains[0]),
+        static_cast<float>(params.rgbGains[1]),
+        static_cast<float>(params.rgbGains[2])};
+
+    const bool isNegative =
+        (params.filmType == FilmNegativeParams::FilmType::NEGATIVE);
+
+    const int rheight = input->getHeight();
+    const int rwidth = input->getWidth();
+
+    int nonFiniteCount = 0;
+
+#ifdef _OPENMP
+    #pragma omp parallel for reduction(+:nonFiniteCount)
+#endif
+    for (int i = 0; i < rheight; i++) {
+        float *rlinein = input->r(i);
+        float *glinein = input->g(i);
+        float *blinein = input->b(i);
+        float *rlineout = output->r(i);
+        float *glineout = output->g(i);
+        float *blineout = output->b(i);
+
+        for (int j = 0; j < rwidth; ++j) {
+            float in[3] = {rlinein[j], glinein[j], blinein[j]};
+            float out[3];
+
+            for (int c = 0; c < 3; ++c) {
+                float sample = in[c];
+                float Tc;
+                if (!std::isfinite(sample)) {
+                    nonFiniteCount++;
+                    Tc = 1e-10f;
+                } else {
+                    float norm = sample / S;
+                    Tc = norm > 1e-10f ? norm : 1e-10f;
+                }
+
+                float Dc = -std::log10(Tc);
+                float Ac;
+                if (isNegative) {
+                    Ac = densityDmax - p - densityGamma * (Dc - p);
+                } else {
+                    Ac = p + densityGamma * (Dc - p);
+                }
+
+                // Identity matrix: Bi = Ai
+                float Ci = P + channelGamma[c] * (Ac - P) - rgbGains[c];
+                float Lc = std::pow(10.f, -Ci);
+                out[c] = CLIP(S * Lc);
+            }
+
+            rlineout[j] = out[0];
+            glineout[j] = out[1];
+            blineout[j] = out[2];
+        }
+    }
+
+    if (nonFiniteCount > 0) {
+        std::cerr << "Film Negative: non-finite sample detected in input image\n";
+    }
+}
+
 /**
  * Perform actual film negative inversion process.
  * Returns true if the input and output reference values are not set in params;
@@ -230,6 +313,10 @@ bool doProcess(Imagefloat *input, Imagefloat *output,
     input->syncCpu();
     output->syncCpuForWrite();
 
+    if (params.method == FilmNegativeParams::Method::DENSITY) {
+        doProcessDensity(input, output, params);
+        return false;
+    }
     bool refsUpdated = false;
 
     float rexp = -(params.greenExp * params.redRatio);
@@ -316,6 +403,12 @@ bool art::engine::ImProcFunctions::filmNegativeProcess(Imagefloat *input,
     // BENCHFUNMICRO
 
     if (!fnp.enabled) {
+        return false;
+    }
+
+    if (fnp.method == FilmNegativeParams::Method::DENSITY) {
+        fnp.backCompat = FilmNegativeParams::BackCompat::CURRENT;
+        doProcessDensity(input, output, fnp);
         return false;
     }
 

@@ -276,10 +276,12 @@ def picker_edits(
     return [_ref_output((level,) * 3)], warnings
 
 
-def read_triple_field(stored: str | None) -> list[float] | None:
-    """A ``RefInput``/``RefOutput`` value as typed, None if it isn't three
-    numbers >= 0 (it then stays raw)."""
+def read_triple_field(stored: str | None, allow_negative: bool = False) -> list[float] | None:
+    """A ``RefInput``/``RefOutput``/triple value as typed, None if it isn't three
+    numbers (it then stays raw; if not allow_negative, each number must be >= 0)."""
     triple = parse_triple(stored)
-    if triple is None or any(v < 0 for v in triple):
+    if triple is None:
+        return None
+    if not allow_negative and any(v < 0 for v in triple):
         return None
     return list(triple)

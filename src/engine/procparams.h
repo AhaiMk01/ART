@@ -1518,6 +1518,13 @@ struct RAWParams {
  */
 struct FilmNegativeParams {
     bool enabled;
+
+    enum class Method { POWER_LAW = 0, DENSITY };
+    Method method;
+
+    enum class FilmType { NEGATIVE = 0, REVERSAL };
+    FilmType filmType;
+
     double redRatio;
     double greenExp;
     double blueRatio;
@@ -1543,6 +1550,11 @@ struct FilmNegativeParams {
 
     enum class BackCompat { CURRENT = 0, V1, V2 };
     BackCompat backCompat;
+
+    double densityGamma;
+    double densityDmax;
+    std::array<double, 3> rgbGains;
+    std::array<double, 3> channelGamma;
 
     FilmNegativeParams();
 

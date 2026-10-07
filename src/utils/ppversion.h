@@ -5,10 +5,12 @@ namespace art { namespace utils {
 
 // This number has to be incremented whenever the ARP file format is modified or
 // the behaviour of a tool changes
-#define PPVERSION 1045
+#define PPVERSION 1046
 
 /*
   Log of version changes
+  1046  2026-10-07
+        film negative: core density inversion engine and parameters
   1045  2026-05-25
         improve feathering formula for external masks
   1044  2025-11-11
