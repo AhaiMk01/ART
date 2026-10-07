@@ -1,0 +1,6 @@
+#55 fixture: no Version group, old Film Negative keys, no Method.
+# ProcParams::load and KeyFilePartialProfile::applyTo select power_law.
+[Film Negative]
+RedRatio=1.3
+GreenExponent=1
+BlueRatio=0.9

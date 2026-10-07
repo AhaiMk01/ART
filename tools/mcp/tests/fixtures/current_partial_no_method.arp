@@ -1,0 +1,7 @@
+#55 fixture: current-version partial without Method.
+# ProcParams::load must not switch method.
+[Version]
+Version=1050
+
+[Film Negative]
+DensityGamma=1.2

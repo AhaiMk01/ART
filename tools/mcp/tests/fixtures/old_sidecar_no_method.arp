@@ -1,0 +1,12 @@
+#55 fixture: complete pre-feature sidecar, no Method.
+# ProcParams::load (src/engine/procparams.cc) selects power_law.
+# The Python keyfile loader does not implement this rule.
+[Version]
+Version=1045
+
+[Film Negative]
+Enabled=true
+RedRatio=1.5
+GreenExponent=1.2
+BlueRatio=0.8
+ColorSpace=1

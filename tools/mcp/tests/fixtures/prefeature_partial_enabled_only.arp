@@ -1,0 +1,7 @@
+#55 fixture: pre-feature Enabled-only partial.
+# ProcParams::load must change only Enabled, not Method.
+[Version]
+Version=1045
+
+[Film Negative]
+Enabled=false

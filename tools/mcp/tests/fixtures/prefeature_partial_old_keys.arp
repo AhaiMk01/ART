@@ -1,0 +1,9 @@
+#55 fixture: pre-feature partial with old Film Negative keys, no Method.
+# ProcParams::load and KeyFilePartialProfile::applyTo select power_law.
+[Version]
+Version=1045
+
+[Film Negative]
+RedRatio=1.1
+GreenExponent=1
+BlueRatio=1.1

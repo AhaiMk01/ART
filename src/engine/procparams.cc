@@ -3192,6 +3192,45 @@ bool load_lut_params(const KeyFile &keyFile, const Glib::ustring &group,
     return false;
 }
 
+// Pre-density Film Negative keys. Enabled alone is not one: an Enabled-only
+// partial changes only Enabled (issue #46).
+const char *const kFilmNegativeOldKeys[] = {
+    "RedRatio",     "GreenExponent", "BlueRatio", "RedBase",
+    "GreenBase",    "BlueBase",      "RefInput",  "RefOutput",
+    "ColorSpace",   "BackCompat",    nullptr};
+
+template <typename KF>
+bool filmNegativeHasOldProcessingKeys(const KF &keyFile)
+{
+    if (!keyFile.has_group("Film Negative")) {
+        return false;
+    }
+    for (const char *const *key = kFilmNegativeOldKeys; *key; ++key) {
+        if (keyFile.has_key("Film Negative", *key)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Missing Method selects power_law for a complete old sidecar and for a
+// pre-feature or versionless partial that still carries old processing keys.
+// A current-version partial without Method, and a versionless partial of
+// only new fields, keep the method already loaded. Explicit Method wins.
+template <typename KF>
+bool filmNegativeMissingMethodSelectsPowerLaw(const KF &keyFile)
+{
+    if (!filmNegativeHasOldProcessingKeys(keyFile) ||
+        keyFile.has_key("Film Negative", "Method")) {
+        return false;
+    }
+    if (!keyFile.has_group("Version") ||
+        !keyFile.has_key("Version", "Version")) {
+        return true;
+    }
+    return keyFile.get_integer("Version", "Version") < 1046;
+}
+
 } // namespace
 
 int ProcParams::save(ProgressListener *pl, bool save_general, KeyFile &keyFile,
@@ -6453,24 +6492,34 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                 filmNegative.refInput.b = -1.f;
             }
 
-            if (ppVersion >= 1046) {
+            {
                 int m = 0;
                 if (assignFromKeyfile(keyFile, "Film Negative", "Method", m)) {
                     filmNegative.method =
                         static_cast<FilmNegativeParams::Method>(m);
                 } else {
                     Glib::ustring s;
-                    if (assignFromKeyfile(keyFile, "Film Negative", "Method", s)) {
-                        if (s == "density" || s == "Density" || s == "DENSITY") {
+                    if (assignFromKeyfile(keyFile, "Film Negative", "Method",
+                                          s)) {
+                        if (s == "density" || s == "Density" ||
+                            s == "DENSITY") {
                             filmNegative.method =
                                 FilmNegativeParams::Method::DENSITY;
                         } else {
                             filmNegative.method =
                                 FilmNegativeParams::Method::POWER_LAW;
                         }
+                    } else if (filmNegativeMissingMethodSelectsPowerLaw(
+                                   keyFile)) {
+                        // ProcParams::load: old sidecar / pre-feature partial
+                        // with old Film Negative keys and no Method.
+                        filmNegative.method =
+                            FilmNegativeParams::Method::POWER_LAW;
                     }
                 }
+            }
 
+            if (ppVersion >= 1046) {
                 int ft = 0;
                 if (assignFromKeyfile(keyFile, "Film Negative", "FilmType", ft)) {
                     filmNegative.filmType =
@@ -6527,8 +6576,6 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                                   filmNegative.matrixBasis);
                 assignFromKeyfile(keyFile, "Film Negative", "CalibrationNote",
                                   filmNegative.calibrationNote);
-            } else {
-                filmNegative.method = FilmNegativeParams::Method::POWER_LAW;
             }
             // Missing key keeps the default. Present on any version so a
             // partial profile is not dropped when Version was not bumped.
@@ -6892,6 +6939,12 @@ bool KeyFilePartialProfile::applyTo(ProcParams &pp) const
             for (const Glib::ustring &key : given.get_keys(group)) {
                 merged.set_value(group, key, given.get_value(group, key));
             }
+        }
+        // The saved profile already has Method. A pre-feature or versionless
+        // partial with old keys and no Method must still select power_law
+        // (KeyFilePartialProfile::applyTo, issue #46).
+        if (filmNegativeMissingMethodSelectsPowerLaw(given)) {
+            merged.set_integer("Film Negative", "Method", 0);
         }
         KeyFile result;
         if (!result.load_from_data(merged.to_data())) {
