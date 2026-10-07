@@ -1,6 +1,6 @@
 ---
 name: film-negative
-description: Invert camera-scanned colour negative film (photographed or scanned negatives with an orange mask, C-41, a roll of negatives) into positives with ART's Film Negative tool, using the art-render MCP tools (sample_spots, edit_profile, image_stats, render_preview). Use when asked to invert, convert or colour-correct negative scans, balance a negative's colours, or batch a roll.
+description: Invert camera-scanned colour negative film into positives with ART's Film Negative tool, using the art-render MCP tools. Use for power-law inversion (orange mask, C-41, a roll) and for the density method (printer lights, Dmax, a density matrix, paper curves, Cineon export, a print LUT).
 ---
 
 # Inverting colour negatives with ART
@@ -10,10 +10,62 @@ Needs the `art-render` MCP server (and an ART build whose `art-cli` supports
 white-balance formulas are in [reference.md](reference.md) (with Python
 snippets for the single-frame and the pooled fit).
 
-ART's Film Negative tool needs no film-base sample: ratios come from neutral
-spots in the picture. A frame without any film base visible is fine.
+ART's Film Negative tool has two methods. `power_law` (the default, and every
+old sidecar) is the ratio fit below. `density` is printer lights, Dmax, an
+optional matrix, a paper curve or a Cineon handoff. Do not mix their reference
+spots: a power-law `ref_input` is not a density gain. Formulas for both are in
+[reference.md](reference.md).
 
-## The minimum for a roll
+## Density method
+
+Use this when the ask is printer lights, density units, a Status M or custom
+matrix, a Kodak or Ilford print curve, or a Cineon TIFF / print LUT. The
+editor and `render_preview` stay linear. Cineon codes exist only in a 16-bit
+integer TIFF export, and only when the tool is enabled and `method` is
+`density`.
+
+1. `open_image`, then `get_profile` for `Film Negative`. A missing `Method`
+   is `power_law`. Set `method: "density"` explicitly. `film_type` is
+   `negative` or `reversal` (`density_dmax` is inactive for reversal).
+2. `color_space: "working"` unless the scan must be inverted before the input
+   profile. `sample_spots` uses the same space.
+3. `input_gamma` stays 1 on RAW and on any profiled scan. A non-unity value
+   is only for an unprofiled non-RAW scan whose input profile is `(none)`.
+   Anything else fails the render and leaves the scan uninverted.
+4. Start from identity: `density_gamma` 1, `density_dmax` 2.5, `rgb_gains`
+   `[0, 0, 0]`, `channel_gamma` `[1, 1, 1]`, `matrix_preset: "identity"`,
+   `target_mode: "linear"`. Identity negative then yields `10^(-2.5) / T`
+   for normalized transmittance `T`.
+5. **Film-base rebate** (negative only). `sample_spots` on unexposed film,
+   then one `edit_profile` with `film_base_sample` set to that spot's `avg`.
+   Do not also send `rgb_gains`. The server sets all three gains to `C - 4.0`
+   or changes nothing. Reversal has no rebate pick.
+6. **Matrix.** `identity` needs no binding. `status_m_reference` or `custom`
+   needs `matrix_basis` JSON with `v`, `color_space`, `profile`,
+   `input_gamma`, `source` (the camera string from `inspect_image`), and
+   `content` when the profile file has one. A missing or mismatched field
+   fails the render. Coefficient edits require `matrix_preset: "custom"`.
+   Nine values, each -10 to 10. A shorter array fails the profile load.
+7. **Paper.** `target_mode: "paper"` plus `paper_curve` (Kodak 2383, 2393,
+   Ektacolor Edge, Endura Premier, Portra/Supra/Ultra Endura, Ilford MGFB 00
+   and 0 through 5) and `paper_basis` as `working|<profile>` or
+   `input|<profile>`. Empty or space-only is not a match. Ilford curves do
+   not desaturate.
+8. **Cineon print LUT.** Set `cineon_lut` to the `.cube` path and
+   `cineon_lut_sha256` to the SHA-256 of those bytes. Omit the hash and the
+   apply fails. A changed file fails. Do not also set `target_mode` to
+   `paper`. Declared primaries must be invertible matrix profiles.
+   `output_black_offset` (0 to 0.05) is subtracted after the LUT is decoded,
+   not before.
+9. **Cineon TIFF.** `target_mode: "cineon"`, no print LUT, tool enabled,
+   method density. `export_image` as 16-bit integer TIFF. JPEG, PNG, and a
+   disabled tool do not encode. `cineon_primaries` empty means the working
+   profile. `cineon_reference_white` defaults to 1.
+10. Check with `render_preview` and `image_stats` as for power-law. A failed
+    density contract does not invert; look at the tool error instead of
+    judging the uninverted scan.
+
+## The minimum for a roll (power-law)
 
 Whatever else you skip, a roll needs these; without them the result is a
 flat, tinted guess, and ratios or a reference you did not measure are one:

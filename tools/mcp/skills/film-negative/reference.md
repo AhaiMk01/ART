@@ -1,10 +1,53 @@
 # Film negative reference
 
+Two methods. `power_law` is the formula below. `density` is the later section.
+Do not feed a power-law reference spot into density gains.
+
+## Power-law
+
 Film Negative per channel (ART): `out_c = RefOutput_c * (in_c / RefInput_c)^e_c`
 with exponents `e = (-G*RedRatio, -G, -G*BlueRatio)`, `G` = `GreenExponent`
 (1.5); clipped at 65535. Inputs are the
 `sample_spots` values (the negative's, linear 0..65535).
 
+## Density method
+
+Normalized transmittance `T_c = max(I_c / 65535, 1e-10)`, `D_c = -log10(T_c)`.
+Pivot `p = 0.7`.
+
+Negative: `A_c = Dmax - p - DensityGamma * (D_c - p)`. With unit slopes, zero
+gains, identity matrix and a linear target, `L_c = 10^(-Dmax) / T_c`.
+`Dmax` 2.5 and `T` 0.01, 0.1, 1 give about 0.316228, 0.031623, 0.003162.
+
+Reversal: `A_c = p + DensityGamma * (D_c - p)`. `Dmax` is unused. Identity
+reproduces the input aside from the floor.
+
+Anchor `P = 4.1 - Dmax` (negative) or `0.7` (reversal). Row-major matrix `M`:
+`B_i = P + sum_j M_ij * (A_j - P)`, then
+`C_i = P + h_i * (B_i - P) - RGBGains_i`. Linear target: `L_c = 10^(-C_c)`,
+written back as `65535 * L_c`. A gain of `+0.1` multiplies that linear value
+by `10^0.1` before a paper curve or black offset.
+
+Status M rows, not transposed: `(1.0197, 0.0317, 0.0091)`,
+`(-0.0052, 0.8933, 0.0521)`, `(0.0131, -0.0011, 0.9712)`.
+
+Film-base pick, negative only: sample before inversion, set
+`RGBGains = C - 4.0` on all three channels, so the rebate maps to linear
+`1e-4` before paper, LUT, and black offset. Out of -3..3, or a bad sample:
+no channel changes.
+
+Paper, after `C` and before the exponential: `R = log10(65536)`,
+`u = 1 - clamp(C / R, 0, 1)`, `v = interp(u)`, `C = R * (1 - v)`. Shared
+curve, then per-channel. Endpoint clamp. Unknown id is an error.
+
+Black offset: `L = max(0, L - offset)` on the linear result. With a print
+LUT, that means after the LUT is decoded, not before it is applied.
+
+Cineon, export only: `x = L / CineonReferenceWhite`,
+`b = 10^((95 - 685) / 300)`,
+`y = (685 + 300 * log10(max(0, x) * (1 - b) + b)) / 1023`.
+Black is 95/1023, reference white is 685/1023, linear 0.18 is about
+467.838/1023. Quantize `y * 65535` for 16-bit. The working image stays linear.
 ## Fitting RedRatio and BlueRatio
 
 Over the neutral spots (`avg` r, g, b): least squares slope of ln r against
