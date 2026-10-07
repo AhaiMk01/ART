@@ -21,7 +21,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from art_mcp.keyfile import KeyFile
+from art_mcp.keyfile import KeyFile, unescape
 from art_mcp.sampling import SpotSamples
 from art_mcp.schema import AdjustmentError, Adjustments, FilmNegative, RawEdit
 
@@ -562,11 +562,15 @@ def film_base_edits(
                 "finite coefficients",
             )
         matrix = tuple(stored)
-    basis = entries.get("MatrixBasis", "") if tool.matrix_basis is None else tool.matrix_basis
+    basis = (
+        unescape(entries.get("MatrixBasis", ""))
+        if tool.matrix_basis is None
+        else tool.matrix_basis
+    )
     if preset != "identity" and basis:
         color_space = tool.color_space or read_color_space(entries)
         icm = profile.get("Color Management") or {}
-        active = (
+        active = unescape(
             icm.get("InputProfile", "(cameraICC)")
             if color_space == "input"
             else icm.get("WorkingProfile", "Rec2020")

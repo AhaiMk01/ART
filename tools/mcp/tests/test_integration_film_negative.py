@@ -130,11 +130,9 @@ def test_a_print_lut_left_in_a_power_law_profile_is_inactive(tmp_path, scan, bas
     cube.write_text(INVERTING_CUBE)
     digest = hashlib.sha256(cube.read_bytes()).hexdigest()
     plain = render(tmp_path, scan, density(base, method="power_law"), "pl_plain")[0]
-    # forward slashes: a typed string value is stored as is, and GLib reads a
-    # backslash in a key file as the start of an escape
-    profile = density(
-        base, method="power_law", cineon_lut=cube.as_posix(), cineon_lut_sha256=digest
-    )
+    # a Windows path: its backslashes must be escaped in the sidecar, or ART
+    # refuses the whole profile at `\U`
+    profile = density(base, method="power_law", cineon_lut=str(cube), cineon_lut_sha256=digest)
 
     result, _ = render(tmp_path, scan, profile, "pl_lut")
 
@@ -149,7 +147,7 @@ def test_the_same_print_lut_does_change_a_density_render(tmp_path, scan, base):
     cube.write_text(INVERTING_CUBE)
     digest = hashlib.sha256(cube.read_bytes()).hexdigest()
     plain = render(tmp_path, scan, density(base), "d_plain")[0]
-    profile = density(base, cineon_lut=cube.as_posix(), cineon_lut_sha256=digest)
+    profile = density(base, cineon_lut=str(cube), cineon_lut_sha256=digest)
 
     result, _ = render(tmp_path, scan, profile, "d_lut")
 

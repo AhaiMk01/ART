@@ -39,7 +39,7 @@ from art_mcp.filmnegative import (
     read_matrix_field,
     read_triple_field,
 )
-from art_mcp.keyfile import KeyFile
+from art_mcp.keyfile import KeyFile, escape, unescape
 from art_mcp.schema import (
     PPVERSION,
     TOOLS,
@@ -59,6 +59,10 @@ from art_mcp.schema import (
 from art_mcp.schema import Crop as CropAdjustment
 
 VERSION_GROUP = "Version"
+FREE_TEXT = str | None
+"""The annotation of a typed field that holds free text (a path, a note),
+stored escaped; every other typed field is a number, a flag or one of a
+fixed set."""
 LINE_BREAKS = frozenset("\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029")
 """What ends a line of profile text (as ``str.splitlines`` sees it). A value
 holding one would start another key; a KeyFile writes a newline as ``\\n``."""
@@ -270,6 +274,8 @@ def _arp_value(value: Any) -> str:
         return "true" if value else "false"
     if isinstance(value, float):
         return f"{value:.10g}"
+    if isinstance(value, str):
+        return escape(value)
     return str(value)
 
 
@@ -333,6 +339,12 @@ class WorkingChanges:
                 extra = model.model_fields[f].json_schema_extra
                 if isinstance(extra, dict) and extra.get("ephemeral"):
                     continue
+                if isinstance(v, str) and (stray := LINE_BREAKS.intersection(v) - {"\n", "\r"}):
+                    raise AdjustmentError(
+                        "out_of_range",
+                        f"{name}: {f} can't hold a line-break character other than "
+                        f"a plain newline (found U+{ord(min(stray)):04X})",
+                    )
                 if isinstance(v, list):  # a reference: r;g;b
                     if parse_triple(self._value(group, field_key(model, f))) == tuple(v):
                         continue  # already that value: not a change
@@ -620,10 +632,11 @@ def typed_adjustments(profile: KeyFile) -> tuple[dict[str, dict[str, Any]], set[
                 values[field] = curve
                 consumed.add((field_grp, key))
                 continue
+            text = named_value(model, field, stored)
+            if info.annotation == FREE_TEXT:
+                text = unescape(text)
             try:
-                values[field] = TypeAdapter(info.annotation).validate_python(
-                    named_value(model, field, stored)
-                )
+                values[field] = TypeAdapter(info.annotation).validate_python(text)
             except ValidationError:
                 continue
             consumed.add((field_grp, key))

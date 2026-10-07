@@ -34,7 +34,9 @@ From [Implementation language and SDK](https://github.com/AhaiMk01/ART/issues/7)
   Shared modules (schema, profile I/O, preview files, metadata) plus two entry
   points: `art-mcp-render`, `art-mcp-live`. Clients see two separate servers.
 - **.arp I/O:** a small custom GLib KeyFile reader/writer (`;`-separated lists,
-  escapes); not `configparser`.
+  escapes); not `configparser`. A typed free-text field (a path, a note) is
+  escaped as GLib writes it and unescaped when read, so a Windows path
+  survives; `raw` values and raw edits are exactly as stored.
 - **Results:** `structuredContent` with an `outputSchema` from Pydantic return
   models, plus a text copy for older clients.
 - **Errors:** MCP `isError` with a short code and a message. Codes:
