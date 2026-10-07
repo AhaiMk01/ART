@@ -437,7 +437,7 @@ bool applyCineonPrintLut(Imagefloat *img,
     } else if (referenceWhite > 1e6) {
         referenceWhite = 1e6;
     }
-    const PrimariesMap prim = primariesMap(params, icm);
+
     const int height = img->getHeight();
     const int width = img->getWidth();
     const float S = 65535.f;
@@ -468,8 +468,13 @@ bool applyCineonPrintLut(Imagefloat *img,
                 lg = gg;
                 lb = bb;
             }
-            auto store = [](float v) -> float {
-                if (!std::isfinite(v) || !(v > 0.f)) {
+            const float offset = static_cast<float>(params.outputBlackOffset);
+            auto store = [offset](float v) -> float {
+                if (!std::isfinite(v)) {
+                    return 0.f;
+                }
+                v -= offset;
+                if (!(v > 0.f) || !std::isfinite(v)) {
                     return 0.f;
                 }
                 return v * 65535.f;

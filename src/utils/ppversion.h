@@ -5,10 +5,14 @@ namespace art { namespace utils {
 
 // This number has to be incremented whenever the ARP file format is modified or
 // the behaviour of a tool changes
-#define PPVERSION 1052
+#define PPVERSION 1053
 
 /*
   Log of version changes
+  1053  2026-10-07
+        film negative: LUT hash recorded by the panel, black offset after
+        a print LUT, wrong-length arrays fail load, disabled Cineon target
+        does not encode
   1052  2026-10-07
         film negative: basis binding includes input gamma and source id;
         a missing or mismatched binding, unknown identifier, or changed

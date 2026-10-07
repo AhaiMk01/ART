@@ -250,7 +250,7 @@ public:
     void filmNegativeProcess(art::engine::Imagefloat *input,
                              art::engine::Imagefloat *output,
                              const procparams::FilmNegativeParams &params,
-                             bool rawSource);
+                             bool rawSource, const Glib::ustring &sourceId);
     /// True after a density contract failure in the last filmNegativeProcess.
     bool filmNegativeContractFailed() const { return filmNegContractFailed; }
 

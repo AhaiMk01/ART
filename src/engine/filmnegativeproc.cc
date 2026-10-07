@@ -474,15 +474,16 @@ bool doProcessDensity(Imagefloat *input, Imagefloat *output,
 
             for (int c = 0; c < 3; ++c) {
                 float Lc = static_cast<float>(std::pow(10.0, -density[c]));
-                // After linear conversion (and any paper response): subtract
-                // the output black offset in normalized linear, floor at 0.
-                // Do not upper-clamp. Never write inf/nan.
                 if (!std::isfinite(Lc)) {
                     Lc = 0.f;
                 }
-                Lc -= outputBlackOffset;
-                if (!(Lc > 0.f) || !std::isfinite(Lc)) {
-                    Lc = 0.f;
+                // A print LUT decodes to linear later. Offset applies to that
+                // decoded result, not to the pre-LUT density inversion.
+                if (!cineonLutActive) {
+                    Lc -= outputBlackOffset;
+                    if (!(Lc > 0.f) || !std::isfinite(Lc)) {
+                        Lc = 0.f;
+                    }
                 }
                 float scaled = S * Lc;
                 if (!std::isfinite(scaled)) {
@@ -515,7 +516,7 @@ bool doProcess(Imagefloat *input, Imagefloat *output,
                const FilmNegativeParams &params,
                const ColorManagementParams &icmParams, RGB &refIn, RGB &refOut,
                SourceTransfer src, const Glib::ustring &sourceId,
-               ProgressListener *pl)
+               ProgressListener *pl, bool *contractFailed)
 {
     input->syncCpu();
     output->syncCpuForWrite();
@@ -602,7 +603,10 @@ bool doProcess(Imagefloat *input, Imagefloat *output,
             blineout[j] = CLIP(bmult * pow_F(blinein[j], bexp));
         }
     }
-    return applyCineonPrintLut(output, params, icmParams, pl) && refsUpdated;
+    if (!applyCineonPrintLut(output, params, icmParams, pl) && contractFailed) {
+        *contractFailed = true;
+    }
+    return refsUpdated;
 }
 
 // Printer-light gains that map a rebate sample to density 4 (linear 1e-4)
@@ -797,29 +801,33 @@ bool art::engine::ImProcFunctions::filmNegativeProcess(Imagefloat *input,
 
     // Perform actual inversion. Return true if reference values are computed
     // from medians
+    bool lutFailed = false;
     paramsUpdated |= doProcess(
         input, output, fnp, this->params->icm, refIn, refOut,
         sourceTransfer(imgsrc && imgsrc->isRAW(), this->params->icm), sourceId,
-        plistener);
+        plistener, &lutFailed);
+    if (lutFailed) {
+        filmNegContractFailed = true;
+    }
 
     return paramsUpdated;
 }
 
 void art::engine::ImProcFunctions::filmNegativeProcess(
     art::engine::Imagefloat *input, art::engine::Imagefloat *output,
-    const procparams::FilmNegativeParams &params, bool rawSource)
+    const procparams::FilmNegativeParams &params, bool rawSource,
+    const Glib::ustring &sourceId)
 {
-    // BENCHFUNMICRO
-
     if (!params.enabled) {
         return;
     }
 
     RGB refIn = params.refInput, refOut = params.refOutput;
-
+    bool contractFailed = false;
     doProcess(input, output, params, this->params->icm, refIn, refOut,
-              sourceTransfer(rawSource, this->params->icm), "Unknown",
-              plistener);
+              sourceTransfer(rawSource, this->params->icm), sourceId, plistener,
+              &contractFailed);
+    filmNegContractFailed = contractFailed;
 }
 
 namespace {
@@ -1336,6 +1344,10 @@ Glib::ustring prepareFilmNegativeCineonExport(
     const procparams::ColorManagementParams &icm,
     const Glib::ustring &format, int bits, bool isFloat)
 {
+    if (!fnp.enabled ||
+        fnp.method != procparams::FilmNegativeParams::Method::DENSITY) {
+        return Glib::ustring();
+    }
     if (!fnp.cineonLUT.empty()) {
         return Glib::ustring();
     }

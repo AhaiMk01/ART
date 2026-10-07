@@ -29,7 +29,7 @@
 
 #include "../engine/color.h"
 #include "../engine/procparams.h"
-
+#include "../engine/cineonlut.h"
 namespace art { namespace gui {
 using namespace utils;
 
@@ -549,7 +549,7 @@ FilmNegative::FilmNegative()
     paperCurve->show();
     {
         Glib::RefPtr<Gtk::FileFilter> filter = Gtk::FileFilter::create();
-        filter->set_name("Cube LUT");
+        filter->set_name(M("TP_FILMNEGATIVE_CINEON_LUT_FILTER"));
         filter->add_pattern("*.cube");
         filter->add_pattern("*.CUBE");
         cineonLUTFile->add_filter(filter);
@@ -844,6 +844,10 @@ void FilmNegative::write(art::engine::procparams::ProcParams *pp)
     }
     pp->filmNegative.paperBasis = paperBasisValue;
     pp->filmNegative.cineonLUT = cineonLUTFile->get_filename();
+    pp->filmNegative.cineonLUTSha256 =
+        pp->filmNegative.cineonLUT.empty()
+            ? Glib::ustring()
+            : art::engine::cineonLutSha256(pp->filmNegative.cineonLUT);
     pp->filmNegative.cineonLUTInputPrimaries =
         cineonLUTInputPrimaries->get_text();
     pp->filmNegative.cineonLUTOutputPrimaries =

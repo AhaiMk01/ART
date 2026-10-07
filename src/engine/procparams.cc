@@ -6682,17 +6682,30 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                 assignFromKeyfile(keyFile, "Film Negative", "DensityDmax",
                                   filmNegative.densityDmax);
                 std::vector<double> v;
-                if (assignFromKeyfile(keyFile, "Film Negative", "RGBGains", v) &&
-                    v.size() == 3) {
-                    filmNegative.rgbGains[0] = v[0];
-                    filmNegative.rgbGains[1] = v[1];
-                    filmNegative.rgbGains[2] = v[2];
+                if (assignFromKeyfile(keyFile, "Film Negative", "RGBGains", v)) {
+                    if (v.size() == 3) {
+                        filmNegative.rgbGains[0] = v[0];
+                        filmNegative.rgbGains[1] = v[1];
+                        filmNegative.rgbGains[2] = v[2];
+                    } else {
+                        filmNegLoadError(keyFile, "RGBGains",
+                                         Glib::ustring::compose("%1 values",
+                                                                (int)v.size()));
+                        filmNegIdError = true;
+                    }
                 }
-                if (assignFromKeyfile(keyFile, "Film Negative", "ChannelGamma", v) &&
-                    v.size() == 3) {
-                    filmNegative.channelGamma[0] = v[0];
-                    filmNegative.channelGamma[1] = v[1];
-                    filmNegative.channelGamma[2] = v[2];
+                if (assignFromKeyfile(keyFile, "Film Negative", "ChannelGamma",
+                                      v)) {
+                    if (v.size() == 3) {
+                        filmNegative.channelGamma[0] = v[0];
+                        filmNegative.channelGamma[1] = v[1];
+                        filmNegative.channelGamma[2] = v[2];
+                    } else {
+                        filmNegLoadError(keyFile, "ChannelGamma",
+                                         Glib::ustring::compose("%1 values",
+                                                                (int)v.size()));
+                        filmNegIdError = true;
+                    }
                 }
                 assignFromKeyfile(keyFile, "Film Negative", "OutputBlackOffset",
                                   filmNegative.outputBlackOffset);
@@ -6712,10 +6725,16 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                         }
                     }
                 }
-                if (assignFromKeyfile(keyFile, "Film Negative", "Matrix", v) &&
-                    v.size() == 9) {
-                    for (int i = 0; i < 9; ++i) {
-                        filmNegative.matrix[i] = v[i];
+                if (assignFromKeyfile(keyFile, "Film Negative", "Matrix", v)) {
+                    if (v.size() == 9) {
+                        for (int i = 0; i < 9; ++i) {
+                            filmNegative.matrix[i] = v[i];
+                        }
+                    } else {
+                        filmNegLoadError(keyFile, "Matrix",
+                                         Glib::ustring::compose("%1 values",
+                                                                (int)v.size()));
+                        filmNegIdError = true;
                     }
                 }
                 assignFromKeyfile(keyFile, "Film Negative", "MatrixBasis",
