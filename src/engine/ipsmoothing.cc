@@ -1670,6 +1670,13 @@ bool wavelet_smoothing(Imagefloat *rgb,
     }
 
     if (chan == Channel::LC) { 
+        /* Same as the branch below: waveletShrink opens its own Passes, so the
+         * plane split and the gamma recorded above must be on the queue first
+         * (without this it decomposed uninitialised planes: every maxAbs was
+         * 0, so nothing was ever shrunk). */
+        if (!seq.flush()) {
+            return false;
+        }
         if (!waveletShrink(*ctx, wR, W, H, nlevels, s, eps) ||
             !waveletShrink(*ctx, wG, W, H, nlevels, s, eps) ||
             !waveletShrink(*ctx, wB, W, H, nlevels, s, eps)) {

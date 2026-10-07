@@ -50,7 +50,7 @@
 #48 10-06-2026 update naar ART v1.26.6 door pm
 #49 11-08-2026 tekstbestand volledig herzien, pm
 #50 29-09-2026 update naar ART v1.26.10, pm
-
+#51 06-10-2026 update naar ART v1.26.10.1, pm
 
 ABOUT_TAB_BUILD;Versie
 ABOUT_TAB_CREDITS;Credits
@@ -2137,3 +2137,6 @@ RENAME_DIALOG_FILENAMES_COPY;Te kopiëren bestanden
 PROGRESSBAR_FILE_RENAME;Bestanden hernoemen...
 PROGRESSBAR_FILE_COPY;Bestanden kopiëren...
 PROGRESSBAR_FILE_DELETE;Bestanden wissen...
+PROGRESSBAR_READY_TIME;Gereed - %1
+QUEUE_LASTEXPORT_TIME;Laatste export: %1
+TP_COLORCORRECTION_LUT_PRESET;Voorinstelling

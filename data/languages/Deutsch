@@ -2085,3 +2085,7 @@ ZOOMPANEL_ZOOM100;Zoom 100%\nTaste: <b>z</b>
 ZOOMPANEL_ZOOMFITSCREEN;An Fenster anpassen.\nTaste: <b>f</b>
 ZOOMPANEL_ZOOMIN;Hineinzoomen\nTaste: <b>+</b>
 ZOOMPANEL_ZOOMOUT;Herauszoomen\nTaste: <b>-</b>
+FILEBROWSER_POPUPQINSPECT;Schnellansicht
+PREFERENCES_QINSPECT_POPUP_SIZE;Größe des Schnellansicht-Popups (in % der Fenstergröße)
+PROGRESSBAR_READY_TIME;Bereit - %1
+QUEUE_LASTEXPORT_TIME;Letzter Export: %1

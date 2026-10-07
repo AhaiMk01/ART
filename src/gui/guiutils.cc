@@ -142,10 +142,10 @@ Glib::ustring formatPipelineTimes(const art::engine::PipelineTimes &t)
                                  " s";
     };
     if (t.gpu_used()) {
-        return Glib::ustring::compose(M("PIPELINE_TIME_GPU"), fmt(t.wall_ms),
+        return Glib::ustring::compose("%1 (CPU %2, GPU %3)", fmt(t.wall_ms),
                                       fmt(t.cpu_ms()), fmt(t.gpu_ms));
     }
-    return Glib::ustring::compose(M("PIPELINE_TIME"), fmt(t.wall_ms));
+    return Glib::ustring::compose("%1", fmt(t.wall_ms));
 }
 
 Gtk::Border getPadding(const Glib::RefPtr<Gtk::StyleContext> style)

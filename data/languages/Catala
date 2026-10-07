@@ -2098,3 +2098,11 @@ RENAME_DIALOG_FILENAMES_COPY;Fitxers a copiar
 PROGRESSBAR_FILE_RENAME;Canviant el nom dels fitxers...
 PROGRESSBAR_FILE_COPY;Copiant fitxers...
 PROGRESSBAR_FILE_DELETE;Suprimint fitxers...
+FONTCHOOSER_PREVIEW_TEXT;Jove xef, porti whisky amb quinze glaçons d'hidrogen, coi!
+HISTORY_MSG_ICM_DCP_LOOK_PIPELINE_POS;Perfil d'entrada - Aplicació del look DCP
+PROGRESSBAR_READY_TIME;Llest - %1
+QUEUE_LASTEXPORT_TIME;Darrera exportació: %1
+TP_ICM_DCP_LOOK_PIPELINE_POS;Aplicació del look
+TP_ICM_DCP_LOOK_PIPELINE_POS_EARLY;Al principi del pipeline
+TP_ICM_DCP_LOOK_PIPELINE_POS_LATE;Més tard al pipeline
+TP_ICM_DCP_LOOK_PIPELINE_POS_TOOLTIP;Controla quan s'apliquen al pipeline de processament els modificadors de look del perfil DCP (taula de look, exposició de base i corba de tons). Aplicar el look abans (abans de la Correcció de color/to) s'ajusta més a les especificacions originals d'Adobe DNG, però pot provocar llums altes cremades que no es poden recuperar amb les eines d'edició local
