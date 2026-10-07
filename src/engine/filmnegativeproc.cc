@@ -16,6 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <locale>
@@ -217,6 +218,8 @@ void convertColorSpace(Imagefloat* input, const TMatrix &src2xyz, const TMatrix
 }
 */
 
+// Always writes linear RGB (0..65535). TargetMode::CINEON is an export
+// encoding, applied once in prepareFilmNegativeCineonExport, never here.
 void doProcessDensity(Imagefloat *input, Imagefloat *output,
                       const FilmNegativeParams &params)
 {
@@ -902,5 +905,67 @@ void art::engine::Thumbnail::processFilmNegativeV2(
 
 // ----------------- <<< legacy mode <<< ------------
 
+
+namespace {
+
+double cineonNormalized(double linear01, double referenceWhite)
+{
+    // Colour/OCIO Cineon: black 95/1023, reference white 685/1023.
+    const double b = std::pow(10.0, (95.0 - 685.0) / 300.0);
+    const double x = std::max(0.0, linear01) / referenceWhite;
+    return (685.0 + 300.0 * std::log10(x * (1.0 - b) + b)) / 1023.0;
+}
+
+} // namespace
+
+Glib::ustring prepareFilmNegativeCineonExport(
+    IImagefloat *img, const procparams::FilmNegativeParams &fnp,
+    const Glib::ustring &format, int bits, bool isFloat)
+{
+    if (fnp.targetMode != procparams::FilmNegativeParams::TargetMode::CINEON) {
+        return Glib::ustring();
+    }
+
+    const bool tiff16 = format == "tif" && bits == 16 && !isFloat;
+    if (!tiff16) {
+        return Glib::ustring(
+            "Cineon film-negative target requires a 16-bit integer TIFF; "
+            "refusing to write another format");
+    }
+    if (!img || img->getType() != sImagefloat) {
+        return Glib::ustring("Cineon export needs a floating-point image");
+    }
+
+    Imagefloat *out = static_cast<Imagefloat *>(img);
+    out->syncCpuForWrite();
+
+    double referenceWhite = fnp.cineonReferenceWhite;
+    if (referenceWhite < 1e-6) {
+        referenceWhite = 1e-6;
+    } else if (referenceWhite > 1e6) {
+        referenceWhite = 1e6;
+    }
+
+    const int height = out->getHeight();
+    const int width = out->getWidth();
+    for (int row = 0; row < height; ++row) {
+        for (int col = 0; col < width; ++col) {
+            auto quantize = [&](float v) -> float {
+                double y = cineonNormalized(static_cast<double>(v) / 65535.0,
+                                            referenceWhite);
+                if (y < 0.0) {
+                    y = 0.0;
+                } else if (y > 1.0) {
+                    y = 1.0;
+                }
+                return static_cast<float>(std::round(y * 65535.0));
+            };
+            out->r(row, col) = quantize(out->r(row, col));
+            out->g(row, col) = quantize(out->g(row, col));
+            out->b(row, col) = quantize(out->b(row, col));
+        }
+    }
+    return Glib::ustring();
+}
 
 } } // namespace art::engine

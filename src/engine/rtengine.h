@@ -721,6 +721,15 @@ std::string spotResultJson(const SpotResult &res);
 bool sampleSpots(ProcessingJob *job, const SpotRequest &req, SpotResult &res,
                  int &errorCode);
 
+/** If the film-negative target is Cineon, encode `img` in place for a 16-bit
+ * integer TIFF (`format` "tif", `bits` 16, `isFloat` false) and return an
+ * empty string. The editor pipeline is left linear; this runs once, at save.
+ * Any other format returns an error and does not write code values. Linear
+ * scene values are `pixel / 65535`. */
+Glib::ustring prepareFilmNegativeCineonExport(
+    IImagefloat *img, const procparams::FilmNegativeParams &fnp,
+    const Glib::ustring &format, int bits, bool isFloat);
+
 /** This class is used to control the batch processing. The class implementing
  * this interface will be called when the full processing of an image is ready
  * and the next job to process is needed. */

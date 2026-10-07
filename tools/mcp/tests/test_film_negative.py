@@ -86,6 +86,8 @@ def test_describe_lists_the_fields_with_ranges_and_keys():
         "ref_input": "RefInput", "ref_output": "RefOutput",
         "density_gamma": "DensityGamma", "density_dmax": "DensityDmax",
         "rgb_gains": "RGBGains", "channel_gamma": "ChannelGamma",
+        "target_mode": "TargetMode", "cineon_primaries": "CineonPrimaries",
+        "cineon_reference_white": "CineonReferenceWhite",
     }  # fmt: skip
     ranges = {n: (f.minimum, f.maximum) for n, f in tool.fields.items()}
     assert ranges["red_ratio"] == (0.3, 5) and ranges["blue_ratio"] == (0.3, 5)
@@ -95,6 +97,9 @@ def test_describe_lists_the_fields_with_ranges_and_keys():
     assert tool.fields["method"].enum == ["power_law", "density"]
     assert tool.fields["film_type"].enum == ["negative", "reversal"]
     assert tool.fields["color_space"].enum == ["working", "input"]
+    assert tool.fields["target_mode"].enum == ["linear", "paper", "cineon"]
+    assert tool.fields["cineon_reference_white"].minimum == 1e-6
+    assert tool.fields["cineon_reference_white"].maximum == 1e6
     for needle in ("mult_c", "65535/24", "0.2126729", "ref_output", "Legacy"):
         assert needle in tool.description
 
@@ -126,6 +131,7 @@ def test_get_profile_reads_it_back_typed_and_consumes_the_keys():
         "ref_output": [10672.1363] * 3,
         "density_gamma": 1.0, "density_dmax": 2.5,
         "rgb_gains": [0.0, 0.0, 0.0], "channel_gamma": [1.0, 1.0, 1.0],
+        "target_mode": "linear", "cineon_primaries": "", "cineon_reference_white": 1.0,
     }  # fmt: skip
     assert "Film Negative" not in view.raw
 

@@ -38,6 +38,7 @@ using ColorSpace = art::engine::procparams::FilmNegativeParams::ColorSpace;
 using BackCompat = art::engine::procparams::FilmNegativeParams::BackCompat;
 using Method = art::engine::procparams::FilmNegativeParams::Method;
 using FilmType = art::engine::procparams::FilmNegativeParams::FilmType;
+using TargetMode = art::engine::procparams::FilmNegativeParams::TargetMode;
 } // namespace
 class FilmNegProvider {
 public:
@@ -67,6 +68,8 @@ public:
     void colorSpaceChanged();
     void methodChanged();
     void filmTypeChanged();
+    void targetModeChanged();
+    void cineonPrimariesChanged();
     void updateVisibility();
     void filmRefValuesChanged(const RGB &refInput,
                               const RGB &refOutput) override;
@@ -101,6 +104,7 @@ private:
     const art::engine::ProcEvent evFilmNegativeColorSpace;
     const art::engine::ProcEvent evFilmNegativeMethod;
     const art::engine::ProcEvent evFilmNegativeDensity;
+    const art::engine::ProcEvent evFilmNegativeCineon;
     std::vector<art::engine::Coord> refSpotCoords;
 
     RGB refInputValues;
@@ -151,6 +155,11 @@ private:
     Adjuster *const rgbGainR;
     Adjuster *const rgbGainG;
     Adjuster *const rgbGainB;
+
+    MyComboBoxText *const targetMode;
+    Gtk::Grid *targetModeGrid;
+    Gtk::Entry *const cineonPrimaries;
+    Adjuster *const cineonReferenceWhite;
 
     Gtk::Widget *spotPickerBox;
     Gtk::Widget *refSpotPickerBox;

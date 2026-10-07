@@ -261,6 +261,8 @@ FilmNegative::FilmNegative()
           art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_METHOD")),
       evFilmNegativeDensity(ProcEventMapper::getInstance()->newEvent(
           art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_DENSITY")),
+      evFilmNegativeCineon(ProcEventMapper::getInstance()->newEvent(
+          0, "HISTORY_MSG_FILMNEGATIVE_CINEON")),
       refInputValues({0.f, 0.f, 0.f}), paramsUpgraded(false),
       refLuminance({{0.f, 0.f, 0.f}, 0.f}), fnp(nullptr),
       method(Gtk::manage(new MyComboBoxText())), methodGrid(nullptr),
@@ -305,6 +307,10 @@ FilmNegative::FilmNegative()
                               0.01, 0.0)),
       rgbGainB(createAdjuster(this, M("TP_FILMNEGATIVE_RGB_GAIN_B"), -3.0, 3.0,
                               0.01, 0.0)),
+      targetMode(Gtk::manage(new MyComboBoxText())), targetModeGrid(nullptr),
+      cineonPrimaries(Gtk::manage(new Gtk::Entry())),
+      cineonReferenceWhite(createAdjuster(
+          this, M("TP_FILMNEGATIVE_CINEON_REFWHITE"), 1e-6, 1e6, 0.01, 1.0)),
       spotPickerBox(nullptr), refSpotPickerBox(nullptr), sep(nullptr)
 {
     EvToolReset.set_action(art::engine::ALLNORAW);
@@ -351,6 +357,33 @@ FilmNegative::FilmNegative()
     pack_start(*rgbGainR, Gtk::PACK_SHRINK, 0);
     pack_start(*rgbGainG, Gtk::PACK_SHRINK, 0);
     pack_start(*rgbGainB, Gtk::PACK_SHRINK, 0);
+
+    targetMode->append(M("TP_FILMNEGATIVE_TARGET_LINEAR"));
+    targetMode->append(M("TP_FILMNEGATIVE_TARGET_PAPER"));
+    targetMode->append(M("TP_FILMNEGATIVE_TARGET_CINEON"));
+    setExpandAlignProperties(targetMode, true, false, Gtk::ALIGN_FILL,
+                             Gtk::ALIGN_CENTER);
+    targetModeGrid = Gtk::manage(new Gtk::Grid());
+    Gtk::Label *targetLabel =
+        Gtk::manage(new Gtk::Label(M("TP_FILMNEGATIVE_TARGET")));
+    targetModeGrid->attach(*targetLabel, 0, 0, 1, 1);
+    targetModeGrid->attach(*targetMode, 1, 0, 1, 1);
+    pack_start(*targetModeGrid);
+    targetMode->set_active((int)TargetMode::LINEAR);
+    targetMode->signal_changed().connect(
+        sigc::mem_fun(*this, &FilmNegative::targetModeChanged));
+    targetMode->show();
+
+    cineonPrimaries->set_tooltip_text(M("TP_FILMNEGATIVE_CINEON_PRIMARIES_TOOLTIP"));
+    Gtk::Label *primariesLabel =
+        Gtk::manage(new Gtk::Label(M("TP_FILMNEGATIVE_CINEON_PRIMARIES")));
+    Gtk::Grid *primariesGrid = Gtk::manage(new Gtk::Grid());
+    primariesGrid->attach(*primariesLabel, 0, 0, 1, 1);
+    primariesGrid->attach(*cineonPrimaries, 1, 0, 1, 1);
+    pack_start(*primariesGrid, Gtk::PACK_SHRINK, 0);
+    cineonPrimaries->signal_changed().connect(
+        sigc::mem_fun(*this, &FilmNegative::cineonPrimariesChanged));
+    pack_start(*cineonReferenceWhite, Gtk::PACK_SHRINK, 0);
 
     setExpandAlignProperties(spotButton, true, false, Gtk::ALIGN_FILL,
                              Gtk::ALIGN_CENTER);
@@ -485,6 +518,9 @@ void FilmNegative::read(const art::engine::procparams::ProcParams *pp)
     rgbGainR->setValue(pp->filmNegative.rgbGains[0]);
     rgbGainG->setValue(pp->filmNegative.rgbGains[1]);
     rgbGainB->setValue(pp->filmNegative.rgbGains[2]);
+    targetMode->set_active(CLAMP((int)pp->filmNegative.targetMode, 0, 2));
+    cineonPrimaries->set_text(pp->filmNegative.cineonPrimaries);
+    cineonReferenceWhite->setValue(pp->filmNegative.cineonReferenceWhite);
 
     refInputValues = pp->filmNegative.refInput;
 
@@ -531,6 +567,11 @@ void FilmNegative::write(art::engine::procparams::ProcParams *pp)
     pp->filmNegative.rgbGains[1] = rgbGainG->getValue();
     pp->filmNegative.rgbGains[2] = rgbGainB->getValue();
 
+    pp->filmNegative.targetMode =
+        TargetMode(CLAMP(targetMode->get_active_row_number(), 0, 2));
+    pp->filmNegative.cineonPrimaries = cineonPrimaries->get_text();
+    pp->filmNegative.cineonReferenceWhite = cineonReferenceWhite->getValue();
+
     pp->filmNegative.enabled = getEnabled();
 
     pp->filmNegative.refInput = refInputValues;
@@ -560,6 +601,9 @@ void FilmNegative::setDefaults(
     rgbGainR->setValue(defParams->filmNegative.rgbGains[0]);
     rgbGainG->setValue(defParams->filmNegative.rgbGains[1]);
     rgbGainB->setValue(defParams->filmNegative.rgbGains[2]);
+    targetMode->set_active((int)defParams->filmNegative.targetMode);
+    cineonPrimaries->set_text(defParams->filmNegative.cineonPrimaries);
+    cineonReferenceWhite->setValue(defParams->filmNegative.cineonReferenceWhite);
 
     initial_params = defParams->filmNegative;
 
@@ -589,6 +633,10 @@ void FilmNegative::adjusterChanged(Adjuster *a, double newval)
                 Glib::ustring::compose(
                     "Lev=%1 G=%2 B=%3", outputLevel->getValue(),
                     greenBalance->getValue(), blueBalance->getValue()));
+        } else if (a == cineonReferenceWhite) {
+            listener->panelChanged(
+                evFilmNegativeCineon,
+                Glib::ustring::compose("%1", cineonReferenceWhite->getValue()));
         } else if (a == densityGamma || a == densityDmax ||
                    a == channelGammaR || a == channelGammaG ||
                    a == channelGammaB || a == rgbGainR || a == rgbGainG ||
@@ -678,6 +726,15 @@ void FilmNegative::updateVisibility()
         rgbGainG->show();
         rgbGainB->show();
     }
+
+    TargetMode tm = TargetMode(CLAMP(targetMode->get_active_row_number(), 0, 2));
+    if (tm == TargetMode::CINEON) {
+        cineonPrimaries->get_parent()->show();
+        cineonReferenceWhite->show();
+    } else {
+        cineonPrimaries->get_parent()->hide();
+        cineonReferenceWhite->hide();
+    }
 }
 
 void FilmNegative::methodChanged()
@@ -695,6 +752,22 @@ void FilmNegative::filmTypeChanged()
     if (listener) {
         listener->panelChanged(evFilmNegativeMethod,
                                filmType->get_active_text());
+    }
+}
+
+void FilmNegative::targetModeChanged()
+{
+    updateVisibility();
+    if (listener) {
+        listener->panelChanged(evFilmNegativeCineon,
+                               targetMode->get_active_text());
+    }
+}
+
+void FilmNegative::cineonPrimariesChanged()
+{
+    if (listener && getEnabled()) {
+        listener->panelChanged(evFilmNegativeCineon, cineonPrimaries->get_text());
     }
 }
 

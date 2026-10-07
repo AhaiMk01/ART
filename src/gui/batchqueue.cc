@@ -1122,7 +1122,17 @@ art::engine::ProcessingJob *BatchQueue::imageReady(art::engine::IImagefloat *img
 
         img->setSaveProgressListener(this);
 
-        if (saveFormat.format == "tif") {
+        int saveBits = saveFormat.format == "tif" ? saveFormat.tiffBits
+                                                   : saveFormat.pngBits;
+        bool saveFloat = saveFormat.format == "tif" && saveFormat.tiffFloat;
+        Glib::ustring cineonError =
+            art::engine::prepareFilmNegativeCineonExport(
+                img, processing->params.filmNegative, saveFormat.format,
+                saveBits, saveFloat);
+        if (!cineonError.empty()) {
+            err = 1;
+            failure = cineonError + ": " + fname;
+        } else if (saveFormat.format == "tif") {
             err = img->saveAsTIFF(fname, saveFormat.tiffBits,
                                   saveFormat.tiffFloat,
                                   saveFormat.tiffUncompressed);

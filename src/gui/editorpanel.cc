@@ -2125,6 +2125,24 @@ bool EditorPanel::idle_saveImage(ProgressConnector<art::engine::IImagefloat *> *
     pc->destroy();
 
     if (img) {
+        int saveBits = sf.format == "tif" ? sf.tiffBits : sf.pngBits;
+        bool saveFloat = sf.format == "tif" && sf.tiffFloat;
+        Glib::ustring cineonError =
+            art::engine::prepareFilmNegativeCineonExport(
+                img, pparams.filmNegative, sf.format, saveBits, saveFloat);
+        if (!cineonError.empty()) {
+            img->free();
+            Gtk::MessageDialog msgd(*parent, cineonError, false,
+                                    Gtk::MESSAGE_ERROR, Gtk::BUTTONS_OK, true);
+            msgd.run();
+            saveimgas->set_sensitive(true);
+            sendtogimp->set_sensitive(true);
+            isProcessing = false;
+            art::engine::ImageSource *imgsrc = isrc->getImageSource();
+            imgsrc->setProgressListener(this);
+            return false;
+        }
+
         setProgressStr(M("GENERAL_SAVE"));
         setProgress(0.9f);
 
@@ -2467,6 +2485,19 @@ bool EditorPanel::saveImmediately(const Glib::ustring &filename,
     }
 
     int err = 0;
+    if (img) {
+        Glib::ustring fmt = gimpPlugin ? Glib::ustring("tif") : sf.format;
+        int saveBits = gimpPlugin ? 32 : (fmt == "tif" ? sf.tiffBits : sf.pngBits);
+        bool saveFloat = gimpPlugin || (fmt == "tif" && sf.tiffFloat);
+        Glib::ustring cineonError =
+            art::engine::prepareFilmNegativeCineonExport(
+                img, pparams.filmNegative, fmt, saveBits, saveFloat);
+        if (!cineonError.empty()) {
+            parent->error(cineonError);
+            img->free();
+            return false;
+        }
+    }
 
     if (gimpPlugin) {
         err = img->saveAsTIFF(filename, 32, true, true);
@@ -2572,6 +2603,22 @@ bool EditorPanel::idle_sendToGimp(
 
         if (tries == 1000) {
             img->free();
+            return false;
+        }
+        art::engine::procparams::ProcParams gimpParams;
+        if (ipc) {
+            ipc->getParams(&gimpParams);
+        }
+        Glib::ustring cineonError =
+            art::engine::prepareFilmNegativeCineonExport(
+                img, gimpParams.filmNegative, "tif", sf.tiffBits, sf.tiffFloat);
+        if (!cineonError.empty()) {
+            img->free();
+            Gtk::MessageDialog msgd(*parent, cineonError, false,
+                                    Gtk::MESSAGE_ERROR, Gtk::BUTTONS_OK, true);
+            msgd.run();
+            saveimgas->set_sensitive(true);
+            sendtogimp->set_sensitive(true);
             return false;
         }
 

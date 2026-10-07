@@ -11,7 +11,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationEr
 
 from art_mcp.compactschema import CompactModel, compact_model_schema, full_schema
 from art_mcp.curves import CurveSpec
-PPVERSION = 1046
+PPVERSION = 1047
 """The processing-profile version (``src/utils/ppversion.h``) this schema was
 written for."""
 
@@ -478,6 +478,22 @@ class FilmNegative(CompactModel):
         "ChannelGamma",
         "[r, g, b]: per-channel density contrast slopes (0.5 to 2.0)",
         default=[1.0, 1.0, 1.0],
+    )
+    target_mode: Literal["linear", "paper", "cineon"] | None = F(
+        "TargetMode",
+        "Export target: linear (stored 0), paper (stored 1) or cineon (stored 2). "
+        "The editor buffer stays linear; cineon is encoded only when saving a 16-bit integer TIFF",
+        stored_as={"linear": "0", "paper": "1", "cineon": "2"}, default="linear",
+    )  # fmt: skip
+    cineon_primaries: str | None = F(
+        "CineonPrimaries",
+        "Primaries name for a Cineon export; empty means the current working profile",
+        default="",
+    )
+    cineon_reference_white: float | None = F(
+        "CineonReferenceWhite",
+        "Linear reference white for the Cineon encode (1 = full scale)",
+        ge=1e-6, le=1e6, default=1.0,
     )
 
 

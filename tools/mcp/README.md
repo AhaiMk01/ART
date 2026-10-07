@@ -167,7 +167,10 @@ reference the medians are estimated by sampling 64 spots in the central 60% of
 the frame (`art-cli -x` on Render, the channel's `sample_spots` on Live), with
 a warning; where sampling is unsupported `ref_output` becomes grey 65535/24
 with a warning. An explicit `ref_output` wins. Legacy profiles (`BackCompat`,
-`RedBase`) stay under `raw`.
+`RedBase`) stay under `raw`. `target_mode` is `linear`, `paper` or `cineon`
+(stored 0/1/2); the editor buffer stays linear. `cineon_primaries` (empty =
+the current working profile) and `cineon_reference_white` (1e-6..1e6, default
+1) are stored for a Cineon 16-bit TIFF export.
 
 `tone_curve` takes `mode`, `mode2` (omitted = same as `mode`; `get_profile`
 always reports the effective one), `histogram_matching`, `contrast` (-100..100: ART's

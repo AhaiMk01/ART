@@ -1120,6 +1120,16 @@ int processLineParams(int argc, char **argv)
         }
 
         // save image to disk
+        Glib::ustring cineonError = art::engine::prepareFilmNegativeCineonExport(
+            resultImage, currentParams.filmNegative, outputType, bits, isFloat);
+        if (!cineonError.empty()) {
+            errors++;
+            std::cerr << "Error: " << cineonError << std::endl;
+            cpl.error(cineonError);
+            ii->decreaseRef();
+            resultImage->free();
+            continue;
+        }
         if (outputType == "jpg") {
             errorCode =
                 resultImage->saveAsJPEG(outputFile, compression, subsampling);

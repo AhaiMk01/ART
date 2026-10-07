@@ -1556,6 +1556,14 @@ struct FilmNegativeParams {
     std::array<double, 3> rgbGains;
     std::array<double, 3> channelGamma;
 
+    // Export target. The density tool always writes linear RGB; CINEON is
+    // applied only when saving a 16-bit integer TIFF.
+    enum class TargetMode { LINEAR = 0, PAPER, CINEON };
+    TargetMode targetMode;
+    // Empty means the working profile selected at export.
+    Glib::ustring cineonPrimaries;
+    double cineonReferenceWhite;
+
     FilmNegativeParams();
 
     bool operator==(const FilmNegativeParams &other) const;

@@ -2696,8 +2696,10 @@ FilmNegativeParams::FilmNegativeParams()
       redRatio(1.36), greenExp(1.5), blueRatio(0.86),
       refInput({0.0, 0.0, 0.0}), refOutput({0.0, 0.0, 0.0}),
       colorSpace(ColorSpace::WORKING), backCompat(BackCompat::CURRENT),
-      densityGamma(1.0), densityDmax(2.5),
-      rgbGains({0.0, 0.0, 0.0}), channelGamma({1.0, 1.0, 1.0})
+      densityGamma(1.0), densityDmax(2.5), rgbGains({0.0, 0.0, 0.0}),
+      channelGamma({1.0, 1.0, 1.0}),
+      targetMode(TargetMode::LINEAR), cineonPrimaries(),
+      cineonReferenceWhite(1.0)
 {
 }
 
@@ -2728,7 +2730,10 @@ bool FilmNegativeParams::operator==(const FilmNegativeParams &other) const
            colorSpace == other.colorSpace && backCompat == other.backCompat &&
            densityGamma == other.densityGamma &&
            densityDmax == other.densityDmax && rgbGains == other.rgbGains &&
-           channelGamma == other.channelGamma;
+           channelGamma == other.channelGamma &&
+           targetMode == other.targetMode &&
+           cineonPrimaries == other.cineonPrimaries &&
+           cineonReferenceWhite == other.cineonReferenceWhite;
 }
 
 bool FilmNegativeParams::operator!=(const FilmNegativeParams &other) const
@@ -4045,6 +4050,12 @@ int ProcParams::save(ProgressListener *pl, bool save_general, KeyFile &keyFile,
                                        filmNegative.channelGamma.end());
                 saveToKeyfile("Film Negative", "ChannelGamma", cg, keyFile);
             }
+            saveToKeyfile("Film Negative", "TargetMode",
+                          toUnderlying(filmNegative.targetMode), keyFile);
+            saveToKeyfile("Film Negative", "CineonPrimaries",
+                          filmNegative.cineonPrimaries, keyFile);
+            saveToKeyfile("Film Negative", "CineonReferenceWhite",
+                          filmNegative.cineonReferenceWhite, keyFile);
         }
 
         // MetaData
@@ -6270,6 +6281,43 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
             } else {
                 filmNegative.method = FilmNegativeParams::Method::POWER_LAW;
             }
+
+                int tm = 0;
+                if (assignFromKeyfile(keyFile, "Film Negative", "TargetMode",
+                                      tm)) {
+                    if (tm < 0 || tm > static_cast<int>(
+                                          FilmNegativeParams::TargetMode::CINEON)) {
+                        tm = 0;
+                    }
+                    filmNegative.targetMode =
+                        static_cast<FilmNegativeParams::TargetMode>(tm);
+                } else {
+                    Glib::ustring s;
+                    if (assignFromKeyfile(keyFile, "Film Negative", "TargetMode",
+                                          s)) {
+                        if (s == "paper" || s == "Paper" || s == "PAPER") {
+                            filmNegative.targetMode =
+                                FilmNegativeParams::TargetMode::PAPER;
+                        } else if (s == "cineon" || s == "Cineon" ||
+                                   s == "CINEON") {
+                            filmNegative.targetMode =
+                                FilmNegativeParams::TargetMode::CINEON;
+                        } else {
+                            filmNegative.targetMode =
+                                FilmNegativeParams::TargetMode::LINEAR;
+                        }
+                    }
+                }
+                assignFromKeyfile(keyFile, "Film Negative", "CineonPrimaries",
+                                  filmNegative.cineonPrimaries);
+                assignFromKeyfile(keyFile, "Film Negative",
+                                  "CineonReferenceWhite",
+                                  filmNegative.cineonReferenceWhite);
+                if (filmNegative.cineonReferenceWhite < 1e-6) {
+                    filmNegative.cineonReferenceWhite = 1e-6;
+                } else if (filmNegative.cineonReferenceWhite > 1e6) {
+                    filmNegative.cineonReferenceWhite = 1e6;
+                }
         }
 
         if (keyFile.has_group("MetaData") && RELEVANT_(metadata)) {
