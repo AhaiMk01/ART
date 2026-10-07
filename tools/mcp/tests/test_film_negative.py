@@ -86,12 +86,14 @@ def test_describe_lists_the_fields_with_ranges_and_keys():
         "ref_input": "RefInput", "ref_output": "RefOutput",
         "density_gamma": "DensityGamma", "density_dmax": "DensityDmax",
         "rgb_gains": "RGBGains", "channel_gamma": "ChannelGamma",
+        "output_black_offset": "OutputBlackOffset",
     }  # fmt: skip
     ranges = {n: (f.minimum, f.maximum) for n, f in tool.fields.items()}
     assert ranges["red_ratio"] == (0.3, 5) and ranges["blue_ratio"] == (0.3, 5)
     assert ranges["green_exponent"] == (0.3, 4)
     assert ranges["density_gamma"] == (0.1, 4.0)
     assert ranges["density_dmax"] == (0.0, 4.8)
+    assert ranges["output_black_offset"] == (0.0, 0.05)
     assert tool.fields["method"].enum == ["power_law", "density"]
     assert tool.fields["film_type"].enum == ["negative", "reversal"]
     assert tool.fields["color_space"].enum == ["working", "input"]
@@ -126,6 +128,7 @@ def test_get_profile_reads_it_back_typed_and_consumes_the_keys():
         "ref_output": [10672.1363] * 3,
         "density_gamma": 1.0, "density_dmax": 2.5,
         "rgb_gains": [0.0, 0.0, 0.0], "channel_gamma": [1.0, 1.0, 1.0],
+        "output_black_offset": 0.0,
     }  # fmt: skip
     assert "Film Negative" not in view.raw
 
@@ -177,6 +180,7 @@ def test_a_value_outside_the_schema_stays_raw():
         {"rgb_gains": [-3.1, 0, 0]}, {"rgb_gains": [0, 3.1, 0]},
         {"channel_gamma": [0.4, 1, 1]}, {"channel_gamma": [1, 2.1, 1]},
         {"rgb_gains": [1, 2]}, {"channel_gamma": [1, 2, 3, 4]},
+        {"output_black_offset": -0.001}, {"output_black_offset": 0.051},
     ],
 )  # fmt: skip
 def test_out_of_range_values_are_refused(fields):
@@ -213,6 +217,27 @@ def test_density_fields_round_trip():
     assert typed["density_dmax"] == 3.0
     assert typed["rgb_gains"] == [-0.5, 0.2, 1.0]
     assert typed["channel_gamma"] == [0.8, 1.2, 1.5]
+
+
+def test_output_black_offset_round_trips():
+    changes = WorkingChanges(profile())
+    result = changes.edit(adj(output_black_offset=0.02), [])
+    assert values(result) == {"OutputBlackOffset": "0.02"}
+    typed = read_format(changes.profile).adjustments["film_negative"]
+    assert typed["output_black_offset"] == 0.02
+
+
+def test_output_black_offset_math():
+    # Hand literals for negative density, Dmax 2.5, gamma 1, identity matrix,
+    # unit slope, zero gain, T=0.1: L = 10^(-2.5) / 0.1 = 0.0316227766.
+    # 0.0316227766 * 65535 = 1966.05 + 106.34866401 = 2072.39866401.
+    # Offset 0.01: 0.0216227766 * 65535 = 1417.04866401. Offset 0.05 floors at 0.
+    linear = 0.0316227766
+    assert round(max(0.0, linear - 0.0) * 65535.0, 5) == 2072.39866
+    assert round(max(0.0, linear - 0.01) * 65535.0, 5) == 1417.04866
+    assert max(0.0, linear - 0.05) == 0.0
+    # Above full scale is kept: 1.5 * 65535 = 98302.5, not clipped to 65535.
+    assert max(0.0, 1.5 - 0.0) * 65535.0 == 98302.5
 
 
 def test_density_negative_math():

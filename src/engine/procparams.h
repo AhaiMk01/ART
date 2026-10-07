@@ -1555,6 +1555,7 @@ struct FilmNegativeParams {
     double densityDmax;
     std::array<double, 3> rgbGains;
     std::array<double, 3> channelGamma;
+    double outputBlackOffset;
 
     FilmNegativeParams();
 

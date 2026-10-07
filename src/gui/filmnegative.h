@@ -151,6 +151,7 @@ private:
     Adjuster *const rgbGainR;
     Adjuster *const rgbGainG;
     Adjuster *const rgbGainB;
+    Adjuster *const outputBlackOffset;
 
     Gtk::Widget *spotPickerBox;
     Gtk::Widget *refSpotPickerBox;

@@ -2697,7 +2697,8 @@ FilmNegativeParams::FilmNegativeParams()
       refInput({0.0, 0.0, 0.0}), refOutput({0.0, 0.0, 0.0}),
       colorSpace(ColorSpace::WORKING), backCompat(BackCompat::CURRENT),
       densityGamma(1.0), densityDmax(2.5),
-      rgbGains({0.0, 0.0, 0.0}), channelGamma({1.0, 1.0, 1.0})
+      rgbGains({0.0, 0.0, 0.0}), channelGamma({1.0, 1.0, 1.0}),
+      outputBlackOffset(0.0)
 {
 }
 
@@ -2728,7 +2729,8 @@ bool FilmNegativeParams::operator==(const FilmNegativeParams &other) const
            colorSpace == other.colorSpace && backCompat == other.backCompat &&
            densityGamma == other.densityGamma &&
            densityDmax == other.densityDmax && rgbGains == other.rgbGains &&
-           channelGamma == other.channelGamma;
+           channelGamma == other.channelGamma &&
+           outputBlackOffset == other.outputBlackOffset;
 }
 
 bool FilmNegativeParams::operator!=(const FilmNegativeParams &other) const
@@ -4044,6 +4046,8 @@ int ProcParams::save(ProgressListener *pl, bool save_general, KeyFile &keyFile,
                 std::vector<double> cg(filmNegative.channelGamma.begin(),
                                        filmNegative.channelGamma.end());
                 saveToKeyfile("Film Negative", "ChannelGamma", cg, keyFile);
+                saveToKeyfile("Film Negative", "OutputBlackOffset",
+                              filmNegative.outputBlackOffset, keyFile);
             }
         }
 
@@ -6267,6 +6271,8 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                     filmNegative.channelGamma[1] = v[1];
                     filmNegative.channelGamma[2] = v[2];
                 }
+                assignFromKeyfile(keyFile, "Film Negative", "OutputBlackOffset",
+                                  filmNegative.outputBlackOffset);
             } else {
                 filmNegative.method = FilmNegativeParams::Method::POWER_LAW;
             }

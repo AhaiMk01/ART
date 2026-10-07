@@ -167,7 +167,9 @@ reference the medians are estimated by sampling 64 spots in the central 60% of
 the frame (`art-cli -x` on Render, the channel's `sample_spots` on Live), with
 a warning; where sampling is unsupported `ref_output` becomes grey 65535/24
 with a warning. An explicit `ref_output` wins. Legacy profiles (`BackCompat`,
-`RedBase`) stay under `raw`.
+`RedBase`) stay under `raw`. `output_black_offset` (0 to 0.05, default 0,
+key `OutputBlackOffset`) is subtracted from the density path's normalized
+linear output and floored at 0; 0 leaves that linear value unchanged.
 
 `tone_curve` takes `mode`, `mode2` (omitted = same as `mode`; `get_profile`
 always reports the effective one), `histogram_matching`, `contrast` (-100..100: ART's
@@ -207,7 +209,7 @@ in the temp folder whose process is gone.
 
 Results of `get_profile`, `edit_profile` and `describe_adjustments` carry a
 `warnings` list when ART's profile version is newer than the schema's
-(`PPVERSION` 1045); edits keep working.
+(`PPVERSION` 1047); edits keep working.
 
 ## Previews
 

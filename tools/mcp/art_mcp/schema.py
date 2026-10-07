@@ -11,7 +11,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationEr
 
 from art_mcp.compactschema import CompactModel, compact_model_schema, full_schema
 from art_mcp.curves import CurveSpec
-PPVERSION = 1046
+PPVERSION = 1047
 """The processing-profile version (``src/utils/ppversion.h``) this schema was
 written for."""
 
@@ -478,6 +478,11 @@ class FilmNegative(CompactModel):
         "ChannelGamma",
         "[r, g, b]: per-channel density contrast slopes (0.5 to 2.0)",
         default=[1.0, 1.0, 1.0],
+    )
+    output_black_offset: float | None = F(
+        "OutputBlackOffset",
+        "Subtracted from normalized linear output after density conversion, then floored at 0",
+        ge=0.0, le=0.05, default=0.0,
     )
 
 

@@ -241,6 +241,11 @@ void doProcessDensity(Imagefloat *input, Imagefloat *output,
         static_cast<float>(params.rgbGains[1]),
         static_cast<float>(params.rgbGains[2])};
 
+    float outputBlackOffset = static_cast<float>(params.outputBlackOffset);
+    if (!std::isfinite(outputBlackOffset) || outputBlackOffset < 0.f) {
+        outputBlackOffset = 0.f;
+    }
+
     const bool isNegative =
         (params.filmType == FilmNegativeParams::FilmType::NEGATIVE);
 
@@ -286,7 +291,21 @@ void doProcessDensity(Imagefloat *input, Imagefloat *output,
                 // Identity matrix: Bi = Ai
                 float Ci = P + channelGamma[c] * (Ac - P) - rgbGains[c];
                 float Lc = std::pow(10.f, -Ci);
-                out[c] = CLIP(S * Lc);
+                // After linear conversion (and any paper response): subtract
+                // the output black offset in normalized linear, floor at 0.
+                // Do not upper-clamp. Never write inf/nan.
+                if (!std::isfinite(Lc)) {
+                    Lc = 0.f;
+                }
+                Lc -= outputBlackOffset;
+                if (!(Lc > 0.f) || !std::isfinite(Lc)) {
+                    Lc = 0.f;
+                }
+                float scaled = S * Lc;
+                if (!std::isfinite(scaled)) {
+                    scaled = 0.f;
+                }
+                out[c] = scaled;
             }
 
             rlineout[j] = out[0];
