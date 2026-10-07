@@ -208,6 +208,16 @@ So the default is to map wherever the device offers it, and
 only ~256 MB, so a large image would fail the allocation and stage anyway;
 that case has not been measured.
 
+**Read-back is the exception.** `ImageResidency::download()` and `copyTo()` go
+through a `HOST_CACHED` staging buffer on a discrete GPU (`stagedReadback()`,
+`ART_GPU_STAGED_READBACK=0/1`): they are one big copy, not the three-pass
+`plane_io.h` packing, and a single-threaded memcpy out of the BAR window is
+uncached. Uploads still write the mapped window. On the RTX 4500 Ada the
+untiled test export does not call `download()` enough for the switch to show
+(3.96-4.13 s either way); the 8.2 s -> 4.0 s improvement that came with this
+change is most likely the new `HOST_CACHED` first tier of `STAGING_ONLY`, which
+`plane_io.h`'s staging buffers also use -- not isolated by a measurement.
+
 **`BufferPool`** (`vk_context.h:148`) exists purely for performance:
 allocating a fresh `VkDeviceMemory` per call was measured as ~28% of wall
 time in the wavelet denoise port (first-touch page faults dominate). A pool
