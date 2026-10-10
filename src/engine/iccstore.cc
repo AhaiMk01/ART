@@ -704,6 +704,14 @@ public:
         auto prof = getProfile(name);
 
         if (!prof) {
+            // Built-in/custom working spaces are registered separately from
+            // output ICC files. LUT and Cineon basis conversion may name
+            // either registry; never substitute the default for an unknown
+            // working-space name.
+            const auto working = wProfiles.find(name);
+            if (working != wProfiles.end()) {
+                return ICCStore::getProfileMatrix(working->second, out);
+            }
             if (name == procparams::ColorManagementParams::NoICMString) {
                 auto m = workingSpaceMatrix("sRGB");
                 for (int i = 0; i < 3; ++i) {

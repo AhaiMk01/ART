@@ -69,7 +69,8 @@ bool parseMatrix(const Glib::ustring &text, std::array<double, 9> &m)
             }
             char *end = nullptr;
             parsed[n] = std::strtod(token.c_str(), &end);
-            if (end == token.c_str() || !std::isfinite(parsed[n])) {
+            if (end == token.c_str() || *end != '\0' ||
+                !std::isfinite(parsed[n]) || std::fabs(parsed[n]) > 10.0) {
                 return false;
             }
             ++n;
@@ -112,6 +113,17 @@ Adjuster *createAdjuster(AdjusterListener *listener,
     adj->setAdjusterListener(listener);
     adj->delay = std::max(options.adjusterMinDelay, options.adjusterMaxDelay);
     adj->show();
+    return adj;
+}
+
+Adjuster *createLogAdjuster(AdjusterListener *listener,
+                            const Glib::ustring &label, double minV,
+                            double maxV, double step, double defaultVal,
+                            double pivot)
+{
+    Adjuster *const adj =
+        createAdjuster(listener, label, minV, maxV, step, defaultVal);
+    adj->setLogScale(100, pivot, true);
     return adj;
 }
 
@@ -320,6 +332,12 @@ FilmNegative::FilmNegative()
           art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_MATRIX")),
       evFilmNegativeTarget(ProcEventMapper::getInstance()->newEvent(
           art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_TARGET")),
+      evFilmNegativePreserveRange(ProcEventMapper::getInstance()->newEvent(
+          art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_PRESERVE_RANGE")),
+      evFilmNegativeFlare(ProcEventMapper::getInstance()->newEvent(
+          art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_FLARE")),
+      evFilmNegativeDenoiseFirst(ProcEventMapper::getInstance()->newEvent(
+          art::engine::ALLNORAW, "HISTORY_MSG_FILMNEGATIVE_DENOISE_FIRST")),
       refInputValues({0.f, 0.f, 0.f}), paramsUpgraded(false),
       refLuminance({{0.f, 0.f, 0.f}, 0.f}), fnp(nullptr),
       method(Gtk::manage(new MyComboBoxText())), methodGrid(nullptr),
@@ -357,6 +375,8 @@ FilmNegative::FilmNegative()
                                   4.0, 0.01, 1.0)),
       densityDmax(createAdjuster(this, M("TP_FILMNEGATIVE_DENSITY_DMAX"), 0.0,
                                  4.8, 0.01, 2.5)),
+      preserveRange(Gtk::manage(
+          new Gtk::CheckButton(M("TP_FILMNEGATIVE_PRESERVE_RANGE")))),
       channelGammaR(createAdjuster(this, M("TP_FILMNEGATIVE_CHANNEL_GAMMA_R"),
                                    0.5, 2.0, 0.01, 1.0)),
       channelGammaG(createAdjuster(this, M("TP_FILMNEGATIVE_CHANNEL_GAMMA_G"),
@@ -372,10 +392,22 @@ FilmNegative::FilmNegative()
       outputBlackOffset(createAdjuster(
           this, M("TP_FILMNEGATIVE_OUTPUT_BLACK_OFFSET"), 0.0, 0.05, 0.001,
           0.0)),
+      flareR(createAdjuster(this, M("TP_FILMNEGATIVE_FLARE_R"), 0.0, 0.5,
+                            0.0001, 0.0)),
+      flareG(createAdjuster(this, M("TP_FILMNEGATIVE_FLARE_G"), 0.0, 0.5,
+                            0.0001, 0.0)),
+      flareB(createAdjuster(this, M("TP_FILMNEGATIVE_FLARE_B"), 0.0, 0.5,
+                            0.0001, 0.0)),
+      denoiseFirst(Gtk::manage(
+          new Gtk::CheckButton(M("TP_FILMNEGATIVE_DENOISE_FIRST")))),
+      vignettingWarning(Gtk::manage(new Gtk::Label(
+          M("TP_FILMNEGATIVE_WARN_MANUAL_VIGNETTING")))),
+      vignettingActive(false),
       targetMode(Gtk::manage(new MyComboBoxText())), targetModeGrid(nullptr),
       cineonPrimaries(Gtk::manage(new Gtk::Entry())),
-      cineonReferenceWhite(createAdjuster(
-          this, M("TP_FILMNEGATIVE_CINEON_REFWHITE"), 1e-6, 1e6, 0.01, 1.0)),
+      cineonReferenceWhite(createLogAdjuster(
+          this, M("TP_FILMNEGATIVE_CINEON_REFWHITE"), 0.001, 1000.0, 0.001,
+          0.9, 1.0)),
       matrixPreset(Gtk::manage(new MyComboBoxText())), matrixPresetGrid(nullptr),
       matrixCustomNote(Gtk::manage(
           new Gtk::Label(M("TP_FILMNEGATIVE_MATRIX_CUSTOM_NOTE")))),
@@ -387,18 +419,25 @@ FilmNegative::FilmNegative()
           M("TP_FILMNEGATIVE_CINEON_LUT")))),
       cineonLUTInputPrimaries(Gtk::manage(new Gtk::Entry())),
       cineonLUTOutputPrimaries(Gtk::manage(new Gtk::Entry())),
+      cineonLUTInputTransfer(Gtk::manage(new MyComboBoxText())),
       cineonLUTOutputTransfer(Gtk::manage(new MyComboBoxText())),
+      cineonLUTStage(Gtk::manage(new MyComboBoxText())),
       cineonLUTGrid(nullptr),
       spotPickerBox(nullptr), refSpotPickerBox(nullptr),
       filmBasePickerBox(nullptr), sep(nullptr),
       storedMatrix(
           art::engine::procparams::FilmNegativeParams::identityMatrix()),
-      captureMatrixBasis(false), suppressMatrixEdit(false)
+      captureMatrixBasis(false), suppressMatrixEdit(false), lutHashValue(),
+      lutHashDirty(false),
+      loadedLutOutputTransfer(art::engine::procparams::FilmNegativeParams::
+                                  CineonLUTOutputTransfer::LINEAR),
+      lutOutputTransferEdited(false)
 {
     EvToolReset.set_action(art::engine::ALLNORAW);
 
     method->append(M("TP_FILMNEGATIVE_METHOD_POWER_LAW"));
     method->append(M("TP_FILMNEGATIVE_METHOD_DENSITY"));
+    method->append(M("TP_FILMNEGATIVE_METHOD_NAMICOLOR"));
     setExpandAlignProperties(method, true, false, Gtk::ALIGN_FILL,
                              Gtk::ALIGN_CENTER);
 
@@ -433,6 +472,33 @@ FilmNegative::FilmNegative()
 
     pack_start(*densityGamma, Gtk::PACK_SHRINK, 0);
     pack_start(*inputGamma, Gtk::PACK_SHRINK, 0);
+    const char *const namiLabels[] = {
+        "TP_FILMNEGATIVE_NAMI_INPUT_GAIN", "TP_FILMNEGATIVE_NAMI_MASTER_GAIN",
+        "TP_FILMNEGATIVE_NAMI_MASTER_SHIFT", "TP_FILMNEGATIVE_NAMI_BLACK_R",
+        "TP_FILMNEGATIVE_NAMI_BLACK_G", "TP_FILMNEGATIVE_NAMI_BLACK_B",
+        "TP_FILMNEGATIVE_NAMI_GAIN_R", "TP_FILMNEGATIVE_NAMI_GAIN_G",
+        "TP_FILMNEGATIVE_NAMI_GAIN_B", "TP_FILMNEGATIVE_NAMI_SHIFT_R",
+        "TP_FILMNEGATIVE_NAMI_SHIFT_G", "TP_FILMNEGATIVE_NAMI_SHIFT_B"};
+    for (int i = 0; i < 12; ++i) {
+        const double lo = i == 0 ? 0.0 : (i == 1 || (i >= 3 && i <= 5) ? -0.5 : -1.0);
+        const double hi = i == 0 ? 2.0 : -lo;
+        namicolorAdjusters[i] = createAdjuster(this, M(namiLabels[i]), lo, hi, 0.001, i == 0 ? 1.0 : 0.0);
+        pack_start(*namicolorAdjusters[i], Gtk::PACK_SHRINK, 0);
+    }
+    namicolorFitBase = Gtk::manage(new MyComboBoxText());
+    namicolorFitBase->append(M("TP_FILMNEGATIVE_NAMI_FIT_OFF"));
+    namicolorFitBase->append(M("TP_FILMNEGATIVE_NAMI_FIT_ON"));
+    namicolorFitBase->set_active(0);
+    namicolorFitBase->set_tooltip_text(M("TP_FILMNEGATIVE_NAMI_FIT_TOOLTIP"));
+    pack_start(*namicolorFitBase, Gtk::PACK_SHRINK, 0);
+    namicolorFitBase->signal_changed().connect(
+        sigc::mem_fun(*this, &FilmNegative::cineonLutFieldsChanged));
+    preserveRange->set_active(true);
+    preserveRange->set_tooltip_text(
+        M("TP_FILMNEGATIVE_PRESERVE_RANGE_TOOLTIP"));
+    pack_start(*preserveRange, Gtk::PACK_SHRINK, 0);
+    preserveRange->signal_toggled().connect(
+        sigc::mem_fun(*this, &FilmNegative::preserveRangeChanged));
     pack_start(*densityDmax, Gtk::PACK_SHRINK, 0);
     pack_start(*channelGammaR, Gtk::PACK_SHRINK, 0);
     pack_start(*channelGammaG, Gtk::PACK_SHRINK, 0);
@@ -443,6 +509,21 @@ FilmNegative::FilmNegative()
     rgbGainR->setIncrements(0.001, 0.01);
     rgbGainG->setIncrements(0.001, 0.01);
     rgbGainB->setIncrements(0.001, 0.01);
+    for (Adjuster *a : {flareR, flareG, flareB}) {
+        a->set_tooltip_text(M("TP_FILMNEGATIVE_FLARE_TOOLTIP"));
+        a->setIncrements(0.0001, 0.001);
+        pack_start(*a, Gtk::PACK_SHRINK, 0);
+    }
+    denoiseFirst->set_active(true);
+    denoiseFirst->set_tooltip_text(M("TP_FILMNEGATIVE_DENOISE_FIRST_TOOLTIP"));
+    pack_start(*denoiseFirst, Gtk::PACK_SHRINK, 0);
+    denoiseFirst->signal_toggled().connect(
+        sigc::mem_fun(*this, &FilmNegative::denoiseFirstChanged));
+    vignettingWarning->set_line_wrap(true);
+    vignettingWarning->set_xalign(0.f);
+    vignettingWarning->set_no_show_all(true);
+    vignettingWarning->hide();
+    pack_start(*vignettingWarning, Gtk::PACK_SHRINK, 0);
     setExpandAlignProperties(filmBaseButton, true, false, Gtk::ALIGN_FILL,
                              Gtk::ALIGN_CENTER);
     filmBaseButton->get_style_context()->add_class("independent");
@@ -457,6 +538,19 @@ FilmNegative::FilmNegative()
     targetMode->append(M("TP_FILMNEGATIVE_TARGET_LINEAR"));
     targetMode->append(M("TP_FILMNEGATIVE_TARGET_PAPER"));
     targetMode->append(M("TP_FILMNEGATIVE_TARGET_CINEON"));
+    // Keep the enum-indexed rows stable for existing profiles, but Paper is
+    // a Density-only operation and must not be selectable for NamiColor.
+    for (Gtk::CellRenderer *renderer : targetMode->get_cells()) {
+        targetMode->set_cell_data_func(
+            *renderer,
+            [this, renderer](const Gtk::TreeModel::iterator &row) {
+                const bool paper =
+                    targetMode->get_model()->get_path(row).to_string() == "1";
+                renderer->property_sensitive() =
+                    !paper ||
+                    Method(method->get_active_row_number()) != Method::NAMICOLOR;
+            });
+    }
     setExpandAlignProperties(targetMode, true, false, Gtk::ALIGN_FILL,
                              Gtk::ALIGN_CENTER);
     targetModeGrid = Gtk::manage(new Gtk::Grid());
@@ -479,6 +573,8 @@ FilmNegative::FilmNegative()
     pack_start(*primariesGrid, Gtk::PACK_SHRINK, 0);
     cineonPrimaries->signal_changed().connect(
         sigc::mem_fun(*this, &FilmNegative::cineonPrimariesChanged));
+    cineonReferenceWhite->set_tooltip_text(
+        M("TP_FILMNEGATIVE_CINEON_REFWHITE_TOOLTIP"));
     pack_start(*cineonReferenceWhite, Gtk::PACK_SHRINK, 0);
     matrixPreset->append(M("TP_FILMNEGATIVE_MATRIX_IDENTITY"));
     matrixPreset->append(M("TP_FILMNEGATIVE_MATRIX_STATUS_M"));
@@ -579,6 +675,32 @@ FilmNegative::FilmNegative()
         *Gtk::manage(new Gtk::Label(M("TP_FILMNEGATIVE_CINEON_LUT_TRANSFER"))),
         0, 3, 1, 1);
     cineonLUTGrid->attach(*cineonLUTOutputTransfer, 1, 3, 1, 1);
+    const char *const inputTransferLabels[] = {
+        "TP_FILMNEGATIVE_LUT_INPUT_CINEON", "TP_FILMNEGATIVE_CINEON_LUT_TRANSFER_LINEAR",
+        "TP_FILMNEGATIVE_CINEON_LUT_TRANSFER_SRGB", "TP_FILMNEGATIVE_CINEON_LUT_TRANSFER_GAMMA",
+        "TP_FILMNEGATIVE_LUT_INPUT_LOGC3", "TP_FILMNEGATIVE_LUT_INPUT_SLOG3",
+        "TP_FILMNEGATIVE_LUT_INPUT_ACESCCT"};
+    for (const char *label : inputTransferLabels) {
+        cineonLUTInputTransfer->append(M(label));
+    }
+    cineonLUTInputTransfer->set_active(0);
+    cineonLUTGrid->attach(
+        *Gtk::manage(new Gtk::Label(M("TP_FILMNEGATIVE_LUT_INPUT_TRANSFER"))), 0, 4, 1, 1);
+    cineonLUTGrid->attach(*cineonLUTInputTransfer, 1, 4, 1, 1);
+    cineonLUTStage->append(M("TP_FILMNEGATIVE_CINEON_LUT_BEFORE_GRADE"));
+    cineonLUTStage->append(M("TP_FILMNEGATIVE_CINEON_LUT_AFTER_GRADE"));
+    cineonLUTStage->set_active(
+        (int)art::engine::procparams::FilmNegativeParams::CineonLUTStage::AFTER_GRADE);
+    cineonLUTStage->set_tooltip_text(
+        M("TP_FILMNEGATIVE_CINEON_LUT_STAGE_TOOLTIP"));
+    cineonLUTGrid->attach(
+        *Gtk::manage(new Gtk::Label(M("TP_FILMNEGATIVE_CINEON_LUT_STAGE"))),
+        0, 5, 1, 1);
+    cineonLUTGrid->attach(*cineonLUTStage, 1, 5, 1, 1);
+    cineonLUTStage->signal_changed().connect(
+        sigc::mem_fun(*this, &FilmNegative::cineonLutFieldsChanged));
+    cineonLUTInputTransfer->signal_changed().connect(
+        sigc::mem_fun(*this, &FilmNegative::cineonLutFieldsChanged));
     pack_start(*cineonLUTGrid);
     cineonLUTFile->signal_selection_changed().connect(
         sigc::mem_fun(*this, &FilmNegative::cineonLutChanged));
@@ -587,7 +709,7 @@ FilmNegative::FilmNegative()
     cineonLUTOutputPrimaries->signal_changed().connect(
         sigc::mem_fun(*this, &FilmNegative::cineonLutFieldsChanged));
     cineonLUTOutputTransfer->signal_changed().connect(
-        sigc::mem_fun(*this, &FilmNegative::cineonLutFieldsChanged));
+        sigc::mem_fun(*this, &FilmNegative::cineonLutOutputTransferChanged));
 
     setExpandAlignProperties(spotButton, true, false, Gtk::ALIGN_FILL,
                              Gtk::ALIGN_CENTER);
@@ -697,6 +819,29 @@ void FilmNegative::writeOutputSliders(const RGB &refOut)
     greenBalance->setValue(std::log2(NEUTRAL_TEMP.getGreen() / green));
 }
 
+namespace {
+
+Glib::ustring paperBasisFor(const art::engine::procparams::ProcParams *pp)
+{
+    const bool input =
+        pp->filmNegative.colorSpace ==
+        art::engine::procparams::FilmNegativeParams::ColorSpace::INPUT;
+    const Glib::ustring profile =
+        input ? pp->icm.inputProfile : pp->icm.workingProfile;
+    Glib::ustring basis = input ? "input" : "working";
+    if (!profile.empty()) {
+        basis += "|" + profile;
+    }
+    return basis;
+}
+
+Glib::ustring profilesKey(const art::engine::procparams::ProcParams *pp)
+{
+    return pp->icm.inputProfile + "\n" + pp->icm.workingProfile;
+}
+
+} // namespace
+
 void FilmNegative::read(const art::engine::procparams::ProcParams *pp)
 {
     disableListener();
@@ -708,7 +853,7 @@ void FilmNegative::read(const art::engine::procparams::ProcParams *pp)
 
     initial_params = pp->filmNegative;
 
-    method->set_active(CLAMP((int)pp->filmNegative.method, 0, 1));
+    method->set_active(CLAMP((int)pp->filmNegative.method, 0, 2));
     filmType->set_active(CLAMP((int)pp->filmNegative.filmType, 0, 1));
 
     colorSpace->set_active(CLAMP((int)pp->filmNegative.colorSpace, 0, 1));
@@ -719,16 +864,33 @@ void FilmNegative::read(const art::engine::procparams::ProcParams *pp)
     densityGamma->setValue(pp->filmNegative.densityGamma);
     inputGamma->setValue(pp->filmNegative.inputGamma);
     densityDmax->setValue(pp->filmNegative.densityDmax);
+    const auto &nami = pp->filmNegative;
+    namicolorAdjusters[0]->setValue(nami.namicolorInputGain);
+    namicolorAdjusters[1]->setValue(nami.namicolorMasterGain);
+    namicolorAdjusters[2]->setValue(nami.namicolorMasterShift);
+    for (int i = 0; i < 3; ++i) {
+        namicolorAdjusters[3 + i]->setValue(nami.namicolorBlack[i]);
+        namicolorAdjusters[6 + i]->setValue(nami.namicolorGain[i]);
+        namicolorAdjusters[9 + i]->setValue(nami.namicolorShift[i]);
+    }
+    namicolorFitBase->set_active(nami.namicolorFitBase ? 1 : 0);
+    preserveRange->set_active(nami.preserveRange);
+    cineonLUTInputTransfer->set_active(CLAMP((int)nami.cineonLUTInputTransfer, 0, 6));
     channelGammaR->setValue(pp->filmNegative.channelGamma[0]);
     channelGammaG->setValue(pp->filmNegative.channelGamma[1]);
     channelGammaB->setValue(pp->filmNegative.channelGamma[2]);
     rgbGainR->setValue(pp->filmNegative.rgbGains[0]);
     rgbGainG->setValue(pp->filmNegative.rgbGains[1]);
     rgbGainB->setValue(pp->filmNegative.rgbGains[2]);
+    flareR->setValue(pp->filmNegative.flare[0]);
+    flareG->setValue(pp->filmNegative.flare[1]);
+    flareB->setValue(pp->filmNegative.flare[2]);
+    denoiseFirst->set_active(pp->filmNegative.denoiseBeforeInversion);
     targetMode->set_active(CLAMP((int)pp->filmNegative.targetMode, 0, 2));
     cineonPrimaries->set_text(pp->filmNegative.cineonPrimaries);
     cineonReferenceWhite->setValue(pp->filmNegative.cineonReferenceWhite);
     paperBasisValue = pp->filmNegative.paperBasis;
+    boundProfiles = profilesKey(pp);
     if (!paperCurve->set_active_id(pp->filmNegative.paperCurve)) {
         paperCurve->append(pp->filmNegative.paperCurve,
                            pp->filmNegative.paperCurve);
@@ -744,15 +906,22 @@ void FilmNegative::read(const art::engine::procparams::ProcParams *pp)
         pp->filmNegative.cineonLUTOutputPrimaries);
     cineonLUTOutputTransfer->set_active(CLAMP(
         (int)pp->filmNegative.cineonLUTOutputTransfer, 0, 2));
+    loadedLutOutputTransfer = pp->filmNegative.cineonLUTOutputTransfer;
+    lutOutputTransferEdited = false;
+    lutHashValue = pp->filmNegative.cineonLUTSha256;
+    lutHashDirty = false;
+    cineonLUTStage->set_active((int)pp->filmNegative.cineonLUTStage);
     outputBlackOffset->setValue(pp->filmNegative.outputBlackOffset);
 
     storedMatrix = pp->filmNegative.matrix;
     matrixBasis = pp->filmNegative.matrixBasis;
-    captureMatrixBasis = false;
     suppressMatrixEdit = true;
     calibrationNote->set_text(pp->filmNegative.calibrationNote);
     matrixPreset->set_active(CLAMP((int)pp->filmNegative.matrixPreset, 0, 2));
     suppressMatrixEdit = false;
+    // set_active does not emit when the row is unchanged (Custom -> Custom)
+    applyMatrixPresetDisplay();
+    captureMatrixBasis = false;
 
     refInputValues = pp->filmNegative.refInput;
 
@@ -778,7 +947,7 @@ void FilmNegative::read(const art::engine::procparams::ProcParams *pp)
 void FilmNegative::write(art::engine::procparams::ProcParams *pp)
 {
     pp->filmNegative.method =
-        Method(CLAMP(method->get_active_row_number(), 0, 1));
+        Method(CLAMP(method->get_active_row_number(), 0, 2));
     pp->filmNegative.filmType =
         FilmType(CLAMP(filmType->get_active_row_number(), 0, 1));
 
@@ -793,12 +962,33 @@ void FilmNegative::write(art::engine::procparams::ProcParams *pp)
     pp->filmNegative.densityGamma = densityGamma->getValue();
     pp->filmNegative.inputGamma = inputGamma->getValue();
     pp->filmNegative.densityDmax = densityDmax->getValue();
+    pp->filmNegative.namicolorInputGain = namicolorAdjusters[0]->getValue();
+    pp->filmNegative.namicolorMasterGain = namicolorAdjusters[1]->getValue();
+    pp->filmNegative.namicolorMasterShift = namicolorAdjusters[2]->getValue();
+    for (int i = 0; i < 3; ++i) {
+        pp->filmNegative.namicolorBlack[i] = namicolorAdjusters[3 + i]->getValue();
+        pp->filmNegative.namicolorGain[i] = namicolorAdjusters[6 + i]->getValue();
+        pp->filmNegative.namicolorShift[i] = namicolorAdjusters[9 + i]->getValue();
+    }
+    pp->filmNegative.namicolorFitBase = namicolorFitBase->get_active_row_number() == 1;
+    pp->filmNegative.preserveRange = preserveRange->get_active();
+    // Not a widget: legacy sidecars keep their 93/1023 lift across write().
+    pp->filmNegative.namicolorFitBaseAnchor =
+        initial_params.namicolorFitBaseAnchor;
+    pp->filmNegative.cineonLUTInputTransfer =
+        art::engine::procparams::FilmNegativeParams::CineonLUTInputTransfer(
+            CLAMP(cineonLUTInputTransfer->get_active_row_number(), 0, 6));
+    pp->filmNegative.legacyInputLUT = initial_params.legacyInputLUT;
     pp->filmNegative.channelGamma[0] = channelGammaR->getValue();
     pp->filmNegative.channelGamma[1] = channelGammaG->getValue();
     pp->filmNegative.channelGamma[2] = channelGammaB->getValue();
     pp->filmNegative.rgbGains[0] = rgbGainR->getValue();
     pp->filmNegative.rgbGains[1] = rgbGainG->getValue();
     pp->filmNegative.rgbGains[2] = rgbGainB->getValue();
+    pp->filmNegative.flare[0] = flareR->getValue();
+    pp->filmNegative.flare[1] = flareG->getValue();
+    pp->filmNegative.flare[2] = flareB->getValue();
+    pp->filmNegative.denoiseBeforeInversion = denoiseFirst->get_active();
     pp->filmNegative.outputBlackOffset = outputBlackOffset->getValue();
 
     pp->filmNegative.targetMode =
@@ -810,15 +1000,13 @@ void FilmNegative::write(art::engine::procparams::ProcParams *pp)
             CLAMP(matrixPreset->get_active_row_number(), 0, 2));
     if (pp->filmNegative.matrixPreset ==
         art::engine::procparams::FilmNegativeParams::CUSTOM) {
-        std::array<double, 9> edited = storedMatrix;
-        if (parseMatrix(matrixCoeffs->get_text(), edited)) {
-            storedMatrix = edited;
-        }
+        // storedMatrix is authoritative; it is updated from the text only
+        // when the user edits the entry (matrixEdited)
     }
     pp->filmNegative.matrix = storedMatrix;
-    if (captureMatrixBasis &&
-        pp->filmNegative.matrixPreset !=
-            art::engine::procparams::FilmNegativeParams::IDENTITY) {
+    if (pp->filmNegative.matrixPreset !=
+            art::engine::procparams::FilmNegativeParams::IDENTITY &&
+        (captureMatrixBasis || matrixBasis.empty())) {
         const Glib::ustring source =
             fnp ? fnp->getFilmNegativeSourceId() : Glib::ustring("Unknown");
         matrixBasis = art::engine::procparams::FilmNegativeParams::makeMatrixBasis(
@@ -831,30 +1019,36 @@ void FilmNegative::write(art::engine::procparams::ProcParams *pp)
     pp->filmNegative.paperCurve = paperCurve->get_active_id();
     if (capturePaperBasisFlag &&
         pp->filmNegative.targetMode == TargetMode::PAPER) {
-        const bool input =
-            pp->filmNegative.colorSpace ==
-            art::engine::procparams::FilmNegativeParams::ColorSpace::INPUT;
-        const Glib::ustring profile =
-            input ? pp->icm.inputProfile : pp->icm.workingProfile;
-        paperBasisValue = input ? "input" : "working";
-        if (!profile.empty()) {
-            paperBasisValue += "|" + profile;
-        }
+        paperBasisValue = paperBasisFor(pp);
         capturePaperBasisFlag = false;
     }
     pp->filmNegative.paperBasis = paperBasisValue;
     pp->filmNegative.cineonLUT = cineonLUTFile->get_filename();
-    pp->filmNegative.cineonLUTSha256 =
-        pp->filmNegative.cineonLUT.empty()
-            ? Glib::ustring()
-            : art::engine::cineonLutSha256(pp->filmNegative.cineonLUT);
+    if (pp->filmNegative.cineonLUT.empty()) {
+        lutHashValue.clear();
+        lutHashDirty = false;
+    } else if (lutHashDirty || lutHashValue.empty()) {
+        lutHashValue = art::engine::cineonLutSha256(pp->filmNegative.cineonLUT);
+        lutHashDirty = false;
+    }
+    pp->filmNegative.cineonLUTSha256 = lutHashValue;
     pp->filmNegative.cineonLUTInputPrimaries =
         cineonLUTInputPrimaries->get_text();
     pp->filmNegative.cineonLUTOutputPrimaries =
         cineonLUTOutputPrimaries->get_text();
-    pp->filmNegative.cineonLUTOutputTransfer =
-        art::engine::procparams::FilmNegativeParams::CineonLUTOutputTransfer(
-            CLAMP(cineonLUTOutputTransfer->get_active_row_number(), 0, 2));
+    if (!lutOutputTransferEdited &&
+        loadedLutOutputTransfer ==
+            art::engine::procparams::FilmNegativeParams::
+                CineonLUTOutputTransfer::UNSUPPORTED) {
+        pp->filmNegative.cineonLUTOutputTransfer = loadedLutOutputTransfer;
+    } else {
+        pp->filmNegative.cineonLUTOutputTransfer = art::engine::procparams::
+            FilmNegativeParams::CineonLUTOutputTransfer(
+                CLAMP(cineonLUTOutputTransfer->get_active_row_number(), 0, 2));
+    }
+    pp->filmNegative.cineonLUTStage =
+        art::engine::procparams::FilmNegativeParams::CineonLUTStage(
+            cineonLUTStage->get_active_row_number());
     if (!pp->filmNegative.cineonLUT.empty() &&
         pp->filmNegative.targetMode == TargetMode::PAPER) {
         pp->filmNegative.targetMode = TargetMode::LINEAR;
@@ -862,18 +1056,27 @@ void FilmNegative::write(art::engine::procparams::ProcParams *pp)
 
     pp->filmNegative.enabled = getEnabled();
 
-    pp->filmNegative.refInput = refInputValues;
-
-    readOutputSliders(pp->filmNegative.refOutput);
-
-    if (paramsUpgraded) {
-        pp->filmNegative.backCompat = BackCompat::CURRENT;
+    if (pp->filmNegative.method == Method::POWER_LAW) {
+        pp->filmNegative.refInput = refInputValues;
+        readOutputSliders(pp->filmNegative.refOutput);
+        if (paramsUpgraded) {
+            pp->filmNegative.backCompat = BackCompat::CURRENT;
+        }
+    } else {
+        pp->filmNegative.refInput =
+            pp->filmNegative.method == Method::DENSITY ? refInputValues
+                                                      : initial_params.refInput;
+        pp->filmNegative.refOutput = initial_params.refOutput;
     }
 }
 
 void FilmNegative::setDefaults(
     const art::engine::procparams::ProcParams *defParams)
 {
+    // Profile initialization must not emit processing events while the
+    // coordinator is still constructing the other tool panels.
+    disableListener();
+
     method->set_active((int)defParams->filmNegative.method);
     filmType->set_active((int)defParams->filmNegative.filmType);
 
@@ -884,12 +1087,37 @@ void FilmNegative::setDefaults(
     densityGamma->setValue(defParams->filmNegative.densityGamma);
     inputGamma->setValue(defParams->filmNegative.inputGamma);
     densityDmax->setValue(defParams->filmNegative.densityDmax);
+    const auto &nami = defParams->filmNegative;
+    namicolorAdjusters[0]->setDefault(nami.namicolorInputGain);
+    namicolorAdjusters[0]->setValue(nami.namicolorInputGain);
+    namicolorAdjusters[1]->setDefault(nami.namicolorMasterGain);
+    namicolorAdjusters[1]->setValue(nami.namicolorMasterGain);
+    namicolorAdjusters[2]->setDefault(nami.namicolorMasterShift);
+    namicolorAdjusters[2]->setValue(nami.namicolorMasterShift);
+    for (int i = 0; i < 3; ++i) {
+        namicolorAdjusters[3 + i]->setValue(nami.namicolorBlack[i]);
+        namicolorAdjusters[6 + i]->setValue(nami.namicolorGain[i]);
+        namicolorAdjusters[9 + i]->setValue(nami.namicolorShift[i]);
+        namicolorAdjusters[3 + i]->setDefault(nami.namicolorBlack[i]);
+        namicolorAdjusters[6 + i]->setDefault(nami.namicolorGain[i]);
+        namicolorAdjusters[9 + i]->setDefault(nami.namicolorShift[i]);
+    }
+    namicolorFitBase->set_active(nami.namicolorFitBase ? 1 : 0);
+    preserveRange->set_active(nami.preserveRange);
+    cineonLUTInputTransfer->set_active((int)nami.cineonLUTInputTransfer);
     channelGammaR->setValue(defParams->filmNegative.channelGamma[0]);
     channelGammaG->setValue(defParams->filmNegative.channelGamma[1]);
     channelGammaB->setValue(defParams->filmNegative.channelGamma[2]);
     rgbGainR->setValue(defParams->filmNegative.rgbGains[0]);
     rgbGainG->setValue(defParams->filmNegative.rgbGains[1]);
     rgbGainB->setValue(defParams->filmNegative.rgbGains[2]);
+    flareR->setValue(defParams->filmNegative.flare[0]);
+    flareG->setValue(defParams->filmNegative.flare[1]);
+    flareB->setValue(defParams->filmNegative.flare[2]);
+    flareR->setDefault(defParams->filmNegative.flare[0]);
+    flareG->setDefault(defParams->filmNegative.flare[1]);
+    flareB->setDefault(defParams->filmNegative.flare[2]);
+    denoiseFirst->set_active(defParams->filmNegative.denoiseBeforeInversion);
     targetMode->set_active((int)defParams->filmNegative.targetMode);
     cineonPrimaries->set_text(defParams->filmNegative.cineonPrimaries);
     cineonReferenceWhite->setValue(defParams->filmNegative.cineonReferenceWhite);
@@ -906,6 +1134,11 @@ void FilmNegative::setDefaults(
         defParams->filmNegative.cineonLUTOutputPrimaries);
     cineonLUTOutputTransfer->set_active(
         CLAMP((int)defParams->filmNegative.cineonLUTOutputTransfer, 0, 2));
+    loadedLutOutputTransfer = defParams->filmNegative.cineonLUTOutputTransfer;
+    lutOutputTransferEdited = false;
+    lutHashValue = defParams->filmNegative.cineonLUTSha256;
+    lutHashDirty = false;
+    cineonLUTStage->set_active((int)defParams->filmNegative.cineonLUTStage);
     outputBlackOffset->setValue(defParams->filmNegative.outputBlackOffset);
 
     initial_params = defParams->filmNegative;
@@ -914,11 +1147,24 @@ void FilmNegative::setDefaults(
     writeOutputSliders({gray, gray, gray});
 
     updateVisibility();
+    enableListener();
 }
 
 void FilmNegative::adjusterChanged(Adjuster *a, double newval)
 {
+    if (listener && a == inputGamma &&
+        matrixPreset->get_active_row_number() != 0) {
+        // the matrix basis encodes the input gamma
+        captureMatrixBasis = true;
+    }
     if (listener && getEnabled()) {
+        for (Adjuster *control : namicolorAdjusters) {
+            if (a == control) {
+                listener->panelChanged(evFilmNegativeDensity,
+                    Glib::ustring::compose("%1", newval));
+                return;
+            }
+        }
         if (a == redRatio || a == greenExp || a == blueRatio) {
             listener->panelChanged(
                 evFilmNegativeExponents,
@@ -936,6 +1182,12 @@ void FilmNegative::adjusterChanged(Adjuster *a, double newval)
                 Glib::ustring::compose(
                     "Lev=%1 G=%2 B=%3", outputLevel->getValue(),
                     greenBalance->getValue(), blueBalance->getValue()));
+        } else if (a == flareR || a == flareG || a == flareB) {
+            listener->panelChanged(
+                evFilmNegativeFlare,
+                Glib::ustring::compose("R=%1 G=%2 B=%3", flareR->getValue(),
+                                       flareG->getValue(),
+                                       flareB->getValue()));
         } else if (a == cineonReferenceWhite) {
             listener->panelChanged(
                 evFilmNegativeCineon,
@@ -957,6 +1209,16 @@ void FilmNegative::adjusterChanged(Adjuster *a, double newval)
 void FilmNegative::updateVisibility()
 {
     Method m = Method(method->get_active_row_number());
+    for (Adjuster *control : namicolorAdjusters) {
+        control->set_visible(m == Method::NAMICOLOR);
+    }
+    namicolorFitBase->set_visible(m == Method::NAMICOLOR);
+    preserveRange->set_visible(m == Method::NAMICOLOR);
+    preserveRange->set_sensitive(m == Method::NAMICOLOR);
+    if (m != Method::POWER_LAW &&
+        (spotButton->get_active() || refSpotButton->get_active())) {
+        switchOffEditMode();
+    }
     if (m == Method::POWER_LAW) {
         filmTypeGrid->hide();
         densityGamma->hide();
@@ -1012,8 +1274,8 @@ void FilmNegative::updateVisibility()
         }
         targetModeGrid->hide();
         paperCurveGrid->hide();
-    } else { // DENSITY
-        csGrid->hide();
+    } else { // DENSITY or NAMICOLOR
+        csGrid->show();
         greenExp->hide();
         redRatio->hide();
         blueRatio->hide();
@@ -1032,10 +1294,10 @@ void FilmNegative::updateVisibility()
         }
 
         filmTypeGrid->show();
-        densityGamma->show();
+        densityGamma->set_visible(m == Method::DENSITY);
         inputGamma->show();
         FilmType ft = FilmType(filmType->get_active_row_number());
-        if (ft == FilmType::NEGATIVE) {
+        if (m == Method::DENSITY && ft == FilmType::NEGATIVE) {
             densityDmax->show();
             if (filmBasePickerBox) {
                 filmBasePickerBox->show();
@@ -1051,13 +1313,13 @@ void FilmNegative::updateVisibility()
                 switchOffEditMode();
             }
         }
-        channelGammaR->show();
-        channelGammaG->show();
-        channelGammaB->show();
-        rgbGainR->show();
-        rgbGainG->show();
-        rgbGainB->show();
-        outputBlackOffset->show();
+        channelGammaR->set_visible(m == Method::DENSITY);
+        channelGammaG->set_visible(m == Method::DENSITY);
+        channelGammaB->set_visible(m == Method::DENSITY);
+        rgbGainR->set_visible(m == Method::DENSITY);
+        rgbGainG->set_visible(m == Method::DENSITY);
+        rgbGainB->set_visible(m == Method::DENSITY);
+        outputBlackOffset->set_visible(m == Method::DENSITY);
         if (matrixPresetGrid) {
             matrixPresetGrid->show();
         }
@@ -1067,6 +1329,11 @@ void FilmNegative::updateVisibility()
         targetModeGrid->show();
     }
 
+    flareR->set_visible(m != Method::POWER_LAW);
+    flareG->set_visible(m != Method::POWER_LAW);
+    flareB->set_visible(m != Method::POWER_LAW);
+    vignettingWarning->set_visible(vignettingActive);
+
     TargetMode tm = TargetMode(CLAMP(targetMode->get_active_row_number(), 0, 2));
     if (m == Method::DENSITY && tm == TargetMode::PAPER &&
         cineonLUTFile->get_filename().empty()) {
@@ -1074,7 +1341,7 @@ void FilmNegative::updateVisibility()
     } else {
         paperCurveGrid->hide();
     }
-    if (m == Method::DENSITY && cineonLUTGrid) {
+    if (m != Method::POWER_LAW && cineonLUTGrid) {
         cineonLUTGrid->show();
     } else if (cineonLUTGrid) {
         cineonLUTGrid->hide();
@@ -1084,7 +1351,7 @@ void FilmNegative::updateVisibility()
         cineonReferenceWhite->show();
     } else {
         cineonPrimaries->get_parent()->hide();
-        cineonReferenceWhite->hide();
+        cineonReferenceWhite->set_visible(m == Method::NAMICOLOR);
     }
 }
 
@@ -1101,6 +1368,7 @@ void FilmNegative::applyMatrixPresetDisplay()
         editable = true;
     }
     suppressMatrixEdit = true;
+    matrixCoeffs->unset_icon(Gtk::ENTRY_ICON_SECONDARY);
     matrixCoeffs->set_text(formatMatrix(shown));
     matrixCoeffs->set_sensitive(editable);
     suppressMatrixEdit = false;
@@ -1109,10 +1377,10 @@ void FilmNegative::applyMatrixPresetDisplay()
 void FilmNegative::matrixPresetChanged()
 {
     applyMatrixPresetDisplay();
+    if (listener && matrixPreset->get_active_row_number() != 0) {
+        captureMatrixBasis = true;
+    }
     if (listener && getEnabled()) {
-        if (matrixPreset->get_active_row_number() != 0) {
-            captureMatrixBasis = true;
-        }
         listener->panelChanged(evFilmNegativeMatrix,
                                matrixPreset->get_active_text());
     }
@@ -1120,13 +1388,25 @@ void FilmNegative::matrixPresetChanged()
 
 void FilmNegative::matrixEdited()
 {
-    if (suppressMatrixEdit || !listener || !getEnabled()) {
+    if (suppressMatrixEdit || !listener) {
         return;
     }
     if (matrixPreset->get_active_row_number() != 2) {
         return;
     }
-    listener->panelChanged(evFilmNegativeMatrix, matrixCoeffs->get_text());
+    std::array<double, 9> edited = storedMatrix;
+    if (!parseMatrix(matrixCoeffs->get_text(), edited)) {
+        matrixCoeffs->set_icon_from_icon_name("dialog-warning",
+                                              Gtk::ENTRY_ICON_SECONDARY);
+        matrixCoeffs->set_icon_tooltip_text(M("TP_FILMNEGATIVE_MATRIX_INVALID"),
+                                            Gtk::ENTRY_ICON_SECONDARY);
+        return;
+    }
+    matrixCoeffs->unset_icon(Gtk::ENTRY_ICON_SECONDARY);
+    storedMatrix = edited;
+    if (getEnabled()) {
+        listener->panelChanged(evFilmNegativeMatrix, matrixCoeffs->get_text());
+    }
 }
 
 void FilmNegative::calibrationNoteEdited()
@@ -1139,8 +1419,13 @@ void FilmNegative::calibrationNoteEdited()
 
 void FilmNegative::methodChanged()
 {
+    if (listener &&
+        Method(method->get_active_row_number()) == Method::NAMICOLOR &&
+        TargetMode(targetMode->get_active_row_number()) == TargetMode::PAPER) {
+        targetMode->set_active((int)TargetMode::LINEAR);
+    }
     updateVisibility();
-    if (listener) {
+    if (listener && getEnabled()) {
         listener->panelChanged(evFilmNegativeMethod,
                                method->get_active_text());
     }
@@ -1149,9 +1434,30 @@ void FilmNegative::methodChanged()
 void FilmNegative::filmTypeChanged()
 {
     updateVisibility();
-    if (listener) {
+    if (listener && getEnabled()) {
         listener->panelChanged(evFilmNegativeMethod,
                                filmType->get_active_text());
+    }
+}
+
+void FilmNegative::preserveRangeChanged()
+{
+    if (listener && getEnabled() &&
+        Method(method->get_active_row_number()) == Method::NAMICOLOR) {
+        listener->panelChanged(
+            evFilmNegativePreserveRange,
+            M(preserveRange->get_active() ? "GENERAL_ENABLED"
+                                         : "GENERAL_DISABLED"));
+    }
+}
+
+void FilmNegative::denoiseFirstChanged()
+{
+    if (listener && getEnabled()) {
+        listener->panelChanged(
+            evFilmNegativeDenoiseFirst,
+            M(denoiseFirst->get_active() ? "GENERAL_ENABLED"
+                                         : "GENERAL_DISABLED"));
     }
 }
 
@@ -1160,9 +1466,46 @@ void FilmNegative::capturePaperBasis()
     capturePaperBasisFlag = true;
 }
 
+void FilmNegative::syncBindings(art::engine::procparams::ProcParams *pp)
+{
+    // The manual Vignetting Correction acts on the inverted positive; warn
+    // here because this hook runs after every panel has written pp.
+    {
+        const bool active = pp->filmNegative.enabled &&
+                            pp->vignetting.enabled && pp->vignetting.amount != 0;
+        if (active != vignettingActive) {
+            vignettingActive = active;
+            vignettingWarning->set_visible(active);
+        }
+    }
+    const Glib::ustring key = profilesKey(pp);
+    if (key == boundProfiles) {
+        return;
+    }
+    boundProfiles = key;
+
+    // Only rebind bases that exist: an empty or never-captured basis keeps
+    // its current meaning (the engine reports it).
+    auto &fn = pp->filmNegative;
+    if (fn.matrixPreset !=
+            art::engine::procparams::FilmNegativeParams::IDENTITY &&
+        !matrixBasis.empty()) {
+        const Glib::ustring source =
+            fnp ? fnp->getFilmNegativeSourceId() : Glib::ustring("Unknown");
+        matrixBasis =
+            art::engine::procparams::FilmNegativeParams::makeMatrixBasis(
+                fn.colorSpace, pp->icm, fn.inputGamma, source);
+        fn.matrixBasis = matrixBasis;
+    }
+    if (fn.targetMode == TargetMode::PAPER && !paperBasisValue.empty()) {
+        paperBasisValue = paperBasisFor(pp);
+        fn.paperBasis = paperBasisValue;
+    }
+}
+
 void FilmNegative::targetModeChanged()
 {
-    if (listener &&
+    if (listener && Method(method->get_active_row_number()) == Method::DENSITY &&
         TargetMode(targetMode->get_active_row_number()) == TargetMode::PAPER) {
         if (!cineonLUTFile->get_filename().empty()) {
             cineonLUTFile->unselect_all();
@@ -1170,7 +1513,7 @@ void FilmNegative::targetModeChanged()
         capturePaperBasis();
     }
     updateVisibility();
-    if (listener) {
+    if (listener && getEnabled()) {
         listener->panelChanged(evFilmNegativeCineon,
                                targetMode->get_active_text());
     }
@@ -1178,6 +1521,9 @@ void FilmNegative::targetModeChanged()
 
 void FilmNegative::cineonLutChanged()
 {
+    if (listener) {
+        lutHashDirty = true;
+    }
     if (!cineonLUTFile->get_filename().empty() &&
         TargetMode(targetMode->get_active_row_number()) == TargetMode::PAPER) {
         targetMode->set_active((int)TargetMode::LINEAR);
@@ -1189,11 +1535,21 @@ void FilmNegative::cineonLutChanged()
     }
 }
 
+void FilmNegative::cineonLutOutputTransferChanged()
+{
+    if (listener) {
+        lutOutputTransferEdited = true;
+    }
+    cineonLutFieldsChanged();
+}
+
 void FilmNegative::cineonLutFieldsChanged()
 {
     if (listener && getEnabled()) {
-        listener->panelChanged(evFilmNegativeCineon,
-                               cineonLUTOutputTransfer->get_active_text());
+        listener->panelChanged(
+            evFilmNegativeCineon,
+            Glib::ustring::compose("%1 / %2", cineonLUTStage->get_active_text(),
+                                  cineonLUTOutputTransfer->get_active_text()));
     }
 }
 
@@ -1203,7 +1559,7 @@ void FilmNegative::paperCurveChanged()
         TargetMode(targetMode->get_active_row_number()) == TargetMode::PAPER) {
         capturePaperBasis();
     }
-    if (listener) {
+    if (listener && getEnabled()) {
         listener->panelChanged(evFilmNegativeTarget,
                                paperCurve->get_active_text());
     }
@@ -1234,6 +1590,16 @@ void FilmNegative::enabledChanged()
 void FilmNegative::colorSpaceChanged()
 {
     if (listener) {
+        // both bases encode the colour space (and its profile)
+        if (matrixPreset->get_active_row_number() != 0) {
+            captureMatrixBasis = true;
+        }
+        if (TargetMode(targetMode->get_active_row_number()) ==
+            TargetMode::PAPER) {
+            capturePaperBasis();
+        }
+    }
+    if (listener && getEnabled()) {
         listener->panelChanged(evFilmNegativeColorSpace,
                                colorSpace->get_active_text());
     }
@@ -1244,6 +1610,9 @@ void FilmNegative::filmRefValuesChanged(const RGB &refInput,
 {
 
     idle_register.add([this, refInput, refOutput]() -> bool {
+        if (Method(method->get_active_row_number()) != Method::POWER_LAW) {
+            return false;
+        }
         refInputValues = refInput;
         paramsUpgraded = true;
 
@@ -1289,9 +1658,14 @@ bool FilmNegative::button1Pressed(int modifierKey)
 {
     EditDataProvider *const provider = getEditProvider();
     EditSubscriber::action = EditSubscriber::ES_ACTION_NONE;
+    const Method activeMethod = Method(method->get_active_row_number());
+    if (activeMethod == Method::NAMICOLOR) {
+        switchOffEditMode();
+        return true;
+    }
 
     if (listener) {
-        if (spotButton->get_active()) {
+        if (activeMethod == Method::POWER_LAW && spotButton->get_active()) {
             int sz = 2 << spotsize->get_active_row_number();
             refSpotCoords.push_back(provider->posImage);
             if (refSpotCoords.size() == 2) {
@@ -1324,7 +1698,7 @@ bool FilmNegative::button1Pressed(int modifierKey)
                 }
                 switchOffEditMode();
             }
-        } else if (refSpotButton->get_active()) {
+        } else if (activeMethod == Method::POWER_LAW && refSpotButton->get_active()) {
             disableListener();
 
             int sz = 2 << refspotsize->get_active_row_number();

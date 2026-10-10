@@ -554,6 +554,12 @@ void RawImageSource::getAutoMatchedToneCurve(const ColorManagementParams &cp,
                 thumb->processImage(neutral, sensor_type, fh / skip,
                                     TI_Nearest, getMetaData(), scale,
                                     false, true));
+            if (!img8) {
+                histMatchingCache = outCurve;
+                histMatchingCache2 = outCurve2;
+                histMatchingParams = cp;
+                return;
+            }
             target.reset(to_float(img8.get()));
         }
 
@@ -584,7 +590,9 @@ void RawImageSource::getAutoMatchedToneCurve(const ColorManagementParams &cp,
                 std::unique_ptr<IImage8> img8(
                     thumb->processImage(
                         neutral, sensor_type, fh / skip, TI_Nearest, getMetaData(), scale, false, true));
-                target.reset(to_float(img8.get()));
+                if (img8) {
+                    target.reset(to_float(img8.get()));
+                }
             }
         }
 

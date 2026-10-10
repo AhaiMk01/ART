@@ -65,6 +65,10 @@ public:
 
     void read(const art::engine::procparams::ProcParams *pp) override;
     void write(art::engine::procparams::ProcParams *pp) override;
+    // Rebinds MatrixBasis/PaperBasis when the colour management profiles
+    // changed since read(). Call after every panel has written pp, since the
+    // ICM panel may write after this one.
+    void syncBindings(art::engine::procparams::ProcParams *pp);
     void
     setDefaults(const art::engine::procparams::ProcParams *defParams) override;
     void toolReset(bool to_initial) override;
@@ -74,6 +78,8 @@ public:
     void colorSpaceChanged();
     void methodChanged();
     void filmTypeChanged();
+    void preserveRangeChanged();
+    void denoiseFirstChanged();
     void targetModeChanged();
     void cineonPrimariesChanged();
     void matrixPresetChanged();
@@ -83,6 +89,7 @@ public:
     void paperCurveChanged();
     void cineonLutChanged();
     void cineonLutFieldsChanged();
+    void cineonLutOutputTransferChanged();
     void capturePaperBasis();
     void updateVisibility();
     void filmRefValuesChanged(const RGB &refInput,
@@ -123,6 +130,9 @@ private:
     const art::engine::ProcEvent evFilmNegativeCineon;
     const art::engine::ProcEvent evFilmNegativeMatrix;
     const art::engine::ProcEvent evFilmNegativeTarget;
+    const art::engine::ProcEvent evFilmNegativePreserveRange;
+    const art::engine::ProcEvent evFilmNegativeFlare;
+    const art::engine::ProcEvent evFilmNegativeDenoiseFirst;
     std::vector<art::engine::Coord> refSpotCoords;
 
     RGB refInputValues;
@@ -170,6 +180,9 @@ private:
     Adjuster *const inputGamma;
     Adjuster *const densityGamma;
     Adjuster *const densityDmax;
+    std::array<Adjuster *, 12> namicolorAdjusters;
+    MyComboBoxText *namicolorFitBase;
+    Gtk::CheckButton *const preserveRange;
     Adjuster *const channelGammaR;
     Adjuster *const channelGammaG;
     Adjuster *const channelGammaB;
@@ -177,6 +190,12 @@ private:
     Adjuster *const rgbGainG;
     Adjuster *const rgbGainB;
     Adjuster *const outputBlackOffset;
+    Adjuster *const flareR;
+    Adjuster *const flareG;
+    Adjuster *const flareB;
+    Gtk::CheckButton *const denoiseFirst;
+    Gtk::Label *const vignettingWarning;
+    bool vignettingActive;
 
     MyComboBoxText *const targetMode;
     Gtk::Grid *targetModeGrid;
@@ -191,10 +210,14 @@ private:
     Gtk::Grid *paperCurveGrid;
     Glib::ustring paperBasisValue;
     bool capturePaperBasisFlag;
+    // inputProfile + "\n" + workingProfile as of read() or the last rebind
+    Glib::ustring boundProfiles;
     MyFileChooserButton *const cineonLUTFile;
     Gtk::Entry *const cineonLUTInputPrimaries;
     Gtk::Entry *const cineonLUTOutputPrimaries;
+    MyComboBoxText *const cineonLUTInputTransfer;
     MyComboBoxText *const cineonLUTOutputTransfer;
+    MyComboBoxText *const cineonLUTStage;
     Gtk::Grid *cineonLUTGrid;
 
     Gtk::Widget *spotPickerBox;
@@ -209,6 +232,16 @@ private:
     Glib::ustring matrixBasis;
     bool captureMatrixBasis;
     bool suppressMatrixEdit;
+    // SHA-256 of the LUT file, stamped only when the user picks a LUT (or
+    // none is stored yet); otherwise the loaded value is written back so the
+    // engine can detect a replaced file.
+    Glib::ustring lutHashValue;
+    bool lutHashDirty;
+    // Loaded LUT output transfer, kept so an unsupported value survives a
+    // round trip unless the user edits the combo.
+    art::engine::procparams::FilmNegativeParams::CineonLUTOutputTransfer
+        loadedLutOutputTransfer;
+    bool lutOutputTransferEdited;
 };
 
 

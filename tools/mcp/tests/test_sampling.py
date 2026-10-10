@@ -1,5 +1,7 @@
 """sample_spots and image_stats on both servers, plus the pure statistics."""
 
+import base64
+import io
 import json
 import random
 import sys
@@ -410,7 +412,6 @@ def test_check_stats_paths_takes_exactly_one_of_path_and_paths_of_one_to_fifty()
     assert many.startswith("out_of_range: ") and "51" in many and "50" in many
 
 
-
 # -- sample_spots takes up to 64 spots, in runs of at most 16 -----------------------------
 
 
@@ -459,9 +460,7 @@ def render(tmp_path, monkeypatch):
     monkeypatch.setenv("FAKE_ARGS_LOG", str(log))
     config = tmp_path / "config"
     config.mkdir()
-    server = build_render(
-        ArtCli((sys.executable, str(FAKE))), config, PreviewFolder(tmp_path / "previews")
-    )
+    server = build_render(ArtCli((sys.executable, str(FAKE))), config, PreviewFolder(tmp_path / "previews"))
     return server, log
 
 
@@ -481,6 +480,7 @@ async def test_render_sample_spots_runs_x_without_an_output_file(render, image):
     assert not result.is_error, result.content
     assert result.structured_content == {
         "width": 6000, "height": 4000, "space": "working", "size": 8,
+        "stage": "source", "unit": "linear_65535",
         "spots": [
             {"x": 10, "y": 20, "avg": [10, 20, 8], "max": [11, 21, 9]},
             {"x": 5999, "y": 3999, "avg": [5999, 3999, 8], "max": [6000, 4000, 9]},
@@ -1044,9 +1044,7 @@ async def test_render_image_stats_of_several_images_reports_progress_per_image(t
 
     async with Client(render_server(tmp_path)) as client:
         await open_all(client, roll)
-        result = await client.call_tool(
-            "image_stats", {"paths": [str(f) for f in roll]}, progress_callback=on_progress
-        )
+        result = await client.call_tool("image_stats", {"paths": [str(f) for f in roll]}, progress_callback=on_progress)
 
     assert not result.is_error, result.content
     assert sorted(seen) == [(1, 3), (2, 3), (3, 3)]
@@ -1148,7 +1146,8 @@ async def test_live_sample_spots_sends_the_op_and_returns_its_result(art, tmp_pa
 
     assert not result.is_error, result.content
     assert result.structured_content == {
-        "width": 6000, "height": 4000, "space": "input", "size": 16, "spots": [values],
+        "width": 6000, "height": 4000, "space": "input", "size": 16,
+        "stage": "source", "unit": "linear_65535", "spots": [values],
     }  # fmt: skip
     [req] = requests(art, "sample_spots")
     assert req["args"] == {"path": photo, "spots": [[7, 9]], "size": 16, "space": "input"}
@@ -1191,18 +1190,14 @@ async def test_live_sample_spots_skips_the_frame_check_while_size_unknown(art, t
 async def test_live_sample_spots_art_errors_pass_through(art, tmp_path):
     art.ops["sample_spots"] = fail("not_open", "a.ARW is not open in ART")
     async with Client(build_live(ControlChannel(art.config_dir))) as client:
-        result = await client.call_tool(
-            "sample_spots", {"path": str(tmp_path / "a.ARW"), "spots": [{"x": 1, "y": 1}]}
-        )
+        result = await client.call_tool("sample_spots", {"path": str(tmp_path / "a.ARW"), "spots": [{"x": 1, "y": 1}]})
     assert result.is_error and "not_open:" in result.content[0].text
 
 
 async def test_live_sample_spots_garbled_reply_is_bad_reply(art, tmp_path):
     art.ops["sample_spots"] = answer("nonsense")
     async with Client(build_live(ControlChannel(art.config_dir))) as client:
-        result = await client.call_tool(
-            "sample_spots", {"path": str(tmp_path / "a.ARW"), "spots": [{"x": 1, "y": 1}]}
-        )
+        result = await client.call_tool("sample_spots", {"path": str(tmp_path / "a.ARW"), "spots": [{"x": 1, "y": 1}]})
     assert result.is_error and "bad_reply:" in result.content[0].text
 
 
@@ -1351,9 +1346,7 @@ def echo_spots(req):
     """ART's sample_spots op answering with one value per spot asked for: avg [x, y, size]."""
     args = req["args"]
     size = args["size"]
-    spots = [
-        {"x": x, "y": y, "avg": [x, y, size], "max": [x + 1, y + 1, size + 1]} for x, y in args["spots"]
-    ]
+    spots = [{"x": x, "y": y, "avg": [x, y, size], "max": [x + 1, y + 1, size + 1]} for x, y in args["spots"]]
     return answer({"width": 6000, "height": 4000, "spots": spots})(req)
 
 
@@ -1770,3 +1763,77 @@ async def test_live_image_stats_with_a_band_leaves_the_lamps_out(art, tmp_path, 
 
 def test_the_image_stats_doc_explains_the_band():
     assert "lum_min" in IMAGE_STATS_DOC and "lum_max" in IMAGE_STATS_DOC and "in_band" in IMAGE_STATS_DOC
+
+
+def check_histogram_chart(result):
+    """Known channel peaks must appear at their encoded-value positions."""
+    [block] = [c for c in result.content if c.type == "image"]
+    assert block.mime_type == "image/png"
+    with Image.open(io.BytesIO(base64.b64decode(block.data))) as chart:
+        assert chart.format == "PNG"
+        # Peaks for (100,150,200), not three identical luminance distributions.
+        for channel, value in enumerate((100, 150, 200)):
+            x = 70 + round(value / 255 * 744)
+            pixel = chart.getpixel((x, 126))
+            assert pixel[channel] > max(pixel[i] for i in range(3) if i != channel)
+        x = 70 + round(143 / 255 * 744)
+        assert min(chart.getpixel((x, 348))) > 200
+
+
+async def test_render_histogram_chart_preserves_stats_without_an_extra_render(render, image, known_png, monkeypatch):
+    server, log = render
+    monkeypatch.setenv("FAKE_PNG_SOURCE", str(known_png))
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        results = []
+        for histogram in (False, True):
+            before = len(logged(log))
+            result = await client.call_tool(
+                "image_stats", {"path": str(image), "histogram_image": True, "histogram": histogram}
+            )
+            assert not result.is_error, result.content
+            assert len(logged(log)) == before + 1
+            check_known_stats(result.structured_content, histogram)
+            check_histogram_chart(result)
+            results.append(result)
+        assert results[0].content[1].data == results[1].content[1].data
+
+
+async def test_live_histogram_chart_uses_the_same_measured_preview(art, tmp_path, known_png):
+    art.ops["preview"] = write_preview(known_png.read_bytes(), width=10, height=10)
+    async with Client(build_live(ControlChannel(art.config_dir))) as client:
+        result = await client.call_tool("image_stats", {"path": str(tmp_path / "a.ARW"), "histogram_image": True})
+    assert not result.is_error, result.content
+    check_known_stats(result.structured_content, False)
+    check_histogram_chart(result)
+    assert len(requests(art, "preview")) == 1
+
+
+async def test_histogram_chart_batch_skips_errors_and_obeys_region_and_band(render, image, lamps, monkeypatch):
+    server, _ = render
+    monkeypatch.setenv("FAKE_PNG_SOURCE", str(lamps))
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await client.call_tool(
+            "image_stats",
+            {
+                "paths": [str(image), str(image) + ".missing"],
+                "histogram_image": True,
+                "histogram": True,
+                "region": LEFT,
+                "lum_min": 100,
+                "lum_max": 220,
+            },
+        )
+    assert not result.is_error, result.content
+    assert result.structured_content["failed"] == 1
+    stats = result.structured_content["items"][0]["stats"]
+    assert stats["r"]["histogram"][200] == 80
+    assert sum(stats["r"]["histogram"]) == 80
+    [block] = [c for c in result.content if c.type == "image"]
+    with Image.open(io.BytesIO(base64.b64decode(block.data))) as chart:
+        # A monochromatic selection makes RGB peaks coincide; blue is drawn last.
+        x = 70 + round(200 / 255 * 744)
+        assert chart.getpixel((x, 126))[2] > 200
+        # Its luma must also peak at 200, not at the unfiltered lamp value 255.
+        assert min(chart.getpixel((x, 348))) > 200

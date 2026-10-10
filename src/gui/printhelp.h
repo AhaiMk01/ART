@@ -71,7 +71,7 @@ inline void ART_print_help(std::ostream &out, const char *progname, bool gui)
         out << "  " << pn
             << "[-o <output>|-O <output>] [-q] [-a] [-s|-S] [-p <one"
             << paramFileExtension << "> [-p <two" << paramFileExtension
-            << "> ...] ] [-d] [-x <spec>] [ -j[1-100] -js<1-3> | -t[z] "
+            << "> ...] ] [-d] [-x <spec>] [-X <spec>] [ -j[1-100] -js<1-3> | -t[z] "
                "-b<8|16|16f|32> | -n -b<8|16> | -Ttype ] [-Y] [-f] -c <input>"
             << std::endl;
         out << std::endl;
@@ -91,10 +91,35 @@ inline void ART_print_help(std::ostream &out, const char *progname, bool gui)
                "the crop), the\n"
             << "                   avg/max RGB of the <size> (2 to 256) square "
                "centred on it.\n"
-            << "                   <space> is 'working' or 'input' (camera). "
+            << "                   <space> is 'working' or 'input' (camera), "
+               "both before any\n"
+            << "                   film inversion, or 'converted' (linear RGB "
+               "after the film\n"
+            << "                   conversion, working space, 0..65535) or "
+               "'cineon' (those\n"
+            << "                   pixels as Cineon codes 0..1023, encoded "
+               "before averaging).\n"
+            << "                   The JSON has \"stage\" and \"unit\". "
                "Works with\n"
             << "                   -p, -d, -s/-S and one -c image; writes no "
                "file." << std::endl;
+        out << "  -X <spec>        Whole-image stage statistics instead of "
+               "converting. <spec>\n"
+            << "                   is <stage>,<bins>,<maxsize>[,<x0>,<y0>,<x1>,"
+               "<y1>]: <stage>\n"
+            << "                   'converted' or 'cineon' (see -x), <bins> 2 "
+               "to 1024, <maxsize>\n"
+            << "                   the longest edge after box averaging in "
+               "linear light (0 = full\n"
+            << "                   resolution), the optional region in "
+               "fractions of the cropped\n"
+            << "                   frame. Prints one line 'ART-STAGESTATS "
+               "<json>': per channel\n"
+            << "                   min/max/mean/p01/p50/p99, below/above the "
+               "histogram range,\n"
+            << "                   nonfinite and hist. Range: converted "
+               "-6553.5..131070, cineon\n"
+            << "                   -100..1100 codes." << std::endl;
         out << "  -o <file>|<dir>  Set output file or folder. Saves output "
                "file alongside input\n"
             << "                   file if -o is not specified." << std::endl;

@@ -435,10 +435,19 @@ bool parseSpotArg(const std::string &arg, art::engine::SpotRequest &req,
     }
     if (tok[1] == "working") {
         req.space = art::engine::SpotSpace::WORKING;
+        req.stage = art::engine::SpotStage::SOURCE;
     } else if (tok[1] == "input") {
         req.space = art::engine::SpotSpace::INPUT;
+        req.stage = art::engine::SpotStage::SOURCE;
+    } else if (tok[1] == "converted") {
+        req.space = art::engine::SpotSpace::WORKING;
+        req.stage = art::engine::SpotStage::CONVERTED;
+    } else if (tok[1] == "cineon") {
+        req.space = art::engine::SpotSpace::WORKING;
+        req.stage = art::engine::SpotStage::CINEON;
     } else {
-        err = "space must be \"working\" or \"input\"";
+        err = "space must be \"working\", \"input\", \"converted\" or "
+              "\"cineon\"";
         return false;
     }
     req.pos.clear();
@@ -453,6 +462,75 @@ bool parseSpotArg(const std::string &arg, art::engine::SpotRequest &req,
     if (req.pos.size() > 16) {
         err = "at most 16 spots";
         return false;
+    }
+    return true;
+}
+
+// parse the argument of -X:
+// <stage>,<bins>,<maxsize>[,<x0>,<y0>,<x1>,<y1>]
+bool parseStageStatsArg(const std::string &arg,
+                        art::engine::StageStatsRequest &req, std::string &err)
+{
+    std::vector<std::string> tok;
+    std::string cur;
+    for (char c : arg) {
+        if (c == ',') {
+            tok.push_back(cur);
+            cur.clear();
+        } else {
+            cur += c;
+        }
+    }
+    tok.push_back(cur);
+    if (tok.size() != 3 && tok.size() != 7) {
+        err = "expected <stage>,<bins>,<maxsize>[,<x0>,<y0>,<x1>,<y1>]";
+        return false;
+    }
+    if (tok[0] == "converted") {
+        req.stage = art::engine::SpotStage::CONVERTED;
+    } else if (tok[0] == "cineon") {
+        req.stage = art::engine::SpotStage::CINEON;
+    } else {
+        err = "stage must be \"converted\" or \"cineon\"";
+        return false;
+    }
+    auto to_int = [](const std::string &s, int &out) -> bool {
+        if (s.empty()) {
+            return false;
+        }
+        char *end = nullptr;
+        long v = strtol(s.c_str(), &end, 10);
+        if (*end != '\0' || v < 0 || v > 1000000) {
+            return false;
+        }
+        out = int(v);
+        return true;
+    };
+    if (!to_int(tok[1], req.bins) || req.bins < 2 || req.bins > 1024) {
+        err = "bins must be an integer from 2 to 1024";
+        return false;
+    }
+    if (!to_int(tok[2], req.maxsize)) {
+        err = "maxsize must be a non-negative integer (0 = full resolution)";
+        return false;
+    }
+    req.hasRegion = tok.size() == 7;
+    if (req.hasRegion) {
+        double *dst[4] = {&req.x0, &req.y0, &req.x1, &req.y1};
+        for (int i = 0; i < 4; ++i) {
+            char *end = nullptr;
+            const std::string &s = tok[3 + i];
+            const double v = strtod(s.c_str(), &end);
+            if (s.empty() || *end != '\0' || !(v >= 0.0 && v <= 1.0)) {
+                err = "the region must be four fractions from 0 to 1";
+                return false;
+            }
+            *dst[i] = v;
+        }
+        if (!(req.x0 < req.x1 && req.y0 < req.y1)) {
+            err = "the region needs x0 < x1 and y0 < y1";
+            return false;
+        }
     }
     return true;
 }
@@ -479,7 +557,9 @@ int processLineParams(int argc, char **argv)
     std::string outputType = "";
     unsigned errors = 0;
     bool sampling = false;
+    bool stageStatsMode = false;
     art::engine::SpotRequest spotReq;
+    art::engine::StageStatsRequest statsReq;
 
     for (int iArg = 1; iArg < argc; iArg++) {
         Glib::ustring currParam(argv[iArg]);
@@ -569,6 +649,24 @@ int processLineParams(int argc, char **argv)
                     sampling = true;
                 } else {
                     std::cerr << "Error: the -x switch requires a value."
+                              << std::endl;
+                    return -3;
+                }
+                break;
+
+            case 'X': // whole-image stage statistics, no image output
+                if (iArg + 1 < argc) {
+                    iArg++;
+                    std::string err;
+                    if (!parseStageStatsArg(argv[iArg], statsReq, err)) {
+                        std::cerr << "Error: bad -X argument: " << err
+                                  << std::endl;
+                        return -3;
+                    }
+                    sampling = true;
+                    stageStatsMode = true;
+                } else {
+                    std::cerr << "Error: the -X switch requires a value."
                               << std::endl;
                     return -3;
                 }
@@ -905,7 +1003,8 @@ int processLineParams(int argc, char **argv)
     }
 
     if (sampling && inputFiles.size() != 1) {
-        std::cerr << "Error: -x needs exactly one input image." << std::endl;
+        std::cerr << "Error: -x and -X need exactly one input image."
+                  << std::endl;
         return -3;
     }
 
@@ -1088,6 +1187,25 @@ int processLineParams(int argc, char **argv)
             continue;
         }
 
+        if (sampling && stageStatsMode) {
+            art::engine::StageStatsResult res;
+            bool ok = art::engine::stageStats(job, statsReq, res, errorCode);
+            art::engine::ProcessingJob::destroy(job);
+            ii->decreaseRef();
+            if (!ok) {
+                if (!res.error.empty()) {
+                    std::cerr << "Error: " << res.error << std::endl;
+                    return -3;
+                }
+                cpl.error(Glib::ustring::compose(
+                    "failure in stage statistics: %1", inputFile));
+                return -2;
+            }
+            std::cout << "ART-STAGESTATS " << art::engine::stageStatsJson(res)
+                      << std::endl;
+            return 0;
+        }
+
         if (sampling) {
             art::engine::SpotResult res;
             bool ok = art::engine::sampleSpots(job, spotReq, res, errorCode);
@@ -1115,7 +1233,8 @@ int processLineParams(int argc, char **argv)
             errors++;
             cpl.error(
                 Glib::ustring::compose("failure in processing: %1", inputFile));
-            art::engine::ProcessingJob::destroy(job);
+            // processImage() already destroyed the job
+            ii->decreaseRef();
             continue;
         }
 

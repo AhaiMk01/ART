@@ -1,5 +1,8 @@
 """Independent numerical fixtures for the density film-negative contract.
 
+These are reference-formula checks on literals: they do not call the engine.
+Engine coverage lives in test_integration_film_negative.py (needs ART_DIR).
+
 Expected values are handwritten literals from issue #46 (and the Colour
 Cineon convention). They are not read back from filmnegativeproc.cc,
 papercurve.cc, or cineonlut.cc, and this file does not call art-cli.

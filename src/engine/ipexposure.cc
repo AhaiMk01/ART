@@ -29,11 +29,21 @@ namespace art { namespace engine {
 void ImProcFunctions::expcomp(Imagefloat *img,
                               const procparams::ExposureParams *expparams)
 {
+    const bool sceneExposure = !expparams;
     if (!expparams) {
         expparams = &params->exposure;
     }
 
     if (!expparams->enabled) {
+        return;
+    }
+
+    // Neutral exposure leaves NamiColor's signed buffer untouched. Older
+    // profiles retain their explicit exposure/black-adjustment zero floor.
+    if (sceneExposure && params->filmNegative.enabled &&
+        params->filmNegative.method ==
+            procparams::FilmNegativeParams::Method::NAMICOLOR &&
+        expparams->expcomp == 0.0 && expparams->black == 0.0) {
         return;
     }
 
@@ -50,6 +60,12 @@ void ImProcFunctions::expcomp(Imagefloat *img,
 
     const float exp_scale = pow(2.f, expparams->expcomp);
     const float black = expparams->black * 2000.f;
+    const bool preserveRange =
+        sceneExposure &&
+        params->filmNegative.enabled &&
+        params->filmNegative.method ==
+            procparams::FilmNegativeParams::Method::NAMICOLOR &&
+        params->filmNegative.preserveRange;
 #ifdef ART_SIMD
     vfloat exp_scalev = F2V(exp_scale);
     vfloat blackv = F2V(black);
@@ -69,14 +85,19 @@ void ImProcFunctions::expcomp(Imagefloat *img,
         for (; x < W - 3; x += 4) {
             for (int c = 0; c < 3; ++c) {
                 vfloat v = LVF(chan[c][y][x]);
-                STVF(chan[c][y][x], vmaxf(v * exp_scalev - blackv, ZEROV));
+                v = v * exp_scalev - blackv;
+                STVF(chan[c][y][x],
+                     preserveRange ? v : vmaxf(v, ZEROV));
             }
         }
 #endif
         for (; x < W; ++x) {
             for (int c = 0; c < 3; ++c) {
                 float &v = chan[c][y][x];
-                v = std::max(v * exp_scale - black, 0.f);
+                v = v * exp_scale - black;
+                if (!preserveRange) {
+                    v = std::max(v, 0.f);
+                }
             }
         }
     }

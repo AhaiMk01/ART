@@ -14,6 +14,8 @@ channel medians of the central 60% of the input (20% border cut) and
 ``ref_output`` is 65535/24 grey.
 """
 
+import hashlib
+import json
 import math
 import statistics
 import struct
@@ -83,9 +85,21 @@ def format_triple(values: list[float] | Triple) -> str:
     return ";".join(f"{v:.10g}" for v in values)
 
 
-def is_legacy(entries: Group) -> bool:
-    """A profile ART upgrades on load (``BackCompat`` V1/V2): its references
-    mean something else."""
+def profile_version(profile: KeyFile) -> int | None:
+    """The stored ``[Version] Version``. ART treats a sidecar without one (or
+    with an unreadable one) as current, so None means "no migration"."""
+    text = (profile.get("Version") or {}).get("Version", "")
+    return int(text) if text.isdigit() else None
+
+
+def is_legacy(entries: Group, version: int | None = None) -> bool:
+    """An active power-law profile whose references ART upgrades from V1/V2.
+    Other methods retain this compatibility data inactive. Below Version 1039
+    ART ignores RefInput/RefOutput/ColorSpace and converts the references."""
+    if entries.get("Method") in ("density", "1", "namicolor", "2"):
+        return False
+    if version is not None and version < 1039:
+        return True
     return entries.get("BackCompat", "0") not in ("0", "") or "RedBase" in entries
 
 
@@ -114,11 +128,136 @@ def read_color_space(entries: Group) -> str:
     return "input" if entries.get("ColorSpace") == "0" else "working"
 
 
+def read_cineon_lut_stage(profile: KeyFile) -> str:
+    """The stored order, or ART's version-aware default for a missing key."""
+    entries = profile.get(GROUP) or {}
+    if "CineonLUTStage" in entries:
+        return entries["CineonLUTStage"]
+    version = profile.get("Version", {}).get("Version", "")
+    if version.isdigit() and int(version) < 1056 and "CineonLUT" in entries:
+        return "before_grade"
+    return "after_grade"
+
+
+def read_preserve_range(profile: KeyFile) -> str:
+    """The stored flag, or ART's version-aware default for a missing key."""
+    entries = profile.get(GROUP) or {}
+    if "PreserveRange" in entries:
+        return entries["PreserveRange"]
+    version = profile.get("Version", {}).get("Version", "")
+    return "false" if version.isdigit() and int(version) < 1057 else "true"
+
+
+def read_cineon_reference_white(profile: KeyFile) -> str:
+    """The stored W, or ART's version-aware default for a missing key."""
+    entries = profile.get(GROUP) or {}
+    if "CineonReferenceWhite" in entries:
+        return entries["CineonReferenceWhite"]
+    version = profile.get("Version", {}).get("Version", "")
+    return "1" if version.isdigit() and int(version) < 1058 else "0.9"
+
+
+def read_denoise_before_inversion(profile: KeyFile) -> str:
+    """The stored flag, or ART's version-aware default for a missing key."""
+    entries = profile.get(GROUP) or {}
+    if "DenoiseBeforeInversion" in entries:
+        return entries["DenoiseBeforeInversion"]
+    version = profile.get("Version", {}).get("Version", "")
+    return "false" if version.isdigit() and int(version) < 1059 else "true"
+
+
+def read_fit_base_anchor(profile: KeyFile) -> str:
+    """The stored anchor, or ART's version-aware default for a missing key."""
+    entries = profile.get(GROUP) or {}
+    if "NamiColorFitBaseAnchor" in entries:
+        return entries["NamiColorFitBaseAnchor"]
+    version = profile.get("Version", {}).get("Version", "")
+    return "legacy" if version.isdigit() and int(version) < 1058 else "code95"
+
+
+_DENSITY_FIELDS = (
+    "film_type",
+    "density_gamma",
+    "density_dmax",
+    "rgb_gains",
+    "film_base_sample",
+    "channel_gamma",
+    "matrix_preset",
+    "matrix",
+    "matrix_basis",
+    "calibration_note",
+    "output_black_offset",
+)
+"""Fields whose keys ART reads only when the sidecar's Version is >= 1046."""
+
+
+def film_version_edits(tool: FilmNegative, profile: KeyFile, mask_opt_in: bool) -> list[RawEdit]:
+    """The implied edits of a film-negative request. [Version] is never raised:
+    it decides how ART migrates every other tool. Keys ART only reads at a
+    newer Version make the edit refuse instead, until ART has re-saved the
+    sidecar."""
+    entries = profile.get(GROUP) or {}
+    version = profile_version(profile)
+    if version is not None:
+        resave = "open and re-save the sidecar in ART (which migrates it), then retry"
+        gated = [f for f in _DENSITY_FIELDS if getattr(tool, f) is not None]
+        if version < 1046 and gated:
+            raise AdjustmentError(
+                "out_of_range",
+                f"film_negative: this sidecar is Version {version}; ART ignores "
+                f"{', '.join(gated)} below Version 1046. {resave}",
+            )
+        if version < 1055 and mask_opt_in:
+            raise AdjustmentError(
+                "out_of_range",
+                f"film_negative: this sidecar is Version {version}; ART resets a "
+                f"NamiColor matrix preset to Identity below Version 1055. {resave}",
+            )
+        if (
+            version < 1058
+            and tool.namicolor_fit_base
+            and tool.fit_base_anchor is None
+            and "NamiColorFitBaseAnchor" not in entries
+        ):
+            raise AdjustmentError(
+                "out_of_range",
+                f"film_negative: this sidecar is Version {version}; ART reads namicolor_fit_base "
+                f"as the legacy 93/1023 map below Version 1058, not the code 95 anchor. {resave}",
+            )
+    new_lut = (
+        bool(tool.cineon_lut)
+        and not entries.get("CineonLUT")
+        and "CineonLUTStage" not in entries
+        and tool.cineon_lut_stage is None
+    )
+    if (
+        version is not None
+        and version < 1054
+        and bool(tool.cineon_lut)
+        and not entries.get("CineonLUT")
+        and _method_name(tool, entries) == "density"
+        and (tool.color_space or read_color_space(entries)) == "input"
+    ):
+        raise AdjustmentError(
+            "out_of_range",
+            f"film_negative: this sidecar is Version {version}; ART would run a new print LUT "
+            "in the legacy input domain for a density conversion in the input space. "
+            "Open and re-save the sidecar in ART (which migrates it), then retry",
+        )
+    return [RawEdit(group=GROUP, key="CineonLUTStage", value="after_grade")] if new_lut else []
+
+
 IDENTITY_MATRIX = (1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)
 STATUS_M_MATRIX = (
-    1.0197, 0.0317, 0.0091,
-    -0.0052, 0.8933, 0.0521,
-    0.0131, -0.0011, 0.9712,
+    1.0197,
+    0.0317,
+    0.0091,
+    -0.0052,
+    0.8933,
+    0.0521,
+    0.0131,
+    -0.0011,
+    0.9712,
 )
 
 
@@ -154,7 +293,14 @@ _PRESET = {
     "status_m_reference": "status_m_reference",
     "custom": "custom",
 }
-_METHOD = {"0": "power_law", "1": "density", "power_law": "power_law", "density": "density"}
+_METHOD = {
+    "0": "power_law",
+    "1": "density",
+    "2": "namicolor",
+    "power_law": "power_law",
+    "density": "density",
+    "namicolor": "namicolor",
+}
 _FILM_TYPE = {
     "0": "negative",
     "1": "reversal",
@@ -176,6 +322,57 @@ def _preset_name(tool: FilmNegative, entries: Group | None) -> str:
         return tool.matrix_preset
     return _stored_name((entries or {}).get("MatrixPreset"), _PRESET, "identity")
 
+
+def _method_name(tool: FilmNegative, entries: Group) -> str:
+    return tool.method or _stored_name(entries.get("Method"), _METHOD, "power_law")
+
+
+def check_namicolor(tool: FilmNegative, entries: Group | None) -> None:
+    """Validate the complete effective NamiColor settings before any edit lands."""
+    entries = entries or {}
+    if _method_name(tool, entries) != "namicolor":
+        return
+    scalar_defaults = {
+        "namicolor_input_gain": ("NamiColorInputGain", 1.0),
+        "namicolor_master_gain": ("NamiColorMasterGain", 0.0),
+        "namicolor_master_shift": ("NamiColorMasterShift", 0.0),
+    }
+    scalars: dict[str, float] = {}
+    vectors: dict[str, list[float]] = {}
+    try:
+        for name, (key, default) in scalar_defaults.items():
+            value = getattr(tool, name)
+            scalars[name] = float(entries.get(key, default) if value is None else value)
+        for name, key in (
+            ("namicolor_black", "NamiColorBlack"),
+            ("namicolor_gain", "NamiColorGain"),
+            ("namicolor_shift", "NamiColorShift"),
+        ):
+            value = getattr(tool, name)
+            if value is None:
+                value = parse_triple(entries[key]) if key in entries else (0.0,) * 3
+            if value is None:
+                raise ValueError("invalid triple")
+            vectors[name] = list(value)
+    except (ValueError, TypeError):
+        raise AdjustmentError("out_of_range", "film_negative: NamiColor settings must be finite numbers") from None
+    if any(
+        not math.isfinite(value)
+        for value in list(scalars.values()) + [value for vector in vectors.values() for value in vector]
+    ):
+        raise AdjustmentError("out_of_range", "film_negative: NamiColor settings must be finite numbers")
+    master = scalars["namicolor_master_gain"]
+    if any(
+        1.0 - gain - master + black <= 0.0
+        for gain, black in zip(vectors["namicolor_gain"], vectors["namicolor_black"], strict=True)
+    ):
+        raise AdjustmentError(
+            "out_of_range",
+            "film_negative: every NamiColor denominator "
+            "(1 - channel gain - master gain + channel black) must be positive",
+        )
+
+
 def check_matrix_coefficients(tool: FilmNegative, entries: Group | None) -> None:
     """Coefficient edits require Custom. Sending the preset's own coefficients
     is not a change and is dropped."""
@@ -185,9 +382,7 @@ def check_matrix_coefficients(tool: FilmNegative, entries: Group | None) -> None
     if preset == "custom":
         return
     expected = IDENTITY_MATRIX if preset == "identity" else STATUS_M_MATRIX
-    if len(tool.matrix) == 9 and all(
-        abs(a - b) <= 1e-9 for a, b in zip(tool.matrix, expected, strict=True)
-    ):
+    if len(tool.matrix) == 9 and all(abs(a - b) <= 1e-9 for a, b in zip(tool.matrix, expected, strict=True)):
         tool.matrix = None
         return
     raise AdjustmentError(
@@ -197,10 +392,142 @@ def check_matrix_coefficients(tool: FilmNegative, entries: Group | None) -> None
     )
 
 
-def check_legacy(tool: FilmNegative, entries: Group | None) -> None:
+def check_namicolor_matrix_basis(tool: FilmNegative, profile: KeyFile) -> bool:
+    """Validate the known binding fields; ART checks source identity and ICC content.
+    Return whether this request intentionally opts in to the active mask."""
+    entries = profile.get(GROUP) or {}
+    if _method_name(tool, entries) != "namicolor" or _preset_name(tool, entries) == "identity":
+        return False
+    opted_in = any(
+        getattr(tool, name) is not None
+        for name in ("matrix_preset", "matrix", "matrix_basis")
+    )
+    version = profile.get("Version", {}).get("Version", "")
+    if version.isdigit() and int(version) < 1055 and not opted_in:
+        return False  # ART will migrate this old dormant preset to Identity.
+    if _preset_name(tool, entries) == "custom":
+        matrix = tool.matrix if tool.matrix is not None else read_matrix_field(entries.get("Matrix"))
+        if matrix is None or len(matrix) != 9 or any(not math.isfinite(value) for value in matrix):
+            raise AdjustmentError(
+                "out_of_range",
+                "film_negative: custom NamiColor matrix must be nine finite coefficients",
+            )
+    check_matrix_binding(tool, profile, entries)
+    return opted_in
+
+
+def check_matrix_binding(tool: FilmNegative, profile: KeyFile, entries: Group) -> None:
+    """The effective matrix_basis must bind the matrix to the active processing
+    basis, as ART's activeDensityMatrix requires (an empty one is refused)."""
+    basis = tool.matrix_basis if tool.matrix_basis is not None else unescape(entries.get("MatrixBasis", ""))
+    color_space = tool.color_space or read_color_space(entries)
+    icm = profile.get("Color Management") or {}
+    active = unescape(
+        icm.get("InputProfile", "(cameraICC)") if color_space == "input" else icm.get("WorkingProfile", "Rec2020")
+    )
+    gamma = tool.input_gamma if tool.input_gamma is not None else _stored_float(entries, "InputGamma", 1.0)
+    try:
+        binding = json.loads(basis)
+        valid = (
+            isinstance(binding, dict)
+            and binding.get("v") == 1
+            and binding.get("color_space") == color_space
+            and binding.get("profile") == active
+            and isinstance(binding.get("input_gamma"), str)
+            and math.isfinite(float(binding["input_gamma"]))
+            and abs(float(binding["input_gamma"]) - gamma) <= 1e-6
+            and isinstance(binding.get("source"), str)
+            and bool(binding["source"])
+        )
+    except (ValueError, TypeError, KeyError):
+        valid = False
+    if not valid:
+        raise AdjustmentError(
+            "out_of_range",
+            "film_negative: nonidentity matrix requires a matching matrix_basis "
+            "(version, processing space, profile, input gamma and source); "
+            "select Identity or provide the calibration binding",
+        )
+
+
+def stamp_lut_sha(tool: FilmNegative, profile: KeyFile) -> None:
+    """Record the SHA-256 of a newly chosen print LUT, as ART's panel does when
+    a LUT is picked. A request that names the stored LUT again keeps the stored
+    hash, so ART can still detect a replaced file."""
+    if not tool.cineon_lut or tool.cineon_lut_sha256 is not None:
+        return
+    entries = profile.get(GROUP) or {}
+    if tool.cineon_lut == unescape(entries.get("CineonLUT", "")) and entries.get("CineonLUTSha256", ""):
+        return
+    try:
+        data = Path(tool.cineon_lut).read_bytes()
+    except OSError as error:
+        raise AdjustmentError(
+            "out_of_range",
+            f"film_negative: cannot read cineon_lut {tool.cineon_lut} to record its SHA-256 "
+            f"({error.strerror or error}); give an absolute path, or cineon_lut_sha256",
+        ) from None
+    tool.cineon_lut_sha256 = hashlib.sha256(data).hexdigest()
+
+
+def check_density_bindings(tool: FilmNegative, profile: KeyFile) -> None:
+    """Fail closed for the density method as ART does at render time: a
+    non-identity matrix needs its calibration binding and a print LUT needs
+    its SHA-256."""
+    entries = profile.get(GROUP) or {}
+    if _method_name(tool, entries) != "density":
+        return
+    version = profile_version(profile)
+    if (version is None or version >= 1046) and _preset_name(tool, entries) != "identity":
+        check_matrix_binding(tool, profile, entries)
+    lut = tool.cineon_lut if tool.cineon_lut is not None else entries.get("CineonLUT", "")
+    sha = tool.cineon_lut_sha256 if tool.cineon_lut_sha256 is not None else entries.get("CineonLUTSha256", "")
+    if lut and not sha:
+        raise AdjustmentError(
+            "out_of_range",
+            "film_negative: cineon_lut requires cineon_lut_sha256 (the SHA-256 of the .cube bytes); "
+            "ART refuses to render a print LUT without it",
+        )
+
+
+def check_legacy_lut_primaries(tool: FilmNegative, profile: KeyFile) -> None:
+    """ART fails the render of the legacy input-space print LUT (density, input
+    colour space, before_grade, LegacyInputLUT) when a LUT primaries map is set:
+    the map would run on input-space pixels."""
+    entries = profile.get(GROUP) or {}
+    if _method_name(tool, entries) != "density":
+        return
+    if (tool.color_space or read_color_space(entries)) != "input":
+        return
+    if (tool.cineon_lut_stage or read_cineon_lut_stage(profile)) != "before_grade":
+        return
+    version = profile_version(profile)
+    legacy = entries.get("LegacyInputLUT") == "true" or (
+        "LegacyInputLUT" not in entries and version is not None and version < 1054 and bool(entries.get("CineonLUT"))
+    )
+    if not legacy:
+        return
+    lut = tool.cineon_lut if tool.cineon_lut is not None else entries.get("CineonLUT", "")
+    if not lut:
+        return  # primaries without a LUT do nothing
+    for field, key in (
+        ("cineon_lut_input_primaries", "CineonLUTInputPrimaries"),
+        ("cineon_lut_output_primaries", "CineonLUTOutputPrimaries"),
+    ):
+        value = getattr(tool, field)
+        if (value if value is not None else entries.get(key, "")):
+            raise AdjustmentError(
+                "out_of_range",
+                f"film_negative: this profile runs its print LUT in the legacy input space "
+                f"(density, input colour space, before_grade); ART refuses to render it with {field}. "
+                "Clear the primaries, or use after_grade or the working colour space",
+            )
+
+
+def check_legacy(tool: FilmNegative, entries: Group | None, version: int | None = None) -> None:
     """Typed edits (other than ``enabled``) are refused on a legacy profile:
     ART would read the references through its V1/V2 conversion."""
-    if entries is None or not is_legacy(entries):
+    if entries is None or not is_legacy(entries, version):
         return
     if any(getattr(tool, f) is not None for f in FilmNegative.model_fields if f != "enabled"):
         raise AdjustmentError(
@@ -214,6 +541,8 @@ def check_legacy(tool: FilmNegative, entries: Group | None) -> None:
 def check_cineon_lut_excludes_paper(tool: FilmNegative, entries: Group | None) -> None:
     """A Cineon print LUT and a paper target cannot both be active."""
     entries = entries or {}
+    if _method_name(tool, entries) == "namicolor":
+        return  # NamiColor retains but never applies the density paper target.
     lut = tool.cineon_lut if tool.cineon_lut is not None else entries.get("CineonLUT", "")
     if tool.target_mode is not None:
         mode = tool.target_mode
@@ -231,6 +560,8 @@ def check_cineon_lut_excludes_paper(tool: FilmNegative, entries: Group | None) -
 def check_paper_basis(tool: FilmNegative, entries: Group | None) -> None:
     """A paper basis is ``input|<profile>`` or ``working|<profile>``, or empty;
     ART refuses any other form when it renders a paper target."""
+    if _method_name(tool, entries or {}) == "namicolor":
+        return
     basis = tool.paper_basis
     if not basis:
         return
@@ -247,6 +578,9 @@ def check_paper_basis(tool: FilmNegative, entries: Group | None) -> None:
 def _picker_applies(tool: FilmNegative, entries: Group) -> Triple | None:
     """The new ``ref_input`` when the picker rule applies: it is set, not the
     value already stored, and the request gives no ``ref_output``."""
+    current_method = _stored_name(entries.get("Method"), _METHOD, "power_law")
+    if current_method != "power_law" or _method_name(tool, entries) != "power_law":
+        return None
     if tool.ref_input is None or tool.ref_output is not None:
         return None
     new = (tool.ref_input[0], tool.ref_input[1], tool.ref_input[2])
@@ -275,11 +609,7 @@ def grid_spots(width: int, height: int) -> list[tuple[int, int]]:
     y0 = height * BORDER_PERCENT // 100
     cell_w = (width - 2 * x0) / GRID
     cell_h = (height - 2 * y0) / GRID
-    return [
-        (round(x0 + (i + 0.5) * cell_w), round(y0 + (j + 0.5) * cell_h))
-        for j in range(GRID)
-        for i in range(GRID)
-    ]
+    return [(round(x0 + (i + 0.5) * cell_w), round(y0 + (j + 0.5) * cell_h)) for j in range(GRID) for i in range(GRID)]
 
 
 def estimate_medians(sampler: Sampler, frame: tuple[int, int], space: str) -> Triple:
@@ -409,9 +739,33 @@ def read_triple_field(stored: str | None, allow_negative: bool = False) -> list[
 BASE_TARGET_DENSITY = 4.0
 """Rebate maps to linear 10^-4 before paper, LUT, and black offset."""
 _RAW_SUFFIXES = {
-    ".3fr", ".arw", ".arq", ".cr2", ".cr3", ".crf", ".crw", ".dcr", ".dng",
-    ".fff", ".iiq", ".kdc", ".mef", ".mos", ".mrw", ".nef", ".nrw", ".orf",
-    ".pef", ".raf", ".raw", ".rw2", ".rwl", ".rwz", ".sr2", ".srf", ".srw",
+    ".3fr",
+    ".arw",
+    ".arq",
+    ".cr2",
+    ".cr3",
+    ".crf",
+    ".crw",
+    ".dcr",
+    ".dng",
+    ".fff",
+    ".iiq",
+    ".kdc",
+    ".mef",
+    ".mos",
+    ".mrw",
+    ".nef",
+    ".nrw",
+    ".orf",
+    ".pef",
+    ".raf",
+    ".raw",
+    ".rw2",
+    ".rwl",
+    ".rwz",
+    ".sr2",
+    ".srf",
+    ".srw",
     ".x3f",
 }
 
@@ -423,15 +777,6 @@ def path_is_raw(path: str) -> bool:
 
 def _f32(value: float) -> float:
     return struct.unpack("f", struct.pack("f", float(value)))[0]
-
-
-def _json_string(blob: str, key: str) -> str | None:
-    import re
-
-    match = re.search(rf'"{key}"\s*:\s*"((?:\\.|[^"\\])*)"', blob)
-    if match is None:
-        return None
-    return match.group(1).replace('\\"', '"').replace("\\\\", "\\")
 
 
 def _stored_float(entries: Group, key: str, default: float) -> float:
@@ -494,29 +839,22 @@ def film_base_gains(
     for row in range(3):
         total = _f32(0.0)
         for col in range(3):
-            total = _f32(
-                total + _f32(coeffs[row * 3 + col] * _f32(working[col] - anchor))
-            )
+            total = _f32(total + _f32(coeffs[row * 3 + col] * _f32(working[col] - anchor)))
         mixed.append(_f32(anchor + total))
     gains = []
     for channel in range(3):
-        density = _f32(
-            anchor + _f32(slopes[channel] * _f32(mixed[channel] - anchor))
-        )
+        density = _f32(anchor + _f32(slopes[channel] * _f32(mixed[channel] - anchor)))
         gain = float(density) - BASE_TARGET_DENSITY
         if not math.isfinite(gain) or gain < -3.0 or gain > 3.0:
             raise AdjustmentError(
                 "out_of_range",
-                "film_negative: film-base pick would set a printer-light gain "
-                "outside -3..3; no gains were changed",
+                "film_negative: film-base pick would set a printer-light gain outside -3..3; no gains were changed",
             )
         gains.append(gain)
     return gains[0], gains[1], gains[2]
 
 
-def film_base_edits(
-    tool: FilmNegative, profile: KeyFile, raw_source: bool | None
-) -> list[RawEdit]:
+def film_base_edits(tool: FilmNegative, profile: KeyFile, raw_source: bool | None) -> list[RawEdit]:
     """``RGBGains`` for a density rebate sample. Refuses the edit when the
     pick cannot replace all three gains."""
     sample = tool.film_base_sample
@@ -550,59 +888,38 @@ def film_base_edits(
     elif preset == "status_m_reference":
         matrix = STATUS_M_MATRIX
     else:
-        stored = (
-            tool.matrix
-            if tool.matrix is not None
-            else read_matrix_field(entries.get("Matrix"))
-        )
+        stored = tool.matrix if tool.matrix is not None else read_matrix_field(entries.get("Matrix"))
         if stored is None:
             raise AdjustmentError(
                 "out_of_range",
-                "film_negative: custom density matrix is missing or not nine "
-                "finite coefficients",
+                "film_negative: custom density matrix is missing or not nine finite coefficients",
             )
         matrix = tuple(stored)
-    basis = (
-        unescape(entries.get("MatrixBasis", ""))
-        if tool.matrix_basis is None
-        else tool.matrix_basis
-    )
-    if preset != "identity" and basis:
-        color_space = tool.color_space or read_color_space(entries)
-        icm = profile.get("Color Management") or {}
-        active = unescape(
-            icm.get("InputProfile", "(cameraICC)")
-            if color_space == "input"
-            else icm.get("WorkingProfile", "Rec2020")
-        )
-        if (
-            _json_string(basis, "color_space") != color_space
-            or _json_string(basis, "profile") != active
-            or not _json_string(basis, "input_gamma")
-            or not _json_string(basis, "source")
-        ):
-            raise AdjustmentError(
-                "out_of_range",
-                "film_negative: density matrix is not bound to the active "
-                "processing basis; rebind it or select Identity before picking "
-                "the film base",
-            )
-    input_gamma = (
-        tool.input_gamma
-        if tool.input_gamma is not None
-        else _stored_float(entries, "InputGamma", 1.0)
-    )
+    if preset != "identity":
+        check_matrix_binding(tool, profile, entries)
+    input_gamma = tool.input_gamma if tool.input_gamma is not None else _stored_float(entries, "InputGamma", 1.0)
     icm = profile.get("Color Management") or {}
     applied_gamma = 1.0
-    if input_gamma != 1.0 and icm.get("InputProfile", "(cameraICC)") == "(none)":
+    if input_gamma != 1.0:
+        # ART's resolveInputGamma: only an unprofiled non-raw scan may carry one.
+        if icm.get("InputProfile", "(cameraICC)") != "(none)":
+            raise AdjustmentError(
+                "out_of_range",
+                "film_negative: input_gamma is not 1 on a profiled or raw source; "
+                "ART refuses to render it, so no film-base gains were picked",
+            )
         if raw_source is None:
             raise AdjustmentError(
                 "out_of_range",
                 "film_negative: InputGamma is not 1 on an unprofiled scan, and "
                 "this edit did not say whether the file is raw",
             )
-        if not raw_source:
-            applied_gamma = input_gamma
+        if raw_source:
+            raise AdjustmentError(
+                "out_of_range",
+                "film_negative: input_gamma is not 1 on a raw source; ART refuses to render it",
+            )
+        applied_gamma = input_gamma
     if tool.channel_gamma is not None:
         channel = tool.channel_gamma
     elif entries.get("ChannelGamma") is None:
@@ -612,14 +929,10 @@ def film_base_edits(
     gains = film_base_gains(
         (sample[0], sample[1], sample[2]),
         density_gamma=(
-            tool.density_gamma
-            if tool.density_gamma is not None
-            else _stored_float(entries, "DensityGamma", 1.0)
+            tool.density_gamma if tool.density_gamma is not None else _stored_float(entries, "DensityGamma", 1.0)
         ),
         density_dmax=(
-            tool.density_dmax
-            if tool.density_dmax is not None
-            else _stored_float(entries, "DensityDmax", 2.5)
+            tool.density_dmax if tool.density_dmax is not None else _stored_float(entries, "DensityDmax", 2.5)
         ),
         channel_gamma=(channel[0], channel[1], channel[2]),
         matrix=matrix,

@@ -12,7 +12,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationEr
 from art_mcp.compactschema import CompactModel, compact_model_schema, full_schema
 from art_mcp.curves import CurveSpec
 
-PPVERSION = 1053
+PPVERSION = 1059
 """The processing-profile version (``src/utils/ppversion.h``) this schema was
 written for."""
 
@@ -56,16 +56,12 @@ class Exposure(CompactModel):
     """Exposure compensation, black point and highlight recovery."""
 
     enabled: bool | None = F("Enabled", "Turn the tool on or off", default=True)
-    compensation: float | None = F(
-        "Compensation", "Exposure compensation", ge=-12, le=12, unit="EV", default=0
-    )
+    compensation: float | None = F("Compensation", "Exposure compensation", ge=-12, le=12, unit="EV", default=0)
     black: float | None = F("Black", "Black point", ge=-2, le=2, default=0)
     hl_recovery: Literal["Off", "Blend", "Color", "Balanced"] | None = F(
         "HLRecovery", "Highlight recovery method for clipped raw highlights", default="Off"
     )
-    hl_recovery_blur: int | None = F(
-        "HLRecoveryBlur", "Highlight recovery blur", ge=0, le=3, default=0
-    )
+    hl_recovery_blur: int | None = F("HLRecoveryBlur", "Highlight recovery blur", ge=0, le=3, default=0)
 
 
 class WhiteBalance(CompactModel):
@@ -80,11 +76,19 @@ class WhiteBalance(CompactModel):
         "Temperature", "Colour temperature (CustomTemp)", ge=1500, le=60000, unit="K", default=6504
     )
     green: float | None = F(
-        "Green", "Green/magenta tint multiplier (CustomTemp)", ge=0.02, le=10,
-        unit="tint multiplier", default=1.0,
+        "Green",
+        "Green/magenta tint multiplier (CustomTemp)",
+        ge=0.02,
+        le=10,
+        unit="tint multiplier",
+        default=1.0,
     )
     equal: float | None = F(
-        "Equal", "Blue/red balance (CustomTemp)", ge=0.8, le=1.5, unit="blue/red balance",
+        "Equal",
+        "Blue/red balance (CustomTemp)",
+        ge=0.8,
+        le=1.5,
+        unit="blue/red balance",
         default=1.0,
     )
 
@@ -111,14 +115,8 @@ class RawEdit(BaseModel):
 
 
 class Crop(CompactModel):
-    """Crop rectangle in the pixels of the image frame (the raw image after
-    coarse rotation and the raw border); checked against the image's size.
-
-    ART's defaults keep a fixed aspect ratio (`fixed_ratio` true, `ratio`
-    "As Image"): the editor's crop tool then re-fits the rectangle to the
-    ratio whenever it is edited, so a free rectangle needs `fixed_ratio:
-    false`. Headless renders (art-cli) use x, y, w, h as given and ignore the
-    ratio; it only shapes the default rectangle when none is set."""
+    """Crop rectangle in pixels of the image frame (after coarse rotation and border). art-cli
+    ignores `ratio`; the editor re-fits to it unless `fixed_ratio` is false."""
 
     enabled: bool | None = F("Enabled", "Turn the tool on or off", default=False)
     x: int | None = F("X", "Left edge", ge=0, unit="px", default=-1)
@@ -126,7 +124,7 @@ class Crop(CompactModel):
     w: int | None = F("W", "Width", ge=1, unit="px", default=-1)
     h: int | None = F("H", "Height", ge=1, unit="px", default=-1)
     fixed_ratio: bool | None = F(
-        "FixedRatio", "Keep `ratio` when the rectangle is edited in ART; false = free rectangle", default=True
+        "FixedRatio", "Keep `ratio` when edited in ART", default=True
     )
     ratio: CropRatio | None = F("Ratio", "Aspect ratio", default="As Image")
     orientation: Literal["Landscape", "Portrait", "As Image"] | None = F(
@@ -158,18 +156,12 @@ class Sharpening(CompactModel):
 
     enabled: bool | None = F("Enabled", "Turn the tool on or off", default=False)
     method: Literal["usm", "rld"] | None = F("Method", "Sharpening method", default="rld")
-    contrast: float | None = F(
-        "Contrast", "Contrast threshold: leave flat areas alone", ge=0, le=200, default=20
-    )
+    contrast: float | None = F("Contrast", "Contrast threshold: leave flat areas alone", ge=0, le=200, default=20)
     amount: int | None = F("Amount", "Amount (usm)", ge=1, le=1000, default=200)
     radius: float | None = F("Radius", "Radius (usm)", ge=0.3, le=3, unit="px", default=0.5)
     deconv_amount: int | None = F("DeconvAmount", "Amount (rld)", ge=0, le=100, default=100)
-    deconv_radius: float | None = F(
-        "DeconvRadius", "Radius (rld)", ge=0.4, le=2.5, unit="px", default=0.75
-    )
-    deconv_auto_radius: bool | None = F(
-        "DeconvAutoRadius", "Pick the rld radius automatically", default=True
-    )
+    deconv_radius: float | None = F("DeconvRadius", "Radius (rld)", ge=0.4, le=2.5, unit="px", default=0.75)
+    deconv_auto_radius: bool | None = F("DeconvAutoRadius", "Pick the rld radius automatically", default=True)
 
 
 class Denoise(CompactModel):
@@ -185,9 +177,7 @@ class Denoise(CompactModel):
         "ChrominanceAutoFactor", "Scales the automatic chrominance amount",
         ge=0, le=1, default=1,
     )  # fmt: skip
-    chrominance: float | None = F(
-        "Chrominance", "Chrominance noise reduction (manual)", ge=0, le=100, default=15
-    )
+    chrominance: float | None = F("Chrominance", "Chrominance noise reduction (manual)", ge=0, le=100, default=15)
 
 
 class Vignetting(CompactModel):
@@ -199,11 +189,11 @@ class Vignetting(CompactModel):
     strength: int | None = F("Strength", "Strength", ge=1, le=100, default=1)
     center_x: int | None = F(
         "CenterX", "Horizontal centre offset", ge=-100, le=100,
-        unit="% of image width from centre (100 = a whole width: outside the frame)", default=0,
+        unit="% of image width from centre", default=0,
     )  # fmt: skip
     center_y: int | None = F(
         "CenterY", "Vertical centre offset", ge=-100, le=100,
-        unit="% of image height from centre (100 = a whole height: outside the frame)", default=0,
+        unit="% of image height from centre", default=0,
     )  # fmt: skip
 
 
@@ -229,17 +219,12 @@ _LEGACY_MODES = {"OpenDisplayTransform": "Neutral"}
 
 class ToneCurve(CompactModel):
     """Tone curves 1 and 2 and the contrast slider. A curve is `{"type":
-    "spline"|"catmull_rom"|"nurbs", "points": [[x, y], ...]}` (2 to 32 points,
-    x and y in 0..1, x strictly increasing) or `{"type": "linear"}`. x and y are
-    sRGB-gamma-encoded 0..1 values of the image at the curve's place in the
-    pipeline, so they line up roughly with image_stats 8-bit values / 255.
-    Setting a curve while histogram_matching is on turns histogram_matching off
-    (implied). For an S-curve use `contrast` rather than curve points."""
+    "spline"|"catmull_rom"|"nurbs", "points": [[x, y], ...]}` (2 to 32 points, x and y in 0..1,
+    x strictly increasing) or `{"type": "linear"}`, in sRGB-gamma-encoded values. Setting a curve
+    turns histogram_matching off (implied). For an S-curve use `contrast`."""
 
     enabled: bool | None = F("Enabled", "Turn the tool on or off", default=False)
-    mode: CurveModeName | None = F(
-        "CurveMode", "How curve 1 is applied", default="Neutral", read_as=_LEGACY_MODES
-    )
+    mode: CurveModeName | None = F("CurveMode", "How curve 1 is applied", default="Neutral", read_as=_LEGACY_MODES)
     mode2: CurveModeName | None = F(
         "CurveMode2", "How curve 2 is applied; omitted = same as mode",
         default="as mode", default_from="mode", read_as=_LEGACY_MODES,
@@ -249,17 +234,13 @@ class ToneCurve(CompactModel):
     )
     contrast: int | None = F(
         "Contrast",
-        "ART's analytic contrast curve (a power curve pivoting on scene middle grey 0.18, or "
-        "Log Encoding's target grey when that is enabled; it never overshoots); use it for an "
-        "S-curve instead of curve points",
-        ge=-100, le=100, default=0,
+        "Analytic contrast curve pivoting on scene middle grey; use it for an S-curve",
+        ge=-100,
+        le=100,
+        default=0,
     )
-    curve1: CurveSpec | None = F(
-        "Curve", "Curve 1: points or linear", default={"type": "linear"}, curve=True
-    )
-    curve2: CurveSpec | None = F(
-        "Curve2", "Curve 2: points or linear", default={"type": "linear"}, curve=True
-    )
+    curve1: CurveSpec | None = F("Curve", "Curve 1: points or linear", default={"type": "linear"}, curve=True)
+    curve2: CurveSpec | None = F("Curve2", "Curve 2: points or linear", default={"type": "linear"}, curve=True)
 
 
 ShapeMode = Literal["add", "subtract", "intersect"]
@@ -270,17 +251,15 @@ class RectangleShape(CompactModel):
 
     type: Literal["rectangle"]
     x: float | None = Field(
-        None, ge=-100, le=100, description="Centre, -100 = left edge, 0 = image centre, 100 = right edge"
+        None, ge=-100, le=100, description="Centre, -100 left .. 100 right"
     )
     y: float | None = Field(
-        None, ge=-100, le=100, description="Centre, -100 = top edge, 0 = image centre, 100 = bottom edge"
+        None, ge=-100, le=100, description="Centre, -100 top .. 100 bottom"
     )
     width: float | None = Field(None, ge=1, le=200, description="% of image width (100 = the image's)")
     height: float | None = Field(None, ge=1, le=200, description="% of image height (100 = the image's)")
     angle: float | None = Field(None, ge=-180, le=180, description="Rotation in degrees")
-    roundness: float | None = Field(
-        None, ge=0, le=100, description="0 = rectangle, 100 = ellipse"
-    )
+    roundness: float | None = Field(None, ge=0, le=100, description="0 = rectangle, 100 = ellipse")
     feather: float | None = Field(None, ge=0, le=100, description="Edge softness")
     blur: float | None = Field(None, ge=0, le=500, description="Blur of this shape's edge")
     mode: ShapeMode | None = Field(None, description="How the shape combines with the shapes before it")
@@ -291,10 +270,10 @@ class GradientShape(CompactModel):
 
     type: Literal["gradient"]
     x: float | None = Field(
-        None, ge=-100, le=100, description="Position, -100 = left edge, 0 = image centre, 100 = right edge"
+        None, ge=-100, le=100, description="Position, -100 left .. 100 right"
     )
     y: float | None = Field(
-        None, ge=-100, le=100, description="Position, -100 = top edge, 0 = image centre, 100 = bottom edge"
+        None, ge=-100, le=100, description="Position, -100 top .. 100 bottom"
     )
     strength_start: float | None = Field(None, ge=0, le=100, description="Mask strength where the gradient starts")
     strength_end: float | None = Field(None, ge=0, le=100, description="Mask strength where the gradient ends")
@@ -313,27 +292,26 @@ class AreaMaskAdjustment(CompactModel):
 
     enabled: bool | None = Field(None, description="Turn the area mask on or off")
     inverted: bool | None = Field(
-        None, description="Flip the mask: the region then affects everything outside the shapes"
+        None, description="Affect everything outside the shapes"
     )
     feather: float | None = Field(None, ge=0, le=100, description="Feather of the whole mask")
     blur: float | None = Field(None, ge=0, le=500, description="Blur of the whole mask")
     shapes: list[MaskShape | None] | None = Field(
         None,
-        description="Shapes by position: an entry edits the shape at its index (same type) or "
-        "replaces it (other type); an index one past the end appends (null leaves a "
-        "position as it is; a position further past the end is out_of_range)",
+        description="Shapes by position: edits the shape at its index (same type) or replaces it; "
+        "one past the end appends; null keeps the position",
     )
 
 
 class ChannelCdl(CompactModel):
     """One channel's slope, offset and power."""
 
-    slope: float | None = Field(None, ge=0.01, le=10, description="Multiplier, applied first (1 = unchanged)")
+    slope: float | None = Field(None, ge=0.01, le=10, description="Multiplier, applied first")
     offset: float | None = Field(
-        None, ge=-0.15, le=0.15, description="Added after the slope (stored halved: v*slope + offset/2)"
+        None, ge=-0.15, le=0.15, description="Added after the slope, stored halved"
     )
     power: float | None = Field(
-        None, ge=0.1, le=4, description="Stored as the inverse of the exponent applied: 0.5 squares the channel"
+        None, ge=0.1, le=4, description="Inverse of the exponent applied"
     )
 
 
@@ -348,35 +326,19 @@ class ColorCorrectionRegion(CompactModel):
 
 
 class ColorCorrection(CompactModel):
-    """Color Correction (ASC CDL-like grading; cast removal, per-channel
-    contrast, split toning, faded film), RGB-mode regions only; other modes,
-    pivots, compression and non-area masks are raw edits. Values are linear
-    working-space values (0..1 = 0..65535). Per channel the region applies
-    `v = v*slope + offset/2`, then `v = (v/pivot)^(1/power)*pivot` (pivot 1
-    unless raw-edited): the slope acts before the power, and the stored
-    `power` is the inverse of the exponent applied (power 0.5 squares the
-    channel), as ART's GUI shows it. `regions` is by position (region 1 =
-    regions[0]); get_profile gives null for a region that is not typed (other
-    mode or an unsupported mask), and a null in a request skips that position.
-    Setting r, g or b on a region switches it to RGB mode, and setting
-    anything turns the tool on (both listed under `implied`). An entry past
-    the end appends a region (the error names the next free index); a new
-    region or mask shape gets every key ART writes, at its defaults for what
-    is not given (the result's `created` counts those keys, `changed` lists
-    only what you set).
+    """Color Correction (ASC CDL-like), RGB-mode regions only. Linear working values: per channel
+    `v = v*slope + offset/2`, then `v = v^(1/power)` (`power` is the inverse of the exponent
+    applied). `regions` is by position; get_profile gives null for an untyped region, a null in
+    a request skips it. Setting r, g or b switches a region to RGB mode, anything turns the tool
+    on (`implied`). An entry past the end appends.
 
-    Mask coordinates: the origin is the image centre; x, y are
-    % of HALF the image's width and height from it (-100..100, so
-    100 puts the shape's centre on the right or bottom edge, 50 at three
-    quarters of the width), width, height are % of the whole image's (100 =
-    the whole image). An inverted mask affects everything
-    outside its shapes: an inverted ellipse of 110% with feather 60 spares
-    the middle and grades toward the edges."""
+    Mask coordinates: origin at the image centre; x, y are % of HALF the width/height;
+    width, height are % of the whole image."""
 
     enabled: bool | None = F("Enabled", "Turn the tool on or off", default=False)
     regions: list[ColorCorrectionRegion | None] | None = Field(
         None,
-        description="Regions by position; each sets r, g, b (slope, offset, power) and an area mask",
+        description="Regions by position: r, g, b and an area mask",
         json_schema_extra={"key": "<Key>_<region number>", "art_default": None},
     )
 
@@ -398,90 +360,104 @@ def rgb_field(
         json_schema_extra=extra,
     )  # fmt: skip
 
-class FilmNegative(CompactModel):
-    """Film Negative: inverts a camera-scanned colour negative. Per channel
-    `out = mult * in ^ exp`, clipped at 65535, with
-    `exp = -(green_exponent * (red_ratio, 1, blue_ratio))` for (r, g, b) and
-    `mult_c = ref_output_c / ref_input_c ^ exp_c`, so a pixel equal to
-    `ref_input` comes out as `ref_output`. `in` is the negative's linear value
-    (higher = a darker part of the scene), 0..65535, in the working space
-    (`color_space` working) or the camera space (input); `sample_spots` reads
-    it. Unset references (`ref_input` 0;0;0) make ART estimate them from the
-    channel medians of the central 60% of the frame and map those to
-    65535/24 (grey, about 4% of full scale): the default look, which depends
-    on the image content. Fit `red_ratio`/`blue_ratio` from neutral spots;
-    `ref_input` is a neutral's measured value, `ref_output` the level it gets
-    (grey `L;L;L` = neutral at level L, about reflectance x 65535; unequal
-    channels = a deliberate tint). When a request changes `ref_input` and
-    gives no `ref_output`, the server sets `ref_output` = (L, L, L) so the
-    image keeps its brightness (ART's own reference-picker rule; listed under
-    `implied`): L is the Rec.709 luminance (0.2126729, 0.7151521, 0.0721750)
-    of what the profile as it is now (before this request) renders the new
-    `ref_input` as.
 
-    If the current reference is unset, ART's medians are first estimated by
-    sampling (a grid of 64 spots, a warning says so); where sampling is
-    unavailable `ref_output` becomes grey 65535/24 and a warning says
-    brightness may change. Legacy profiles (`BackCompat`, `RedBase`) stay raw:
-    typed edits other than `enabled` are refused on them."""
+class FilmNegative(CompactModel):
+    """Film Negative: power_law, density or NamiColor (decode to signed linear RGB); references
+    are as `sample_spots` reads them. Legacy power-law profiles (`BackCompat`, `RedBase`) stay
+    raw: typed edits other than `enabled` are refused. Details: the film-negative skill."""
 
     enabled: bool | None = F("Enabled", "Turn the tool on or off", default=False)
-    method: Literal["power_law", "density"] | None = F(
+    method: Literal["power_law", "density", "namicolor"] | None = F(
         "Method",
-        "Conversion method: power_law or density (text id; 0/1 still load)",
-        read_as={"0": "power_law", "1": "density"}, default="power_law",
+        "Conversion method",
+        read_as={"0": "power_law", "1": "density", "2": "namicolor"}, default="power_law",
     )  # fmt: skip
+    preserve_range: bool | None = F(
+        "PreserveRange",
+        "NamiColor: keep signed/over-white RGB",
+        default=True,
+    )
+    denoise_before_inversion: bool | None = F(
+        "DenoiseBeforeInversion",
+        "Denoise before inversion (output, 1:1)",
+        default=True,
+    )
     film_type: Literal["negative", "reversal"] | None = F(
         "FilmType",
-        "Film stock type: negative or reversal (text id; 0/1 still load)",
+        "negative or reversal",
         read_as={"0": "negative", "1": "reversal"}, default="negative",
     )  # fmt: skip
     color_space: Literal["working", "input"] | None = F(
         "ColorSpace",
-        "Space the references and `sample_spots` values are in: working (stored 1) or the "
-        "camera's input space (stored 0)",
+        "Space of references",
         stored_as={"working": "1", "input": "0"}, default="working",
     )  # fmt: skip
-    red_ratio: float | None = F(
-        "RedRatio", "Red exponent / green exponent", ge=0.3, le=5, default=1.36
-    )
+    red_ratio: float | None = F("RedRatio", "Red/green exponent", ge=0.3, le=5, default=1.36)
     green_exponent: float | None = F(
-        "GreenExponent", "Master exponent (the green channel's)", ge=0.3, le=4, default=1.5
+        "GreenExponent", "Master exponent", ge=0.3, le=4, default=1.5
     )
-    blue_ratio: float | None = F(
-        "BlueRatio", "Blue exponent / green exponent", ge=0.3, le=5, default=0.86
-    )
+    blue_ratio: float | None = F("BlueRatio", "Blue/green exponent", ge=0.3, le=5, default=0.86)
     ref_input: list[Annotated[float, Field(ge=0)]] | None = rgb_field(
         "RefInput",
-        "[r, g, b] >= 0: the negative's linear value (0..65535) of the reference spot, "
-        "in the negative's terms; [0, 0, 0] = unset (ART estimates it from channel medians)",
+        "[r,g,b] 0..65535: spot's linear value; 0;0;0 = unset",
         default=[0.0, 0.0, 0.0],
     )
     ref_output: list[Annotated[float, Field(ge=0)]] | None = rgb_field(
         "RefOutput",
-        "[r, g, b] >= 0: the linear output (0..65535) the reference gets; grey [L, L, L] = "
-        "neutral at level L, unequal = a deliberate tint; [0, 0, 0] = unset (65535/24 grey)",
+        "[r,g,b] 0..65535: level it gets; 0;0;0 = unset",
         default=[0.0, 0.0, 0.0],
     )
     input_gamma: float | None = F(
         "InputGamma",
-        "Scanner source-transfer override, exponent 0.5 to 2.8 (default 1). "
-        "Before density inversion, normalized source RGB is decoded as "
-        "sign(x)*abs(x)^input_gamma. Only an explicitly unprofiled non-RAW scan "
-        "(input profile \"(none)\") may use a non-unity value; RAW and "
-        "profile-linearized input require 1. A non-unity value there is an "
-        "error and density inversion is not applied. 1 leaves linear values unchanged.",
-        ge=0.5, le=2.8, default=1.0,
+        'Source exponent; not 1 only for an unprofiled non-RAW scan (profile "(none)")',
+        ge=0.5,
+        le=2.8,
+        default=1.0,
     )
-    density_gamma: float | None = F(
-        "DensityGamma", "Density conversion gamma", ge=0.1, le=4.0, default=1.0
+    namicolor_input_gain: float | None = F(
+        "NamiColorInputGain", "Log-input slope", ge=0.0, le=2.0, default=1.0
     )
+    namicolor_master_gain: float | None = F(
+        "NamiColorMasterGain", "Master gain", ge=-0.5, le=0.5, default=0.0
+    )
+    namicolor_master_shift: float | None = F(
+        "NamiColorMasterShift", "Master shift", ge=-1.0, le=1.0, default=0.0
+    )
+    namicolor_black: list[Annotated[float, Field(ge=-0.5, le=0.5)]] | None = rgb_field(
+        "NamiColorBlack",
+        "Black terms",
+        default=[0.0, 0.0, 0.0],
+        allow_negative=True,
+    )
+    namicolor_gain: list[Annotated[float, Field(ge=-1.0, le=1.0)]] | None = rgb_field(
+        "NamiColorGain",
+        "Denominator gains",
+        default=[0.0, 0.0, 0.0],
+        allow_negative=True,
+    )
+    namicolor_shift: list[Annotated[float, Field(ge=-1.0, le=1.0)]] | None = rgb_field(
+        "NamiColorShift",
+        "Log-code shifts",
+        default=[0.0, 0.0, 0.0],
+        allow_negative=True,
+    )
+    namicolor_fit_base: bool | None = F(
+        "NamiColorFitBase",
+        "NamiColor linear code remap, see fit_base_anchor",
+        default=False,
+    )
+    fit_base_anchor: Literal["legacy", "code95"] | None = F(
+        "NamiColorFitBaseAnchor",
+        "code95: code 0 -> 95; legacy: 93/1023",
+        default="code95",
+    )
+    density_gamma: float | None = F("DensityGamma", "Gamma", ge=0.1, le=4.0, default=1.0)
     density_dmax: float | None = F(
-        "DensityDmax", "Maximum film density (Dmax), inactive for reversal", ge=0.0, le=4.8, default=2.5
+        "DensityDmax", "Dmax", ge=0.0, le=4.8, default=2.5
     )
     rgb_gains: list[Annotated[float, Field(ge=-3.0, le=3.0)]] | None = rgb_field(
         "RGBGains",
-        "[r, g, b]: per-channel printer-light exposure gains (-3.0 to 3.0)",
+        "Printer-light gains",
         default=[0.0, 0.0, 0.0],
         allow_negative=True,
     )
@@ -490,47 +466,49 @@ class FilmNegative(CompactModel):
         min_length=3,
         max_length=3,
         description=(
-            "Not stored. sample_spots average before inversion. Density "
-            "negative only: sets RGBGains to C-4.0, or changes nothing."
+            "Not stored: sample_spots avg sets RGBGains to C-4"
         ),
         json_schema_extra={"ephemeral": True, "key": "", "art_default": None},
     )
+    flare: list[Annotated[float, Field(ge=0.0, le=0.5)]] | None = rgb_field(
+        "Flare",
+        "Density/NamiColor: fraction removed pre-log",
+        default=[0.0, 0.0, 0.0],
+    )
     channel_gamma: list[Annotated[float, Field(ge=0.5, le=2.0)]] | None = rgb_field(
         "ChannelGamma",
-        "[r, g, b]: per-channel density contrast slopes (0.5 to 2.0)",
+        "Channel contrast",
         default=[1.0, 1.0, 1.0],
     )
     matrix_preset: Literal["identity", "status_m_reference", "custom"] | None = F(
         "MatrixPreset",
-        "Density matrix preset: identity, status_m_reference (DiVERE Status M "
-        "rows) or custom (text id; 0/1/2 still load). Identity ignores stored "
-        "coefficients and any matrix_basis. Coefficient edits require custom.",
+        "Mask preset",
         read_as={"0": "identity", "1": "status_m_reference", "2": "custom"},
         default="identity",
     )
     target_mode: Literal["linear", "paper", "cineon"] | None = F(
         "TargetMode",
-        "Export target: linear, paper or cineon (text id; 0/1/2 still load). "
-        "The editor buffer stays linear; cineon is encoded only when saving a 16-bit integer TIFF",
+        "linear, paper (density) or cineon",
         read_as={"0": "linear", "1": "paper", "2": "cineon"}, default="linear",
     )  # fmt: skip
     cineon_primaries: str | None = F(
         "CineonPrimaries",
-        "Primaries name for a Cineon export; empty means the current working profile",
+        "Export primaries; empty = working",
         default="",
     )
     cineon_reference_white: float | None = F(
         "CineonReferenceWhite",
-        "Linear reference white for the Cineon encode (1 = full scale)",
-        ge=1e-6, le=1e6, default=1.0,
+        "W: linear value of Cineon code 685",
+        ge=1e-6,
+        le=1e6,
+        default=0.9,
     )
     matrix: list[Annotated[float, Field(ge=-10.0, le=10.0)]] | None = Field(
         None,
         min_length=9,
         max_length=9,
         description=(
-            "Nine row-major density-matrix coefficients, each -10 to 10. "
-            "Stored as semicolon-separated numbers. Edited only when matrix_preset is custom."
+            "Nine row-major coefficients; edits need custom"
         ),
         json_schema_extra={
             "key": "Matrix",
@@ -540,77 +518,82 @@ class FilmNegative(CompactModel):
     )
     matrix_basis: str | None = F(
         "MatrixBasis",
-        "Versioned JSON binding of the processing space and input/working profile. "
-        "Empty is allowed for identity. A non-empty basis that does not match the "
-        "active space or profile fails the render instead of rebinding.",
+        "Binding JSON; needed if non-identity",
         default="",
     )
     calibration_note: str | None = F(
         "CalibrationNote",
-        "Free-text note of film, light source and scanner or camera conditions",
+        "Capture note",
         default="",
     )
     output_black_offset: float | None = F(
         "OutputBlackOffset",
-        "Subtracted from normalized linear output after density conversion, then floored at 0",
-        ge=0.0, le=0.05, default=0.0,
+        "Density: subtracted after conversion",
+        ge=0.0,
+        le=0.05,
+        default=0.0,
     )
-    paper_curve: Literal[
-        "kodak_2383",
-        "kodak_2393",
-        "kodak_ektacolor_edge",
-        "kodak_endura_premier",
-        "kodak_portra_endura",
-        "kodak_supra_endura",
-        "kodak_ultra_endura",
-        "ilford_mgfb_00",
-        "ilford_mgfb_0",
-        "ilford_mgfb_1",
-        "ilford_mgfb_2",
-        "ilford_mgfb_3",
-        "ilford_mgfb_4",
-        "ilford_mgfb_5",
-    ] | None = F(
+    paper_curve: (
+        Literal[
+            "kodak_2383",
+            "kodak_2393",
+            "kodak_ektacolor_edge",
+            "kodak_endura_premier",
+            "kodak_portra_endura",
+            "kodak_supra_endura",
+            "kodak_ultra_endura",
+            "ilford_mgfb_00",
+            "ilford_mgfb_0",
+            "ilford_mgfb_1",
+            "ilford_mgfb_2",
+            "ilford_mgfb_3",
+            "ilford_mgfb_4",
+            "ilford_mgfb_5",
+        ]
+        | None
+    ) = F(
         "PaperCurve",
-        "Reference print curve applied when target_mode is paper. Shared RGB "
-        "response, then the per-channel curve, in density space before "
-        "10^(-C). Ilford grades do not desaturate. An unknown id is refused, "
-        "not replaced. Inactive for linear and cineon, but kept.",
+        "Print curve",
         default="kodak_endura_premier",
     )
     paper_basis: str | None = F(
         "PaperBasis",
-        "Space and profile the paper response is bound to, written input|<profile> or "
-        "working|<profile> (for example working|Rec2020), or empty if unbound. Any "
-        "other form is refused, and so is a mismatch with the active space or profile.",
+        "input|<profile>, working|<profile>, empty",
         default="",
     )
     cineon_lut: str | None = F(
         "CineonLUT",
-        "Path of an external Cineon-input .cube print LUT. Empty means none. "
-        "Mutually exclusive with target_mode paper: the paper curve is not applied "
-        "when this is set. Pair with cineon_lut_sha256; a changed file is rejected.",
+        "Print .cube path",
         default="",
+    )
+    cineon_lut_stage: Literal["before_grade", "after_grade"] | None = F(
+        "CineonLUTStage",
+        "Print LUT order",
+        default="after_grade",
     )
     cineon_lut_sha256: str | None = F(
         "CineonLUTSha256",
-        "SHA-256 of the .cube bytes. Required when cineon_lut is set",
+        "SHA-256 of the .cube",
         default="",
     )
     cineon_lut_input_primaries: str | None = F(
         "CineonLUTInputPrimaries",
-        "ICC working-profile name of the LUT input primaries. Empty encodes Cineon in the current working RGB",
+        "LUT input primaries; empty = working",
         default="",
+    )
+    cineon_lut_input_transfer: Literal["cineon", "linear", "srgb", "gamma_2_4", "logc3", "slog3", "acescct"] | None = F(
+        "CineonLUTInputTransfer",
+        "LUT input encoding",
+        default="cineon",
     )
     cineon_lut_output_primaries: str | None = F(
         "CineonLUTOutputPrimaries",
-        "ICC working-profile name of the LUT output primaries. Empty keeps the result in the working RGB",
+        "LUT output primaries; empty = input",
         default="",
     )
     cineon_lut_output_transfer: Literal["linear", "srgb", "gamma_2_4"] | None = F(
         "CineonLUTOutputTransfer",
-        "How the .cube output is decoded back to linear: linear, srgb or gamma_2_4. "
-        "A LUT that declares another log output is rejected",
+        "LUT output decode",
         default="linear",
     )
 
@@ -749,11 +732,9 @@ def describe_adjustments() -> AdjustmentsDescription:
                 unit=prop.get("unit"),
                 enum=real.get("enum"),
                 default=prop["art_default"],
-                description=prop["description"],
+                description=prop.get("description", ""),
             )
-        tools[name] = ToolDescription(
-            group=group, description=(model.__doc__ or "").strip(), fields=fields
-        )
+        tools[name] = ToolDescription(group=group, description=(model.__doc__ or "").strip(), fields=fields)
     return AdjustmentsDescription(schema_ppversion=PPVERSION, tools=tools)
 
 

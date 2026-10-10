@@ -61,9 +61,18 @@ public:
         sample_res = res;
     }
 
+    // stage-statistics mode: run the normal pipeline up to the CONVERTED tap
+    // (after the film and colour conversions) and compute the statistics,
+    // instead of producing an image
+    void setStageStats(const StageStatsRequest *req, StageStatsResult *res)
+    {
+        stats_req = req;
+        stats_res = res;
+    }
+
     Imagefloat *operator()()
     {
-        if (!job->fast) {
+        if (!job->fast || stats_req) {
             return normal_pipeline();
         } else {
             return fast_pipeline();
@@ -127,7 +136,11 @@ private:
             ii = InitialImage::load(job->fname, job->isRaw, &errorCode);
 
             if (errorCode) {
-                delete job;
+                if (!sample_req && !stats_req) {
+                    // processImage() consumes the job on failure;
+                    // sampleSpots() and stageStats() never do
+                    delete job;
+                }
                 return false; // return nullptr;
             }
         }
@@ -337,10 +350,49 @@ private:
         return true;
     }
 
+    // Failure after stage_init: release everything we own, including the
+    // job (processImage() always consumes it). Always returns false.
+    bool fail()
+    {
+        errorCode = 1;
+        stop = true;
+        ipf_p.reset(); // it points into job->pparams
+        delete img;
+        img = nullptr;
+        if (!job->initialImage) {
+            ii->decreaseRef();
+        }
+        if (!sample_req && !stats_req) {
+            delete job;
+        }
+        job = nullptr;
+        return false;
+    }
+
     bool stage_denoise()
     {
         procparams::ProcParams &params = job->pparams;
         ImProcFunctions &ipf = *(ipf_p.get());
+
+        if (params.filmNegative.enabled && params.vignetting.enabled &&
+            params.vignetting.amount != 0) {
+            // Not a failure (the listener's error() fails a batch entry).
+            std::cerr << art::utils::M("TP_FILMNEGATIVE_WARN_MANUAL_VIGNETTING")
+                      << std::endl;
+        }
+
+        // Denoise the camera-linear negative instead of the inverted positive.
+        // With Inversion colour space = working the image is converted first,
+        // which is the space the denoise tool expects. With Inversion colour
+        // space = input it runs on the input-space pixels (the denoise tool
+        // still reads them through the working-profile matrices).
+        const bool denoiseFirst = params.filmNegative.enabled &&
+                                  params.filmNegative.denoiseBeforeInversion &&
+                                  params.denoise.enabled;
+        const auto runDenoise = [&]() {
+            ART_PROFILE_SCOPE("denoise");
+            ipf.denoise(imgsrc, currWB, img, params.denoise);
+        };
 
         bool converted = false;
         if (params.filmNegative.colorSpace !=
@@ -351,13 +403,19 @@ private:
             converted = true;
         }
 
+        if (denoiseFirst) {
+            runDenoise();
+        }
+
         if (params.filmNegative.enabled) {
             FilmNegativeParams copy = params.filmNegative;
             ipf.filmNegativeProcess(img, img, copy, params.raw, imgsrc, currWB);
             if (ipf.filmNegativeContractFailed()) {
-                errorCode = 1;
-                stop = true;
-                return false;
+                if (stats_res) {
+                    stats_res->error = "the film negative conversion failed "
+                                       "(see the message above)";
+                }
+                return fail();
             }
         }
 
@@ -366,12 +424,24 @@ private:
                 imgsrc->convertColorSpace(img, params.icm, currWB);
             }
         }
-
-        if (params.denoise.enabled) {
-            {
-                ART_PROFILE_SCOPE("denoise");
-                ipf.denoise(imgsrc, currWB, img, params.denoise);
+        if (stats_req) {
+            // the CONVERTED tap: nothing of the pipeline after this runs
+            filmStageStats(img, params, *stats_req, *stats_res);
+            ipf_p.reset(); // it points into job->pparams
+            delete img;
+            img = nullptr;
+            if (!job->initialImage) {
+                ii->decreaseRef();
             }
+            return false; // the caller still owns the job
+        }
+        if (!ipf.filmNegativeApplyLut(
+                img, FilmNegativeParams::CineonLUTStage::BEFORE_GRADE)) {
+            return fail();
+        }
+
+        if (params.denoise.enabled && !denoiseFirst) {
+            runDenoise();
         }
         return true;
     }
@@ -460,6 +530,10 @@ private:
 
         stop = stop || ipf.process(ImProcFunctions::Stage::STAGE_2, img);
         stop = stop || ipf.process(ImProcFunctions::Stage::STAGE_3, img);
+        if (ipf.filmNegativeContractFailed()) {
+            fail();
+            return nullptr;
+        }
 
         if (pl) {
             pl->setProgress(0.60);
@@ -672,6 +746,8 @@ private:
 
     const SpotRequest *sample_req = nullptr;
     SpotResult *sample_res = nullptr;
+    const StageStatsRequest *stats_req = nullptr;
+    StageStatsResult *stats_res = nullptr;
 };
 
 } // namespace
@@ -700,6 +776,16 @@ bool sampleSpots(ProcessingJob *pjob, const SpotRequest &req, SpotResult &res,
     proc();
     return errorCode == 0 && res.error.empty() &&
            res.spots.size() == req.pos.size();
+}
+
+bool stageStats(ProcessingJob *pjob, const StageStatsRequest &req,
+                StageStatsResult &res, int &errorCode)
+{
+    res = StageStatsResult();
+    ImageProcessor proc(pjob, errorCode, nullptr, false);
+    proc.setStageStats(&req, &res);
+    proc();
+    return errorCode == 0 && res.error.empty() && res.width > 0;
 }
 
 void batchProcessingThread(ProcessingJob *job, BatchProcessingListener *bpl)

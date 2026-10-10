@@ -4,6 +4,10 @@
 #include <cmath>
 #include <cstdint>
 #include <fstream>
+#include <algorithm>
+#include <iostream>
+#include <limits>
+#include <memory>
 #include <mutex>
 #include <sstream>
 #include <string>
@@ -29,7 +33,7 @@ struct CubeLut {
 };
 
 std::mutex gCubeMutex;
-std::unordered_map<std::string, CubeLut> gCubeCache;
+std::unordered_map<std::string, std::shared_ptr<const CubeLut>> gCubeCache;
 
 std::string lowerCopy(const std::string &in)
 {
@@ -100,10 +104,17 @@ bool headerDeclaresLogOutput(const std::string &line, std::string &declared)
         if (v >= s.size()) {
             continue;
         }
+        // Whole value up to a comment: "ARRI LogC3" must not stop at "ARRI"
         declared = s.substr(v);
-        const size_t cut = declared.find_first_of(" \t#");
+        const size_t cut = declared.find('#');
         if (cut != std::string::npos) {
             declared = declared.substr(0, cut);
+        }
+        while (!declared.empty() &&
+               (declared[declared.size() - 1] == ' ' ||
+                declared[declared.size() - 1] == '\t' ||
+                declared[declared.size() - 1] == '\r')) {
+            declared.erase(declared.end() - 1);
         }
         return isLogOutputName(declared);
     }
@@ -125,8 +136,6 @@ bool parseCube(const std::string &text, CubeLut &cube, std::string &error,
     cube.domainMin[0] = cube.domainMin[1] = cube.domainMin[2] = 0.f;
     cube.domainMax[0] = cube.domainMax[1] = cube.domainMax[2] = 1.f;
     cube.rgb.clear();
-    int size1d = 0;
-    int data1d = 0;
     bool saw3d = false;
     std::istringstream in(text);
     std::string line;
@@ -152,12 +161,32 @@ bool parseCube(const std::string &text, CubeLut &cube, std::string &error,
             continue;
         }
         const std::string low = lowerCopy(key);
-        if (low == "title" || low == "lut_in_video_range" ||
-            low == "lut_out_video_range") {
+        if (low == "title") {
             continue;
         }
-        if (low == "lut_1d_size") {
-            ls >> size1d;
+        if (low == "lut_in_video_range" || low == "lut_out_video_range") {
+            // Legal-range scaling would change the meaning of the file and is
+            // not implemented; refuse instead of silently ignoring it.
+            error = art::utils::M("TP_FILMNEGATIVE_ERR_LUT_VIDEO_RANGE").raw();
+            return false;
+        }
+        if (low == "lut_1d_size" || low == "lut_1d_input_range") {
+            // A 1D shaper would change the meaning of the file and is not
+            // implemented; refuse instead of silently skipping its rows.
+            error = art::utils::M("TP_FILMNEGATIVE_ERR_LUT_1D").raw();
+            return false;
+        }
+        if (low == "lut_3d_input_range") {
+            // Adobe/Resolve scalar domain for all three channels
+            float lo = 0.f, hi = 1.f;
+            if (!(ls >> lo >> hi)) {
+                error = art::utils::M("TP_FILMNEGATIVE_ERR_LUT_DOMAIN").raw();
+                return false;
+            }
+            for (int c = 0; c < 3; ++c) {
+                cube.domainMin[c] = lo;
+                cube.domainMax[c] = hi;
+            }
             continue;
         }
         if (low == "lut_3d_size") {
@@ -169,12 +198,16 @@ bool parseCube(const std::string &text, CubeLut &cube, std::string &error,
             }
             continue;
         }
-        if (low == "domain_min") {
-            ls >> cube.domainMin[0] >> cube.domainMin[1] >> cube.domainMin[2];
-            continue;
-        }
-        if (low == "domain_max") {
-            ls >> cube.domainMax[0] >> cube.domainMax[1] >> cube.domainMax[2];
+        if (low == "domain_min" || low == "domain_max") {
+            float d[3];
+            if (!(ls >> d[0] >> d[1] >> d[2])) {
+                error = art::utils::M("TP_FILMNEGATIVE_ERR_LUT_DOMAIN").raw();
+                return false;
+            }
+            float *dst = low == "domain_min" ? cube.domainMin : cube.domainMax;
+            for (int c = 0; c < 3; ++c) {
+                dst[c] = d[c];
+            }
             continue;
         }
         float r = 0.f, g = 0.f, b = 0.f;
@@ -182,9 +215,9 @@ bool parseCube(const std::string &text, CubeLut &cube, std::string &error,
         if (!(vs >> r >> g >> b)) {
             continue;
         }
-        if (!saw3d && size1d > 0 && data1d < size1d) {
-            ++data1d;
-            continue;
+        if (!std::isfinite(r) || !std::isfinite(g) || !std::isfinite(b)) {
+            error = art::utils::M("TP_FILMNEGATIVE_ERR_LUT_NONFINITE").raw();
+            return false;
         }
         cube.rgb.push_back(r);
         cube.rgb.push_back(g);
@@ -201,7 +234,9 @@ bool parseCube(const std::string &text, CubeLut &cube, std::string &error,
         return false;
     }
     for (int c = 0; c < 3; ++c) {
-        if (!(cube.domainMax[c] > cube.domainMin[c])) {
+        if (!std::isfinite(cube.domainMin[c]) ||
+            !std::isfinite(cube.domainMax[c]) ||
+            !(cube.domainMax[c] > cube.domainMin[c])) {
             error = art::utils::M("TP_FILMNEGATIVE_ERR_LUT_DOMAIN").raw();
             return false;
         }
@@ -209,45 +244,46 @@ bool parseCube(const std::string &text, CubeLut &cube, std::string &error,
     return true;
 }
 
-bool loadCube(const Glib::ustring &path, CubeLut &out, ProgressListener *pl)
+bool readFileBytes(const Glib::ustring &path, std::string &bytes)
 {
-    const std::string key = path.raw();
-    if (!Glib::file_test(path, Glib::FILE_TEST_IS_REGULAR)) {
-        std::lock_guard<std::mutex> lock(gCubeMutex);
-        gCubeCache.erase(key);
-        report(pl, Glib::ustring::compose(
-                       art::utils::M("TP_FILMNEGATIVE_ERR_LUT_MISSING"), path));
+    if (path.empty() || !Glib::file_test(path, Glib::FILE_TEST_IS_REGULAR)) {
         return false;
     }
     std::ifstream in(Glib::filename_from_utf8(path).c_str(),
                      std::ios::in | std::ios::binary);
     if (!in) {
-        std::lock_guard<std::mutex> lock(gCubeMutex);
-        gCubeCache.erase(key);
-        report(pl, Glib::ustring::compose(
-                       art::utils::M("TP_FILMNEGATIVE_ERR_LUT_UNREADABLE"),
-                       path));
         return false;
     }
     std::ostringstream buf;
     buf << in.rdbuf();
-    const std::string bytes = buf.str();
+    bytes = buf.str();
+    return true;
+}
+
+// Parses (or fetches from the cache) a cube from already-read file bytes.
+// The cache hands out shared immutable cubes, so a hit copies nothing.
+bool loadCube(const Glib::ustring &path, const std::string &bytes,
+              std::shared_ptr<const CubeLut> &out, ProgressListener *pl)
+{
+    const std::string key = path.raw();
     const std::uint64_t hash = fnv1a(bytes);
     {
         std::lock_guard<std::mutex> lock(gCubeMutex);
         const auto it = gCubeCache.find(key);
-        if (it != gCubeCache.end() && it->second.hash == hash) {
+        if (it != gCubeCache.end() && it->second->hash == hash) {
             out = it->second;
             return true;
         }
     }
-    CubeLut parsed;
-    parsed.hash = hash;
+    std::shared_ptr<CubeLut> parsed(new CubeLut());
+    parsed->hash = hash;
     std::string error;
     std::string logDeclared;
-    if (!parseCube(bytes, parsed, error, logDeclared)) {
-        std::lock_guard<std::mutex> lock(gCubeMutex);
-        gCubeCache.erase(key);
+    if (!parseCube(bytes, *parsed, error, logDeclared)) {
+        {
+            std::lock_guard<std::mutex> lock(gCubeMutex);
+            gCubeCache.erase(key);
+        }
         if (!logDeclared.empty()) {
             report(pl, Glib::ustring::compose(
                            art::utils::M("TP_FILMNEGATIVE_ERR_LUT_LOG"), path,
@@ -320,12 +356,38 @@ void sampleCube(const CubeLut &cube, float r, float g, float b, float &or_,
     ob = out[2];
 }
 
-float cineonCode(float linear01, double referenceWhite)
+// Formula constants verified against Colour's ARRI SUP 3.x scene-exposure
+// EI800, Sony normalized 10-bit S-Log3 and Academy S-2016-001 ACEScct.
+// https://github.com/colour-science/colour/tree/develop/colour/models/rgb/transfer_functions
+double encodeLutTransfer(double x,
+                        procparams::FilmNegativeParams::CineonLUTInputTransfer t,
+                        double referenceWhite, bool preserveSigned)
 {
-    const double b = std::pow(10.0, (95.0 - 685.0) / 300.0);
-    const double x = std::max(0.0, static_cast<double>(linear01)) / referenceWhite;
-    return static_cast<float>(
-        (685.0 + 300.0 * std::log10(x * (1.0 - b) + b)) / 1023.0);
+    using Transfer = procparams::FilmNegativeParams::CineonLUTInputTransfer;
+    switch (t) {
+    case Transfer::CINEON:
+        return encodeFilmCineon(x, referenceWhite, preserveSigned);
+    case Transfer::LINEAR:
+        return x;
+    case Transfer::SRGB:
+        return x <= 0.0031308 ? 12.92 * x
+                             : 1.055 * std::pow(x, 1.0 / 2.4) - 0.055;
+    case Transfer::GAMMA_2_4:
+        return std::copysign(std::pow(std::fabs(x), 1.0 / 2.4), x);
+    case Transfer::LOGC3:
+        return x > 0.010591
+            ? 0.247190 * std::log10(5.555556 * x + 0.052272) + 0.385537
+            : 5.367655 * x + 0.092809;
+    case Transfer::SLOG3:
+        return x >= 0.01125
+            ? (420.0 + 261.5 * std::log10((x + 0.01) / 0.19)) / 1023.0
+            : (x * (171.2102946929 - 95.0) / 0.01125 + 95.0) / 1023.0;
+    case Transfer::ACESCCT:
+        return x <= 0.0078125
+            ? 10.5402377416545 * x + 0.0729055341958355
+            : (std::log2(x) + 9.72) / 17.52;
+    }
+    return std::numeric_limits<double>::quiet_NaN();
 }
 
 float decodeTransfer(float y, procparams::FilmNegativeParams::CineonLUTOutputTransfer t)
@@ -402,6 +464,28 @@ PrimariesMap primariesMap(const procparams::FilmNegativeParams &params,
 
 } // namespace
 
+double encodeFilmCineon(double linear01, double referenceWhite,
+                        bool preserveSigned)
+{
+    static const double b = std::pow(10.0, (95.0 - 685.0) / 300.0);
+    if (preserveSigned) {
+        // log1p retains signed values around Cineon black without cancellation.
+        return (95.0 + 300.0 / std::log(10.0) *
+                           std::log1p(linear01 / referenceWhite * (1.0 - b) / b)) /
+               1023.0;
+    }
+    const double x = std::max(0.0, linear01) / referenceWhite;
+    return (685.0 + 300.0 * std::log10(x * (1.0 - b) + b)) / 1023.0;
+}
+
+double decodeFilmCineon(double code, double referenceWhite)
+{
+    static const double b = std::pow(10.0, (95.0 - 685.0) / 300.0);
+    return referenceWhite * b *
+           std::expm1((1023.0 * code - 95.0) / 300.0 * std::log(10.0)) /
+           (1.0 - b);
+}
+
 bool applyCineonPrintLut(Imagefloat *img,
                          const procparams::FilmNegativeParams &params,
                          const procparams::ColorManagementParams &icm,
@@ -415,7 +499,23 @@ bool applyCineonPrintLut(Imagefloat *img,
         report(pl, art::utils::M("TP_FILMNEGATIVE_ERR_LUT_TRANSFER"));
         return false;
     }
-    const Glib::ustring sha = cineonLutSha256(params.cineonLUT);
+    using InputTransfer = procparams::FilmNegativeParams::CineonLUTInputTransfer;
+    if (params.cineonLUTInputTransfer < InputTransfer::CINEON ||
+        params.cineonLUTInputTransfer > InputTransfer::ACESCCT) {
+        report(pl, art::utils::M("TP_FILMNEGATIVE_ERR_LUT_INPUT_TRANSFER"));
+        return false;
+    }
+    if (!std::isfinite(params.cineonReferenceWhite) ||
+        params.cineonReferenceWhite <= 0.0) {
+        report(pl, art::utils::M("TP_FILMNEGATIVE_ERR_CINEON_DOMAIN"));
+        return false;
+    }
+    std::string bytes;
+    Glib::ustring sha;
+    if (readFileBytes(params.cineonLUT, bytes)) {
+        sha = Glib::Checksum::compute_checksum(
+            Glib::Checksum::CHECKSUM_SHA256, bytes);
+    }
     if (sha.empty() || params.cineonLUTSha256.empty() ||
         sha != params.cineonLUTSha256) {
         report(pl, Glib::ustring::compose(
@@ -423,25 +523,46 @@ bool applyCineonPrintLut(Imagefloat *img,
                        params.cineonLUT));
         return false;
     }
-    CubeLut cube;
-    if (!loadCube(params.cineonLUT, cube, pl)) {
+    std::shared_ptr<const CubeLut> cubePtr;
+    if (!loadCube(params.cineonLUT, bytes, cubePtr, pl)) {
         return false;
     }
+    bytes.clear();
+    const CubeLut &cube = *cubePtr;
     bool primOk = true;
     const PrimariesMap prim = primariesMap(params, icm, pl, primOk);
     if (!primOk) {
         return false;
     }
     double referenceWhite = params.cineonReferenceWhite;
-    if (referenceWhite < 1e-6) {
-        referenceWhite = 1e-6;
-    } else if (referenceWhite > 1e6) {
-        referenceWhite = 1e6;
+    const bool namiColor =
+        params.method == procparams::FilmNegativeParams::Method::NAMICOLOR;
+    if (!namiColor) {
+        referenceWhite = std::max(1e-6, std::min(1e6, referenceWhite));
     }
+    const bool preserveSigned = namiColor;
+    const float offset = preserveSigned ? 0.f :
+        static_cast<float>(params.outputBlackOffset);
+    const bool preserveOutputRange = namiColor && params.preserveRange;
+    const bool clampCineonDomain = preserveSigned &&
+        params.cineonLUTInputTransfer ==
+            procparams::FilmNegativeParams::CineonLUTInputTransfer::CINEON;
+    float minimumLinear[3] = {0.f, 0.f, 0.f};
+    if (clampCineonDomain) {
+        for (int c = 0; c < 3; ++c) {
+            minimumLinear[c] = static_cast<float>(
+                decodeFilmCineon(cube.domainMin[c], referenceWhite));
+        }
+    }
+    img->syncCpuForWrite();
+    int nonFiniteCount = 0;
 
     const int height = img->getHeight();
     const int width = img->getWidth();
     const float S = 65535.f;
+#ifdef _OPENMP
+#pragma omp parallel for reduction(+ : nonFiniteCount) schedule(dynamic, 16)
+#endif
     for (int row = 0; row < height; ++row) {
         for (int col = 0; col < width; ++col) {
             float r = img->r(row, col) / S;
@@ -454,9 +575,28 @@ bool applyCineonPrintLut(Imagefloat *img,
                 g = gg;
                 b = bb;
             }
-            const float cr = cineonCode(r, referenceWhite);
-            const float cg = cineonCode(g, referenceWhite);
-            const float cb = cineonCode(b, referenceWhite);
+            if (!std::isfinite(r) || !std::isfinite(g) || !std::isfinite(b)) {
+                ++nonFiniteCount;
+                continue;
+            }
+            if (clampCineonDomain) {
+                // sampleCube clamps to its declared domain. Apply the same
+                // lower bound before taking a log: a gamut conversion can
+                // produce finite RGB below the Cineon logarithm's domain.
+                r = std::max(r, minimumLinear[0]);
+                g = std::max(g, minimumLinear[1]);
+                b = std::max(b, minimumLinear[2]);
+            }
+            const float cr = static_cast<float>(encodeLutTransfer(
+                r, params.cineonLUTInputTransfer, referenceWhite, preserveSigned));
+            const float cg = static_cast<float>(encodeLutTransfer(
+                g, params.cineonLUTInputTransfer, referenceWhite, preserveSigned));
+            const float cb = static_cast<float>(encodeLutTransfer(
+                b, params.cineonLUTInputTransfer, referenceWhite, preserveSigned));
+            if (!std::isfinite(cr) || !std::isfinite(cg) || !std::isfinite(cb)) {
+                ++nonFiniteCount;
+                continue;
+            }
             float lr, lg, lb;
             sampleCube(cube, cr, cg, cb, lr, lg, lb);
             lr = decodeTransfer(lr, params.cineonLUTOutputTransfer);
@@ -469,39 +609,41 @@ bool applyCineonPrintLut(Imagefloat *img,
                 lg = gg;
                 lb = bb;
             }
-            const float offset = static_cast<float>(params.outputBlackOffset);
-            auto store = [offset](float v) -> float {
-                if (!std::isfinite(v)) {
-                    return 0.f;
-                }
+            if (!std::isfinite(lr) || !std::isfinite(lg) || !std::isfinite(lb)) {
+                ++nonFiniteCount;
+                continue;
+            }
+            auto store = [offset, preserveOutputRange](float v) -> float {
                 v -= offset;
-                if (!(v > 0.f) || !std::isfinite(v)) {
-                    return 0.f;
-                }
-                return v * 65535.f;
+                return preserveOutputRange || v > 0.f ? v * 65535.f : 0.f;
             };
-            img->r(row, col) = store(lr);
-            img->g(row, col) = store(lg);
-            img->b(row, col) = store(lb);
+            lr = store(lr);
+            lg = store(lg);
+            lb = store(lb);
+            if (!std::isfinite(lr) || !std::isfinite(lg) || !std::isfinite(lb)) {
+                ++nonFiniteCount;
+                continue;
+            }
+            img->r(row, col) = lr;
+            img->g(row, col) = lg;
+            img->b(row, col) = lb;
         }
+    }
+    if (nonFiniteCount) {
+        report(pl, art::utils::M("TP_FILMNEGATIVE_ERR_LUT_NONFINITE"));
+        return false;
     }
     return true;
 }
 
 Glib::ustring cineonLutSha256(const Glib::ustring &path)
 {
-    if (path.empty() || !Glib::file_test(path, Glib::FILE_TEST_IS_REGULAR)) {
+    std::string bytes;
+    if (!readFileBytes(path, bytes)) {
         return Glib::ustring();
     }
-    std::ifstream in(Glib::filename_from_utf8(path).c_str(),
-                     std::ios::in | std::ios::binary);
-    if (!in) {
-        return Glib::ustring();
-    }
-    std::ostringstream buf;
-    buf << in.rdbuf();
     return Glib::Checksum::compute_checksum(Glib::Checksum::CHECKSUM_SHA256,
-                                            buf.str());
+                                            bytes);
 }
 
 }} // namespace art::engine

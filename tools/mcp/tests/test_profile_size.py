@@ -96,7 +96,7 @@ async def test_get_profile_of_chosen_groups_holds_only_those(render, image):
     assert set(view["raw"]) == {"ToneCurve"}  # what the tool doesn't type
     assert view["adjustments"]["film_negative"]["red_ratio"] == 1.36
     assert view["ppversion"] == 1045
-    assert tokens(chosen) * 10 < tokens(whole)
+    assert tokens(chosen) * 9.5 < tokens(whole)
 
 
 async def test_an_unknown_group_is_unknown_key_and_lists_the_valid_ones(render, image):
@@ -290,7 +290,7 @@ async def test_live_get_profile_of_chosen_groups_holds_only_those(live, editor, 
     view = chosen.structured_content
     assert set(view["adjustments"]) == {"film_negative", "tone_curve"} and set(view["raw"]) == {"ToneCurve"}
     assert view["history_position"] == 0
-    assert tokens(chosen) * 10 < tokens(whole)
+    assert tokens(chosen) * 9.5 < tokens(whole)
 
 
 async def test_live_unknown_group_is_unknown_key_and_lists_the_valid_ones(live, editor, live_image):

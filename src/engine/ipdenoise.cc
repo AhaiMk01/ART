@@ -69,11 +69,13 @@
 #include "rtengine.h"
 #include "sleef.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <fftw3.h>
 #include <iostream>
 #include <memory>
+#include <vector>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -105,7 +107,12 @@ float MadRgb(float *DataList, const int datalen)
     int i;
 
     for (i = 0; i < datalen; ++i) {
-        histo[min(65535, static_cast<int>(abs(DataList[i])))]++;
+        // float->int of a huge, inf or NaN value is undefined (INT_MIN on
+        // x86, i.e. a negative index): compare in float and saturate. Same
+        // bin as before for every finite value below 2^31 (abs() here is the
+        // integer one, which truncates first; fabs then truncating is equal).
+        const float a = std::fabs(DataList[i]);
+        histo[a < 65535.f ? static_cast<int>(a) : 65535]++;
     }
 
     // find median of histogram
@@ -2517,6 +2524,50 @@ void ImProcFunctions::denoise(ImageSource *imgsrc, const ColorTemp &currWB,
     }
 
     ImProcData im(params, scale, multiThread, this);
+    /* The wavelet code works on values around 0..65535. A pixel that is
+     * non-finite or astronomically large (e.g. the film negative NamiColor
+     * decode of an opaque area, which can reach 1e20 and beyond) would index
+     * histograms out of range and turn the whole image into NaN, so such
+     * pixels are clamped for the duration of the denoise and put back
+     * untouched afterwards. Images whose values are all below the limit are
+     * not changed in any way. */
+    struct SavedPixel {
+        int y;
+        int x;
+        float r;
+        float g;
+        float b;
+    };
+    std::vector<SavedPixel> saved;
+    {
+        const float kMax = 1e9f; // ~14 stops above the 65535 white point
+        const int W = img->getWidth();
+        const int H = img->getHeight();
+        img->syncCpu();
+        bool writable = false;
+        for (int y = 0; y < H; ++y) {
+            for (int x = 0; x < W; ++x) {
+                const float r = img->r(y, x);
+                const float g = img->g(y, x);
+                const float b = img->b(y, x);
+                if (!(std::fabs(r) <= kMax && std::fabs(g) <= kMax &&
+                      std::fabs(b) <= kMax)) { // also true for NaN
+                    if (!writable) {
+                        img->syncCpuForWrite();
+                        writable = true;
+                    }
+                    saved.push_back({y, x, r, g, b});
+                    const auto clampv = [kMax](float v) {
+                        return v != v ? 0.f : std::min(kMax, std::max(-kMax, v));
+                    };
+                    img->r(y, x) = clampv(r);
+                    img->g(y, x) = clampv(g);
+                    img->b(y, x) = clampv(b);
+                }
+            }
+        }
+    }
+
     double ecomp = params->exposure.enabled ? params->exposure.expcomp : 0.0;
     ExposureParams expparams;
     expparams.enabled = true;
@@ -2542,6 +2593,15 @@ void ImProcFunctions::denoise(ImageSource *imgsrc, const ColorTemp &currWB,
     if (ecomp > 0) {
         expparams.expcomp = -ecomp;
         expcomp(img, &expparams);
+    }
+
+    if (!saved.empty()) {
+        img->syncCpuForWrite();
+        for (const SavedPixel &p : saved) {
+            img->r(p.y, p.x) = p.r;
+            img->g(p.y, p.x) = p.g;
+            img->b(p.y, p.x) = p.b;
+        }
     }
 
     if (plistener) {

@@ -767,7 +767,9 @@ Thumbnail::processThumbImage(const art::engine::procparams::ProcParams &pparams,
             image = tpp->processImage(
                 pparams, static_cast<art::engine::eSensorType>(cfs.sensortype), h,
                 art::engine::TI_Bilinear, &cfs, scale);
-            art::gui::thumbimgcache::store(fn, pparams, image);
+            if (image) {
+                art::gui::thumbimgcache::store(fn, pparams, image);
+            }
         } else if (options.rtSettings.verbose) {
             std::cout << "cached thumb image: " << fname << std::endl;
         }
@@ -804,7 +806,10 @@ Thumbnail::upgradeThumbImage(const art::engine::procparams::ProcParams &pparams,
         pparams, static_cast<art::engine::eSensorType>(cfs.sensortype), h,
         art::engine::TI_Bilinear, &cfs, scale);
     tpp->getDimensions(lastW, lastH, lastScale);
-    art::gui::thumbimgcache::store(getCacheFileName("images", ""), pparams, image);
+    if (image) {
+        art::gui::thumbimgcache::store(getCacheFileName("images", ""), pparams,
+                                       image);
+    }
 
     delete tpp;
     tpp = nullptr;

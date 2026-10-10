@@ -1519,7 +1519,7 @@ struct RAWParams {
 struct FilmNegativeParams {
     bool enabled;
 
-    enum class Method { POWER_LAW = 0, DENSITY };
+    enum class Method { POWER_LAW = 0, DENSITY, NAMICOLOR };
     Method method;
 
     enum class FilmType { NEGATIVE = 0, REVERSAL };
@@ -1556,6 +1556,31 @@ struct FilmNegativeParams {
     double inputGamma;
     double densityGamma;
     double densityDmax;
+    double namicolorInputGain;
+    double namicolorMasterGain;
+    double namicolorMasterShift;
+    std::array<double, 3> namicolorBlack;
+    std::array<double, 3> namicolorGain;
+    std::array<double, 3> namicolorShift;
+    bool namicolorFitBase;
+    // NamiColor: retain signed exposure/LUT RGB and reject clipped Cineon
+    // handoffs. Individual tone tools still define their own mappings.
+    bool preserveRange;
+    // Run the denoise tool on the camera-linear negative, before the film
+    // conversion (default). false denoises the inverted positive, as sidecars
+    // before 1059 did.
+    bool denoiseBeforeInversion;
+    // Veiling light / flare per channel: linear transmission fraction of full
+    // scale (1 = 65535), 0..0.5, subtracted from the normalised, input-
+    // linearised transmission before the log in Density and NamiColor.
+    // Power-law ignores it. 0 is no correction.
+    std::array<double, 3> flare;
+    // NamiColor FitBase mapping of normalized q (0 = film base, 1 = top):
+    // LEGACY q' = (q + 93/1023) / (1 + 93/1023), q = 0 -> code 93;
+    // CODE95 q' = 95/1023 + (1 - 95/1023) q, q = 0 -> code 95 exactly.
+    // Both keep q = 1 -> code 1023. Only used when namicolorFitBase is set.
+    enum class FitBaseAnchor { LEGACY = 0, CODE95 };
+    FitBaseAnchor namicolorFitBaseAnchor;
 
     enum MatrixPreset { IDENTITY = 0, STATUS_M_REFERENCE, CUSTOM };
     MatrixPreset matrixPreset;
@@ -1574,11 +1599,21 @@ struct FilmNegativeParams {
     TargetMode targetMode;
     // Empty means the working profile selected at export.
     Glib::ustring cineonPrimaries;
+    // Linear value encoded as Cineon code 685 (default 0.9 = 90% diffuse
+    // white; sidecars before 1058 without the key load 1.0). One shared scale
+    // for NamiColor decode, print-LUT input encode and integer Cineon export.
     double cineonReferenceWhite;
     // Empty CineonLUT means no print LUT. Mutually exclusive with paper.
     Glib::ustring cineonLUT;
     Glib::ustring cineonLUTInputPrimaries;
     Glib::ustring cineonLUTOutputPrimaries;
+    enum class CineonLUTInputTransfer {
+        CINEON = 0, LINEAR, SRGB, GAMMA_2_4, LOGC3, SLOG3, ACESCCT
+    };
+    CineonLUTInputTransfer cineonLUTInputTransfer;
+    enum class CineonLUTStage { BEFORE_GRADE = 0, AFTER_GRADE };
+    CineonLUTStage cineonLUTStage;
+    bool legacyInputLUT;
     enum class CineonLUTOutputTransfer {
         LINEAR = 0,
         SRGB,

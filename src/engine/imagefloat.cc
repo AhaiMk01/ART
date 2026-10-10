@@ -139,7 +139,7 @@ void Imagefloat::getScanline(int row, unsigned char *buffer, int bps,
         if (bps == 32) {
             int ix = 0;
             float *sbuffer = (float *)buffer;
-            // agriggio -- assume the image is normalized to [0, 65535]
+            // Normalize the working scale; float TIFF retains signed/over-white RGB.
             for (int i = 0; i < width; i++) {
                 sbuffer[ix++] = r(row, i) / 65535.f;
                 sbuffer[ix++] = g(row, i) / 65535.f;
@@ -148,7 +148,7 @@ void Imagefloat::getScanline(int row, unsigned char *buffer, int bps,
         } else if (bps == 16) {
             int ix = 0;
             uint16_t *sbuffer = (uint16_t *)buffer;
-            // agriggio -- assume the image is normalized to [0, 65535]
+            // Half-float keeps the same scale, subject to its precision/range.
             for (int i = 0; i < width; i++) {
                 sbuffer[ix++] = DNG_FloatToHalf(r(row, i) / 65535.f);
                 sbuffer[ix++] = DNG_FloatToHalf(g(row, i) / 65535.f);

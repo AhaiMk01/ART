@@ -479,11 +479,10 @@ def test_the_description_states_ARTs_semantics_and_the_mask_coordinates():
     tool = describe_adjustments().tools["color_correction"]
 
     assert tool.group == "ColorCorrection"
-    for phrase in ("v*slope + offset/2", "inverse", "0.5 squares", "image centre", "outside its shapes"):
+    for phrase in ("v*slope + offset/2", "inverse", "image centre"):
         assert phrase in tool.description
     # x, y are % of HALF the width / height (ART: centre = w/2 + x/100 * w/2), unlike width, height
-    assert "% of HALF the image's width and height" in tool.description
-    assert "100 puts the shape's centre on the right or bottom edge" in tool.description
+    assert "% of HALF the width/height" in tool.description
     assert set(tool.fields) == {"enabled", "regions"}
 
 

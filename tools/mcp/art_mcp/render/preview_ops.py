@@ -25,7 +25,7 @@ image in the reply, about a thousand tokens each at the default size."""
 
 
 class Region(BaseModel):
-    """An area of the image as fractions (0 to 1) of its width and height."""
+    """Image fractions (0 to 1)."""
 
     x: float
     y: float

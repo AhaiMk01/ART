@@ -5,10 +5,32 @@ namespace art { namespace utils {
 
 // This number has to be incremented whenever the ARP file format is modified or
 // the behaviour of a tool changes
-#define PPVERSION 1053
+#define PPVERSION 1059
 
 /*
   Log of version changes
+  1059  2026-10-10
+        film negative: DenoiseBeforeInversion (new profiles denoise the
+        camera-linear negative before the film conversion; sidecars before
+        1059 keep denoising the inverted positive) and Flare, a per-channel
+        veiling-light transmission subtracted before the log (absent = 0)
+  1058  2026-10-09
+        film negative: CineonReferenceWhite defaults to 0.9 (code 685 = 90%
+        diffuse white); NamiColor FitBase anchors the film base to code 95
+        (saved NamiColorFitBaseAnchor=legacy|code95). Older profiles without
+        the keys load W = 1.0 and the legacy 93/1023 lift
+  1057  2026-10-09
+        film negative: preserve NamiColor exposure and print-LUT RGB range;
+        reject clipped integer Cineon handoffs; old profiles retain zero floors
+  1056  2026-10-09
+        film negative: print LUT after scene grading by default; older LUT
+        profiles retain their pre-grading and input-domain rendering order
+  1055  2026-10-07
+        film negative: optional NamiColor density-domain digital mask before
+        channel alignment; older NamiColor profiles retain identity rendering
+  1054  2026-10-09
+        film negative: NamiColor conversion and selectable print LUT input
+        transfer; print LUT applied after conversion to working primaries
   1053  2026-10-07
         film negative: LUT hash recorded by the panel, black offset after
         a print LUT, wrong-length arrays fail load, disabled Cineon target

@@ -64,9 +64,55 @@ Claude Desktop (`claude_desktop_config.json`):
 | `queue_status()` | Live only. `running`, `auto_start`, and the entries in order with `state` (`queued`, `processing`, `failed`), `progress` and `error`. Exported entries leave the queue; a failed one goes to the end and the queue carries on with the others (it stops when only failed ones are left); `queue_start` tries them again |
 | `save_sidecar(path, on_conflict?)` | The only tool that writes the sidecar (named per ART's strip-extension option): atomic, previous one kept as `<sidecar>.bak`. If the sidecar changed on disk since it was loaded, asks the user (merge / overwrite / cancel) when the client supports elicitation; else fails with `conflict` listing the changed keys, and the agent calls again with `on_conflict`. `merge` applies only the agent's changed keys onto the current sidecar. Afterwards the saved file is the new baseline |
 | `save_partial_profile(path, dest, overwrite?, exclude?, vs?, verbose=false)` | Writes a partial profile to `dest`; `exists` error if `dest` exists unless `overwrite`; writes nothing if there is nothing to write. The result's `keys` is compact: `{Group: number of keys written}` in file order, plus `total` (a frame with a Color Correction region has about 95 keys, about 7 KB as a list); `verbose=true` makes `keys` the list of every `[Group] Key` instead. `vs` (the result says which was used): `"opened"` (default) writes only the keys the agent changed since load or the last save, so keys the profile came with (its sidecar, or `open_image`'s `profile`) are not in it; `"default"` writes every key that differs from ART's default profile for the image (not `[Version]`), so a preset saved from a frame opened from another preset carries that preset's settings too (any other value: `out_of_range`). `exclude`: `"Group"` or `"Group/Key"` entries left out (unknown name: `unknown_key`); settings that belong to one image (e.g. `Crop`) are usually excluded from a preset for other images; set-wide presets: see the skills below |
-| `sample_spots(path, spots, size=32, space="working")` | What ART's own spot pickers read: for 1 to 64 `{x, y}` frame pixels per call (the coordinates of `[Crop]`), `avg` and `max` `[r, g, b]` of the `size` x `size` square (2 to 256), linear 0..65535, white-balanced, before any film inversion; `space` `working` or `input`. Out-of-frame spots are `out_of_range`; more than 16 spots are sampled in runs of at most 16 (Render: `max_processes` `art-cli` at once, Live: one request after the other) and come back as one result in request order, the frame measured once; a failing run fails the call (no partial result) with its error, which says which spots it covered; `space` `working` is the working profile's working space, `input` camera space. Step-by-step workflows (film negatives, faded slides): see the skills below. Needs an ART build with spot sampling (`art-cli -x`; a release `art-cli` gives `unsupported`: point `--art-dir`/`ART_DIR` at the fork) |
-| `image_stats(path?, paths?, max_size=1024, histogram=false, detail?, region?, bins?, lum_min?, lum_max?)` | Renders like a whole-image preview (8-bit PNG, crop applied; a holder, a border or bright lamps in the image count in clipping and percentiles, so crop first, or give a `region`; Live's preview is uncropped) and returns per channel `r`, `g`, `b`, `lum` (0.2126 R + 0.7152 G + 0.0722 B, rounded to the nearest 8-bit value): `clipped_high`/`clipped_low` (fraction at 255/0) and `percentiles` (nearest rank on the 256-bin histogram), as many numbers as `detail` says: `"compact"` (percentiles 0.1, 50, 99.9 %; about 450 characters), `"standard"` (the default for one `path`: adds `mean` and percentiles 1, 5, 95, 99; about 700) or `"full"` (adds `std`, `min`/`max` (lowest/highest value present) and `mode` (most frequent value, the lowest on a tie)). `bins` (only when asked: 8, 16, 32 or 64 fractions of pixels in equal groups of values, dark to light; 16 shows the shape, e.g. a clipped end or a second hump) and `histogram` (256 counts, only when asked) add their fields at any detail; a field that carries nothing (`bins`, `histogram`, `region`) is left out, never null. Also the rendered image's `width`/`height`. `region` `{x, y, w, h}` (fractions of the image as the tool shows it, the same rectangle as `render_preview`'s) measures just that part of the same render; the result's `region` is its pixel rectangle (at least 16 pixels, else `out_of_range`). `lum_min`/`lum_max` (0 to 255, the scale of `lum`; either alone is fine) limit every number to the pixels whose `lum` lies in that band, ends included, within the `region` when one is given: `lum_max` leaves out lamps and speculars so `clipped_high` judges the rest, `lum_min` a black border, and a band of the shadows or the mid-tones gives the colour cast of just that range; `in_band` is the fraction of the measured pixels that the band holds (left out without a band; at least 16 pixels, else `out_of_range`, as for a limit outside 0 to 255 or `lum_min` above `lum_max`). `paths` (1 to 50 images, instead of `path`: neither or both is `out_of_range`) measures many images in one call, the other arguments the same for all, and returns `{items: [{path, stats | error}], failed}` in request order; an image that fails (not open, a render error) is its item's error and the others still come back; `detail` then defaults to `"compact"`. The result's shape differs: with `path` the statistics are the result's top level (`r`, `g`, `b`, `lum`, `width`, `height`, ...); with `paths` they are under `items[i].stats` (each item `{path, stats}` or `{path, error}`). Render renders them two at a time (the `export_batch` pool) with progress per image; Live asks the editor for each in turn (without ART running the whole call is `art_not_running`) |
+| `sample_spots(path, spots, size=32, space="working", stage="source")` | What ART's own spot pickers read: for 1 to 64 `{x, y}` frame pixels per call (the coordinates of `[Crop]`), `avg` and `max` `[r, g, b]` of the `size` x `size` square (2 to 256), linear 0..65535, white-balanced, before any film inversion; `space` `working` or `input`. Out-of-frame spots are `out_of_range`; more than 16 spots are sampled in runs of at most 16 (Render: `max_processes` `art-cli` at once, Live: one request after the other) and come back as one result in request order, the frame measured once; a failing run fails the call (no partial result) with its error, which says which spots it covered; `space` `working` is the working profile's working space, `input` camera space. Step-by-step workflows (film negatives, faded slides): see the skills below. Needs an ART build with spot sampling (`art-cli -x`; a release `art-cli` gives `unsupported`: point `--art-dir`/`ART_DIR` at the fork) |
+| `image_stats(path?, paths?, max_size=1024, histogram=false, detail?, region?, bins?, lum_min?, lum_max?, stage="display")` | Renders like a whole-image preview (8-bit PNG, crop applied; a holder, a border or bright lamps in the image count in clipping and percentiles, so crop first, or give a `region`; Live's preview is uncropped) and returns per channel `r`, `g`, `b`, `lum` (0.2126 R + 0.7152 G + 0.0722 B, rounded to the nearest 8-bit value): `clipped_high`/`clipped_low` (fraction at 255/0) and `percentiles` (nearest rank on the 256-bin histogram), as many numbers as `detail` says: `"compact"` (percentiles 0.1, 50, 99.9 %; about 450 characters), `"standard"` (the default for one `path`: adds `mean` and percentiles 1, 5, 95, 99; about 700) or `"full"` (adds `std`, `min`/`max` (lowest/highest value present) and `mode` (most frequent value, the lowest on a tie)). `bins` (only when asked: 8, 16, 32 or 64 fractions of pixels in equal groups of values, dark to light; 16 shows the shape, e.g. a clipped end or a second hump) and `histogram` (256 counts, only when asked) add their fields at any detail; a field that carries nothing (`bins`, `histogram`, `region`) is left out, never null. Also the rendered image's `width`/`height`. `region` `{x, y, w, h}` (fractions of the image as the tool shows it, the same rectangle as `render_preview`'s) measures just that part of the same render; the result's `region` is its pixel rectangle (at least 16 pixels, else `out_of_range`). `lum_min`/`lum_max` (0 to 255, the scale of `lum`; either alone is fine) limit every number to the pixels whose `lum` lies in that band, ends included, within the `region` when one is given: `lum_max` leaves out lamps and speculars so `clipped_high` judges the rest, `lum_min` a black border, and a band of the shadows or the mid-tones gives the colour cast of just that range; `in_band` is the fraction of the measured pixels that the band holds (left out without a band; at least 16 pixels, else `out_of_range`, as for a limit outside 0 to 255 or `lum_min` above `lum_max`). `paths` (1 to 50 images, instead of `path`: neither or both is `out_of_range`) measures many images in one call, the other arguments the same for all, and returns `{items: [{path, stats | error}], failed}` in request order; an image that fails (not open, a render error) is its item's error and the others still come back; `detail` then defaults to `"compact"`. The result's shape differs: with `path` the statistics are the result's top level (`r`, `g`, `b`, `lum`, `width`, `height`, ...); with `paths` they are under `items[i].stats` (each item `{path, stats}` or `{path, error}`). Render renders them two at a time (the `export_batch` pool) with progress per image; Live asks the editor for each in turn (without ART running the whole call is `art_not_running`) |
 | `suggest_neutrals(path, count=16, size=32, preview=false)` | Render only. Proposes where to look for neutral (grey/white) references: flat, low-saturation, mid-level cells of the current rendering (like a whole-image preview: crop applied, the outer 3% of a crop or 10% of an uncropped frame left out), up to 16 spread over the luminance range and the frame, sorted dark to light. Each has `x`, `y` (the centre in frame pixels, as `sample_spots` and `crop` use: pass the candidates to `sample_spots` unchanged), `level` (0..255), `saturation` (HSV, 0 = grey), `flatness` (luminance std over mean, 0 = flat) and a short `why`; plus the analysed `area` [x, y, w, h], the `cell` side and `warnings` (no crop, fewer candidates than asked). With `preview=true` the result also has `preview_path`: a JPEG of the rendering that was analysed (about 1600 px) with the candidates boxed and numbered 1..n in the order of the list (and the image itself with the result when the server was started with `--inline-previews`), so one call shows what each candidate sits on. A pre-filter, not an oracle: neutrality is decided by the material, which only looking tells, so look and check with `sample_spots`; "neutral" only means something once the rendering is roughly colour-correct. Rule: spec 4.3 |
+
+`image_stats(..., histogram_image=true)` also returns a viewable native PNG:
+overlaid RGB histograms and a separate encoded-value luminance histogram. This
+explicit option works on Render and Live without `--inline-previews`. It uses
+the same render, region and luminance-filtered pixels as the numerical stats;
+there is no additional ART render. Raw 256-bin arrays remain omitted unless
+`histogram=true` is also requested.
+
+The horizontal axis is the 8-bit encoded output value (0–255), not linear light
+or film density. The vertical axis is percentage of measured pixels per bin,
+linear and shared by RGB and luminance within each chart; its maximum can differ
+between images, so compare the labelled scales rather than peak heights alone.
+Batch calls return one filename-labelled chart per successful item in request
+order; failed items have only their usual error. Defaults and structured result
+shapes are unchanged. Reload the MCP server after updating to expose the option.
+Histograms support visual comparisons, not automatic quality verdicts.
+
+### Film pipeline stages
+
+`sample_spots` and `image_stats` take a `stage` so one film conversion can be
+read at different points without extra tools:
+
+- `sample_spots(stage=...)`: `source` (default; linear 0..65535 before any
+  film inversion, in `space` working or input), `converted` (linear
+  working-space RGB right after film and colour conversion, before LUT,
+  exposure and grading; may be negative or above 65535) and `cineon` (those
+  pixels encoded per pixel to Cineon codes with the reference white `w`). The
+  result carries `stage`, `unit` (`linear_65535` or `cineon_code`) and, for a
+  staged read, `film` and `w`. `space` is for `source` only. Render uses
+  `art-cli -x size,<space|stage>,...`; Live passes `stage` to the editor's
+  `sample_spots` op. An older `art-cli`/ART gives `unsupported`.
+- `image_stats(stage=...)` (Render): `display` (default, everything above) or
+  `converted` / `cineon`: `art-cli -X stage,bins,maxsize[,x0,y0,x1,y1]`
+  returns per channel `min`, `max`, `mean`, `p01`, `p50`, `p99`, `below`,
+  `above`, `nonfinite` and (with `histogram`) `bins` counts (2..1024, default
+  256) over the fixed `range` (converted [-6553.5, 131070], cineon
+  [-100, 1100]), plus `unit`, `w`, `width`/`height` (measured) and
+  `source_width`/`source_height`. `max_size` box-downscales in linear light
+  before the Cineon encode (0 = full size); `region` is fractions of the
+  cropped frame. `detail`, `lum_min` and `lum_max` are display-only.
+  `histogram_image` draws R/G/B over the stage range with the Cineon axis
+  marked at 95 / 470 / 685. Live `image_stats` refuses a stage other than
+  `display` (the editor has no full-resolution stage tap).
+
+The 8-bit display statistics are not a Cineon scope; see the film-negative
+skill's "Observing each stage".
 
 A whole `get_profile` is about 15k tokens (over 500 keys), which adds up over a
 roll. `groups` returns only the named `[Group]`s (a curated tool is in when a
@@ -152,32 +198,109 @@ would skip an incomplete one), the ones the request doesn't set at ART's
 defaults, which the result counts under `created` instead of listing. Setting `r`/`g`/`b` switches the region to RGB mode
 and turns the tool on (listed as `implied`).
 
-`film_negative` has the stored values as fields: `enabled`, `color_space`
-(`working`/`input`), `red_ratio`, `green_exponent`, `blue_ratio` and the
-references `ref_input`/`ref_output` as `[r, g, b]` (linear 0..65535 in the
-negative's terms; `[0, 0, 0]` = unset, ART estimates it from channel medians
-and maps those to 65535/24 grey). Per channel `out = mult * in ^ exp`, `exp =
--(green_exponent * (red_ratio, 1, blue_ratio))`, `mult_c = ref_output_c /
-ref_input_c ^ exp_c`. Picker rule (ART's own): a request that changes
-`ref_input` without `ref_output` gets `ref_output = (L, L, L)` under `implied`
-so the image keeps its brightness; `L` is the Rec.709 luminance of what the
-profile as it is before the request renders the new `ref_input` as (a ratio
-changed in the same request does not alter it). With an unset current
-reference the medians are estimated by sampling 64 spots in the central 60% of
-the frame (`art-cli -x` on Render, the channel's `sample_spots` on Live), with
-a warning; where sampling is unsupported `ref_output` becomes grey 65535/24
-with a warning. An explicit `ref_output` wins. Legacy profiles (`BackCompat`,
-`RedBase`) stay under `raw`. `target_mode` is `linear`, `paper` or `cineon`
-(stored as that text id; older sidecars may still contain 0/1/2); the editor buffer stays linear. `cineon_primaries` (empty =
-the current working profile) and `cineon_reference_white` (1e-6..1e6, default
-1) are stored for a Cineon 16-bit TIFF export. `cineon_lut` (empty = none) is
-an external Cineon-input `.cube` print LUT, with `cineon_lut_input_primaries`,
-`cineon_lut_output_primaries` and `cineon_lut_output_transfer`
-(`linear`/`srgb`/`gamma_2_4`). It is mutually exclusive with `target_mode`
-paper.
-`RedBase`) stay under `raw`. `output_black_offset` (0 to 0.05, default 0,
-key `OutputBlackOffset`) is subtracted from the density path's normalized
-linear output and floored at 0; 0 leaves that linear value unchanged.
+`film_negative.method` selects `power_law` (default), `density` or `namicolor`;
+`film_type` is `negative` or `reversal`. The two older methods and their
+sidecars retain their rendering. `color_space` (`working`/`input`) selects
+the conversion basis; `sample_spots` reads linear values in that basis.
+
+For **power-law**, `red_ratio`, `green_exponent`, `blue_ratio` and the
+references `ref_input`/`ref_output` control `out = mult * in ^ exp` per
+channel, with `exp = -(green_exponent * (red_ratio, 1, blue_ratio))` and
+`mult_c = ref_output_c / ref_input_c ^ exp_c`. References are `[r, g, b]`
+in linear 0..65535; `[0, 0, 0]` is unset, so ART estimates channel medians
+and maps those to 65535/24 grey. While both current and requested methods
+are power-law, changing `ref_input` without `ref_output` implies grey
+`ref_output = (L, L, L)` to keep brightness; `L` is the Rec.709 luminance
+of the previous profile's rendering of the new reference. Unset references
+are estimated by sampling 64 spots in the central 60% of the frame
+(`art-cli -x` on Render, `sample_spots` on Live), with a warning; unavailable
+sampling implies grey 65535/24 with a warning. Explicit `ref_output` wins.
+Density, NamiColor and transitions between methods do not invoke this rule.
+Legacy power-law profiles (`BackCompat`, `RedBase`) stay under `raw`;
+typed edits other than `enabled` are refused on those profiles.
+
+**NamiColor** follows the log-channel alignment in
+[NamiColor 3.1](https://github.com/Wavechaser/NamiColor/blob/main/NamiColor_dev/NamiColor_dev.c),
+not a power-law reference fit.
+For normalized positive transmittance `T`, negative mode starts with
+`q = 1 - namicolor_input_gain * log10(16*T)`; reversal starts with
+`q = 0.8 + namicolor_input_gain * log10(T)`. Each channel then uses
+`q = (q + channel_shift + master_shift + channel_black) /
+(1 - channel_gain - master_gain + channel_black)`. The typed fields are:
+
+- `namicolor_input_gain`: 0..2, default 1;
+- `namicolor_master_gain`: -0.5..0.5, default 0;
+- `namicolor_master_shift`: -1..1, default 0;
+- `namicolor_black`: `[r,g,b]`, each -0.5..0.5, default all 0;
+- `namicolor_gain` and `namicolor_shift`: `[r,g,b]`, each -1..1, default all 0;
+- `namicolor_fit_base`: default false; optionally remaps `q` as selected by
+  `fit_base_anchor`: `code95` (default; `(95 + 928*q)/1023`, so normalized 0
+  is code 95) or `legacy` (`(q + 93/1023)/(1 + 93/1023)`; the reading of a
+  sidecar below version 1058 without the key).
+
+Typed edits check the effective stored-plus-requested settings together:
+all numbers must be finite and every denominator strictly positive. An
+invalid coupled edit changes nothing, even when its individual values are
+within range. NamiColor ignores retained power-law references, density
+matrix/slopes/gains, paper response and `output_black_offset`; switching
+back to an older method makes that method's saved settings active again.
+
+ART decodes NamiColor's approximate Cineon code into its linear buffer using
+`b = 10^((95-685)/300)` and
+`L = cineon_reference_white * (10^((1023*q-685)/300)-b)/(1-b)`
+(`cineon_reference_white` W is shared by this decode, the print-LUT input
+encode and the integer Cineon export).
+Code 95 therefore means linear zero and code 685 means reference white;
+these are encoding anchors, not measured film black/white or a promise that
+NamiColor's fitted code obeys a calibrated Cineon scan. Finite negative
+linear values below code 95 are retained through this conversion and can
+round-trip through NamiColor's Cineon encoding within its logarithm domain.
+A neutral Exposure adjustment leaves these signed values unchanged in this
+method. Active tonal tools, LUT domains and integer exports can still clip
+them; disable unwanted presentation tools when exporting a log intermediate.
+The selected input/working basis may not match the basis assumed by a
+NamiColor source preset; there is no custom DCP/ICC calibration or automatic
+camera-to-film characterization here. Capture shutter settings are not a
+mandatory compensation recipe or proof of the film's original exposure.
+
+The editor exposes the same controls under Film Negative → Method →
+NamiColor, including the LUT input transfer selector. Use the rebuilt ART
+and restart existing MCP server processes to load the updated typed schema;
+an already-running server does not acquire the new fields automatically.
+
+`input_gamma` (0.5..2.8, default 1) is a source decoding override for density
+and NamiColor: `sign(x)*abs(x)^input_gamma` before inversion. Only explicitly
+unprofiled non-RAW scans (`InputProfile=(none)`) may use a non-unity value;
+RAW and profile-linearized inputs require 1. It is not the LUT's gamma.
+
+The common `target_mode` is `linear`, `paper` or `cineon`; the editor buffer
+stays linear. Paper is density-only. `cineon_primaries` (empty = working
+profile) and `cineon_reference_white` (1e-6..1e6, default 0.9: code 685 is 90% diffuse white; 1 when absent below version 1058) control Cineon
+16-bit integer TIFF exports, supported by density and NamiColor.
+`output_black_offset` (0..0.05, default 0) subtracts from density's
+normalized linear output and floors it at zero; it is inactive in NamiColor.
+
+`cineon_lut` (empty = none) selects an external `.cube`, paired with
+`cineon_lut_sha256`; changed LUT bytes fail rendering. The LUT is evaluated
+after input-to-working conversion, with linear primaries conversion to
+`cineon_lut_input_primaries` (empty = current working RGB) before the selected
+`cineon_lut_input_transfer` encoding: `cineon` (default), `linear`, `srgb`,
+`gamma_2_4`, `logc3` (EI800), `slog3` (standard normalized 10-bit) or
+`acescct`. This is the LUT input contract, independent of source `input_gamma`.
+Primaries may name built-in working spaces such as `sRGB`/`Rec2020` or a
+supported matrix ICC profile. Cineon LUT coordinates are clamped to the
+cube's declared domain; this includes finite gamut excursions below its
+lowest representable linear value, without forcing in-domain codes below
+95 up to 95. This is LUT-domain clipping, not colour recovery or gamut mapping.
+LUT output is decoded with `cineon_lut_output_transfer`
+(`linear`/`srgb`/`gamma_2_4`) and converted from
+`cineon_lut_output_primaries` (empty = working RGB) back to working linear.
+Declared incompatible log output is rejected, not treated as linear.
+A density paper target and a LUT are mutually exclusive. For pre-1054
+density sidecars using input-space conversion and a LUT, ART preserves the
+old pre-working-conversion LUT ordering via an internal compatibility key;
+new profiles and NamiColor use the corrected ordering. Power-law keeps LUT
+settings inactive.
 
 `tone_curve` takes `mode`, `mode2` (omitted = same as `mode`; `get_profile`
 always reports the effective one), `histogram_matching`, `contrast` (-100..100: ART's
@@ -217,7 +340,12 @@ in the temp folder whose process is gone.
 
 Results of `get_profile`, `edit_profile` and `describe_adjustments` carry a
 `warnings` list when ART's profile version is newer than the schema's
-(`PPVERSION` 1053); edits keep working.
+(`PPVERSION` 1059; 1055 added the active NamiColor matrix mask, 1056 the
+Cineon print-LUT order, 1057 `preserve_range`, 1058 the 0.9 reference white
+and `fit_base_anchor`, 1059 `denoise_before_inversion`; `flare` is not version-gated); edits keep working. A film-negative
+edit never raises a sidecar's `[Version]`: one older than 1046 (density keys) or 1055
+(NamiColor mask) is refused until it has been opened and re-saved in ART; so is enabling
+`namicolor_fit_base` below 1058 without an explicit `fit_base_anchor`.
 
 ## Previews
 
@@ -241,6 +369,9 @@ Results of `get_profile`, `edit_profile` and `describe_adjustments` carry a
   `--inline-previews` launch flag (off unless given), so `claude mcp add art-render --
   uv run --directory <repo>/tools/mcp art-mcp-render --inline-previews` turns it on for
   every call.
+  It also returns `contact_sheet` and `compare_passes` images directly. Enable this
+  flag for clients whose file reader does not display JPEGs reliably, then reload
+  the MCP server. A saved path or JPEG bytes returned as text are not a visual review.
 - `marks` (Live too) `[{x, y, size?, label?}]`, up to 64: draws a box on the preview at
   each FRAME-pixel position, the coordinates `sample_spots`, `suggest_neutrals` and `crop`
   use, so a `suggest_neutrals` candidate goes in unchanged. `size` (2 to 256, default 32)
@@ -347,8 +478,14 @@ how it got there. Each call is one *pass*:
 
 | Skill | For |
 |---|---|
-| `film-negative` | Inverting camera-scanned colour negatives with ART's Film Negative tool: base settings, fitting the colour ratios from `sample_spots`, reference spot, output level, a whole roll |
+| `film-negative` | Agent-led, geometry-first negative conversion: shared Density estimation, exposure-normalized comparisons, scene adaptation and final positive rendering; preserves existing power-law sidecars when requested |
 | `faded-slide` | Restoring faded colour slides: per-channel power-law fit against neutrals with `color_correction`, edge fading with masked regions |
+
+The negative skill provides a general observation-and-comparison workflow
+using the existing ART tools. Detailed equations, coordinate conventions and
+encoding constraints live in its `reference.md` for consultation as needed.
+Adjustment choices and completion depend on the actual images and requested
+output, not a fixed parameter recipe or automatic quality verdict.
 
 Install for Claude Code by copying or symlinking the skill folder into your
 user skills (all projects) or a project's skills:

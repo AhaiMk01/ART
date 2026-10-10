@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <iomanip>
 #include <iostream>
 #include <iterator>
 #include <map>
@@ -2836,7 +2837,7 @@ FilmNegativeParams::makeMatrixBasis(ColorSpace colorSpace,
     os.imbue(std::locale::classic());
     os << "{\"v\":1,\"color_space\":\"" << (input ? "input" : "working")
        << "\",\"profile\":\"" << jsonEscape(profile).raw() << "\""
-       << ",\"input_gamma\":\"" << inputGamma << "\""
+       << ",\"input_gamma\":\"" << std::setprecision(9) << inputGamma << "\""
        << ",\"source\":\"" << jsonEscape(sourceId).raw() << "\"";
     if (!content.empty()) {
         os << ",\"content\":\"" << content.raw() << "\"";
@@ -2900,12 +2901,20 @@ FilmNegativeParams::FilmNegativeParams()
       refInput({0.0, 0.0, 0.0}), refOutput({0.0, 0.0, 0.0}),
       colorSpace(ColorSpace::WORKING), backCompat(BackCompat::CURRENT),
       inputGamma(1.0), densityGamma(1.0), densityDmax(2.5),
-      matrixPreset(IDENTITY), matrix(identityMatrix()), matrixBasis(),
+      namicolorInputGain(1.0), namicolorMasterGain(0.0),
+      namicolorMasterShift(0.0), namicolorBlack({0.0, 0.0, 0.0}),
+      namicolorGain({0.0, 0.0, 0.0}), namicolorShift({0.0, 0.0, 0.0}),
+      namicolorFitBase(false), preserveRange(true),
+      denoiseBeforeInversion(true), flare({0.0, 0.0, 0.0}),
+      namicolorFitBaseAnchor(FitBaseAnchor::CODE95), matrixPreset(IDENTITY), matrix(identityMatrix()), matrixBasis(),
       calibrationNote(), rgbGains({0.0, 0.0, 0.0}),
       channelGamma({1.0, 1.0, 1.0}), outputBlackOffset(0.0),
       targetMode(TargetMode::LINEAR), cineonPrimaries(),
-      cineonReferenceWhite(1.0), cineonLUT(), cineonLUTInputPrimaries(),
+      cineonReferenceWhite(0.9), cineonLUT(), cineonLUTInputPrimaries(),
       cineonLUTOutputPrimaries(),
+      cineonLUTInputTransfer(CineonLUTInputTransfer::CINEON),
+      cineonLUTStage(CineonLUTStage::AFTER_GRADE),
+      legacyInputLUT(false),
       cineonLUTOutputTransfer(CineonLUTOutputTransfer::LINEAR),
       paperCurve("kodak_endura_premier"), paperBasis(), cineonLUTSha256()
 {
@@ -2939,6 +2948,17 @@ bool FilmNegativeParams::operator==(const FilmNegativeParams &other) const
            inputGamma == other.inputGamma &&
            densityGamma == other.densityGamma &&
            densityDmax == other.densityDmax &&
+           namicolorInputGain == other.namicolorInputGain &&
+           namicolorMasterGain == other.namicolorMasterGain &&
+           namicolorMasterShift == other.namicolorMasterShift &&
+           namicolorBlack == other.namicolorBlack &&
+           namicolorGain == other.namicolorGain &&
+           namicolorShift == other.namicolorShift &&
+           namicolorFitBase == other.namicolorFitBase &&
+           preserveRange == other.preserveRange &&
+           denoiseBeforeInversion == other.denoiseBeforeInversion &&
+           flare == other.flare &&
+           namicolorFitBaseAnchor == other.namicolorFitBaseAnchor &&
            matrixPreset == other.matrixPreset && matrix == other.matrix &&
            matrixBasis == other.matrixBasis &&
            calibrationNote == other.calibrationNote &&
@@ -2951,6 +2971,9 @@ bool FilmNegativeParams::operator==(const FilmNegativeParams &other) const
            cineonLUT == other.cineonLUT &&
            cineonLUTSha256 == other.cineonLUTSha256 &&
            cineonLUTInputPrimaries == other.cineonLUTInputPrimaries &&
+           cineonLUTInputTransfer == other.cineonLUTInputTransfer &&
+           cineonLUTStage == other.cineonLUTStage &&
+           legacyInputLUT == other.legacyInputLUT &&
            cineonLUTOutputPrimaries == other.cineonLUTOutputPrimaries &&
            cineonLUTOutputTransfer == other.cineonLUTOutputTransfer;
 }
@@ -4264,10 +4287,10 @@ int ProcParams::save(ProgressListener *pl, bool save_general, KeyFile &keyFile,
                           keyFile);
             saveToKeyfile(
                 "Film Negative", "Method",
-                Glib::ustring(filmNegative.method ==
-                                      FilmNegativeParams::Method::DENSITY
-                                  ? "density"
-                                  : "power_law"),
+                Glib::ustring(filmNegative.method == FilmNegativeParams::Method::NAMICOLOR
+                                  ? "namicolor"
+                                  : filmNegative.method == FilmNegativeParams::Method::DENSITY
+                                        ? "density" : "power_law"),
                 keyFile);
             saveToKeyfile(
                 "Film Negative", "FilmType",
@@ -4312,6 +4335,30 @@ int ProcParams::save(ProgressListener *pl, bool save_general, KeyFile &keyFile,
                           filmNegative.densityGamma, keyFile);
             saveToKeyfile("Film Negative", "DensityDmax",
                           filmNegative.densityDmax, keyFile);
+            saveToKeyfile("Film Negative", "NamiColorInputGain", filmNegative.namicolorInputGain, keyFile);
+            saveToKeyfile("Film Negative", "NamiColorMasterGain", filmNegative.namicolorMasterGain, keyFile);
+            saveToKeyfile("Film Negative", "NamiColorMasterShift", filmNegative.namicolorMasterShift, keyFile);
+            saveToKeyfile("Film Negative", "NamiColorFitBase", filmNegative.namicolorFitBase, keyFile);
+            saveToKeyfile("Film Negative", "PreserveRange", filmNegative.preserveRange, keyFile);
+            saveToKeyfile("Film Negative", "DenoiseBeforeInversion",
+                          filmNegative.denoiseBeforeInversion, keyFile);
+            saveToKeyfile("Film Negative", "Flare",
+                          std::vector<double>(filmNegative.flare.begin(),
+                                              filmNegative.flare.end()),
+                          keyFile);
+            saveToKeyfile(
+                "Film Negative", "NamiColorFitBaseAnchor",
+                Glib::ustring(filmNegative.namicolorFitBaseAnchor ==
+                                      FilmNegativeParams::FitBaseAnchor::LEGACY
+                                  ? "legacy"
+                                  : "code95"),
+                keyFile);
+            saveToKeyfile("Film Negative", "NamiColorBlack",
+                          std::vector<double>(filmNegative.namicolorBlack.begin(), filmNegative.namicolorBlack.end()), keyFile);
+            saveToKeyfile("Film Negative", "NamiColorGain",
+                          std::vector<double>(filmNegative.namicolorGain.begin(), filmNegative.namicolorGain.end()), keyFile);
+            saveToKeyfile("Film Negative", "NamiColorShift",
+                          std::vector<double>(filmNegative.namicolorShift.begin(), filmNegative.namicolorShift.end()), keyFile);
             {
                 std::vector<double> v(filmNegative.rgbGains.begin(),
                                       filmNegative.rgbGains.end());
@@ -4381,6 +4428,26 @@ int ProcParams::save(ProgressListener *pl, bool save_general, KeyFile &keyFile,
             }
             saveToKeyfile("Film Negative", "CineonLUTInputPrimaries",
                           filmNegative.cineonLUTInputPrimaries, keyFile);
+            {
+                const char *const ids[] = {"cineon", "linear", "srgb", "gamma_2_4", "logc3", "slog3", "acescct"};
+                saveToKeyfile("Film Negative", "CineonLUTInputTransfer",
+                              Glib::ustring(static_cast<int>(filmNegative.cineonLUTInputTransfer) >= 0 &&
+                                                static_cast<int>(filmNegative.cineonLUTInputTransfer) < 7
+                                            ? ids[static_cast<int>(filmNegative.cineonLUTInputTransfer)]
+                                            : "unsupported"), keyFile);
+                saveToKeyfile("Film Negative", "LegacyInputLUT", filmNegative.legacyInputLUT, keyFile);
+            }
+            saveToKeyfile(
+                "Film Negative", "CineonLUTStage",
+                Glib::ustring(
+                    filmNegative.cineonLUTStage ==
+                            FilmNegativeParams::CineonLUTStage::BEFORE_GRADE
+                        ? "before_grade"
+                        : filmNegative.cineonLUTStage ==
+                                  FilmNegativeParams::CineonLUTStage::AFTER_GRADE
+                              ? "after_grade"
+                              : "unsupported"),
+                keyFile);
             saveToKeyfile("Film Negative", "CineonLUTOutputPrimaries",
                           filmNegative.cineonLUTOutputPrimaries, keyFile);
             {
@@ -6595,6 +6662,99 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
         }
 
         if (keyFile.has_group("Film Negative") && RELEVANT_(filmNegative)) {
+            const bool replaceFilmMethod =
+                keyFile.has_key("Film Negative", "Method") ||
+                filmNegativeMissingMethodSelectsPowerLaw(keyFile);
+            if (replaceFilmMethod) {
+            filmNegative.namicolorInputGain = 1.0;
+            filmNegative.namicolorMasterGain = 0.0;
+            filmNegative.namicolorMasterShift = 0.0;
+            filmNegative.namicolorBlack = {{0.0, 0.0, 0.0}};
+            filmNegative.namicolorGain = {{0.0, 0.0, 0.0}};
+            filmNegative.namicolorShift = {{0.0, 0.0, 0.0}};
+            filmNegative.namicolorFitBase = false;
+            filmNegative.cineonLUTInputTransfer = FilmNegativeParams::CineonLUTInputTransfer::CINEON;
+            filmNegative.legacyInputLUT = false;
+            }
+            assignFromKeyfile(keyFile, "Film Negative", "NamiColorInputGain", filmNegative.namicolorInputGain);
+            assignFromKeyfile(keyFile, "Film Negative", "NamiColorMasterGain", filmNegative.namicolorMasterGain);
+            assignFromKeyfile(keyFile, "Film Negative", "NamiColorMasterShift", filmNegative.namicolorMasterShift);
+            assignFromKeyfile(keyFile, "Film Negative", "NamiColorFitBase", filmNegative.namicolorFitBase);
+            if (!assignFromKeyfile(keyFile, "Film Negative", "PreserveRange",
+                                   filmNegative.preserveRange) &&
+                replaceFilmMethod) {
+                // Replacing an old conversion keeps its zero-floor behaviour;
+                // unrelated partials must not change the active range policy.
+                filmNegative.preserveRange = ppVersion >= 1057;
+            }
+            if (!assignFromKeyfile(keyFile, "Film Negative",
+                                   "DenoiseBeforeInversion",
+                                   filmNegative.denoiseBeforeInversion) &&
+                replaceFilmMethod) {
+                // Old sidecars denoise the inverted positive; partials
+                // without the key and without a method keep the active order.
+                filmNegative.denoiseBeforeInversion = ppVersion >= 1059;
+            }
+            {
+                // Not version-gated: absent means no veiling light.
+                std::vector<double> values;
+                NumberList list = {values};
+                if (assignFromKeyfile(keyFile, "Film Negative", "Flare",
+                                      list)) {
+                    if (values.size() == 3) {
+                        std::copy(values.begin(), values.end(),
+                                  filmNegative.flare.begin());
+                    } else {
+                        filmNegLoadError(keyFile, "Flare",
+                                         "expected three values");
+                        filmNegIdError = true;
+                    }
+                }
+            }
+            {
+                Glib::ustring anchor;
+                if (assignFromKeyfile(keyFile, "Film Negative",
+                                      "NamiColorFitBaseAnchor", anchor)) {
+                    const FilmNegId ids[] = {{"legacy", 0}, {"code95", 1}};
+                    if (!assignFilmNegEnum(anchor,
+                                           filmNegative.namicolorFitBaseAnchor,
+                                           keyFile, "NamiColorFitBaseAnchor",
+                                           ids, 2, 1)) {
+                        filmNegIdError = true;
+                    }
+                } else if (replaceFilmMethod) {
+                    // Old sidecars keep the 93/1023 lift; partials without
+                    // the key and without a method do not change the anchor.
+                    filmNegative.namicolorFitBaseAnchor =
+                        ppVersion >= 1058
+                            ? FilmNegativeParams::FitBaseAnchor::CODE95
+                            : FilmNegativeParams::FitBaseAnchor::LEGACY;
+                }
+            }
+            const char *const namiKeys[] = {"NamiColorBlack", "NamiColorGain", "NamiColorShift"};
+            std::array<double, 3> *const namiArrays[] = {
+                &filmNegative.namicolorBlack, &filmNegative.namicolorGain, &filmNegative.namicolorShift};
+            for (int i = 0; i < 3; ++i) {
+                std::vector<double> values;
+                NumberList list = {values};
+                if (assignFromKeyfile(keyFile, "Film Negative", namiKeys[i], list)) {
+                    if (values.size() == 3) {
+                        std::copy(values.begin(), values.end(), namiArrays[i]->begin());
+                    } else {
+                        filmNegLoadError(keyFile, namiKeys[i], "expected three values");
+                        filmNegIdError = true;
+                    }
+                }
+            }
+            Glib::ustring inputTransfer;
+            if (assignFromKeyfile(keyFile, "Film Negative", "CineonLUTInputTransfer", inputTransfer)) {
+                const FilmNegId ids[] = {{"cineon", 0}, {"linear", 1}, {"srgb", 2},
+                    {"gamma_2_4", 3}, {"logc3", 4}, {"slog3", 5}, {"acescct", 6}};
+                if (!assignFilmNegEnum(inputTransfer, filmNegative.cineonLUTInputTransfer,
+                                       keyFile, "CineonLUTInputTransfer", ids, 7, 6)) {
+                    filmNegIdError = true;
+                }
+            }
             assignFromKeyfile(keyFile, "Film Negative", "Enabled",
                               filmNegative.enabled);
             assignFromKeyfile(keyFile, "Film Negative", "RedRatio",
@@ -6659,9 +6819,10 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                     const FilmNegId methodIds[] = {
                         {"power_law", 0},
                         {"density", 1},
+                        {"namicolor", 2},
                     };
                     if (!assignFilmNegEnum(s, filmNegative.method, keyFile,
-                                           "Method", methodIds, 2, 1)) {
+                                           "Method", methodIds, 3, 2)) {
                         filmNegIdError = true;
                     }
                 } else if (filmNegativeMissingMethodSelectsPowerLaw(keyFile)) {
@@ -6739,6 +6900,12 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                                                keyFile, "MatrixPreset",
                                                presetIds, 3, 2)) {
                             filmNegIdError = true;
+                        } else if (ppVersion < 1055 &&
+                                   filmNegative.method ==
+                                       FilmNegativeParams::Method::NAMICOLOR) {
+                            // Older NamiColor profiles never applied this preset.
+                            filmNegative.matrixPreset =
+                                FilmNegativeParams::IDENTITY;
                         }
                     }
                 }
@@ -6781,9 +6948,14 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
             }
             assignFromKeyfile(keyFile, "Film Negative", "CineonPrimaries",
                               filmNegative.cineonPrimaries);
-            assignFromKeyfile(keyFile, "Film Negative",
-                              "CineonReferenceWhite",
-                              filmNegative.cineonReferenceWhite);
+            if (!assignFromKeyfile(keyFile, "Film Negative",
+                                   "CineonReferenceWhite",
+                                   filmNegative.cineonReferenceWhite) &&
+                replaceFilmMethod && ppVersion < 1058) {
+                // Before 1058 the shared white was 1.0 (code 685 = linear 1).
+                // Explicit values always win; unrelated partials keep W.
+                filmNegative.cineonReferenceWhite = 1.0;
+            }
             if (filmNegative.cineonReferenceWhite < 1e-6) {
                 filmNegative.cineonReferenceWhite = 1e-6;
             } else if (filmNegative.cineonReferenceWhite > 1e6) {
@@ -6832,6 +7004,30 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                                      lutTransfer);
                     filmNegIdError = true;
                 }
+            }
+            if (ppVersion < 1054 && replaceFilmMethod) {
+                filmNegative.legacyInputLUT =
+                    filmNegative.method == FilmNegativeParams::Method::DENSITY &&
+                    filmNegative.colorSpace == FilmNegativeParams::ColorSpace::INPUT &&
+                    !filmNegative.cineonLUT.empty();
+            } else {
+                assignFromKeyfile(keyFile, "Film Negative", "LegacyInputLUT", filmNegative.legacyInputLUT);
+            }
+            Glib::ustring lutStage;
+            if (assignFromKeyfile(keyFile, "Film Negative", "CineonLUTStage",
+                                  lutStage)) {
+                const FilmNegId ids[] = {
+                    {"before_grade", 0}, {"after_grade", 1}};
+                if (!assignFilmNegEnum(lutStage, filmNegative.cineonLUTStage,
+                                       keyFile, "CineonLUTStage", ids, 2, 1)) {
+                    filmNegIdError = true;
+                }
+            } else if (ppVersion < 1056 &&
+                       keyFile.has_key("Film Negative", "CineonLUT")) {
+                // A full old profile or an explicit old LUT partial retains
+                // its rendering order. Unrelated partials keep the active stage.
+                filmNegative.cineonLUTStage =
+                    FilmNegativeParams::CineonLUTStage::BEFORE_GRADE;
             }
         }
 

@@ -3,6 +3,9 @@
 Linear scene values are 0..1. Reference white 1 maps to 685/1023, black to
 95/1023, and linear 0.18 maps to about 467.838/1023 before 16-bit
 quantization (round(y * 65535)).
+
+These are reference-formula checks on literals: they do not call the engine.
+Engine coverage lives in test_integration_film_negative.py (needs ART_DIR).
 """
 
 import math

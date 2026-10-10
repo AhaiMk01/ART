@@ -2479,13 +2479,14 @@ bool EditorPanel::saveImmediately(const Glib::ustring &filename,
         art::engine::ProcessingJob::create(ipc->getInitialImage(), pparams);
 
     // save immediately
+    int err = 0;
     art::engine::IImagefloat *img =
         art::engine::processImage(job, err, nullptr, false);
-    if (img) {
-        img->setSaveProgressListener(parent);
+    if (!img) {
+        return false;
     }
+    img->setSaveProgressListener(parent);
 
-    int err = 0;
     if (img) {
         Glib::ustring fmt = gimpPlugin ? Glib::ustring("tif") : sf.format;
         int saveBits = gimpPlugin ? 32 : (fmt == "tif" ? sf.tiffBits : sf.pngBits);

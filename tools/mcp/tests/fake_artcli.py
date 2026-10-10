@@ -19,7 +19,10 @@
   ``ART-SPOTS`` line: spot i has avg ``[x, y, size]`` and max
   ``[x + 1, y + 1, size + 1]``, on the fake 6000x4000 frame. With
   ``FAKE_SPOTS=release`` it acts like a release art-cli (help, exit -1);
-  with ``FAKE_SPOTS=silent`` it exits 0 printing nothing. With
+  with ``FAKE_SPOTS=silent`` it exits 0 printing nothing; with ``FAKE_SPOTS=nostage``
+  a ``converted`` / ``cineon`` request is answered without ``stage`` (a build that ignores it).
+  ``-X stage,bins,maxsize[,x0,y0,x1,y1]`` prints one ``ART-STAGESTATS`` line (r < g < b,
+  each a spike in a bin near the middle of the stage range) and obeys ``FAKE_SPOTS`` the same. With
   ``FAKE_SPOTS_FAIL_X=<x>`` a ``-x`` run that has a spot at that x fails (exit
   3); with ``FAKE_SPOTS_SLOW_X=<x>`` a run whose first spot is at that x
   answers a second late.
@@ -106,13 +109,43 @@ if not image.exists():
     print(f'"{image}" doesn\'t exist!', file=sys.stderr)
     sys.exit(2)
 
+if "-X" in args:
+    mode = os.environ.get("FAKE_SPOTS")
+    if mode == "release":
+        print("ART, version 9.9.9, command line.\nSymbols:\nUsage:\n  ART-cli -c <dir>|<files>", file=sys.stderr)
+        sys.exit(-1)
+    if mode != "silent":
+        stage, bins, maxsize, *region = args[args.index("-X") + 1].split(",")
+        bins = int(bins)
+        lo, hi = (-100.0, 1100.0) if stage == "cineon" else (-6553.5, 131070.0)
+        # All pixels in the middle bin; one channel per 1/3 of it, r < g < b.
+        middle = bins // 2
+        channels = []
+        for index in range(3):
+            hist = [0] * bins
+            hist[middle + index] = 100
+            value = lo + (middle + index + 0.5) / bins * (hi - lo)
+            channels.append({
+                "min": value, "max": value, "mean": value, "p01": value, "p50": value, "p99": value,
+                "below": 0, "above": 0, "nonfinite": 0, "hist": hist,
+            })
+        size = int(maxsize) or 6000
+        print("some banner line")
+        print("ART-STAGESTATS " + json.dumps({
+            "stage": stage, "unit": "cineon_code" if stage == "cineon" else "linear_65535",
+            "width": size, "height": size * 2 // 3, "source_width": 6000, "source_height": 4000,
+            "w": 1.0, "range": [lo, hi], "channels": channels, "region": region,
+        }))
+    sys.exit(0)
+
 if "-x" in args:
     mode = os.environ.get("FAKE_SPOTS")
     if mode == "release":
         print("ART, version 9.9.9, command line.\nSymbols:\nUsage:\n  ART-cli -c <dir>|<files>", file=sys.stderr)
         sys.exit(-1)
     if mode != "silent":
-        size, _space, *coords = args[args.index("-x") + 1].split(",")
+        size, token, *coords = args[args.index("-x") + 1].split(",")
+        staged = token in ("converted", "cineon")
         spots = [
             {
                 "x": int(x), "y": int(y),
@@ -128,7 +161,10 @@ if "-x" in args:
         if os.environ.get("FAKE_SPOTS_SLOW_X") == xs[0]:
             time.sleep(1)
         print("some banner line")
-        print("ART-SPOTS " + json.dumps({"width": 6000, "height": 4000, "spots": spots}))
+        extra = {}
+        if staged and os.environ.get("FAKE_SPOTS") != "nostage":
+            extra = {"stage": token, "unit": "cineon_code" if token == "cineon" else "linear_65535"}
+        print("ART-SPOTS " + json.dumps({"width": 6000, "height": 4000, **extra, "spots": spots}))
     sys.exit(0)
 
 layers = [Path(args[i + 1]).read_text() for i, a in enumerate(args) if a == "-p"]

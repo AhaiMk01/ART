@@ -481,6 +481,7 @@ void ToolPanelCoordinator::refreshPreview(const art::engine::ProcEvent &event)
     for (auto toolPanel : toolPanels) {
         toolPanel->write(params);
     }
+    filmNegative->syncBindings(params);
 
     ipc->endUpdateParams(event); // starts the IPC processing
 }
@@ -499,6 +500,7 @@ void ToolPanelCoordinator::panelChanged(const art::engine::ProcEvent &event,
     for (auto toolPanel : toolPanels) {
         toolPanel->write(params);
     }
+    filmNegative->syncBindings(params);
 
     // Compensate rotation on flip
     if (event == art::engine::EvCTHFlip || event == art::engine::EvCTVFlip) {

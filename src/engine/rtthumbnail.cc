@@ -1028,7 +1028,8 @@ IImage8 *Thumbnail::processImage(const procparams::ProcParams &params,
 
     Imagefloat *baseImg =
         resizeTo<Imagefloat>(rwidth, rheight, interp, thumbImg);
-    if (params.filmNegative.enabled) {
+    if (params.filmNegative.enabled &&
+        params.filmNegative.method == FilmNegativeParams::Method::POWER_LAW) {
         if (params.filmNegative.backCompat ==
             FilmNegativeParams::BackCompat::V1) {
             processFilmNegative(params, baseImg, rwidth, rheight);
@@ -1088,12 +1089,17 @@ IImage8 *Thumbnail::processImage(const procparams::ProcParams &params,
     ipf.setPipeline(ImProcFunctions::Pipeline::THUMBNAIL);
 
     if (params.filmNegative.enabled &&
-        params.filmNegative.backCompat ==
-            FilmNegativeParams::BackCompat::CURRENT &&
+        (params.filmNegative.method != FilmNegativeParams::Method::POWER_LAW ||
+         params.filmNegative.backCompat ==
+             FilmNegativeParams::BackCompat::CURRENT) &&
         params.filmNegative.colorSpace ==
             FilmNegativeParams::ColorSpace::INPUT) {
         ipf.filmNegativeProcess(baseImg, baseImg, params.filmNegative, isRaw,
                                 camName);
+        if (ipf.filmNegativeContractFailed()) {
+            delete baseImg;
+            return nullptr;
+        }
     }
 
     // perform color space transformation
@@ -1109,12 +1115,22 @@ IImage8 *Thumbnail::processImage(const procparams::ProcParams &params,
     }
 
     if (params.filmNegative.enabled &&
-        params.filmNegative.backCompat ==
-            FilmNegativeParams::BackCompat::CURRENT &&
+        (params.filmNegative.method != FilmNegativeParams::Method::POWER_LAW ||
+         params.filmNegative.backCompat ==
+             FilmNegativeParams::BackCompat::CURRENT) &&
         params.filmNegative.colorSpace !=
             FilmNegativeParams::ColorSpace::INPUT) {
         ipf.filmNegativeProcess(baseImg, baseImg, params.filmNegative, isRaw,
                                 camName);
+        if (ipf.filmNegativeContractFailed()) {
+            delete baseImg;
+            return nullptr;
+        }
+    }
+    if (!ipf.filmNegativeApplyLut(
+            baseImg, FilmNegativeParams::CineonLUTStage::BEFORE_GRADE)) {
+        delete baseImg;
+        return nullptr;
     }
 
     int origFW;
@@ -1166,6 +1182,10 @@ IImage8 *Thumbnail::processImage(const procparams::ProcParams &params,
     stop = stop || ipf.process(ImProcFunctions::Stage::STAGE_1, baseImg);
     stop = stop || ipf.process(ImProcFunctions::Stage::STAGE_2, baseImg);
     stop = stop || ipf.process(ImProcFunctions::Stage::STAGE_3, baseImg);
+    if (ipf.filmNegativeContractFailed()) {
+        delete baseImg;
+        return nullptr;
+    }
 
     // obtain final image
     Image8 *readyImg = nullptr;

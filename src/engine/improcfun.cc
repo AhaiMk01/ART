@@ -596,7 +596,7 @@ void ImProcFunctions::setShowSharpeningMask(bool yes)
 
 namespace {
 
-constexpr int NUM_PIPELINE_STEPS = 23;
+constexpr int NUM_PIPELINE_STEPS = 24;
 
 } // namespace
 
@@ -696,6 +696,12 @@ bool ImProcFunctions::process(Stage stage, Imagefloat *img)
         if (!stop) {
             STEP_(blackAndWhite, !params->blackwhite.enabled);
         }
+        stop = stop || !STEP_s_(
+            filmNegativeApplyLutAfterGrade,
+            !params->filmNegative.enabled ||
+                params->filmNegative.cineonLUT.empty() ||
+                params->filmNegative.cineonLUTStage !=
+                    FilmNegativeParams::CineonLUTStage::AFTER_GRADE);
         if (cur_pipeline == Pipeline::PREVIEW && params->prsharpening.enabled) {
             double s = scale;
             int fw = full_width * s, fh = full_height * s;

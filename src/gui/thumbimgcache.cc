@@ -152,7 +152,7 @@ bool store(const Glib::ustring &cache_fname,
            const art::engine::procparams::ProcParams &pparams,
            art::engine::IImage8 *img)
 {
-    if (!options.thumb_cache_processed) {
+    if (!img || !options.thumb_cache_processed) {
         return false;
     }
 

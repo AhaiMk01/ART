@@ -68,5 +68,9 @@ int main(int argc, char *argv[])
 
     art::engine::ProcessingJob *job = ProcessingJob::create(ii, params);
     art::engine::IImage16 *res = art::engine::processImage(job, errorCode, &pl);
+    if (!res) {
+        std::cout << "Processing failed." << std::endl;
+        exit(3);
+    }
     res->saveToFile(argv[3]);
 }

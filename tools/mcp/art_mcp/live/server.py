@@ -65,7 +65,9 @@ from art_mcp.sampling import (
     DEFAULT_SIZE,
     IMAGE_STATS_DOC,
     SAMPLE_SPOTS_DOC,
+    STAGE_ONLY_RENDER,
     UNSUPPORTED_SPOTS,
+    UNSUPPORTED_STAGE,
     Detail,
     ImageStats,
     ImageStatsResult,
@@ -73,9 +75,13 @@ from art_mcp.sampling import (
     RegionTooSmall,
     Spot,
     SpotSamples,
+    Stage,
+    StageUnsupported,
     StatsBatch,
     StatsItem,
+    StatsStage,
     check_spots,
+    check_stage_stats,
     check_stats_call,
     covering,
     merge_samples,
@@ -241,9 +247,7 @@ class QueueStatus(BaseModel):
     remove one in ART's Queue tab."""
 
 
-TOOL_TITLES = {name: name.replace("_", " ").title() for name in TOOLS} | {
-    "vignetting": "Vignetting Correction"
-}
+TOOL_TITLES = {name: name.replace("_", " ").title() for name in TOOLS} | {"vignetting": "Vignetting Correction"}
 """How an edit names a curated tool in ART's History (``Agent: ...``)."""
 
 
@@ -300,11 +304,15 @@ def profile_to_apply(profile: str) -> tuple[Path, str]:
 
 
 def sample_spots_args(
-    path: str, spots: list[tuple[int, int]], size: int, space: str
+    path: str, spots: list[tuple[int, int]], size: int, space: str, stage: str = "source"
 ) -> dict[str, Any]:
     """The `sample_spots` op's arguments; the one place that encodes them
-    (`spots` is a list of [x, y] pairs)."""
-    return {"path": art_path(path), "spots": [[x, y] for x, y in spots], "size": size, "space": space}
+    (`spots` is a list of [x, y] pairs). `stage` is sent only when not the
+    default, so an older ART still answers a source request."""
+    args: dict[str, Any] = {"path": art_path(path), "spots": [[x, y] for x, y in spots], "size": size, "space": space}
+    if stage != "source":
+        args["stage"] = stage
+    return args
 
 
 def build_server(
@@ -510,9 +518,7 @@ def build_server(
                 item.metadata.frame_width, item.metadata.frame_height = w, h
         return result
 
-    def edit_one(
-        path: str, adjustments: AdjustmentsArg, raw_edits: list[RawEdit] | None, full: bool
-    ) -> LiveEditResult:
+    def edit_one(path: str, adjustments: AdjustmentsArg, raw_edits: list[RawEdit] | None, full: bool) -> LiveEditResult:
         """``edit_profile`` of the one image at ``path``."""
         current = get_profile_text(path)
         changes = WorkingChanges(keyfile.loads(current["profile"]))
@@ -522,16 +528,15 @@ def build_server(
             if parsed is not None and parsed.crop is not None:
                 size = image_size(path)
                 if size is None:
-                    warnings.append(
-                        "the crop was not checked against the image size: "
-                        "ART hasn't reported it yet"
-                    )
+                    warnings.append("the crop was not checked against the image size: ART hasn't reported it yet")
                 else:
                     problem = crop_problem(changes.profile, parsed.crop, lambda: size)
                     if problem:
                         raise AdjustmentError("out_of_range", problem)
             outcome = changes.edit(
-                parsed, raw_edits or [], film_estimate(path, parsed, changes.profile),
+                parsed,
+                raw_edits or [],
+                film_estimate(path, parsed, changes.profile),
                 raw_source=path_is_raw(path),
             )
         except AdjustmentError as e:
@@ -542,6 +547,7 @@ def build_server(
             raise tool_error("conflict", str(e)) from e
         warnings += edit_warnings(parsed, changes.profile) + outcome.warnings
         partial = changes.partial_profile()
+        partial.pop("Version", None)  # Live applies at ART's current version.
         # ART applies the partial profile over the profile it holds then: a
         # change the user made since get_profile stays, unless it is to one
         # of these keys.
@@ -661,9 +667,7 @@ def build_server(
             time.sleep(OPEN_POLL_SECONDS)
 
     @server.tool()
-    def open_image(
-        path: str | None = None, profile: str | None = None, paths: list[str] | None = None
-    ) -> OpenOutput:
+    def open_image(path: str | None = None, profile: str | None = None, paths: list[str] | None = None) -> OpenOutput:
         """Open an image in ART's editor (or bring it to the front if it is
         open already), as opening it from ART's file browser does. Returns
         once ART has loaded it. Fails with not_found if there is no such
@@ -857,7 +861,7 @@ def build_server(
             raise tool_error("bad_reply", f"ART's preview is not a readable image: {e}") from e
 
     def fetch_spots(
-        path: str, points: list[tuple[int, int]], size: int, space: str
+        path: str, points: list[tuple[int, int]], size: int, space: str, stage: str = "source"
     ) -> SpotSamples:
         """Sample ``points`` of the open editor's profile (arguments already
         checked)."""
@@ -866,11 +870,13 @@ def build_server(
         deadline = time.monotonic() + ART_PREVIEW_WAIT
         while True:
             try:
-                reply = channel.request("sample_spots", sample_spots_args(path, points, size, space))
+                reply = channel.request("sample_spots", sample_spots_args(path, points, size, space, stage))
                 break
             except ChannelError as e:
                 if e.code == "unknown_op":
                     raise tool_error("unsupported", UNSUPPORTED_SPOTS) from e
+                if e.code == "bad_request" and stage != "source":
+                    raise tool_error("unsupported", UNSUPPORTED_STAGE) from e
                 if e.code != "busy":
                     raise channel_error(e) from e
                 if time.monotonic() >= deadline:
@@ -881,24 +887,30 @@ def build_server(
                 raise channel_error(e) from e
             time.sleep(BUSY_RETRY_SECONDS)
         try:
-            return parse_spots_reply(reply, size, space)
+            return parse_spots_reply(reply, size, space, stage)
+        except StageUnsupported as e:
+            raise tool_error("unsupported", UNSUPPORTED_STAGE) from e
         except ValueError as e:
             raise tool_error("bad_reply", f"unexpected sample_spots reply from ART: {reply!r:.300}") from e
 
     @server.tool(description=SAMPLE_SPOTS_DOC)
     def sample_spots(
-        path: str, spots: list[Spot], size: int = DEFAULT_SIZE, space: str = "working"
+        path: str,
+        spots: list[Spot],
+        size: int = DEFAULT_SIZE,
+        space: str = "working",
+        stage: Stage = "source",
     ) -> SpotSamples:
         points = [(s.x, s.y) for s in spots]
-        check_spots(points, size, space, None, tool_error)
-        check_spots(points, size, space, image_size(path), tool_error)
+        check_spots(points, size, space, None, tool_error, stage)
+        check_spots(points, size, space, image_size(path), tool_error, stage)
         # ART's op takes at most MAX_SPOTS: ask in runs, one after the other, each with
         # its own wait for a busy editor; a failing one fails the call.
         runs = spot_runs(len(points))
         parts = []
         for run in runs:
             try:
-                parts.append(fetch_spots(path, points[run.start : run.stop], size, space))
+                parts.append(fetch_spots(path, points[run.start : run.stop], size, space, stage))
             except ToolError as e:
                 if len(runs) == 1:
                     raise
@@ -950,6 +962,7 @@ def build_server(
             "(its preview, saved as an 8-bit PNG; the whole frame, in the monitor colour "
             "space, never enlarged beyond the editor's preview). "
             + IMAGE_STATS_DOC
+            + " `stage` converted / cineon: Render server only (refused here)."
             + " Waits for ART's processing like render_preview. Fails with not_open if "
             "ART doesn't have the image open (with `paths`, that image's item says so)."
         )
@@ -964,25 +977,42 @@ def build_server(
         bins: int | None = None,
         lum_min: int | None = None,
         lum_max: int | None = None,
+        histogram_image: bool = False,
+        stage: StatsStage = "display",
     ) -> Annotated[CallToolResult, ImageStatsResult]:
+        if stage != "display":
+            check_stage_stats(stage, None, None, None, None, tool_error)
+            raise tool_error("unsupported", STAGE_ONLY_RENDER.format(stage=stage))
         check_stats_call(path, paths, max_size, MAX_PREVIEW_SIZE, region, bins, detail, lum_min, lum_max, tool_error)
         level = stats_detail(detail, paths is not None)
         if paths is None:
             assert path is not None  # check_stats_call: one of the two
-            return stats_result(preview_stats(path, max_size, histogram, region, bins, level, lum_min, lum_max))
+            return stats_result(
+                preview_stats(path, max_size, histogram or histogram_image, region, bins, level, lum_min, lum_max),
+                histogram_image=histogram_image,
+                histogram=histogram,
+                path=path,
+            )
         items = []
         for each in paths:
             try:
                 items.append(
                     StatsItem(
-                        path=each, stats=preview_stats(each, max_size, histogram, region, bins, level, lum_min, lum_max)
+                        path=each,
+                        stats=preview_stats(
+                            each, max_size, histogram or histogram_image, region, bins, level, lum_min, lum_max
+                        ),
                     )
                 )
             except ToolError as e:
                 if str(e).startswith("art_not_running:"):
                     raise  # no point asking again for every image
                 items.append(StatsItem(path=each, error=str(e)))
-        return stats_result(StatsBatch(items=items, failed=sum(item.error is not None for item in items)))
+        return stats_result(
+            StatsBatch(items=items, failed=sum(item.error is not None for item in items)),
+            histogram_image=histogram_image,
+            histogram=histogram,
+        )
 
     calllog.install(server)
     server.middleware.append(CompactToolSchemas())

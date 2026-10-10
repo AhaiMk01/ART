@@ -300,11 +300,11 @@ async def test_partial_profile_result_counts_the_keys_per_group_in_file_order_wi
         dest, result = await partial_dest(tmp_path, image, client, vs="default")
 
     assert not result.is_error, result.content
-    assert result.structured_content["keys"] == {"Exposure": 3, "Film Negative": 2}
-    assert list(result.structured_content["keys"]) == ["Exposure", "Film Negative"]
-    assert result.structured_content["total"] == 5
+    assert result.structured_content["keys"] == {"Exposure": 3, "Film Negative": 2, "Version": 1}
+    assert list(result.structured_content["keys"]) == ["Exposure", "Film Negative", "Version"]
+    assert result.structured_content["total"] == 6
     assert "[Exposure] Black" not in text_of(result)  # no list of every key
-    assert sum(len(keys) for keys in keyfile.loads(dest.read_text()).values()) == 5
+    assert sum(len(keys) for keys in keyfile.loads(dest.read_text()).values()) == 6
 
 
 async def test_partial_profile_verbose_lists_every_key_as_before_and_still_has_the_total(
@@ -317,9 +317,9 @@ async def test_partial_profile_verbose_lists_every_key_as_before_and_still_has_t
     assert not result.is_error, result.content
     assert result.structured_content["keys"] == [
         "[Exposure] Enabled", "[Exposure] Compensation", "[Exposure] Black",
-        "[Film Negative] Enabled", "[Film Negative] RedRatio",
+        "[Film Negative] Enabled", "[Film Negative] RedRatio", "[Version] Version",
     ]  # fmt: skip
-    assert result.structured_content["total"] == 5
+    assert result.structured_content["total"] == 6
 
 
 async def test_partial_profile_result_stays_small_for_a_group_of_many_keys(server, image, tmp_path):
@@ -484,9 +484,9 @@ ROLL_PRESET = (
     "[Exposure]\nEnabled=false\nBlack=5\n\n"
     "[Film Negative]\nEnabled=true\nRedRatio=1.5\n"
 )
-"""A roll preset: the base settings of a film roll, over ART's default profile
-(which has Exposure on, Black 0 and no Film Negative group; a version of its
-own, which the saved file must not take along)."""
+"""A roll preset over ART's default profile (Exposure on, Black 0, no Film
+Negative group). Its Film Negative values need their source version, so a
+partial profile that carries them also carries that [Version]."""
 
 
 @pytest.fixture
@@ -516,13 +516,14 @@ async def test_partial_profile_vs_default_carries_the_keys_of_the_preset_the_fra
     assert keyfile.loads(dest.read_text()) == {
         "Exposure": {"Enabled": "false", "Compensation": "2", "Black": "5"},
         "Film Negative": {"Enabled": "true", "RedRatio": "1.5"},
+        "Version": {"Version": "1000"},  # the Film Negative values keep their source version
     }
     assert default.structured_content["vs"] == "default"
     assert default.structured_content["written"] is True
-    assert default.structured_content["keys"] == {"Exposure": 3, "Film Negative": 2}
+    assert default.structured_content["keys"] == {"Exposure": 3, "Film Negative": 2, "Version": 1}
 
 
-async def test_partial_profile_vs_default_leaves_out_what_equals_the_default_and_the_version(
+async def test_partial_profile_vs_default_leaves_out_what_equals_the_default(
     server, image, preset, tmp_path
 ):
     async with Client(server) as client:
@@ -539,9 +540,10 @@ async def test_partial_profile_vs_default_leaves_out_what_equals_the_default_and
     assert saved == {
         "Exposure": {"Enabled": "false", "Black": "5"},
         "Film Negative": {"Enabled": "true", "RedRatio": "1.5"},
-    }  # not White Balance, Crop, LensProfile (all the default's), nor [Version] (the preset's own)
-    assert result.structured_content["keys"] == {"Exposure": 2, "Film Negative": 2}
-    assert result.structured_content["total"] == 4
+        "Version": {"Version": "1000"},
+    }  # not White Balance, Crop, LensProfile (all the default's); [Version] only for Film Negative
+    assert result.structured_content["keys"] == {"Exposure": 2, "Film Negative": 2, "Version": 1}
+    assert result.structured_content["total"] == 5
 
 
 async def test_partial_profile_vs_default_of_an_unchanged_default_profile_writes_nothing(

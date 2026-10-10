@@ -670,7 +670,11 @@ public:
 
 /** This function performs all the image processing steps corresponding to the
  * given ProcessingJob. It returns when it is ready, so it can be slow. The
- * ProcessingJob passed becomes invalid, you can not use it any more.
+ * ProcessingJob passed becomes invalid, you can not use it any more. This
+ * holds on failure too: when nullptr is returned the job has already been
+ * destroyed (and a reference to a job-loaded initial image released), so the
+ * caller must not call ProcessingJob::destroy() on it. A caller that supplied
+ * the InitialImage itself still owns its reference to it.
  * @param job the ProcessingJob to cancel.
  * @param errorCode is the error code if an error occurred (e.g. the input image
  * could not be loaded etc.)
@@ -693,22 +697,38 @@ struct SpotSample {
 /** The colour space the spots are measured in. */
 enum class SpotSpace { WORKING, INPUT /* camera */ };
 
+/** Which point of the pipeline a spot (or the stage statistics) reads.
+ * SOURCE: linear, white balanced, before any film inversion (`space`).
+ * CONVERTED: linear RGB right after the film-negative conversion and the
+ *   input -> working colour conversion, in the working space, before the
+ *   before_grade LUT, scene exposure and grading; 0..65535, not clamped.
+ * CINEON: the CONVERTED pixels encoded per pixel with the Cineon encode and
+ *   reference white of the export, as 10-bit codes (0..1023, may fall outside
+ *   for NamiColor). */
+enum class SpotStage { SOURCE, CONVERTED, CINEON };
+
 struct SpotRequest {
     int size = 32;
     SpotSpace space = SpotSpace::WORKING;
+    SpotStage stage = SpotStage::SOURCE;
     std::vector<std::pair<int, int>> pos;
 };
 
-enum class SpotStatus { OK, NOT_READY, OUT_OF_FRAME };
+enum class SpotStatus { OK, NOT_READY, OUT_OF_FRAME, FAILED };
 
 struct SpotResult {
     int width = 0; // frame size, after coarse transform
     int height = 0;
     std::vector<SpotSample> spots;
-    std::string error; // set when a spot is outside the frame
+    SpotStage stage = SpotStage::SOURCE;
+    std::string film;  // CONVERTED/CINEON: disabled|power_law|density|namicolor
+    double w = 0.0;    // CINEON: the reference white used
+    std::string error; // set when a spot is outside the frame or a stage fails
 };
 
-/** The "{\"width\",\"height\",\"spots\":[...]}" JSON body of a result (the
+/** The "{\"stage\",\"unit\",\"width\",\"height\",\"spots\":[...]}" JSON body
+ * of a result ("film" and, for cineon, "w" follow "unit" for the converted
+ * and cineon stages; non-finite numbers are written as null) (the
  * ART-SPOTS line of art-cli, the sample_spots result of the live channel). */
 std::string spotResultJson(const SpotResult &res);
 
@@ -720,6 +740,45 @@ std::string spotResultJson(const SpotResult &res);
  * out-of-frame spots) */
 bool sampleSpots(ProcessingJob *job, const SpotRequest &req, SpotResult &res,
                  int &errorCode);
+
+/** Whole-image statistics of a pipeline stage (art-cli -X). */
+struct StageStatsRequest {
+    SpotStage stage = SpotStage::CONVERTED; // CONVERTED or CINEON
+    int bins = 256;                         // 2..1024
+    int maxsize = 0; // longest edge after box downscale, 0 = full resolution
+    bool hasRegion = false;
+    double x0 = 0, y0 = 0, x1 = 1, y1 = 1; // fractions of the cropped frame
+};
+
+struct StageChannelStats {
+    double min = 0, max = 0, mean = 0, p01 = 0, p50 = 0, p99 = 0;
+    long long below = 0, above = 0, nonfinite = 0;
+    std::vector<long long> hist;
+};
+
+struct StageStatsResult {
+    SpotStage stage = SpotStage::CONVERTED;
+    int width = 0, height = 0;               // sampled area after downscale
+    int sourceWidth = 0, sourceHeight = 0;   // the cropped frame it came from
+    double w = 0.0;                          // Cineon reference white used
+    double lo = 0.0, hi = 0.0;               // histogram range
+    std::string film;
+    StageChannelStats ch[3];
+    std::string error;
+};
+
+/** The "{\"stage\",...}" JSON body of the ART-STAGESTATS line. */
+std::string stageStatsJson(const StageStatsResult &res);
+
+/** Runs the real output pipeline of processImage() up to the tap of the
+ * CONVERTED spots (after the film conversion and colour conversion, before
+ * the before_grade LUT), crops (if enabled), box-downscales in linear light,
+ * encodes (CINEON) and computes the statistics. No image is produced. The job
+ * is not consumed: destroy it with ProcessingJob::destroy().
+ * @return false on failure (errorCode set for load errors, res.error for
+ * contract failures) */
+bool stageStats(ProcessingJob *job, const StageStatsRequest &req,
+                StageStatsResult &res, int &errorCode);
 
 /** If the film-negative target is Cineon, encode `img` in place for a 16-bit
  * integer TIFF (`format` "tif", `bits` 16, `isFloat` false) and return an

@@ -25,9 +25,7 @@ EXPORT_BIT_DEPTHS = {
 """Export formats and the bit depths art-cli takes for each."""
 
 
-def resolve_profile_args(
-    image: Path, output: Path, sidecar: Path | None, preset: Path | None = None
-) -> list[str]:
+def resolve_profile_args(image: Path, output: Path, sidecar: Path | None, preset: Path | None = None) -> list[str]:
     """A fast render whose only purpose is the ``.arp`` that ``-O`` writes
     beside ``output``: the image's complete processing profile, built from its
     sidecar or, without one, from ART's default profile. With ``preset`` (an
@@ -72,9 +70,7 @@ def preview_args(
     ]  # fmt: skip
 
 
-def stats_args(
-    image: Path, output: Path, profile: Path, resize: Path, *, fast: bool
-) -> list[str]:
+def stats_args(image: Path, output: Path, profile: Path, resize: Path, *, fast: bool) -> list[str]:
     """An 8-bit PNG render of ``profile`` with the ``resize`` layer on top, for
     ``image_stats``: a whole-image preview, so ``fast`` adds ``-f``."""
     return [
@@ -84,11 +80,29 @@ def stats_args(
 
 
 def spots_args(
-    image: Path, profile: Path, size: int, space: str, spots: list[tuple[int, int]]
+    image: Path, profile: Path, size: int, space: str, spots: list[tuple[int, int]], stage: str = "source"
 ) -> list[str]:
-    """Sample spots of ``profile`` (fork-only ``-x``): no output file."""
-    spec = ",".join([str(size), space, *(str(v) for spot in spots for v in spot)])
+    """Sample spots of ``profile`` (fork-only ``-x``): no output file. The
+    second field is the colour space for ``source`` and the stage otherwise."""
+    token = space if stage == "source" else stage
+    spec = ",".join([str(size), token, *(str(v) for spot in spots for v in spot)])
     return ["-x", spec, "-a", "-p", str(profile), "-c", str(image)]
+
+
+def stage_stats_args(
+    image: Path,
+    profile: Path,
+    stage: str,
+    bins: int,
+    max_size: int,
+    region: tuple[float, float, float, float] | None = None,
+) -> list[str]:
+    """Statistics of a film pipeline stage (fork-only ``-X``): no output file.
+    ``region`` is (x0, y0, x1, y1) as fractions of the cropped frame."""
+    spec = [stage, str(bins), str(max_size)]
+    if region is not None:
+        spec += [format(v, ".9g") for v in region]
+    return ["-X", ",".join(spec), "-a", "-p", str(profile), "-c", str(image)]
 
 
 def export_args(

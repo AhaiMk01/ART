@@ -235,7 +235,7 @@ def test_describe_includes_tone_curve_with_the_domain_note():
     tool = describe_adjustments().tools["tone_curve"]
 
     assert tool.group == "ToneCurve"
-    assert "sRGB" in tool.description and "image_stats" in tool.description
+    assert "sRGB" in tool.description
     assert tool.fields["curve1"].key == "Curve" and tool.fields["curve1"].type == "curve"
     assert tool.fields["mode"].enum and "Neutral" in tool.fields["mode"].enum
     assert tool.fields["mode2"].key == "CurveMode2"

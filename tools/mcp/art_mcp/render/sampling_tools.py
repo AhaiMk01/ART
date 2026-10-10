@@ -16,10 +16,13 @@ from art_mcp.sampling import (
     DEFAULT_SIZE,
     IMAGE_STATS_DOC,
     SAMPLE_SPOTS_DOC,
+    STAGE_STATS_DOC,
     Detail,
     ImageStatsResult,
     Spot,
     SpotSamples,
+    Stage,
+    StatsStage,
     stats_result,
 )
 
@@ -27,16 +30,21 @@ from art_mcp.sampling import (
 def register(server: MCPServer, session: RenderSession) -> None:
     @server.tool(description=SAMPLE_SPOTS_DOC)
     def sample_spots(
-        path: str, spots: list[Spot], size: int = DEFAULT_SIZE, space: str = "working"
+        path: str,
+        spots: list[Spot],
+        size: int = DEFAULT_SIZE,
+        space: str = "working",
+        stage: Stage = "source",
     ) -> SpotSamples:
         with as_tool_errors():
-            return ops.sample_spots(session, path, spots, size, space)
+            return ops.sample_spots(session, path, spots, size, space, stage)
 
     @server.tool(
         description=(
             "Statistics of the working profile as rendered: an 8-bit output image, crop "
             "applied (like a whole-image render_preview). "
             + IMAGE_STATS_DOC
+            + STAGE_STATS_DOC
             + " Downscaling hides clipping in tiny highlights: raise `max_size` to see more. "
             "Several images are rendered two at a time, with progress per image."
         )
@@ -52,6 +60,8 @@ def register(server: MCPServer, session: RenderSession) -> None:
         bins: int | None = None,
         lum_min: int | None = None,
         lum_max: int | None = None,
+        histogram_image: bool = False,
+        stage: StatsStage = "display",
     ) -> Annotated[CallToolResult, ImageStatsResult]:
         def progress(done: int, total: int) -> None:
             anyio.from_thread.run(ctx.report_progress, done, total)
@@ -60,8 +70,22 @@ def register(server: MCPServer, session: RenderSession) -> None:
             with as_tool_errors():
                 return stats_result(
                     ops.image_stats(
-                        session, path, paths, max_size, histogram, region, bins, detail, lum_min, lum_max, progress
-                    )
+                        session,
+                        path,
+                        paths,
+                        max_size,
+                        histogram or histogram_image,
+                        region,
+                        bins,
+                        detail,
+                        lum_min,
+                        lum_max,
+                        progress,
+                        stage,
+                    ),
+                    histogram_image=histogram_image,
+                    histogram=histogram,
+                    path=path,
                 )
 
         return await anyio.to_thread.run_sync(run)

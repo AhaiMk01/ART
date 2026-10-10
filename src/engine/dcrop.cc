@@ -200,6 +200,16 @@ void Crop::update(int todo)
     bool show_denoise =
         params.denoise.enabled && (skip == 1 || art::gui::options.denoiseZoomedOut);
 
+    // Denoise the negative before the film conversion (see simpleprocess.cc
+    // stage_denoise). The result is cached in origCrop, so the denoise stage
+    // below is skipped and a denoise change re-runs M_INIT.
+    const bool denoise_first = params.filmNegative.enabled &&
+                               params.filmNegative.denoiseBeforeInversion &&
+                               params.denoise.enabled;
+    if (denoise_first && (todo & M_LINDENOISE)) {
+        todo |= M_INIT;
+    }
+
     const auto invert_negative = [&](Imagefloat *img) -> bool {
         bool converted = false;
         if (params.filmNegative.enabled) {
@@ -209,11 +219,40 @@ void Crop::update(int todo)
                 parent->imgsrc->convertColorSpace(
                     img, params.icm, parent->currWB);
             }
+            if (denoise_first && show_denoise) {
+                parent->ipf.denoiseComputeParams(parent->imgsrc,
+                                                 parent->currWB,
+                                                 parent->denoiseInfoStore,
+                                                 params.denoise);
+                if ((!isDetailWindow) && parent->adnListener) {
+                    parent->adnListener->chromaChanged(
+                        params.denoise.chrominance,
+                        params.denoise.chrominanceRedGreen,
+                        params.denoise.chrominanceBlueYellow);
+                }
+                parent->ipf.denoise(parent->imgsrc, parent->currWB, img,
+                                    params.denoise);
+                if (parent->adnListener &&
+                    params.denoise.chrominanceMethod ==
+                        DenoiseParams::ChrominanceMethod::AUTOMATIC) {
+                    parent->adnListener->chromaChanged(
+                        params.denoise.chrominance,
+                        params.denoise.chrominanceRedGreen,
+                        params.denoise.chrominanceBlueYellow);
+                }
+            }
             parent->ipf.filmNegativeProcess(img, img, params.filmNegative,
                                             params.raw, parent->imgsrc,
                                             parent->currWB);
+            if (parent->ipf.filmNegativeContractFailed()) {
+                return false;
+            }
         }
-        return converted;
+        if (!converted) {
+            parent->imgsrc->convertColorSpace(img, params.icm, parent->currWB);
+        }
+        return parent->ipf.filmNegativeApplyLut(
+            img, FilmNegativeParams::CineonLUTStage::BEFORE_GRADE);
     };
 
     if (todo & M_INIT) {
@@ -230,8 +269,7 @@ void Crop::update(int todo)
                                  params.exposure, params.raw);
 
         if (!invert_negative(origCrop)) {
-            parent->imgsrc->convertColorSpace(
-                origCrop, params.icm, parent->currWB);
+            return;
         }
     }
 
@@ -246,7 +284,7 @@ void Crop::update(int todo)
         hdr_base_crop = denoiseCrop;
         baseCrop = denoiseCrop;
 
-        if (show_denoise) {
+        if (show_denoise && !denoise_first) {
             parent->ipf.denoiseComputeParams(parent->imgsrc, parent->currWB,
                                              parent->denoiseInfoStore,
                                              params.denoise);
@@ -341,8 +379,7 @@ void Crop::update(int todo)
                 parent->imgsrc->getImage(parent->currWB, tr, f, pp,
                                          params.exposure, params.raw);
                 if (!invert_negative(f)) {
-                    parent->imgsrc->convertColorSpace(
-                        f, params.icm, parent->currWB);
+                    return;
                 }
 
                 if (copy_from_earlier_steps) {
@@ -458,6 +495,9 @@ void Crop::update(int todo)
         pipeline_stop_[3] =
             stop ||
             parent->ipf.process(ImProcFunctions::Stage::STAGE_3, bufs_[2]);
+        if (parent->ipf.filmNegativeContractFailed()) {
+            return;
+        }
     }
     stop = stop || pipeline_stop_[3];
 

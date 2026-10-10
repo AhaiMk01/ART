@@ -6,11 +6,15 @@
 
 namespace art { namespace engine {
 
-// Encodes the film-negative linear buffer as Cineon, evaluates a .cube,
-// decodes the declared output transfer, and writes linear working RGB back.
-// Returns false when the LUT is missing, changed, or not a declared linear
-// output. The linear inversion is left unchanged and no other LUT is used.
-// An empty CineonLUT is not an error and returns true.
+// Standard Cineon, normalized 10-bit codes, black=95 and white=685.
+// Signed encoding is used for NamiColor; Density retains its zero floor.
+double encodeFilmCineon(double linear01, double referenceWhite,
+                        bool preserveSigned);
+double decodeFilmCineon(double code, double referenceWhite);
+
+// Converts linear working RGB to the chosen LUT primaries and input transfer,
+// evaluates a .cube, then returns its decoded output to linear working RGB.
+// Returns false on a LUT contract failure. An empty LUT is a no-op.
 bool applyCineonPrintLut(Imagefloat *img,
                          const procparams::FilmNegativeParams &params,
                          const procparams::ColorManagementParams &icm,

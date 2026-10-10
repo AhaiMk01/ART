@@ -11,6 +11,7 @@ not a substitute curve. Source points are sorted by increasing x.
 
 import json
 import math
+import re
 from pathlib import Path
 
 import pytest
@@ -139,11 +140,32 @@ def test_ilford_channel_curves_are_identity_and_do_not_desaturate():
     assert out[1] != pytest.approx(out[2])
 
 
-def test_generated_table_matches_the_vendored_first_point():
-    inc = (
-        Path(__file__).resolve().parents[3] / "src" / "engine" / "papercurves.inc"
-    ).read_text(encoding="utf-8")
-    assert "k_ilford_mgfb_00_rgb_x" in inc
-    # First sorted x from the JSON, printed by the generator.
-    x0 = load("ilford_mgfb_00")["RGB"][0][0]
-    assert f"{x0:.12g}" in inc or f"{x0:.17g}" in inc
+def parse_vendored_table():
+    """{ident: {channel: [(x, y), ...]}} from the generated C++ table."""
+    inc = (Path(__file__).resolve().parents[3] / "src" / "engine" / "papercurves.inc").read_text(encoding="utf-8")
+    arrays = {}
+    pattern = r"static const double k_(\w+)_(rgb|r|g|b)_(x|y)\[\] = \{([^}]*)\};"
+    for ident, channel, axis, body in re.findall(pattern, inc):
+        arrays[(ident, channel, axis)] = [float(v) for v in body.split(",") if v.strip()]
+    table = {}
+    for (ident, channel, axis), values in arrays.items():
+        if axis == "x":
+            ys = arrays[(ident, channel, "y")]
+            assert len(ys) == len(values), (ident, channel)
+            table.setdefault(ident, {})[channel.upper()] = list(zip(values, ys, strict=True))
+    return table
+
+
+def test_the_whole_generated_table_matches_data_filmcurves():
+    table = parse_vendored_table()
+    shipped = {p.stem for p in CURVES.glob("*.json")}
+    assert set(table) == shipped
+    for ident in sorted(shipped):
+        expected = load(ident)
+        assert set(table[ident]) == {"RGB", "R", "G", "B"}, ident
+        for channel, points in expected.items():
+            got = table[ident][channel]
+            assert len(got) == len(points), (ident, channel)
+            for (gx, gy), (ex, ey) in zip(got, points, strict=True):
+                assert gx == pytest.approx(ex, abs=1e-12), (ident, channel)
+                assert gy == pytest.approx(ey, abs=1e-12), (ident, channel)

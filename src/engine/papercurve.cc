@@ -16,6 +16,8 @@ namespace art { namespace engine {
 
 #include "papercurves.inc"
 
+namespace {
+
 double interp(const double *x, const double *y, int n, double u)
 {
     if (n <= 0) {
@@ -56,6 +58,7 @@ double applyOne(double density, const double *x, const double *y, int n)
     return range * (1.0 - v);
 }
 
+} // namespace
 
 const PaperCurve *findPaperCurve(const Glib::ustring &id)
 {

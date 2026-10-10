@@ -1,67 +1,67 @@
 ---
 name: film-negative
-description: Invert a camera-scanned colour-negative roll or frame in ART with the density method (rebate, Dmax, reference white, then a print or Cineon handoff). Also a print curve, a Cineon TIFF, or an old power-law sidecar left unchanged.
+description: Convert camera-captured colour-negative frames or rolls in ART, with or without visible film base. Use shared capture conditions to estimate conversion, adapt individual scenes and assess the rendered result; also handle print rendering, Cineon handoff or existing power-law profiles.
 ---
 
-# Inverting colour negatives
+# Converting colour negatives
 
-Needs the `art-render` MCP server, and an ART build whose `art-cli` supports `sample_spots`. Formulas are in [reference.md](reference.md), section "Density method". Power-law sections there apply only when an old sidecar stays on `power_law`.
+Use the existing `art-render` tools. The aim is a coherent, plausible positive that preserves the recorded scene, not merely a recognizable inversion. Without capture/film characterization, describe colour recovery as an estimate and distinguish observations from assumptions.
 
-A new inversion sets `method: "density"`. A missing `Method` is `power_law`.
+For a new conversion, use NamiColor in a declared working RGB basis. Preserve existing Density or power-law conversions unless migration was requested. Keep source images and sidecars unchanged unless the user asks to save them. Consult "NamiColor and the processing basis" in [reference.md](reference.md) before selecting its controls.
 
-After every step, look. One frame: `render_preview(inline=true)`. A roll: `contact_sheet(images, record=false)` for a working look, and a recorded `contact_sheet(images, folder=<work folder>, label=...)` when the step changed the roll. The step is done when the picture matches its criterion. When it does not, move that step's own control and look again.
+## Establish usable evidence
 
-Edits stay in memory until `save_sidecar`. Previews and exports never write the sidecar. Write one only when asked.
+Understand the requested result, available profiles and capture conditions before choosing adjustments. A roll normally shares its digitization setup; individual frame exposure, placement and scene lighting can still differ. Separate evidence of a changed setup from ordinary scene variation.
 
-## One frame
+Confirm that previews arrive as viewable images before using them as evidence. Restore image delivery if a view cannot be inspected; a saved path or unreadable bytes are not a visual review. For ART image transport, consult "Viewing previews" in [reference.md](reference.md).
 
-1. **Known state.** `open_image`. `profile_from: "sidecar"` means old edits came along. `reset_profile(to="default")` before a new inversion. Done when the frame is open from the default profile, not from a leftover sidecar.
+Inspect each frame's orientation and picture boundaries before using its content for estimation. Derive geometry from that frame, not from another frame's position on the sensor. Verify the resulting positive's orientation, edges and corners at a readable size before treating its geometry as settled; preserve scene content when correcting borders. For coordinate mapping and ART-specific constraints, consult "Per-frame geometry" in [reference.md](reference.md).
 
-2. **Linearize and invert.** One `edit_profile`:
-   - `exposure` `{enabled: false, hl_recovery: "Off"}` in the same request.
-   - `tone_curve` `{mode: "Standard", histogram_matching: false, curve1: {type: "linear"}, curve2: {type: "linear"}}`. These curves stay linear. They are not the black or the white.
-   - `sharpening` `{enabled: false}`.
-   - `film_negative` `{enabled: true, method: "density", film_type: "negative", color_space: "working", input_gamma: 1, density_gamma: 1, density_dmax: 2.5, channel_gamma: [1, 1, 1], matrix_preset: "identity", target_mode: "linear"}`.
-   - `raw_edits`: `[RAW Bayer] Method=amaze`, `[RAW] CAEnabled=false`. The input profile is the camera profile for the scan light; working profile `Rec2020` unless the ask names another. `sample_spots` uses `space="working"`.
-   Done when `get_profile(groups=["Film Negative"])` shows `Method=density`, the preview is a positive, and the tool result has no film-negative error. An orange negative means the contract failed: read the error and fix that control. The uninverted scan is not a picture to grade.
+Establish input colour management and the working RGB basis before inversion; camera profiles are approximations when capture characterization is unavailable. Save a viewable initial positive without a print LUT or endpoint stretch. ART's default raw profile turns on the tone curve's histogram matching, which fits a curve to the camera's embedded preview of the negative: set `tone_curve.histogram_matching` false before judging the positive. Keep the diagnostic viewing response consistent during fitting. The basis is settled when its settings and processing order are known and the actual preview is usable, not when the image merely becomes recognizable.
 
-3. **Crop the holder.** Measure the border with `sample_spots` along each side, then `crop` `{enabled: true, fixed_ratio: false, x, y, w, h}` inside the jumps, leaving rebate in frame so it can be sampled. Coordinates are frame pixels (`x = px * frame_width / preview_width` on an uncropped preview). Done when the preview has no holder and no picture cut off.
+## Estimate jointly, reason from the result
 
-4. **Clear end.** Sample unexposed rebate (the gap between frames), before inversion. One `edit_profile` with `film_base_sample` set to that spot's `avg`. Send the sample, not `rgb_gains`. Done when the result sets all three `RGBGains` and the rebate is black in all three channels, while picture shadows are still separated from it. A refused pick (a gain outside -3..3, or a bad sample) changes nothing: report it and stop that frame. Reversal has no rebate pick.
+Choose complementary representative frames and keep other frames for checking transfer. Use the shared setup to constrain common conversion parameters; treat capture-exposure differences separately from original-scene exposure and illumination. Consult "Capture exposure normalization" in [reference.md](reference.md) when those differences matter.
 
-5. **Dense end.** `density_dmax` is `-log10(T)` of a fully exposed patch of this roll, or the stock value `2.5` when no such patch exists. `T` is the patch's `sample_spots` average divided by 65535. A lamp or the darkest pixel of a normal frame is not that patch. Done when subject highlights are open and a specular is brighter than the subject white.
+Use image content and samples together. Inspect the full sampling footprint at readable size and keep it inside the intended material, clear of dust, text, edges and reflections. A plausible neutral, dark object or diffuse highlight is a candidate constraint whose confidence depends on the scene, not a known reflectance. A credible film-base patch is optional evidence; its absence does not block estimation. Reference-poor frames can inherit a supported shared conversion with appropriately lower confidence.
 
-6. **Reference white.** A diffuse white (paint, paper, concrete), not a lamp or a specular. Compute its post-inversion linear value with the Density method formula in [reference.md](reference.md) and set `cineon_reference_white` to it. No such patch: leave `1`. Done when that white, not a specular, is the anchor. Linear `1` encodes to Cineon 685; the rebate at `1e-4` encodes to 95.
+Before assigning black or white endpoints, inspect luminance from the ungraded positive. Use it to find dark regions with interpretable material and retained structure, then check their RGB and pre-inversion samples in the declared basis. Keep candidate near-black scene content distinct from measured film Dmin. Consult "Luminance and endpoint evidence" in [reference.md](reference.md); proceed with endpoint estimates only when their evidence and uncertainty are explicit.
 
-7. **Matrix.** `identity` unless a calibration measured in this basis is in hand. A custom matrix needs `matrix_preset: "custom"`, nine coefficients, and `matrix_basis` (`v`, `color_space`, `profile`, `input_gamma`, `source` from `inspect_image`, and `content` when the profile file has one). A mismatch fails the render. Status M is DiVERE's empirical reference, not a measurement of this scan: select it only when the ask names it, bind `matrix_basis`, and say so. Done when a residual orange mask is either gone or reported as unmeasured. Rebind if the profile changes.
+Balance credible bright and dark candidates jointly. A white-only alignment can leave shadow colour separation; use independent materials and reserved frames to test the relative channel slopes. Keep a declared anchor stable when changing common contrast or relative slopes, and judge the actual renders rather than parameter magnitude. Consult "Estimation without film base" and the selected method's equations in [reference.md](reference.md).
 
-## A roll
+Iterate from an observed problem:
+- State what is wrong in the rendered image and where it occurs.
+- Distinguish geometry, capture limitations, shared conversion, scene lighting and final presentation as possible causes.
+- Choose a comparison that separates the plausible explanations. Change only what that comparison needs, keep the viewing basis comparable and account for coupled parameter changes.
+- Read back the applied settings and inspect the actual images. Judge improvement and regressions across tonal levels and other scenes, not one favourable patch or statistic.
+- Retain the simplest explanation supported by transfer; revise the hypothesis when the comparison contradicts it.
 
-Do each shared thing once, on a representative, then spread it. Per-frame values go in one `edit_profile(items=[...])`. The same value for many frames is `paths=[...]`. Measure with one `image_stats(paths=[...], detail="compact")` or one contact sheet, then one items call, then look again.
+For persistent highlight/shadow colour separation, consult "Refitting slopes and diagnosing crossover" in [reference.md](reference.md). Calculations support a comparison; they do not establish visual quality or the original scene's true colour. When the evidence cannot distinguish input characterization, conversion error and scene illumination, retain that uncertainty rather than grading it away.
 
-`inspect_images` runs only after `open_image` has returned. Read every frame's `shutter_seconds`, `iso`, and `aperture`. Those are the scanning camera's. The same values mean one scan setup, not one scene light. A null aperture uses shutter and ISO only.
+An optional digital mask can mix NamiColor's effective input densities before channel alignment. Start from Identity; introduce a Custom matrix only when evidence supports colour coupling beyond relative slopes, then refit alignment and check reserved materials and frames. Bind it to the actual processing space, profile, input transfer and source, and record capture/calibration limits. The fixed density pivot 0.7 is numerical, not measured Dmin; Status M reference rows are uncalibrated, not a universal mask. Consult "Optional NamiColor digital mask" in [reference.md](reference.md).
 
-0. **Open.** `open_image(paths=[...])`, 10 to 15 frames a call. Reset any frame whose `profile_from` is `sidecar`. Done when every frame is open from the default profile.
+## Processing order and domains
 
-1. **Representative.** One frame per scan-exposure group, with visible rebate, a diffuse white, real shadow and highlight, and not only lamps. A flat frame is a bad representative. Run "One frame" on it, looking after each step. Record `contact_sheet(..., label=identity)` after the first positive, and `label=ends` after the rebate, Dmax, and reference white.
+Correct a negative's defects before inversion, a positive's after it. Lens-profile vignetting (lensfun, LCP, EXIF; raw only) and a raw flat-field act before inversion and are the right correction. The manual Vignetting Correction tool acts on the inverted positive and is wrong for negatives (see "Processing order and domains" in [reference.md](reference.md)); scans have no pre-inversion vignetting path. Denoise runs before inversion by default on new profiles (`denoise_before_inversion`); sidecars below version 1059 keep the old order; strength settings need retuning after switching order (check a 1:1 crop of the darkest positive areas). Veiling light (`flare`, density and NamiColor only) is an estimate, never a measurement. Grading order: scene-linear gains (exposure, white balance) and printer-light offsets are domain-independent; non-linear tools before the print LUT are looks; the print LUT or paper curve is the tone curve.
 
-2. **Preset.** `save_partial_profile(path, dest="<roll>.arp", vs="default", exclude=["Coarse Transformation", "Crop"])`. `vs="default"` writes every key that differs from ART's default, so the base settings travel with it. When scan exposures differ, also exclude `Film Negative/RGBGains` and re-pick the rebate per exposure group. Read the returned `keys`. Done when the file holds `Method=density`, the matrix, `Dmax`, and the linear curves, and does not hold the representative's rotation or crop.
+## Adapt scenes and finish the positive
 
-3. **The other frames.** `apply_preset(paths=[...], profile="<roll>.arp")` in one call. Then, per frame and in one `items` call where the values differ: rotation (look first), crop (one common crop when the holder barely moves; look that no frame keeps a holder or loses picture), a rebate pick when that frame's scan exposure differs, and a reference white when its diffuse white disagrees with the representative. Scene light does not refit the inversion. Done when a recorded contact sheet shows every frame inverted, rebate black, and holder gone. `compare_passes` against the identity pass for any frame that still looks like the orange scan or a flat grey.
+Separate shared conversion from scene-specific exposure and illumination. Preserve genuine warm light, cool shadows and low-key scenes rather than forcing every frame to the same histogram or neutral appearance.
 
-4. **Grade only the view.** A print ask: `target_mode: "paper"`, a `paper_curve` (Kodak 2383, 2393, Ektacolor Edge, Endura Premier, Portra, Supra, Ultra Endura, Ilford MGFB 00 and 0 through 5), and `paper_basis` as `working|<profile>` or `input|<profile>`. Ilford curves stay shared RGB. Look at a `label=print` sheet and change the curve id, not the rebate. No print ask: leave `target_mode: "linear"`. A Cineon print LUT is `cineon_lut` plus `cineon_lut_sha256` of those bytes, and not `paper` at the same time. `output_black_offset` (0 to 0.05) applies after a LUT is decoded.
+For a new scene-referred conversion, place scene adjustments before the print response. Confirm the retained profile's LUT position before editing: older conversions can deliberately keep their original order. Changing that order is a separate comparison, not a reason to refit the inversion.
 
-5. **Handoff, only when asked.** A DI handoff is `target_mode: "cineon"`, no print LUT, and `export_image` / `export_batch` as 16-bit integer TIFF. JPEG and PNG do not encode. `cineon_primaries` empty means the working profile. To keep each frame's settings beside an export, `write_profile: true, profile_name: "source"`. The image's own sidecar is never written. Export 10 to 15 frames a call when the client timeout is short.
+Assess final presentation separately from the initial inversion. Freeze the supported conversion while comparing display contrast or a requested print response. Judge shadow detail, midtone separation, highlight gradation and colour changes; a stronger curve is not automatically better. Cineon codes follow one convention: 95 is linear zero and 685 is 90% diffuse white (`cineon_reference_white` 0.9 on new profiles; 1 on sidecars below version 1058 without the key; 18% grey encodes near 480.8, a check and not 470 as an anchor). Do not mix three things: the encoding convention (constants and W), endpoint estimation from this picture (black, gain, shift, FitBase, using `sample_spots` on evidence that excludes rebate, off-film areas, dust, speculars, emitters and unfounded neutrals, never raw minimum or maximum), and aesthetic grading. Without a film base and calibration, make no absolute density claim. For Cineon handoff, the Dmin-to-95 and white-to-685 recipe, or print LUTs, consult "Cineon handoff and print LUTs" in [reference.md](reference.md) before changing the viewing path.
 
-## An old sidecar
+Before using a print LUT, write its contract (file, sha256, size/domain, input and output transfer and primaries, white point, stage, W), tagging each item DOCUMENTED with its source, VERIFIED with its evidence, or ASSUMED; done when no item is untagged and an identity-cube render separates conversion error from the print look. Follow "LUT contract procedure" in [reference.md](reference.md). The record lives in your evidence notes, not in the sidecar.
 
-`Method` missing or `power_law`, and the ask is not a new inversion: leave the method. The ratio fit, `ref_input`, and `ref_output` are in [reference.md](reference.md), "Power-law". Those spots are not density gains. Converting that sidecar is a new inversion: reset to default and start at "One frame".
+Review the roll for continuity and each frame for its own defects. Use enlarged views where a contact sheet cannot answer the question. Correct visible, actionable problems before delivery; explain actual evidence limits rather than treating unfinished work as uncertainty.
 
-## Pitfalls
+## Verify and hand off
 
-- `sample_spots` reads the negative, before inversion, in frame pixels. It ignores the crop origin. A cropped preview: `x = crop.x + px * crop.w / preview_w`.
-- `image_stats` and the preview are an 8-bit view. They can show a coloured rebate or a clipped lamp. They cannot show linear `1e-4`. The pick result is the measurement.
-- `image_stats` before the crop counts the holder.
-- A whole `get_profile` is about 15k tokens. Ask for `groups: ["Film Negative", "Crop", "Color Management", "ToneCurve"]`.
-- `film_base_sample` applies only to density, negative, with a bound matrix or identity. A mismatched basis fails the render.
-- `input_gamma` stays 1 on RAW and on a profiled scan. Any other value fails the render and leaves the scan uninverted.
+Use the existing tools to render, compare, sample and inspect relevant profile groups. Read current adjustment contracts when needed. Four different things can be observed and must be labelled with their stage: `sample_spots` `stage` source (pre-inversion, camera or working space), `converted` (recovered linear working-space RGB, 0..65535, before LUT/exposure/grading) and `cineon` (those pixels as Cineon codes with W); `image_stats` `stage` converted / cineon (Render: per-channel statistics and histograms of the same data) or display (8-bit rendered output, never a Cineon scope). See reference.md, "Observing each stage". A tool success or statistic alone does not replace inspection of the pictures. Keep calculations task-local; the workflow does not require new helper or mechanical acceptance scripts.
+
+Match exports and saved profiles to the user's requested handoff. `export_image` with `write_profile` names the profile `<output>.arp` (`IMG.jpg.arp`); `profile_name: "source"` names it as ART's sidecar for the image instead. Keep shared conversion separate from per-frame geometry and scene adjustments in reusable presets. Reload saved settings on representative or unusually adjusted frames and compare geometry, colour and tone under comparable viewing conditions. Deliver the requested display image as well as any intermediate, and state which operations its saved profile can reproduce. If processing fails, retain the error and distinguish any explicitly identified intermediate-based comparison from an ART re-render.
+
+For an unprinted intermediate, preserve and declare its processing basis. Distinguish the stored numerical range from its display rendering; use the handoff contract in [reference.md](reference.md) rather than inferring preservation from a floating-point file extension.
+
+Report what was compared, why the chosen conversion was retained, the exact output paths and what remains uncertain. Confirm source preservation. Treat measured calibration, scene-based endpoint estimates and aesthetic presentation as separate claims.

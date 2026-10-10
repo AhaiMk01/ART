@@ -251,7 +251,10 @@ public:
                              art::engine::Imagefloat *output,
                              const procparams::FilmNegativeParams &params,
                              bool rawSource, const Glib::ustring &sourceId);
-    /// True after a density contract failure in the last filmNegativeProcess.
+    /// Apply the film LUT only at its selected stage in linear working RGB.
+    bool filmNegativeApplyLut(Imagefloat *img,
+                             FilmNegativeParams::CineonLUTStage stage);
+    /// True after a film conversion or LUT contract failure.
     bool filmNegativeContractFailed() const { return filmNegContractFailed; }
 
 private:
@@ -313,6 +316,7 @@ private:
     bool needsLCP();
     bool needsLensfun();
     bool needsDCPProfile();
+    bool filmNegativeApplyLutAfterGrade(Imagefloat *img);
 
     template <class Ret, class Method>
     Ret apply(const char *name, Method op, Imagefloat *img, bool can_skip_sync);
@@ -337,5 +341,15 @@ SpotStatus sampleSpots(ImProcFunctions &ipf, ImageSource *imgsrc,
                        const ColorTemp &currWB, const ProcParams &params,
                        int fw, int fh, const SpotRequest &req,
                        SpotResult &res);
+
+/**
+ * Whole-image statistics (art-cli -X), implemented in filmnegativeproc.cc.
+ * `img` is the full frame at the CONVERTED tap (see SpotStage). Crops (when
+ * enabled in params), selects the optional region, box-averages in linear
+ * light, encodes for CINEON and fills res. false with res.error set on
+ * failure.
+ */
+bool filmStageStats(Imagefloat *img, const ProcParams &params,
+                    const StageStatsRequest &req, StageStatsResult &res);
 
 }} // namespace art::engine

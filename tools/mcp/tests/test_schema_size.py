@@ -27,12 +27,15 @@ pytestmark = pytest.mark.anyio
 
 EDIT_PROFILE_CEILING = 20_000
 """edit_profile's input schema in characters (compact JSON): 29,984 before it
-was compacted, about 16,600 now. The bound leaves room for a few more fields
-and fails if the schema grows back."""
+was compacted. The ~40 typed film_negative fields (density, NamiColor, print LUT,
+preserve_range) pushed it past 23,000; their descriptions were trimmed, with the
+detail moved to the film-negative skill, to fit back under the bound. Shrink the
+schema rather than raise the bound."""
 TOTAL_CEILING = {"render": 25_000, "live": 22_000}
-"""All of a server's input schemas together, as a client is told them (Render about 23,400 now, Live
-20,400; 26,300 and 22,200 before the titles and null defaults were dropped from every tool's schema).
-Raise it deliberately for an option worth its characters; the bound is there to stop silent growth."""
+"""All of a server's input schemas together, as a client is told them (26,300 and 22,200
+before the titles and null defaults were dropped from every tool's schema; the typed
+film_negative fields were trimmed to fit again). Raise it deliberately for an option worth
+its characters; the bound is there to stop silent growth."""
 OUTPUT_CEILING = {"render": 20_000, "live": 15_000}
 """All of a server's output schemas together: a client loads these as often as the input schemas
 (about 19,600 and 14,500 now, from 25,100 and 18,700)."""
