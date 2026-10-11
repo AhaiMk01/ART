@@ -1223,6 +1223,20 @@ void calcautodn_info(const ProcParams *params, float &chaut, float &delta,
         reducdelta = static_cast<float>(0.9 /*settings->nrhigh*/);
     }
 
+    // SAFETY GUARD to avoid crashing
+    if (Nb <= 1) {
+        if (settings->verbose) {
+            std::cerr << "WARNING: calcautodn_info got Nb=" << Nb
+                      << " (expected > 1); skipping auto-chrominance "
+                         "adjustment for this crop to avoid propagating a "
+                         "bogus value."
+                      << std::endl;
+        }
+        chaut = 0.f;
+        delta = 0.f;
+        return;
+    }
+
     chaut =
         (chaut * Nb - maxmax) / (Nb - 1); // suppress maximum for chaut calcul
 
@@ -2384,6 +2398,25 @@ void computeParamsReduce(const CropAnalysisJob &j,
     j.store->chrominanceRedGreen = maxr;
     j.store->chrominanceBlueYellow = maxb;
 
+    // SAFETY GUARD to avoid crashing on bad data
+    const auto sanitize = [](const char *name, double &v, double lo,
+                             double hi) {
+        if (!std::isfinite(v) || v < lo || v > hi) {
+            std::cerr << "WARNING: denoise auto-chrominance produced an "
+                         "out-of-range "
+                      << name << " = " << v << " (expected [" << lo << ", "
+                      << hi << "]); clamping to avoid propagating a bogus "
+                         "value into the denoise pass."
+                      << std::endl;
+            v = min(max(v, lo), hi);
+        }
+    };
+    sanitize("chrominance", j.store->chrominance, 0.f, 10000.f);
+    sanitize("chrominanceRedGreen", j.store->chrominanceRedGreen, -10000.f,
+             10000.f);
+    sanitize("chrominanceBlueYellow", j.store->chrominanceBlueYellow,
+             -10000.f, 10000.f);
+
     dnparams.chrominance =
         j.store->chrominance * dnparams.chrominanceAutoFactor;
     dnparams.chrominanceRedGreen =
@@ -2471,22 +2504,41 @@ void ImProcFunctions::denoiseComputeParams(ImageSource *imgsrc,
      * at a fixed +log2(5) stops. */
     job.info_expcomp = std::log(5.f) / std::log(2.f);
 
-    {
-        MyTime t1p, t2p;
-        t1p.set();
-        bool onGPU = denoise::computeParamsGPU(job);
-        if (!onGPU) {
-            denoise::computeParamsCPU(job);
+    // SAFETY GUARD to avoid crashing on bad data
+    try {
+        {
+            MyTime t1p, t2p;
+            t1p.set();
+            bool onGPU = denoise::computeParamsGPU(job);
+            if (!onGPU) {
+                denoise::computeParamsCPU(job);
+            }
+            if (settings->verbose) {
+                t2p.set();
+                std::cout << "denoiseComputeParams: executed on the "
+                          << (onGPU ? "GPU" : "CPU") << " in "
+                          << t2p.etime(t1p) << " usec" << std::endl;
+            }
         }
-        if (settings->verbose) {
-            t2p.set();
-            std::cout << "denoiseComputeParams: executed on the "
-                      << (onGPU ? "GPU" : "CPU") << " in "
-                      << t2p.etime(t1p) << " usec" << std::endl;
-        }
-    }
 
-    denoise::computeParamsReduce(job, dnparams);
+        denoise::computeParamsReduce(job, dnparams);
+    } catch (const std::exception &exc) {
+        std::cerr << "ERROR: denoiseComputeParams caught an exception -- "
+                     "auto-chrominance analysis aborted, keeping previous "
+                     "denoise params instead of crashing. what(): "
+                  << exc.what() << "\n"
+                  << "  image size: " << widIm << "x" << heiIm
+                  << ", crop size: " << job.crW << "x" << job.crH
+                  << ", coordW: [" << job.coordW[0] << ", " << job.coordW[1]
+                  << ", " << job.coordW[2] << "], coordH: [" << job.coordH[0]
+                  << ", " << job.coordH[1] << ", " << job.coordH[2] << "]\n"
+                  << "  per-crop Nb: [" << job.Nb[0] << ", " << job.Nb[1]
+                  << ", " << job.Nb[2] << ", " << job.Nb[3] << ", "
+                  << job.Nb[4] << ", " << job.Nb[5] << ", " << job.Nb[6]
+                  << ", " << job.Nb[7] << ", " << job.Nb[8] << "]"
+                  << std::endl;
+        store.reset();
+    }
 
     if (settings->verbose) {
         t2aue.set();
@@ -2526,17 +2578,34 @@ void ImProcFunctions::denoise(ImageSource *imgsrc, const ColorTemp &currWB,
         expcomp(img, &expparams);
     }
 
-    {
-        ART_PROFILE_SCOPE("denoise:rgb_denoise");
-        denoise::RGB_denoise(im, img, denoiseParams);
-    }
+    // SAFETY GUARD to avoid crashing on bad data
+    try {
+        {
+            ART_PROFILE_SCOPE("denoise:rgb_denoise");
+            denoise::RGB_denoise(im, img, denoiseParams);
+        }
 
-    if (plistener) {
-        plistener->setProgress(0.8);
-    }
+        if (plistener) {
+            plistener->setProgress(0.8);
+        }
 
-    if (denoiseParams.smoothingEnabled) {
-        denoise::finalSmoothing(im, img, denoiseParams);
+        if (denoiseParams.smoothingEnabled) {
+            denoise::finalSmoothing(im, img, denoiseParams);
+        }
+    } catch (const std::exception &exc) {
+        std::cerr << "ERROR: ImProcFunctions::denoise caught an exception -- "
+                     "denoise pass aborted for this image, output may be "
+                     "partially denoised. what(): "
+                  << exc.what() << "\n"
+                  << "  image size: " << img->getWidth() << "x"
+                  << img->getHeight() << ", scale: " << scale
+                  << ", multiThread: " << multiThread
+                  << ", chrominance: " << denoiseParams.chrominance
+                  << ", chrominanceRedGreen: "
+                  << denoiseParams.chrominanceRedGreen
+                  << ", chrominanceBlueYellow: "
+                  << denoiseParams.chrominanceBlueYellow
+                  << ", luminance: " << denoiseParams.luminance << std::endl;
     }
 
     if (ecomp > 0) {
