@@ -1236,17 +1236,100 @@ void Inspector::popover(const ThumbBrowserEntryBase *entry)
     art::engine::TempVarSetter<art::engine::Settings::ThumbnailInspectorMode> setmode(options.rtSettings.thumbnail_inspector_mode, art::engine::Settings::ThumbnailInspectorMode::JPEG);
     art::engine::TempVarSetter<art::engine::Settings::ThumbnailInspectorRawCurve> setcurve(options.rtSettings.thumbnail_inspector_raw_curve);
 
-    int bb = std::min(toph, topw) * (float(options.quick_inspect_popup_size_percent)/100.f);
+    // fit the image into the window area scaled by the preference (using the
+    // shorter window side for the longer image side made landscape images
+    // much smaller than portrait ones), but never larger than the room that
+    // is available in the toplevel window next to the thumbnail
+    const float pct = float(options.quick_inspect_popup_size_percent) / 100.f;
+    const float maxw = topw * pct, maxh = toph * pct;
+
     int tw, th;
     entry->thumbnail->getOriginalSize(tw, th, true);
-    float ratio = float(tw)/float(th);
-    int ah = bb;
-    int aw = ah * ratio + 0.5f;
-    if (ratio > 1.f) {
-        aw = bb;
-        ah = aw / ratio + 0.5f;
+    const float ratio = th > 0 ? float(tw) / float(th) : 1.f;
+    const auto fit = [&](float bw, float bh, int &fw, int &fh) {
+        bw = std::max(bw, 1.f);
+        bh = std::max(bh, 1.f);
+        fw = bw;
+        fh = fw / ratio + 0.5f;
+        if (fh > bh) {
+            fh = bh;
+            fw = fh * ratio + 0.5f;
+        }
+        fw = std::max(fw, 1);
+        fh = std::max(fh, 1);
+    };
+
+    int aw, ah;
+    fit(maxw, maxh, aw, ah);
+
+    // A popover is constrained to the toplevel window, and may be placed on
+    // any side of the thumbnail: pick the side with the most room and size
+    // the image to what fits there.
+    {
+        // measure the space the popover itself adds around its content
+        // (border, padding, shadow), plus an allowance for the arrow gap that
+        // GTK puts between the popover and the thumbnail
+        int chrome_w = 48, chrome_h = 48;
+        {
+            Gtk::Popover probe(*w);
+            Gtk::Box content;
+            content.set_size_request(100, 100);
+            probe.add(content);
+            content.show();
+            int mw = 0, nw = 0, mh = 0, nh = 0;
+            probe.get_preferred_width(mw, nw);
+            probe.get_preferred_height(mh, nh);
+            chrome_w = std::max(nw - 100, 0) + 24;
+            chrome_h = std::max(nh - 100, 0) + 24;
+        }
+        int tx = 0, ty = 0;
+        if (const_cast<ThumbBrowserBase *>(w)->translate_coordinates(
+                top, entry->getX(), entry->getY(), tx, ty)) {
+            // the thumbnail may be partly scrolled out of view: only the
+            // visible part counts
+            const int x0 = std::max(tx, 0), y0 = std::max(ty, 0);
+            const int x1 = std::min(tx + entry->getEffectiveWidth(), topw);
+            const int y1 = std::min(ty + entry->getEffectiveHeight(), toph);
+            const float AW = topw - chrome_w;
+            const float AH = toph - chrome_h;
+            // when the popover goes beside the thumbnail it also needs the
+            // arrow gap along that axis, which is part of chrome_*
+            const float left = x0 - chrome_w;
+            const float right = topw - x1 - chrome_w;
+            const float above = y0 - chrome_h;
+            const float below = toph - y1 - chrome_h;
+
+            struct Cand {
+                Gtk::PositionType pos;
+                float w, h;
+            };
+            const Cand cands[] = {
+                { Gtk::POS_RIGHT, right, AH },
+                { Gtk::POS_LEFT, left, AH },
+                { Gtk::POS_BOTTOM, AW, below },
+                { Gtk::POS_TOP, AW, above },
+            };
+            long best = -1;
+            for (auto &c : cands) {
+                if (c.w < 1 || c.h < 1) {
+                    continue;
+                }
+                int fw, fh;
+                fit(std::min(maxw, c.w), std::min(maxh, c.h), fw, fh);
+                if (long(fw) * fh > best) {
+                    best = long(fw) * fh;
+                    aw = fw;
+                    ah = fh;
+                    p.set_position(c.pos);
+                }
+            }
+        } else {
+            // unknown geometry: at least fit in the window
+            fit(std::min(maxw, float(topw - chrome_w)),
+                std::min(maxh, float(toph - chrome_h)), aw, ah);
+        }
     }
-    
+
     InspectorArea a;
     a.setActive(true);
     a.setInfoText("");
