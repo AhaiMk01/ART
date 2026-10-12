@@ -30,6 +30,7 @@ from art_mcp.sampling import (
     check_stats_detail,
     check_stats_paths,
     image_stats,
+    plan_runs,
     spot_runs,
 )
 
@@ -482,8 +483,8 @@ async def test_render_sample_spots_runs_x_without_an_output_file(render, image):
         "width": 6000, "height": 4000, "space": "working", "size": 8,
         "stage": "source", "unit": "linear_65535",
         "spots": [
-            {"x": 10, "y": 20, "avg": [10, 20, 8], "max": [11, 21, 9]},
-            {"x": 5999, "y": 3999, "avg": [5999, 3999, 8], "max": [6000, 4000, 9]},
+            {"x": 10, "y": 20, "size": 8, "avg": [10, 20, 8], "max": [11, 21, 9]},
+            {"x": 5999, "y": 3999, "size": 8, "avg": [5999, 3999, 8], "max": [6000, 4000, 9]},
         ],
     }  # fmt: skip
     [call] = [a for a in logged(log) if "-x" in a]
@@ -1147,7 +1148,7 @@ async def test_live_sample_spots_sends_the_op_and_returns_its_result(art, tmp_pa
     assert not result.is_error, result.content
     assert result.structured_content == {
         "width": 6000, "height": 4000, "space": "input", "size": 16,
-        "stage": "source", "unit": "linear_65535", "spots": [values],
+        "stage": "source", "unit": "linear_65535", "spots": [{**values, "size": 16}],
     }  # fmt: skip
     [req] = requests(art, "sample_spots")
     assert req["args"] == {"path": photo, "spots": [[7, 9]], "size": 16, "space": "input"}
@@ -1837,3 +1838,68 @@ async def test_histogram_chart_batch_skips_errors_and_obeys_region_and_band(rend
         assert chart.getpixel((x, 126))[2] > 200
         # Its luma must also peak at 200, not at the unfiltered lamp value 255.
         assert min(chart.getpixel((x, 348))) > 200
+
+
+# -- a size per spot -------------------------------------------------------------
+
+
+def test_plan_runs_group_spots_by_size_in_order_of_first_appearance():
+    assert plan_runs([8, 32, 8, 32, 8]) == [(8, [0, 2, 4]), (32, [1, 3])]
+    assert plan_runs([32] * 17) == [(32, list(range(16))), (32, [16])]
+    assert plan_runs([]) == []
+
+
+def test_check_spots_checks_each_spots_own_size():
+    with pytest.raises(RuntimeError, match="spot 2: size must be 2 to 256, not 300"):
+        check_spots([(1, 1), (2, 2)], 32, "working", None, spot_error, sizes=[None, 300])
+    check_spots([(1, 1), (2, 2)], 32, "working", None, spot_error, sizes=[None, 256])
+
+
+async def test_render_sample_spots_one_run_per_size_and_results_in_request_order(render, image):
+    server, log = render
+    spots = [
+        {"x": 10, "y": 1}, {"x": 20, "y": 2, "size": 8}, {"x": 30, "y": 3, "size": 64}, {"x": 40, "y": 4, "size": 8}
+    ]
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await client.call_tool("sample_spots", {"path": str(image), "spots": spots, "size": 16})
+
+    assert not result.is_error, result.content
+    runs = [a[a.index("-x") + 1].split(",") for a in logged(log) if "-x" in a]
+    assert sorted((r[0], tuple(r[2:])) for r in runs) == [
+        ("16", ("10", "1")), ("64", ("30", "3")), ("8", ("20", "2", "40", "4"))
+    ]  # fmt: skip
+    got = result.structured_content
+    assert got["size"] == 16
+    assert [(s["x"], s["size"], s["avg"][2]) for s in got["spots"]] == [
+        (10, 16, 16), (20, 8, 8), (30, 64, 64), (40, 8, 8)
+    ]  # fmt: skip
+
+
+async def test_render_sample_spots_a_spots_size_out_of_range_is_refused(render, image):
+    server, log = render
+    async with Client(server) as client:
+        await client.call_tool("open_image", {"path": str(image)})
+        result = await client.call_tool(
+            "sample_spots", {"path": str(image), "spots": [{"x": 1, "y": 1}, {"x": 2, "y": 2, "size": 1}]}
+        )
+
+    assert result.is_error and "out_of_range" in result.content[0].text and "spot 2" in result.content[0].text
+    assert not [a for a in logged(log) if "-x" in a]  # nothing was sampled
+
+
+async def test_live_sample_spots_one_request_per_size_and_results_in_request_order(art, tmp_path):
+    photo = str(tmp_path / "a.ARW")
+    FakeEditor(art).add(photo, EDITOR_PROFILE)
+    art.ops["sample_spots"] = echo_spots
+    spots = [{"x": 1, "y": 1}, {"x": 2, "y": 2, "size": 100}, {"x": 3, "y": 3}]
+
+    async with Client(build_live(ControlChannel(art.config_dir))) as client:
+        result = await client.call_tool("sample_spots", {"path": photo, "spots": spots, "size": 8})
+
+    assert not result.is_error, result.content
+    asked = requests(art, "sample_spots")
+    assert [(r["args"]["size"], r["args"]["spots"]) for r in asked] == [(8, [[1, 1], [3, 3]]), (100, [[2, 2]])]
+    assert [(s["x"], s["size"], s["avg"][2]) for s in result.structured_content["spots"]] == [
+        (1, 8, 8), (2, 100, 100), (3, 8, 8)
+    ]  # fmt: skip

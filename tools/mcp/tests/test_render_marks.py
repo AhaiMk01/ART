@@ -1,4 +1,4 @@
-"""Marks on the Render server's previews: render_preview(marks=...) and suggest_neutrals(preview=true), against
+"""Marks on the Render server's previews: render_preview(marks=...), against
 the fake art-cli with decodable JPEGs (FAKE_REAL_JPEG: the fake 6000 x 4000 frame, clamped to the crop and fitted
 into the resize box, in one flat colour)."""
 
@@ -12,9 +12,7 @@ import pytest
 from mcp.client.client import Client
 from PIL import Image
 from test_marks import square
-from test_neutrals import patch_of, scene
 
-import art_mcp.render.neutrals_ops as neutrals_ops
 from art_mcp.marks import Mark
 from art_mcp.preview import PreviewFolder
 from art_mcp.render.artcli import ArtCli, Rect
@@ -199,7 +197,7 @@ async def test_a_preview_without_marks_is_what_it_was(server, image):
         empty = await marked(client, image, [], max_size=600)
 
     for result in (plain, empty):
-        assert set(result.data) == {"path", "max_size"}
+        assert set(result.data) == {"path", "max_size", "width", "height", "shown"}
         assert result.picture.getpixel((300, 200)) == result.picture.getpixel((0, 0))  # the fake's flat colour
     assert plain.bytes == empty.bytes
 
@@ -225,7 +223,7 @@ async def test_marks_out_of_range_are_refused_before_anything_is_rendered(server
     assert renders(log) == []
 
 
-async def test_suggest_neutrals_candidates_can_be_given_as_marks_unchanged(server, image):
+async def test_extra_fields_of_a_mark_are_ignored(server, image):
     candidate = {"x": 3000, "y": 2000, "level": 120, "saturation": 0.01, "flatness": 0.02, "why": "flat, neutral"}
     async with Client(server) as client:
         await prepare(client, image)
@@ -279,7 +277,7 @@ async def test_the_description_says_what_marks_are_in_generic_words(server):
 
     tool = tools["render_preview"]
     text = " ".join(tool.description.split())
-    for needle in ("marks", "FRAME-pixel", "sample_spots", "suggest_neutrals", "label", "1..n", "64", "out_of_range"):
+    for needle in ("marks", "FRAME-pixel", "sample_spots", "label", "1..n", "64", "out_of_range"):
         assert needle in text, needle
     mark = tool.input_schema["$defs"]["Mark"]
     assert set(mark["properties"]) == {"x", "y", "size", "label"} and mark["required"] == ["x", "y"]
@@ -288,125 +286,120 @@ async def test_the_description_says_what_marks_are_in_generic_words(server):
         assert word not in wording, word
 
 
-# -- suggest_neutrals(preview=true) ----------------------------------------------
+# -- the mapping a preview returns (width, height, shown) -----------------------
 
 
-@pytest.fixture
-def greys(tmp_path, monkeypatch):
-    """The 600 x 400 rendering the fake art-cli returns for the analysis (test_neutrals.scene)."""
-    picture, boxes = scene()
-    path = tmp_path / "scene.png"
-    picture.save(path)
-    monkeypatch.setenv("FAKE_PNG_SOURCE", str(path))
-    return boxes
+def mapped(data, px, py):
+    """The frame pixel a JPEG pixel is, by the documented formula."""
+    shown = data["shown"]
+    return shown["x"] + px * shown["w"] / data["width"], shown["y"] + py * shown["h"] / data["height"]
 
 
-async def neutrals(client, image, **args):
-    result = await client.call_tool("suggest_neutrals", {"path": str(image), "preview": True, **args})
-    assert not result.is_error, result.content
-    return snap(result)
-
-
-async def test_the_preview_is_the_analysed_rendering_with_every_candidate_marked(server, image, greys, tmp_path):
+async def test_a_whole_image_preview_says_which_frame_pixels_it_shows(server, image):
     async with Client(server) as client:
         await prepare(client, image)
-        result = await neutrals(client, image, count=8)
+        result = snap(await client.call_tool("render_preview", {"path": str(image), "max_size": 600}))
 
-    data = result.data
-    jpeg = Path(data["preview_path"])
-    assert jpeg.parent == tmp_path / "previews" and jpeg.suffix == ".jpg"
-    assert result.picture.size == (600, 400)  # the rendering that was analysed
-    assert len(data["candidates"]) == 8
-    for c in data["candidates"]:
-        box = square(Mark(x=c["x"], y=c["y"], size=data["size"]), Rect(*data["area"]), result.picture.size)
-        assert_rings(result.picture, box)
+    assert result.data["shown"] == {"x": 0, "y": 0, "w": 6000, "h": 4000}
+    assert (result.data["width"], result.data["height"]) == result.picture.size == (600, 400)
+    assert mapped(result.data, 300, 200) == (3000, 2000)
 
 
-async def test_the_candidates_are_marked_in_the_order_of_the_result(server, image, greys, monkeypatch):
-    drawn = []
-    real = neutrals_ops.draw_marks
-
-    def spy(picture, marks, area):
-        drawn.append((list(marks), area))
-        return real(picture, marks, area)
-
-    monkeypatch.setattr(neutrals_ops, "draw_marks", spy)
-    async with Client(server) as client:
-        await prepare(client, image)
-        result = await neutrals(client, image, count=6, size=40)
-
-    [(marks, area)] = drawn
-    candidates = result.data["candidates"]
-    assert [(m.x, m.y, m.size, m.label) for m in marks] == [(c["x"], c["y"], 40, None) for c in candidates]
-    assert area == FRAME  # draw_marks numbers them 1..n in this order
-
-
-async def test_with_a_crop_the_candidates_are_marked_relative_to_it(server, image, greys):
+async def test_a_cropped_preview_shows_the_crop_and_a_region_part_of_it(server, image):
     async with Client(server) as client:
         await prepare(client, image, crop=CROP)
-        result = await neutrals(client, image, count=6)
+        whole = snap(await client.call_tool("render_preview", {"path": str(image), "max_size": 800}))
+        part = snap(
+            await client.call_tool(
+                "render_preview", {"path": str(image), "region": {"x": 0.5, "y": 0.5, "w": 0.5, "h": 0.5}}
+            )
+        )
 
-    data = result.data
-    assert data["area"] == [1000, 500, 4000, 2000] and data["candidates"]
-    for c in data["candidates"]:
-        # the fake's rendering is the same 600 x 400 picture, whatever the crop
-        assert_rings(result.picture, square(Mark(x=c["x"], y=c["y"]), Rect(1000, 500, 4000, 2000), (600, 400)))
-        seen = SimpleNamespace(x=(c["x"] - 1000) * 600 / 4000 * 10, y=(c["y"] - 500) * 400 / 2000 * 10)
-        assert patch_of(seen, greys) is not None
+    assert whole.data["shown"] == CROP and (whole.data["width"], whole.data["height"]) == (800, 400)
+    assert mapped(whole.data, 400, 200) == (3000, 1500)
+    assert part.data["shown"] == {"x": 3000, "y": 1500, "w": 2000, "h": 1000}
+    assert (part.data["width"], part.data["height"]) == part.picture.size
 
 
-async def test_without_preview_there_is_no_preview_path_and_no_file(server, image, greys, tmp_path):
+async def test_a_batch_item_and_a_stage_view_carry_their_own_mapping(server, image):
+    async with Client(server) as client:
+        await prepare(client, image, crop=CROP)
+        batch = await client.call_tool("render_preview", {"paths": [str(image)], "max_size": 400})
+        stage = await client.call_tool("render_preview", {"path": str(image), "stage": "converted", "max_size": 400})
+
+    [item] = batch.structured_content["items"]
+    assert item["shown"] == CROP and (item["width"], item["height"]) == (400, 200)
+    if not stage.is_error:  # the fake art-cli may not write a stage JPEG
+        assert stage.structured_content["shown"] == CROP
+
+
+# -- zoom: a sheet of enlarged tiles, one per mark ------------------------------
+
+
+async def zoomed(client, image, marks, **args):
+    result = await client.call_tool("render_preview", {"path": str(image), "marks": marks, "zoom": True, **args})
+    return result
+
+
+async def test_zoom_returns_one_sheet_with_a_tile_per_mark_and_one_full_size_render(server, image, log):
+    marks = [{"x": 3000, "y": 2000, "size": 40}, {"x": 100, "y": 50, "size": 20, "label": "ab"}]
     async with Client(server) as client:
         await prepare(client, image)
-        plain = snap(await client.call_tool("suggest_neutrals", {"path": str(image), "count": 4}))
-        no = snap(await client.call_tool("suggest_neutrals", {"path": str(image), "count": 4, "preview": False}))
-        left = [p.name for p in (tmp_path / "previews").iterdir()]
+        result = await zoomed(client, image, marks, max_size=100)
+        assert not result.is_error, result.content
+        data = snap(result)
 
-    for answer in (plain, no):
-        assert "preview_path" not in answer.data and "preview_path" not in answer.text and answer.picture is None
-    assert not [name for name in left if name.endswith(".jpg")]
-
-
-async def test_the_image_comes_with_the_result_when_the_server_serves_previews_inline(tmp_path, image, greys):
-    async with Client(make_server(tmp_path, inline_previews=True)) as client:
-        await prepare(client, image)
-        plain = snap(await client.call_tool("suggest_neutrals", {"path": str(image), "count": 4}))
-        result = await neutrals(client, image, count=4)
-
-    assert not [b for b in plain.content if b.type == "image"]
-    [block] = [b for b in result.content if b.type == "image"]
-    assert base64.b64decode(block.data) == result.bytes and block.mime_type == "image/jpeg"
+    assert len(renders(log)) == 1  # one render for all tiles
+    first, second = data.data["tiles"]
+    assert first["label"] == "1" and second["label"] == "ab"
+    assert first["window"] == {"x": 2840, "y": 1840, "w": 320, "h": 320}  # 8 x 40, centred
+    assert second["window"] == {"x": 20, "y": 0, "w": 160, "h": 160}  # at least 160, moved inside the frame
+    assert first["size"] == 320 and (first["left"], first["top"]) != (second["left"], second["top"])
+    assert "shown" not in data.data and (data.data["width"], data.data["height"]) == data.picture.size
+    # the first mark's square is 40 frame px = 40 tile px at one frame pixel per tile pixel: boxed in the tile
+    tile = data.picture.crop((first["left"], first["top"], first["left"] + 320, first["top"] + 320))
+    assert_boxed(tile, (140, 180, 140, 180))
 
 
-async def test_no_image_comes_with_the_result_unless_the_server_serves_previews_inline(server, image, greys):
+async def test_zoom_tiles_wrap_into_rows_of_four(server, image):
+    marks = [{"x": 500 + 100 * n, "y": 500} for n in range(5)]
     async with Client(server) as client:
         await prepare(client, image)
-        result = await neutrals(client, image, count=4)
+        data = snap(await zoomed(client, image, marks))
 
-    assert not [b for b in result.content if b.type == "image"]
-    assert result.data["preview_path"]
+    tiles = data.data["tiles"]
+    lefts = [t["left"] for t in tiles[:4]]
+    assert lefts == sorted(set(lefts)) and tiles[4]["left"] == lefts[0]
+    assert tiles[4]["top"] > tiles[0]["top"] == tiles[3]["top"]
 
 
-async def test_with_no_candidates_the_preview_is_still_the_rendering(server, image, tmp_path, monkeypatch):
-    flat = tmp_path / "flat.png"
-    Image.new("RGB", (600, 400), (255, 0, 0)).save(flat)  # all strongly coloured: no candidate
-    monkeypatch.setenv("FAKE_PNG_SOURCE", str(flat))
+@pytest.mark.parametrize(
+    "args",
+    [
+        {"marks": []},
+        {"marks": [{"x": 5, "y": 5}], "region": {"x": 0, "y": 0, "w": 0.5, "h": 0.5}},
+        {"marks": [{"x": 5, "y": 5}], "stage": "converted"},
+    ],
+)
+async def test_zoom_needs_marks_and_neither_region_nor_stage(server, image, args):
     async with Client(server) as client:
         await prepare(client, image)
-        result = await neutrals(client, image)
+        result = await client.call_tool("render_preview", {"path": str(image), "zoom": True, **args})
 
-    assert result.data["candidates"] == []
-    assert result.picture.size == (600, 400) and result.picture.getpixel((300, 200))[0] > 240
+    assert result.is_error and "out_of_range" in result.content[0].text
 
 
-async def test_the_description_names_preview_in_generic_words(server):
+async def test_zoom_with_paths_is_refused(server, image):
     async with Client(server) as client:
-        tools = {t.name: t for t in (await client.list_tools()).tools}
+        await prepare(client, image)
+        result = await client.call_tool("render_preview", {"paths": [str(image)], "zoom": True})
 
-    tool = tools["suggest_neutrals"]
-    text = " ".join(tool.description.split())
-    for needle in ("`preview`", "`preview_path`", "1..n", "boxed"):
-        assert needle in text, needle
-    assert tool.input_schema["properties"]["preview"]["type"] == "boolean"
-    for word in ("film", "negative", "roll", "invert", "holder"):
-        assert word not in text.lower(), word
+    assert result.is_error and "out_of_range" in result.content[0].text
+
+
+async def test_zoom_refuses_a_mark_outside_the_cropped_area(server, image):
+    async with Client(server) as client:
+        await prepare(client, image, crop=CROP)
+        result = await zoomed(client, image, [{"x": 10, "y": 10}])
+
+    assert result.is_error and "out_of_range" in result.content[0].text and "mark 1" in result.content[0].text

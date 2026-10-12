@@ -692,6 +692,7 @@ struct SpotSample {
     int y = 0;
     float avg[3] = {0.f, 0.f, 0.f}; // channels raised to at least 1
     float max[3] = {0.f, 0.f, 0.f};
+    float sd[3] = {0.f, 0.f, 0.f}; // standard deviation of the square's pixels
 };
 
 /** The colour space the spots are measured in. */

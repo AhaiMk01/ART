@@ -265,7 +265,7 @@ def test_a_number_is_a_fine_label():
     assert Mark.model_validate({"x": 1, "y": 2, "label": 7}).label == "7"
 
 
-def test_extra_fields_of_a_suggest_neutrals_candidate_are_ignored():
+def test_extra_fields_of_a_mark_are_ignored():
     candidate = {"x": 10, "y": 20, "level": 120, "saturation": 0.01, "flatness": 0.02, "why": "flat, neutral, mid"}
 
     assert Mark.model_validate(candidate) == Mark(x=10, y=20)

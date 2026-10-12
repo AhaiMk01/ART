@@ -34,10 +34,10 @@ from art_mcp.sampling import (
     check_stage_stats,
     check_stats_call,
     covering,
-    merge_samples,
+    merge_planned,
     parse_spots_output,
     parse_stage_stats_output,
-    spot_runs,
+    plan_runs,
     stats_detail,
 )
 from art_mcp.sampling import image_stats as compute_stats
@@ -56,46 +56,50 @@ def sample_spots(
     stage: str = "source",
 ) -> SpotSamples:
     points = [(s.x, s.y) for s in spots]
+    own = [s.size for s in spots]
     # Cheap checks first; the frame is measured only for a request that
     # could be valid.
-    check_spots(points, size, space, None, render_error, stage)
+    check_spots(points, size, space, None, render_error, stage, own)
     with session.image(path) as wp:
         frame = session.whole_frame(wp)
-        check_spots(points, size, space, (frame.w, frame.h), render_error, stage)
-        return sample_in_runs(session, wp, points, size, space, stage)
+        check_spots(points, size, space, (frame.w, frame.h), render_error, stage, own)
+        return sample_in_runs(session, wp, points, [size if v is None else v for v in own], space, stage, size)
 
 
 def sample_in_runs(
     session: RenderSession,
     wp: WorkingProfile,
     points: list[tuple[int, int]],
-    size: int,
+    sizes: list[int],
     space: str,
     stage: str = "source",
+    size: int = DEFAULT_SIZE,
 ) -> SpotSamples:
-    """Sample ``points`` (up to ``MAX_SPOTS_PER_CALL``) of an open image's working
-    profile in art-cli runs of at most ``MAX_SPOTS`` spots, up to
-    ``session.cli.max_processes`` at once, and combine them in request order. A
-    failing run fails the whole call with its error, naming the spots it covered
-    (the first such run in request order). Call with the image's lock held."""
-    runs = spot_runs(len(points))
-    if len(runs) == 1:
-        return sample_working_profile(session, wp, points, size, space, stage)
+    """Sample ``points`` (up to ``MAX_SPOTS_PER_CALL``, each with its own square
+    side from ``sizes``) of an open image's working profile in art-cli runs of
+    at most ``MAX_SPOTS`` spots of one size, up to ``session.cli.max_processes``
+    at once, and combine them in request order. A failing run fails the whole
+    call with its error, naming the spots it covered (the first such run in
+    plan order). Call with the image's lock held."""
+    plan = plan_runs(sizes)
 
-    def sample(run: range) -> SpotSamples:
-        return sample_working_profile(session, wp, points[run.start : run.stop], size, space, stage)
+    def sample(run: tuple[int, list[int]]) -> SpotSamples:
+        size, indices = run
+        return sample_working_profile(session, wp, [points[i] for i in indices], size, space, stage)
 
+    if len(plan) == 1:
+        return merge_planned(plan, [sample(plan[0])], len(points), size)
     with ThreadPoolExecutor(max_workers=max(1, session.cli.max_processes)) as pool:
-        futures = [pool.submit(sample, run) for run in runs]
+        futures = [pool.submit(sample, run) for run in plan]
         parts = []
-        for run, future in zip(runs, futures, strict=True):
+        for (_, indices), future in zip(plan, futures, strict=True):
             try:
                 parts.append(future.result())
             except RenderError as e:
                 for pending in futures:
                     pending.cancel()
-                raise render_error(e.code, f"{e.message} ({covering(run, len(points))})") from e
-    return merge_samples(parts)
+                raise render_error(e.code, f"{e.message} ({covering(indices, len(points))})") from e
+    return merge_planned(plan, parts, len(points), size)
 
 
 def sample_working_profile(

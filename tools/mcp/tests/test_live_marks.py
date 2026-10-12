@@ -83,7 +83,7 @@ async def test_a_mark_is_drawn_where_its_frame_pixels_are_in_the_editors_preview
 
     assert not result.is_error, result.content
     assert_boxed(shown, (290, 310, 190, 210))  # the square 2900..3100 x 1900..2100 at one pixel per ten
-    assert set(result.structured_content) == {"path", "max_size", "width", "height"}
+    assert set(result.structured_content) == {"path", "max_size", "width", "height", "shown"}
 
 
 async def test_a_preview_smaller_than_asked_for_scales_the_marks_with_it(art, previews, image):
@@ -213,7 +213,7 @@ async def test_marks_go_into_the_file_at_output_and_the_inline_image(art, previe
     assert left == []
 
 
-async def test_candidates_of_suggest_neutrals_can_be_given_as_marks_unchanged(art, previews, image):
+async def test_extra_fields_of_a_mark_are_ignored(art, previews, image):
     open_in_editor(art, image)
     art.ops["preview"] = write_preview(jpeg((600, 400)), width=600, height=400)
     candidate = {"x": 3000, "y": 2000, "level": 120, "saturation": 0.01, "flatness": 0.02, "why": "flat, neutral"}
@@ -234,7 +234,7 @@ async def test_a_preview_without_marks_is_not_decoded_or_changed(art, previews, 
         written = Path(result.structured_content["path"]).read_bytes()
 
     assert not result.is_error and written == b"\xff\xd8not decoded\xff\xd9"
-    assert not requests(art, "status")  # nor is the frame asked for
+    assert "shown" not in result.structured_content  # the editor reports no frame size here
 
 
 async def test_the_description_says_what_marks_are(art, previews):

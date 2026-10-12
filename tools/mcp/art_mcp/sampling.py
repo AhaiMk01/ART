@@ -10,7 +10,7 @@ import base64
 import io
 import json
 import math
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Annotated, Any, Protocol
 
@@ -48,8 +48,9 @@ SAMPLE_SPOTS_DOC = (
 
 `spots`: 1 to 64 spots per call, each {x, y} in whole pixels of the frame (the
 raw image after coarse rotation and the raw border; the same coordinates as
-[Crop]), the centre of a `size` x `size` square (2 to 256). Outside the frame
-is out_of_range. More than 16 are sampled in several runs but come back as one
+[Crop]), the centre of a `size` x `size` square (2 to 256); a spot's own `size`
+overrides the call's. Outside the frame is out_of_range. More than 16 (or of
+several sizes) are sampled in several runs but come back as one
 result, in request order; if a run fails, so does the call (no partial result)
 and the error says which spots it covered.
 
@@ -61,14 +62,13 @@ exposure and grading; may be negative or above 65535 (same 0..65535 scale).
 Result `unit`: "linear_65535". A square's `avg` is the mean of its pixels' values at that
 stage.
 
-Mapping a preview pixel (px, py) to the frame: a Render whole-image preview
-shows the crop when one is enabled, so x = crop.x + px * crop.w / preview_w
-(no crop: px * frame_w / preview_w; same for y); a Live preview always shows
-the whole frame. To see where spots sit instead, `render_preview(marks=[...])`
-draws them on a preview.
+Mapping a preview pixel (px, py) to the frame: `render_preview` returns `shown`,
+`width`, `height`: x = shown.x + px * shown.w / width (y alike; with a crop, shown
+is the crop: crop.x + px * crop.w / width). `render_preview(marks=[...])` draws
+spots on a preview; `zoom` enlarges each.
 
-Returns the frame `width`/`height`, `stage`, `unit` and per spot `avg` and `max`
-as [r, g, b].
+Returns the frame `width`/`height`, `stage`, `unit` and per spot its `size`, `avg` and `max`
+(`avg`, `max` as [r, g, b]).
 
 Render server: needs an ART build with spot sampling (else `unsupported`).
 Live server: samples the open editor's profile, unsaved edits included.
@@ -79,12 +79,20 @@ Live server: samples the open editor's profile, unsaved edits included.
 
 
 def _spot_problem(
-    spots: list[tuple[int, int]], size: int, space: str, frame: tuple[int, int] | None, stage: str = "source"
+    spots: list[tuple[int, int]],
+    size: int,
+    space: str,
+    frame: tuple[int, int] | None,
+    stage: str = "source",
+    sizes: Sequence[int | None] | None = None,
 ) -> str | None:
     """Why this request is out of range, or None. ``frame`` is the frame size
-    when known."""
+    when known; ``sizes`` are the spots' own sizes (None: the call's)."""
     if not MIN_SIZE <= size <= MAX_SIZE:
         return f"size must be {MIN_SIZE} to {MAX_SIZE}"
+    for number, own in enumerate(sizes or (), 1):
+        if own is not None and not MIN_SIZE <= own <= MAX_SIZE:
+            return f"spot {number}: size must be {MIN_SIZE} to {MAX_SIZE}, not {own}"
     if stage not in STAGES:
         return f"stage must be one of {', '.join(STAGES)}, not {stage!r}"
     if space not in SPACES:
@@ -109,11 +117,12 @@ def check_spots(
     frame: tuple[int, int] | None,
     error: Callable[[Any, str], Exception],
     stage: str = "source",
+    sizes: Sequence[int | None] | None = None,
 ) -> None:
     """Raise ``error("out_of_range", why)`` when the request is out of range.
     ``frame`` is the frame size when known; call once without it for the cheap
     checks, then again with it."""
-    problem = _spot_problem(spots, size, space, frame, stage)
+    problem = _spot_problem(spots, size, space, frame, stage, sizes)
     if problem:
         raise error("out_of_range", problem)
 
@@ -139,15 +148,19 @@ class Spot(BaseModel):
 
     x: int
     y: int
+    size: int | None = None
+    """2 to 256; default the call's."""
 
 
-class SpotValues(BaseModel):
+class SpotValues(OmitNone):
     x: int
     y: int
+    size: int = 0  # the square used; 0 until the run is merged
     avg: list[float]
     """[r, g, b], linear 0..65535."""
     max: list[float]
-    """[r, g, b], the largest value in the square."""
+    """Per channel maximum."""
+    sd: list[float] | None = None  # per channel pixel standard deviation; older art-cli: absent
 
 
 class SpotSamples(OmitNone):
@@ -169,16 +182,47 @@ def spot_runs(count: int) -> list[range]:
     return [range(start, min(start + MAX_SPOTS, count)) for start in range(0, count, MAX_SPOTS)]
 
 
+def plan_runs(sizes: Sequence[int]) -> list[tuple[int, list[int]]]:
+    """Which spots go in each run when art-cli reads one size per run: spots
+    grouped by size (groups in order of first appearance), each group cut into
+    runs of at most ``MAX_SPOTS``; a run is (size, indices into the request)."""
+    groups: dict[int, list[int]] = {}
+    for index, size in enumerate(sizes):
+        groups.setdefault(size, []).append(index)
+    return [
+        (size, indices[start : start + MAX_SPOTS])
+        for size, indices in groups.items()
+        for start in range(0, len(indices), MAX_SPOTS)
+    ]
+
+
+def merge_planned(
+    plan: Sequence[tuple[int, list[int]]], parts: Sequence[SpotSamples], count: int, size: int
+) -> SpotSamples:
+    """One result from the runs' results (``parts[i]`` answers ``plan[i]``): the
+    first one's frame and space, ``size`` as the call's, every spot in request
+    order with its own ``size``."""
+    spots: list[SpotValues | None] = [None] * count
+    for (own, indices), part in zip(plan, parts, strict=True):
+        for index, spot in zip(indices, part.spots, strict=False):
+            spots[index] = spot.model_copy(update={"size": own})
+    return parts[0].model_copy(update={"spots": [spot for spot in spots if spot is not None], "size": size})
+
+
 def merge_samples(parts: list[SpotSamples]) -> SpotSamples:
     """One result from the runs' results, in run order: the first one's frame,
     space and size, every run's spots."""
     return parts[0].model_copy(update={"spots": [spot for part in parts for spot in part.spots]})
 
 
-def covering(run: range, count: int) -> str:
+def covering(run: range | Sequence[int], count: int) -> str:
     """Which spots (numbered from 1, as the caller counts them) a failed run
     covered, for the end of its error message."""
-    return f"spots {run.start + 1} to {run.stop} of {count}; no result returned"
+    if isinstance(run, range):
+        return f"spots {run.start + 1} to {run.stop} of {count}; no result returned"
+    if list(run) == list(range(run[0], run[-1] + 1)):
+        return covering(range(run[0], run[-1] + 1), count)
+    return f"spots {', '.join(str(i + 1) for i in run)} of {count}; no result returned"
 
 
 class StageUnsupported(ValueError):

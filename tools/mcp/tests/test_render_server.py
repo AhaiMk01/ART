@@ -864,7 +864,9 @@ async def test_a_preview_can_be_written_to_a_path_of_the_callers_choice(server, 
         result = await client.call_tool("render_preview", {"path": str(image), "max_size": 640, "output": str(out)})
 
     assert not result.is_error, result.content
-    assert result.structured_content == {"path": str(out), "max_size": 640}
+    assert result.structured_content == {
+        "path": str(out), "max_size": 640, "shown": {"x": 0, "y": 0, "w": 6000, "h": 4000},
+    }  # fmt: skip
     jpeg = out.read_bytes()
     assert jpeg.startswith(b"\xff\xd8") and b"Width=640" in jpeg
     assert leftovers(tmp_path) == []  # the server's own copy is not kept next to it

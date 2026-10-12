@@ -1,9 +1,8 @@
 """Numbered boxes drawn on a preview, at frame-pixel positions, so a caller can
-see where the spots it is about to sample (or that ``suggest_neutrals``
-proposed) sit in the picture.
+see where the spots it is about to sample sit in the picture.
 
-Pure Pillow, no ART and no MCP: both servers' ``render_preview`` and the
-Render server's ``suggest_neutrals`` draw with this.
+Pure Pillow, no ART and no MCP: both servers' ``render_preview`` draw with
+this.
 
 A mark is the square ``sample_spots`` would read (``size`` frame pixels, centred
 on ``x``, ``y``). It is drawn as a ring of light pixels just outside the square

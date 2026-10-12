@@ -89,7 +89,7 @@ inline void ART_print_help(std::ostream &out, const char *progname, bool gui)
                "width/height and, for\n"
             << "                   each of 1 to 16 spots (frame pixels, as for "
                "the crop), the\n"
-            << "                   avg/max RGB of the <size> (2 to 256) square "
+            << "                   avg/max/sd RGB of the <size> (2 to 256) square "
                "centred on it.\n"
             << "                   <space> is 'working' or 'input' (camera), "
                "both before any\n"

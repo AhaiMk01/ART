@@ -31,6 +31,7 @@ def register(server: MCPServer, session: RenderSession) -> None:
         marks: list[Mark] | None = None,
         paths: list[str] | None = None,
         stage: str = "display",
+        zoom: bool = False,
     ) -> Annotated[CallToolResult, PreviewOutput]:
         """Render the working profile as a JPEG (long edge `max_size` px, 1 to
         2576) and return its path. `region` {x, y, w, h}, as fractions of the
@@ -46,14 +47,15 @@ def register(server: MCPServer, session: RenderSession) -> None:
         a path and must open the file to look. To look at several frames at
         once, `contact_sheet(record=false, thumb_size=...)` renders them into
         one image, so one file read instead of a preview and a read each.
+        Each result has the JPEG's `width`, `height` and `shown` {x, y, w, h}, the
+        frame pixels it shows: frame_x = shown.x + px * shown.w / width (y alike).
         `marks` (up to 64) [{x, y, size?, label?}] draws a box on the preview
-        at each FRAME-pixel position (the coordinates `sample_spots`,
-        `suggest_neutrals` and `crop` use; `size`, default 32, is the square
-        `sample_spots` reads), numbered 1..n in request order unless a `label`
-        (at most 4 characters) is given: give it the spots you are about to
-        sample, or `suggest_neutrals` candidates as they are, to see what each
-        sits on. A mark outside the frame is `out_of_range`; one outside what
-        the preview shows (the `region`, or the crop) is not drawn, and
+        at each FRAME-pixel position (the coordinates `sample_spots` and `crop`
+        use; `size`, default 32, is the square `sample_spots` reads), numbered
+        1..n in request order unless a `label` (at most 4 characters) is given:
+        give it the spots you are about to sample to see what each sits on. A
+        mark outside the frame is `out_of_range`; one outside what the preview
+        shows (the `region`, or the crop) is not drawn, and
         `warnings` says which.
 
         `paths` (1 to 16 images, instead of `path`) renders each one the same
@@ -69,16 +71,25 @@ def register(server: MCPServer, session: RenderSession) -> None:
 
         `stage` converted (one `path`, no `marks`) shows that
         stage's own data instead, as `image_stats` measures it: linear RGB
-        through the sRGB curve; no colour management."""
+        through the sRGB curve; no colour management.
+
+        `zoom` (one `path`, needs `marks`) returns one sheet instead, a tile per
+        mark in request order: its neighbourhood (about 8 x size, at least 160
+        frame px) enlarged, square drawn, to check it lies inside the material.
+        `tiles`: per mark `window` {x, y, w, h} (frame px), `left`, `top`, `size`
+        (tile in the JPEG)."""
         show = inline if inline is not None else session.inline_previews
         if stage != "display" and (paths is not None or path is None):
             with as_tool_errors():
                 raise ops.render_error("out_of_range", "stage goes with one `path`")
+        if zoom and (paths is not None or path is None):
+            with as_tool_errors():
+                raise ops.render_error("out_of_range", "zoom goes with one `path`")
         if paths is not None or path is None:
             return await render_batch(ctx, path, paths, max_size, region, output, overwrite, marks, show)
         def render_one() -> Preview:
             with as_tool_errors():
-                return ops.render_preview(session, path, max_size, region, output, overwrite, marks, stage)
+                return ops.render_preview(session, path, max_size, region, output, overwrite, marks, stage, zoom)
 
         result = await anyio.to_thread.run_sync(render_one)
         content: list[ContentBlock] = [TextContent(text=result.model_dump_json(exclude_defaults=True))]

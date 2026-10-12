@@ -4,12 +4,14 @@ import shutil
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from typing import Any
 
+from PIL import Image, ImageDraw, ImageFont
 from pydantic import BaseModel
 
 from art_mcp import artdir, keyfile
 from art_mcp.concurrency import image_key
-from art_mcp.marks import Mark, check_marks, mark_file
+from art_mcp.marks import Mark, check_marks, draw_marks, labels_of, mark_file, save_jpeg
 from art_mcp.render.artcli import (
     ArtCliError,
     ArtCliTimeout,
@@ -53,12 +55,31 @@ class Region(BaseModel):
         )  # fmt: skip
 
 
-class Preview(BaseModel):
+class ZoomTile(BaseModel):
+    # label: the mark's label or number; window: the frame pixels the tile
+    # shows; left, top, size: the tile's place in the JPEG (size px square).
+    label: str
+    window: dict[str, int]
+    left: int
+    top: int
+    size: int
+
+
+class FramePreview(BaseModel):
     path: str
     """JPEG file; open it to look at the preview."""
     max_size: int
+    width: int | None = None
+    height: int | None = None
+    # The JPEG's size in pixels; `shown` the frame pixels it shows.
+    shown: dict[str, int] | None = None
     warnings: list[str] = []
     """Which marks were not drawn, and why a mark may be misplaced."""
+
+
+class Preview(FramePreview):
+    tiles: list[ZoomTile] | None = None
+    # With zoom: one tile per mark, in request order.
 
 
 class PreviewItem(BaseModel):
@@ -66,6 +87,9 @@ class PreviewItem(BaseModel):
     """The image's path as requested."""
     preview_path: str | None = None
     """JPEG file of its preview; left out when this image failed."""
+    width: int | None = None
+    height: int | None = None
+    shown: dict[str, int] | None = None
     error: str | None = None
     """`<code>: <message>` when this image failed (the others still render);
     left out otherwise."""
@@ -85,6 +109,10 @@ class PreviewOutput(BaseModel):
     # ``Preview`` or ``PreviewBatch``, and this one lets the schema allow both.
     path: str | None = None
     max_size: int | None = None
+    width: int | None = None
+    height: int | None = None
+    shown: dict[str, int] | None = None
+    tiles: list[dict[str, Any]] | None = None  # as `Preview.tiles`, left loose to keep the schema small
     warnings: list[str] | None = None
     items: list[PreviewItem] | None = None
     failed: int | None = None
@@ -135,7 +163,8 @@ def render_previews(
     items = [PreviewItem(path=p) for p in paths]
 
     def run(item: PreviewItem) -> None:
-        item.preview_path = render_preview(session, item.path, max_size, region).path
+        done = render_preview(session, item.path, max_size, region)
+        item.preview_path, item.width, item.height, item.shown = done.path, done.width, done.height, done.shown
 
     done = 0
     with ThreadPoolExecutor(max_workers=max(1, session.cli.max_processes)) as pool:
@@ -259,9 +288,12 @@ def render_preview(
     overwrite: bool = False,
     marks: list[Mark] | None = None,
     stage: str = "display",
+    zoom: bool = False,
 ) -> Preview:
     check_size_and_region(max_size, region)
     marks = marks or []
+    if zoom and (not marks or stage != "display" or region is not None):
+        raise render_error("out_of_range", "zoom needs marks, stage display and no region, with one `path`")
     if stage not in PREVIEW_STAGES:
         raise render_error("out_of_range", f"stage must be one of {', '.join(PREVIEW_STAGES)}")
     if stage != "display":
@@ -271,28 +303,39 @@ def render_preview(
     check_marks(marks, None, render_error)
     dest = check_output(output, Path(path), overwrite) if output is not None else None
     warnings: list[str] = []
+    tiles: list[ZoomTile] | None = None
     with session.image(path) as wp:
         # -f resizes before processing, which approximates sharpening and
         # local effects: only worth it for a whole-image preview that fits the
         # user's fast-export box (-f would shrink anything larger into it).
         fast = region is None and max_size <= artdir.fast_export_box(session.config_dir)
         crop_text = None
-        shown = session.frame_of(wp) if region is not None or marks else None
+        shown = session.frame_of(wp)
         if region is not None:
             shown = region_rect(shown, x=region.x, y=region.y, w=region.w, h=region.h)
             crop_text = crop_profile(shown)
         if marks:
             whole = session.whole_frame(wp)
             check_marks(marks, (whole.w, whole.h), render_error)
-        rendered = render_jpeg(
-            session, wp.image, keyfile.dumps(wp.changes.profile), max_size, fast=fast, crop_text=crop_text
-        )
-        if marks:
-            warnings = mark_rendering(rendered, marks, shown)
+        if zoom:
+            rendered = render_jpeg(
+                session, wp.image, keyfile.dumps(wp.changes.profile), max(shown.w, shown.h), fast=False
+            )
+            tiles = zoom_rendering(rendered, marks, shown)
+        else:
+            rendered = render_jpeg(
+                session, wp.image, keyfile.dumps(wp.changes.profile), max_size, fast=fast, crop_text=crop_text
+            )
+            if marks:
+                warnings = mark_rendering(rendered, marks, shown)
     if dest is not None:
         place_output(rendered, dest, overwrite)
         rendered = dest
-    return Preview(path=str(rendered), max_size=max_size, warnings=warnings)
+    width, height = jpeg_size(rendered)
+    return Preview(
+        path=str(rendered), max_size=max_size, width=width, height=height,
+        shown=None if zoom else shown_of(shown), tiles=tiles, warnings=warnings,
+    )  # fmt: skip
 
 
 def render_stage_view(
@@ -310,6 +353,9 @@ def render_stage_view(
     dest = check_output(output, Path(path), overwrite) if output is not None else None
     box = None if region is None else (region.x, region.y, min(region.x + region.w, 1.0), min(region.y + region.h, 1.0))
     with session.image(path) as wp:
+        shown = session.frame_of(wp)
+        if region is not None:
+            shown = region_rect(shown, x=region.x, y=region.y, w=region.w, h=region.h)
         profile = session.previews.new_file("profile", ".arp")
         rendered = session.previews.new_file("stage", ".jpg")
         try:
@@ -335,7 +381,102 @@ def render_stage_view(
     if dest is not None:
         place_output(rendered, dest, overwrite)
         rendered = dest
-    return Preview(path=str(rendered), max_size=max_size)
+    width, height = jpeg_size(rendered)
+    return Preview(path=str(rendered), max_size=max_size, width=width, height=height, shown=shown_of(shown))
+
+
+def shown_of(area: Rect) -> dict[str, int]:
+    """``area`` as the {x, y, w, h} a result carries (a plain object keeps the schema small)."""
+    return {"x": area.x, "y": area.y, "w": area.w, "h": area.h}
+
+
+def jpeg_size(path: Path) -> tuple[int | None, int | None]:
+    """The pixel size of the JPEG ``path``; (None, None) if it can't be read
+    (art-cli writes a decodable JPEG; a stand-in that doesn't has no size)."""
+    try:
+        with Image.open(path) as image:
+            return image.size
+    except (OSError, ValueError, Image.DecompressionBombError):
+        return None, None
+
+
+ZOOM_TILE = 320
+"""Side in pixels of one tile of a zoom sheet."""
+ZOOM_COLUMNS = 4
+ZOOM_GAP = 6
+ZOOM_CAPTION = 20
+ZOOM_MIN_WINDOW = 160
+ZOOM_WINDOW_PER_SIZE = 8
+
+
+def zoom_window(mark: Mark, area: Rect) -> Rect:
+    """The frame pixels a mark's tile shows: a square of about
+    ``max(8 * size, 160)`` centred on the mark, moved (then cut) to lie in
+    ``area``."""
+    side = min(max(ZOOM_WINDOW_PER_SIZE * mark.size, ZOOM_MIN_WINDOW), area.w, area.h)
+    x = min(max(mark.x - side // 2, area.x), area.x + area.w - side)
+    y = min(max(mark.y - side // 2, area.y), area.y + area.h - side)
+    return Rect(x, y, side, side)
+
+
+def zoom_rendering(rendered: Path, marks: list[Mark], area: Rect) -> list[ZoomTile]:
+    """Replace the full-size render ``rendered`` of ``area`` by a sheet of
+    tiles, one per mark in request order, each an enlarged window around the
+    mark with its square drawn and a caption under it (upscaled with nearest
+    neighbour so single pixels stay visible); the tiles' places. A mark centre
+    outside ``area`` is ``out_of_range``; an unreadable render is
+    ``render_failed``; the file is removed on either."""
+    for number, mark in enumerate(marks, 1):
+        if not (area.x <= mark.x < area.x + area.w and area.y <= mark.y < area.y + area.h):
+            rendered.unlink(missing_ok=True)
+            raise render_error(
+                "out_of_range",
+                f"mark {number} ({mark.x}, {mark.y}) is outside the previewed area "
+                f"(x {area.x}, y {area.y}, w {area.w}, h {area.h} in frame pixels)",
+            )
+    try:
+        with Image.open(rendered) as opened:
+            source = opened.convert("RGB")
+    except (OSError, ValueError, Image.DecompressionBombError) as e:
+        rendered.unlink(missing_ok=True)
+        raise render_error("render_failed", f"cannot read the image: {e}") from e
+    across, down = source.width / area.w, source.height / area.h
+    columns = min(ZOOM_COLUMNS, len(marks))
+    rows = -(-len(marks) // columns)
+    cell_h = ZOOM_TILE + ZOOM_CAPTION
+    sheet = Image.new(
+        "RGB",
+        (columns * ZOOM_TILE + (columns + 1) * ZOOM_GAP, rows * cell_h + (rows + 1) * ZOOM_GAP),
+        (40, 40, 40),
+    )
+    font = ImageFont.load_default(size=14)
+    draw = ImageDraw.Draw(sheet)
+    tiles: list[ZoomTile] = []
+    for index, (mark, label) in enumerate(zip(marks, labels_of(marks), strict=True)):
+        window = zoom_window(mark, area)
+        box = (
+            round((window.x - area.x) * across), round((window.y - area.y) * down),
+            round((window.x - area.x + window.w) * across), round((window.y - area.y + window.h) * down),
+        )  # fmt: skip
+        piece = source.crop(box)
+        grow = ZOOM_TILE > piece.width
+        piece = piece.resize((ZOOM_TILE, ZOOM_TILE), Image.NEAREST if grow else Image.BOX)
+        draw_marks(piece, [mark.model_copy(update={"label": label})], window)
+        left = ZOOM_GAP + (index % columns) * (ZOOM_TILE + ZOOM_GAP)
+        top = ZOOM_GAP + (index // columns) * (cell_h + ZOOM_GAP)
+        sheet.paste(piece, (left, top))
+        draw.text(
+            (left, top + ZOOM_TILE + 2),
+            f"{label}: ({mark.x},{mark.y}) {mark.size}px  x{window.x} y{window.y} w{window.w}",
+            fill=(255, 255, 255), font=font,
+        )  # fmt: skip
+        tiles.append(ZoomTile(label=label, window=shown_of(window), left=left, top=top, size=ZOOM_TILE))
+    try:
+        save_jpeg(sheet, rendered)
+    except OSError as e:
+        rendered.unlink(missing_ok=True)
+        raise render_error("render_failed", str(e)) from e
+    return tiles
 
 
 def mark_rendering(rendered: Path, marks: list[Mark], shown: Rect) -> list[str]:

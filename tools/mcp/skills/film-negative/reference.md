@@ -436,6 +436,87 @@ re-check the other. Hold one channel's `den_c` (or the input gain) as the common
 contrast and compare relative slopes against a third material.
 That fit determines neither physical Dmin nor absolute scene reflectance.
 
+### Pooled roll fit (NamiColor)
+
+A roll shares film and digitization, so its channel slopes are common; each
+frame may add its own offset (scene light, per-frame printer light). Fit them
+together instead of from one frame. This mirrors Fuji's roll-pooled grey axis
+(US 6665434 / US 6701007: `Dg = a*Dr + b`, candidates pooled over all frames).
+
+1. Evidence, by looking: for every frame, find materials that are neutral by
+   what they are (see "Choosing neutral references"), all under the same light
+   in that frame: in sun, sunlit only; shade is lit by the sky and is another
+   illuminant. Size each square to its object (24-32 px for road, concrete and
+   sign backgrounds, 8-16 px for poles, letters and road lines; a spot's own
+   `size` overrides the call's). Check every square with `render_preview`
+   `marks` and `zoom: true`, which shows each square enlarged with its
+   surroundings; drop any that touches an edge, a shadow line or another
+   material. To place spots from a preview, map its pixels with the result's
+   `shown` and `width`/`height`.
+2. Sample before inversion (`sample_spots`, `stage` source); keep `avg` and
+   `sd` (the within-square standard deviation). sd is high on textured
+   pavement as well as on edges, so use it for weights; judge edges by eye.
+3. One observation per material per frame: average repeated squares of one
+   material (they check its uniformity, not its neutrality).
+4. Grade by confidence g: A = standard neutral paint (sign white and black,
+   road markings) 1.0; B = concrete, asphalt, painted metal, white paint on
+   objects, snow 0.5; C = sky, glass, distant haze, unsure 0.25.
+5. Variance of each observation's density: `sd_D = sd / (avg * ln10) /
+   sqrt(min(N, 64))` per channel (N pixels; texture is correlated, hence the
+   cap), `var = (sd_c^2 + k^2 sd_G^2 + 0.008^2) / g` (0.008 D: a floor for the
+   material).
+6. Fit per channel (R and B against G) `D_c = k_c * D_G + o_cf`, shared slope,
+   one offset per frame, `D = -log10(avg/65535)`:
+   - demean within each frame with the weights (this absorbs the offsets);
+   - start from the median of within-frame pair slopes (Theil-Sen; never pair
+     points of two frames);
+   - iterate Tukey bisquare (c 4.685) on residuals studentized by each point's
+     own sd and leverage (`1 - h`, with the frame mean's share in h), scale =
+     1.4826 * median |z|;
+   - then give every frame, also single-observation ones, its offset from the
+     shared slope.
+7. Check the slope before trusting it: leave each frame out and bootstrap
+   whole frames. The slope needs neutrals at two or more tonal levels in the
+   same light. Sunlit neutrals are mostly bright: on the Hawaii roll
+   (FILM03302-03324) the bootstrap interval was R 0.86-1.06, B 0.63-1.00, and
+   every version had magenta shadows. When the interval is that wide, take the
+   slope from frames with dark evidence (overcast, interiors) or from a
+   preset kept for the same film and setup, and fit only the offsets here.
+8. Read the residuals and the down-weighted points (robust weight below about
+   0.3); look at each again. Dark materials disagree most: on FILM06423 two
+   "black" signs differed by 50-80 mD in blue while white sign backgrounds and
+   road paint agreed within about 15 mD. Let a dark material set the shadow
+   slope only when two or more independent dark materials agree.
+9. Shrink each frame's offset toward the roll mean by its evidence:
+   `o_final = mean + lam * (o_fit - mean)`, `lam = tau^2 / (tau^2 + SE^2)`,
+   with SE the frame offset's standard error (`1/sqrt(sum of weights)`,
+   multiplied by the robust scale of step 6, since the assumed variances
+   understate material scatter) and `tau^2` the between-frame variance of the
+   offsets minus the mean SE^2, pooled over R and B (scene light moves both).
+   On the Hawaii roll this matched the user's picks on five of six frames:
+   strong frames kept their correction, a frame with one usable material went
+   back toward the roll mean.
+10. Fold into NamiColor (input gain g = 1, master and black 0), keeping
+    green's `den_G` and `s_G` (exposure and contrast) as chosen,
+    `a = 1 - log10(16)`: `den_c = k_c * den_G`, `gain_c = 1 - den_c`,
+    `shift_c = k_c * (a + s_G) - a - o_final,cf`. The per-frame offsets are the
+    printer lights; no Color Correction is needed.
+
+Report each frame's offsets and lam in plain terms (warm late sun, shop
+light) and say how much was applied: removing a real warm or cool light is a
+choice, not a correction. A frame whose light the user wants to keep can
+take only part of its correction (`mean + alpha * lam * (o_fit - mean)`,
+alpha below 1); on the Hawaii roll the user kept the uncorrected warm light
+on one strongly evidenced frame. An automatic white balance (Deep White
+Balance, as in DiVERE) is a cross-check only: where it agrees with the
+neutral fit, confidence rises; where it differs strongly, look at the frame.
+Do not use it as the prior: it pushed every Hawaii frame warmer, one to a
+blue gain of 0.57, and shrinking toward it inherited that.
+
+On FILM06418-06423 the pooled fit's slopes were close to a careful
+single-frame sign fit, yet the rendered roll was clearly better because the
+per-frame offsets replaced hand-set printer lights.
+
 ### Density-specific reduction
 
 For identity matrix, negative film and no black offset, the equations
@@ -566,13 +647,16 @@ print(red, blue, "kept", keep, "dropped", [i for i in range(len(L)) if i not in 
 
 ## Choosing neutral references
 
-Choose by material, not by how grey a spot looks.
+Choose by material, not by how grey a spot looks. Find the material by
+looking at the picture at readable size, not from a flat/low-saturation filter.
 
 - Candidate materials: matte white paint, sign backgrounds, concrete and
   uncoloured metal. Inspect their actual finish, weathering, illumination and
   reflection before treating them as neutral.
 - Black ink on a white sign can constrain relative channel behaviour under
   common light, but neither material certifies Dmin or diffuse-white reflectance.
+  Black paints and plastics often carry a tint and sit where flare and grain
+  matter most; trust a black only when another black material agrees.
 - Ambiguous materials include natural stone, dyed fabric, glass, foliage and
   painted machinery. Sky and clouds are illumination-dependent, especially at
   twilight; apparent brightness or low saturation does not make them references.
@@ -593,7 +677,7 @@ lamps fitted RedRatio 1.43 and BlueRatio 1.2 (69 spots in 5 frames, stable
 residuals), and the hand-tuned values on hangar frames of another roll were
 1.06 to 1.2. Judge a fit by its residuals and by whether neutrals stay neutral
 from dark to light, not by the default. What decides it is which spots go in:
-the same roll gave BlueRatio 1.45 from `suggest_neutrals` candidates alone and
+the same roll gave BlueRatio 1.45 from flat, low-saturation patches alone and
 1.20 once bright white objects (airframe paint, white missile bodies) were
 added. Fit with bright and dark neutrals both, refit when the slope changes a
 lot after adding the other end, and trust the fit only when it is stable.

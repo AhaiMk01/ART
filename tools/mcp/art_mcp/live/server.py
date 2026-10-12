@@ -59,8 +59,8 @@ from art_mcp.render.defaults import resolve_default_profile
 from art_mcp.render.errors import render_error
 from art_mcp.render.export_ops import EXPORT_SUFFIXES, output_format, output_name
 from art_mcp.render.export_tools import Format
-from art_mcp.render.preview_ops import check_output, place_output
-from art_mcp.render.preview_tools import MAX_PREVIEW_SIZE, PREVIEW_SIZE, Preview, Region
+from art_mcp.render.preview_ops import FramePreview, check_output, place_output, shown_of
+from art_mcp.render.preview_tools import MAX_PREVIEW_SIZE, PREVIEW_SIZE, Region
 from art_mcp.sampling import (
     DEFAULT_SIZE,
     IMAGE_STATS_DOC,
@@ -84,9 +84,9 @@ from art_mcp.sampling import (
     check_stage_stats,
     check_stats_call,
     covering,
-    merge_samples,
+    merge_planned,
     parse_spots_reply,
-    spot_runs,
+    plan_runs,
     stats_detail,
     stats_result,
 )
@@ -195,9 +195,8 @@ class OpenedBatch(BaseModel):
 
 
 class OpenOutput(RootModel[OpenedInEditor | OpenedBatch]):
-    """The output schema of ``open_image``: one image's ``OpenedInEditor`` or,
-    with `paths`, one entry per image. It is an object either way, which is
-    what a tool's output schema must be."""
+    # open_image's output: one image's OpenedInEditor or, with `paths`, one
+    # entry per image; an object either way, as a tool's output schema must be.
 
     model_config = ConfigDict(json_schema_extra={"type": "object"})
 
@@ -264,11 +263,12 @@ def history_label(adjustments: Adjustments | None, raw_edits: list[RawEdit]) -> 
     return "Agent: " + ", ".join(names)
 
 
-class LivePreview(Preview):
+class LivePreview(FramePreview):
+    # `width`, `height`: the JPEG's size, the editor's preview image shrunk to
+    # fit `max_size` (never enlarged, so it can be smaller).
     width: int
     height: int
-    """The JPEG's size: the editor's preview image shrunk to fit `max_size`
-    (never enlarged, so it can be smaller)."""
+    shown: dict[str, int] = {}
 
 
 ART_PREVIEW_WAIT = 30.0
@@ -810,7 +810,9 @@ def build_server(
         in request order unless a `label` (at most 4 characters) is given: give
         it the spots you are about to sample to see where they sit. The preview
         shows the whole frame, so every mark in the frame is drawn; one outside
-        it is `out_of_range`. Fails with not_open if ART doesn't have the image
+        it is `out_of_range`. The result's `width`, `height` and `shown` {x, y,
+        w, h} (the whole frame) map a pixel: frame_x = shown.x + px * shown.w /
+        width (y alike). Fails with not_open if ART doesn't have the image
         open."""
         if not 1 <= max_size <= MAX_PREVIEW_SIZE:
             raise tool_error("out_of_range", f"max_size must be 1 to {MAX_PREVIEW_SIZE}")
@@ -831,6 +833,9 @@ def build_server(
                 jpeg = rendered.read_bytes()
             except (KeyError, TypeError, ValueError, OSError) as e:
                 raise tool_error("bad_reply", f"unexpected preview reply from ART: {result!r:.300}") from e
+            whole = image_size(path)
+            if whole is not None:
+                preview.shown = shown_of(Rect(0, 0, *whole))
             if marks:
                 preview.warnings = mark_preview(path, rendered, marks)
                 jpeg = rendered.read_bytes()
@@ -902,20 +907,22 @@ def build_server(
         stage: Stage = "source",
     ) -> SpotSamples:
         points = [(s.x, s.y) for s in spots]
-        check_spots(points, size, space, None, tool_error, stage)
-        check_spots(points, size, space, image_size(path), tool_error, stage)
-        # ART's op takes at most MAX_SPOTS: ask in runs, one after the other, each with
-        # its own wait for a busy editor; a failing one fails the call.
-        runs = spot_runs(len(points))
+        own = [s.size for s in spots]
+        check_spots(points, size, space, None, tool_error, stage, own)
+        check_spots(points, size, space, image_size(path), tool_error, stage, own)
+        # ART's op takes at most MAX_SPOTS of one size: ask in runs, one after
+        # the other, each with its own wait for a busy editor; a failing one
+        # fails the call.
+        plan = plan_runs([size if v is None else v for v in own])
         parts = []
-        for run in runs:
+        for run_size, indices in plan:
             try:
-                parts.append(fetch_spots(path, points[run.start : run.stop], size, space, stage))
+                parts.append(fetch_spots(path, [points[i] for i in indices], run_size, space, stage))
             except ToolError as e:
-                if len(runs) == 1:
+                if len(plan) == 1:
                     raise
-                raise ToolError(f"{e} ({covering(run, len(points))})") from e
-        return merge_samples(parts)
+                raise ToolError(f"{e} ({covering(indices, len(points))})") from e
+        return merge_planned(plan, parts, len(points), size)
 
     def film_estimate(path: str, adjustments: Adjustments | None, profile: KeyFile) -> Estimate | None:
         """ART's current Film Negative medians, sampled through the channel

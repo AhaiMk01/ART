@@ -91,7 +91,7 @@ Coord2D translateCoord(art::engine::ImProcFunctions &ipf, int fw, int fh, int x,
 void getSpotAvgMax(ImageSource *imgsrc, ColorTemp currWB,
                    const art::engine::procparams::ProcParams &params, Coord2D p,
                    int tr, int spotSize, SpotSpace space, RGB &avg, RGB &max,
-                   art::engine::gpu::Context *ctx)
+                   art::engine::gpu::Context *ctx, RGB *sd = nullptr)
 {
     int x1 = MAX(0, (int)p.x - spotSize / 2);
     int y1 = MAX(0, (int)p.y - spotSize / 2);
@@ -105,9 +105,10 @@ void getSpotAvgMax(ImageSource *imgsrc, ColorTemp currWB,
     art::engine::Imagefloat spotImg(spotSize, spotSize);
     imgsrc->getImage(currWB, tr, &spotImg, pp, params.exposure, params.raw);
 
-    auto avgMax = [spotSize, &spotImg](RGB &avg, RGB &max) -> void {
+    auto avgMax = [spotSize, &spotImg, sd](RGB &avg, RGB &max) -> void {
         avg = {};
         max = {};
+        double sq[3] = {0.0, 0.0, 0.0};
 
         for (int i = 0; i < spotSize; ++i) {
             for (int j = 0; j < spotSize; ++j) {
@@ -122,12 +123,26 @@ void getSpotAvgMax(ImageSource *imgsrc, ColorTemp currWB,
                 max.r = MAX(max.r, r);
                 max.g = MAX(max.g, g);
                 max.b = MAX(max.b, b);
+                sq[0] += double(r) * r;
+                sq[1] += double(g) * g;
+                sq[2] += double(b) * b;
             }
         }
 
         avg.r /= (spotSize * spotSize);
         avg.g /= (spotSize * spotSize);
         avg.b /= (spotSize * spotSize);
+        if (sd) {
+            // standard deviation of the pixels of the square (before the
+            // clip of the average below)
+            const double n = double(spotSize) * spotSize;
+            const float m[3] = {avg.r, avg.g, avg.b};
+            float s[3];
+            for (int c = 0; c < 3; ++c) {
+                s[c] = float(std::sqrt(std::max(0.0, sq[c] / n - double(m[c]) * m[c])));
+            }
+            *sd = {s[0], s[1], s[2]};
+        }
     };
 
     if (space == SpotSpace::INPUT) {
@@ -1000,9 +1015,9 @@ void sampleSpot(ImProcFunctions &ipf, ImageSource *imgsrc,
 {
     const int tr = getCoarseBitMask(params.coarse);
     const Coord2D p = spotCentre(ipf, fw, fh, x, y, size);
-    RGB a, m;
+    RGB a, m, d;
     getSpotAvgMax(imgsrc, currWB, params, p, tr, size, space, a, m,
-                  ipf.getGPUContext());
+                  ipf.getGPUContext(), &d);
     out.x = x;
     out.y = y;
     out.avg[0] = a.r;
@@ -1011,6 +1026,9 @@ void sampleSpot(ImProcFunctions &ipf, ImageSource *imgsrc,
     out.max[0] = m.r;
     out.max[1] = m.g;
     out.max[2] = m.b;
+    out.sd[0] = d.r;
+    out.sd[1] = d.g;
+    out.sd[2] = d.b;
 }
 
 } // namespace
@@ -1108,6 +1126,11 @@ std::string spotResultJson(const SpotResult &res)
         for (int c = 0; c < 3; ++c) {
             o << (c ? "," : "");
             jnum(o, s.max[c]);
+        }
+        o << "],\"sd\":[";
+        for (int c = 0; c < 3; ++c) {
+            o << (c ? "," : "");
+            jnum(o, s.sd[c]);
         }
         o << "]}";
     }
@@ -1545,6 +1568,7 @@ SpotStatus sampleSpotsStage(ImProcFunctions &ipf, ImageSource *imgsrc,
             return SpotStatus::FAILED;
         }
         double sum[3] = {0, 0, 0};
+        double sq[3] = {0, 0, 0};
         double mx[3] = {-std::numeric_limits<double>::infinity(),
                         -std::numeric_limits<double>::infinity(),
                         -std::numeric_limits<double>::infinity()};
@@ -1561,6 +1585,7 @@ SpotStatus sampleSpotsStage(ImProcFunctions &ipf, ImageSource *imgsrc,
                         return SpotStatus::FAILED;
                     }
                     sum[c] += v;
+                    sq[c] += v * v;
                     mx[c] = std::max(mx[c], v);
                 }
             }
@@ -1569,8 +1594,12 @@ SpotStatus sampleSpotsStage(ImProcFunctions &ipf, ImageSource *imgsrc,
         s.x = pos.first;
         s.y = pos.second;
         for (int c = 0; c < 3; ++c) {
-            s.avg[c] = static_cast<float>(sum[c] / (double(size) * size));
+            const double n = double(size) * size;
+            const double mean = sum[c] / n;
+            s.avg[c] = static_cast<float>(mean);
             s.max[c] = static_cast<float>(mx[c]);
+            s.sd[c] = static_cast<float>(
+                std::sqrt(std::max(0.0, sq[c] / n - mean * mean)));
         }
         res.spots.push_back(s);
     }
