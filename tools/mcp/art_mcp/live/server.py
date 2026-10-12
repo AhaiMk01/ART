@@ -962,7 +962,7 @@ def build_server(
             "(its preview, saved as an 8-bit PNG; the whole frame, in the monitor colour "
             "space, never enlarged beyond the editor's preview). "
             + IMAGE_STATS_DOC
-            + " `stage` converted / cineon: Render server only (refused here)."
+            + " `stage` converted: Render server only (refused here)."
             + " Waits for ART's processing like render_preview. Fails with not_open if "
             "ART doesn't have the image open (with `paths`, that image's item says so)."
         )

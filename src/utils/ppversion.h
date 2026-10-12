@@ -5,10 +5,22 @@ namespace art { namespace utils {
 
 // This number has to be incremented whenever the ARP file format is modified or
 // the behaviour of a tool changes
-#define PPVERSION 1059
+#define PPVERSION 1061
 
 /*
   Log of version changes
+  1061  2026-10-12
+        film negative: the print LUT (CineonLUT* keys, LegacyInputLUT), the
+        paper target (PaperCurve, PaperBasis) and the Cineon TIFF export
+        (TargetMode, CineonPrimaries) are removed. Old keys are ignored, so
+        such sidecars render and export the linear positive. PreserveRange
+        is removed too: Exposure clamps NamiColor's negative RGB at zero, as
+        for every other source. DenoiseBeforeInversion is removed: Denoise
+        runs on the inverted positive again, as before 1059
+  1060  2026-10-11
+        film negative: TransmissionFloor, the lowest transmission taken
+        before the log in Density and NamiColor (new profiles 1/65535;
+        sidecars before 1060 keep 1e-10)
   1059  2026-10-10
         film negative: DenoiseBeforeInversion (new profiles denoise the
         camera-linear negative before the film conversion; sidecars before

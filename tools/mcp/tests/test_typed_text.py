@@ -49,11 +49,11 @@ def typed(profile):
 
 
 def test_a_windows_path_is_stored_escaped_and_read_back_as_typed():
-    changes, _ = edit(cineon_lut=WINDOWS_PATH, cineon_lut_sha256="0" * 64)
+    changes, _ = edit(calibration_note=WINDOWS_PATH)
 
-    assert changes.profile["Film Negative"]["CineonLUT"] == "C:\\\\Users\\\\x\\\\new.cube"
-    assert typed(changes.profile)["cineon_lut"] == WINDOWS_PATH
-    assert typed(keyfile.loads(keyfile.dumps(changes.profile)))["cineon_lut"] == WINDOWS_PATH
+    assert changes.profile["Film Negative"]["CalibrationNote"] == "C:\\\\Users\\\\x\\\\new.cube"
+    assert typed(changes.profile)["calibration_note"] == WINDOWS_PATH
+    assert typed(keyfile.loads(keyfile.dumps(changes.profile)))["calibration_note"] == WINDOWS_PATH
 
 
 def test_a_note_with_a_line_break_stays_on_one_line_and_comes_back():
@@ -67,17 +67,16 @@ def test_a_note_with_a_line_break_stays_on_one_line_and_comes_back():
 
 def test_a_value_ART_wrote_is_read_unescaped():
     profile = keyfile.loads(
-        BASE + "CineonLUT=C:\\\\a\\\\b.cube\nCalibrationNote=\\sx\\ny\n"
+        BASE + "CalibrationNote=C:\\\\a\\\\b.cube\\sx\\ny\n"
     )
 
-    assert typed(profile)["cineon_lut"] == "C:\\a\\b.cube"
-    assert typed(profile)["calibration_note"] == " x\ny"
+    assert typed(profile)["calibration_note"] == "C:\\a\\b.cube x\ny"
 
 
 def test_setting_the_text_a_profile_already_holds_is_not_a_change():
-    changes, first = edit(cineon_lut=WINDOWS_PATH, cineon_lut_sha256="0" * 64)
+    changes, first = edit(calibration_note=WINDOWS_PATH)
     again = changes.edit(
-        parse_adjustments({"film_negative": {"cineon_lut": WINDOWS_PATH}}), []
+        parse_adjustments({"film_negative": {"calibration_note": WINDOWS_PATH}}), []
     )
 
     assert first.changed

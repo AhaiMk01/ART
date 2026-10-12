@@ -12,7 +12,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationEr
 from art_mcp.compactschema import CompactModel, compact_model_schema, full_schema
 from art_mcp.curves import CurveSpec
 
-PPVERSION = 1059
+PPVERSION = 1061
 """The processing-profile version (``src/utils/ppversion.h``) this schema was
 written for."""
 
@@ -372,16 +372,6 @@ class FilmNegative(CompactModel):
         "Conversion method",
         read_as={"0": "power_law", "1": "density", "2": "namicolor"}, default="power_law",
     )  # fmt: skip
-    preserve_range: bool | None = F(
-        "PreserveRange",
-        "NamiColor: keep signed/over-white RGB",
-        default=True,
-    )
-    denoise_before_inversion: bool | None = F(
-        "DenoiseBeforeInversion",
-        "Denoise before inversion (output, 1:1)",
-        default=True,
-    )
     film_type: Literal["negative", "reversal"] | None = F(
         "FilmType",
         "negative or reversal",
@@ -486,16 +476,6 @@ class FilmNegative(CompactModel):
         read_as={"0": "identity", "1": "status_m_reference", "2": "custom"},
         default="identity",
     )
-    target_mode: Literal["linear", "paper", "cineon"] | None = F(
-        "TargetMode",
-        "linear, paper (density) or cineon",
-        read_as={"0": "linear", "1": "paper", "2": "cineon"}, default="linear",
-    )  # fmt: skip
-    cineon_primaries: str | None = F(
-        "CineonPrimaries",
-        "Export primaries; empty = working",
-        default="",
-    )
     cineon_reference_white: float | None = F(
         "CineonReferenceWhite",
         "W: linear value of Cineon code 685",
@@ -532,69 +512,6 @@ class FilmNegative(CompactModel):
         ge=0.0,
         le=0.05,
         default=0.0,
-    )
-    paper_curve: (
-        Literal[
-            "kodak_2383",
-            "kodak_2393",
-            "kodak_ektacolor_edge",
-            "kodak_endura_premier",
-            "kodak_portra_endura",
-            "kodak_supra_endura",
-            "kodak_ultra_endura",
-            "ilford_mgfb_00",
-            "ilford_mgfb_0",
-            "ilford_mgfb_1",
-            "ilford_mgfb_2",
-            "ilford_mgfb_3",
-            "ilford_mgfb_4",
-            "ilford_mgfb_5",
-        ]
-        | None
-    ) = F(
-        "PaperCurve",
-        "Print curve",
-        default="kodak_endura_premier",
-    )
-    paper_basis: str | None = F(
-        "PaperBasis",
-        "input|<profile>, working|<profile>, empty",
-        default="",
-    )
-    cineon_lut: str | None = F(
-        "CineonLUT",
-        "Print .cube path",
-        default="",
-    )
-    cineon_lut_stage: Literal["before_grade", "after_grade"] | None = F(
-        "CineonLUTStage",
-        "Print LUT order",
-        default="after_grade",
-    )
-    cineon_lut_sha256: str | None = F(
-        "CineonLUTSha256",
-        "SHA-256 of the .cube",
-        default="",
-    )
-    cineon_lut_input_primaries: str | None = F(
-        "CineonLUTInputPrimaries",
-        "LUT input primaries; empty = working",
-        default="",
-    )
-    cineon_lut_input_transfer: Literal["cineon", "linear", "srgb", "gamma_2_4", "logc3", "slog3", "acescct"] | None = F(
-        "CineonLUTInputTransfer",
-        "LUT input encoding",
-        default="cineon",
-    )
-    cineon_lut_output_primaries: str | None = F(
-        "CineonLUTOutputPrimaries",
-        "LUT output primaries; empty = input",
-        default="",
-    )
-    cineon_lut_output_transfer: Literal["linear", "srgb", "gamma_2_4"] | None = F(
-        "CineonLUTOutputTransfer",
-        "LUT output decode",
-        default="linear",
     )
 
 

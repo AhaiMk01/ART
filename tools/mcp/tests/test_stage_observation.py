@@ -1,5 +1,5 @@
 """Staged observation of the film pipeline: sample_spots `stage` and image_stats
-`stage` (art-cli -x converted|cineon and -X), on both servers, against the fake
+`stage` (art-cli -x converted and -X), on both servers, against the fake
 art-cli and the fake editor. The real-engine checks are in
 test_integration_stage_observation.py."""
 
@@ -40,7 +40,7 @@ def error_text(result):
 # -- sample_spots ---------------------------------------------------------------
 
 
-@pytest.mark.parametrize("stage", ["converted", "cineon"])
+@pytest.mark.parametrize("stage", ["converted"])
 async def test_render_sample_spots_stage_sends_the_stage_as_the_token(render, image, stage):  # noqa: F811
     server, log = render
     async with Client(server) as client:
@@ -69,8 +69,8 @@ async def test_render_sample_spots_default_stage_is_source(render, image):  # no
     ("arguments", "needle"),
     [
         ({"stage": "converted", "space": "input"}, "space applies to stage source only"),
-        ({"stage": "cineon", "space": "input"}, "space applies to stage source only"),
-        ({"stage": "display"}, "stage must be one of source, converted, cineon"),
+        ({"stage": "cineon"}, "stage must be one of source, converted"),
+        ({"stage": "display"}, "stage must be one of source, converted"),
     ],
 )
 async def test_render_sample_spots_refuses_a_bad_stage_before_running(render, image, arguments, needle):  # noqa: F811
@@ -88,9 +88,9 @@ async def test_render_sample_spots_staged_runs_come_back_as_one_stage(render, im
     spots = [{"x": n, "y": 5} for n in range(1, 21)]
     async with Client(server) as client:
         await client.call_tool("open_image", {"path": str(image)})
-        result = await client.call_tool("sample_spots", {"path": str(image), "spots": spots, "stage": "cineon"})
+        result = await client.call_tool("sample_spots", {"path": str(image), "spots": spots, "stage": "converted"})
     assert not result.is_error, result.content
-    assert result.structured_content["stage"] == "cineon" and len(result.structured_content["spots"]) == 20
+    assert result.structured_content["stage"] == "converted" and len(result.structured_content["spots"]) == 20
     assert len([a for a in logged(log) if "-x" in a]) == 2
 
 
@@ -105,9 +105,9 @@ async def test_render_staged_sampling_on_an_older_build_is_unsupported(render, i
 
 
 def test_parse_spots_output_labels_the_stage_and_unit():
-    line = 'ART-SPOTS {"width":4,"height":3,"stage":"cineon","unit":"cineon_code","spots":[]}'
-    parsed = parse_spots_output(line, 8, "working", "cineon")
-    assert (parsed.stage, parsed.unit, parsed.space) == ("cineon", "cineon_code", "working")
+    line = 'ART-SPOTS {"width":4,"height":3,"stage":"converted","unit":"linear_65535","spots":[]}'
+    parsed = parse_spots_output(line, 8, "working", "converted")
+    assert (parsed.stage, parsed.unit, parsed.space) == ("converted", "linear_65535", "working")
     assert parsed.film is None and parsed.w is None
     line = 'ART-SPOTS {"stage":"converted","film":"disabled","w":0.9,"width":4,"height":3,"spots":[]}'
     parsed = parse_spots_output(line, 8, "working", "converted")
@@ -115,7 +115,7 @@ def test_parse_spots_output_labels_the_stage_and_unit():
     assert parsed.model_dump()["film"] == "disabled"
     assert "film" not in parse_spots_output('ART-SPOTS {"width":4,"height":3,"spots":[]}', 8, "working").model_dump()
     with pytest.raises(ValueError, match="staged sampling"):
-        parse_spots_output('ART-SPOTS {"width":4,"height":3,"spots":[]}', 8, "working", "cineon")
+        parse_spots_output('ART-SPOTS {"width":4,"height":3,"spots":[]}', 8, "working", "converted")
 
 
 async def test_live_sample_spots_sends_stage_only_when_not_source(art, tmp_path):  # noqa: F811
@@ -144,7 +144,9 @@ async def test_live_sample_spots_an_art_that_ignores_stage_is_unsupported(art, t
     values = {"x": 7, "y": 9, "avg": [1, 2, 3], "max": [4, 5, 6]}
     art.ops["sample_spots"] = answer({"width": 6000, "height": 4000, "spots": [values]})
     async with Client(build_live(ControlChannel(art.config_dir))) as client:
-        result = await client.call_tool("sample_spots", {"path": photo, "spots": [{"x": 7, "y": 9}], "stage": "cineon"})
+        result = await client.call_tool(
+            "sample_spots", {"path": photo, "spots": [{"x": 7, "y": 9}], "stage": "converted"}
+        )
     assert "unsupported:" in error_text(result)
 
 
@@ -153,7 +155,7 @@ async def test_live_sample_spots_refuses_space_input_with_a_stage(art, tmp_path)
     FakeEditor(art).add(photo, EDITOR_PROFILE)
     async with Client(build_live(ControlChannel(art.config_dir))) as client:
         result = await client.call_tool(
-            "sample_spots", {"path": photo, "spots": [{"x": 7, "y": 9}], "stage": "cineon", "space": "input"}
+            "sample_spots", {"path": photo, "spots": [{"x": 7, "y": 9}], "stage": "converted", "space": "input"}
         )
     assert "out_of_range:" in error_text(result)
     assert not requests(art, "sample_spots")
@@ -162,7 +164,7 @@ async def test_live_sample_spots_refuses_space_input_with_a_stage(art, tmp_path)
 # -- image_stats -----------------------------------------------------------------
 
 
-def stage_line(stage="cineon", bins=8):
+def stage_line(stage="converted", bins=8):
     channels = []
     for c in range(3):
         hist = [0] * bins
@@ -173,23 +175,23 @@ def stage_line(stage="cineon", bins=8):
                 "below": 0, "above": 0, "nonfinite": 0, "hist": hist,
             }
         )  # fmt: skip
-    lo, hi = (-100.0, 1100.0) if stage == "cineon" else (-6553.5, 131070.0)
+    lo, hi = -6553.5, 131070.0
     return "ART-STAGESTATS " + json.dumps(
         {
             "stage": stage, "unit": STAGE_UNITS[stage], "width": 5, "height": 10,
-            "source_width": 50, "source_height": 100, "w": 1.0, "range": [lo, hi], "channels": channels,
+            "source_width": 50, "source_height": 100, "range": [lo, hi], "channels": channels,
         }
     )  # fmt: skip
 
 
 def test_parse_stage_stats_output_validates_the_line():
-    parsed = parse_stage_stats_output("banner\n" + stage_line("cineon"), "cineon", 8)
-    assert parsed.bins == 8 and parsed.range == [-100.0, 1100.0] and len(parsed.channels) == 3
-    assert parse_stage_stats_output("banner", "cineon", 8) is None
+    parsed = parse_stage_stats_output("banner\n" + stage_line("converted"), "converted", 8)
+    assert parsed.bins == 8 and parsed.range == [-6553.5, 131070.0] and len(parsed.channels) == 3
+    assert parse_stage_stats_output("banner", "converted", 8) is None
     with pytest.raises(ValueError, match="unexpected"):
-        parse_stage_stats_output(stage_line("converted"), "cineon", 8)
+        parse_stage_stats_output(stage_line().replace("converted", "display"), "converted", 8)
     with pytest.raises(ValueError, match="malformed"):
-        parse_stage_stats_output("ART-STAGESTATS {nope", "cineon", 8)
+        parse_stage_stats_output("ART-STAGESTATS {nope", "converted", 8)
 
 
 async def stats(render, image, **arguments):  # noqa: F811
@@ -199,7 +201,7 @@ async def stats(render, image, **arguments):  # noqa: F811
         return await client.call_tool("image_stats", {"path": str(image), **arguments}), log
 
 
-@pytest.mark.parametrize("stage", ["converted", "cineon"])
+@pytest.mark.parametrize("stage", ["converted"])
 async def test_render_image_stats_stage_runs_dash_x_with_bins_size_and_region(render, image, stage):  # noqa: F811
     result, log = await stats(
         render, image, stage=stage, bins=64, max_size=500, region={"x": 0.25, "y": 0.5, "w": 0.5, "h": 0.25}
@@ -207,8 +209,8 @@ async def test_render_image_stats_stage_runs_dash_x_with_bins_size_and_region(re
     assert not result.is_error, result.content
     data = result.structured_content
     assert data["stage"] == stage and data["unit"] == STAGE_UNITS[stage]
-    assert data["range"] == ([-100.0, 1100.0] if stage == "cineon" else [-6553.5, 131070.0])
-    assert (data["w"], data["bins"], data["source_width"]) == (1.0, 64, 6000)
+    assert data["range"] == [-6553.5, 131070.0]
+    assert (data["bins"], data["source_width"]) == (64, 6000)
     assert len(data["channels"]) == 3 and "hist" not in data["channels"][0]
     assert {"p01", "p50", "p99", "below", "above", "nonfinite"} <= set(data["channels"][0])
     [call] = [a for a in logged(log) if "-X" in a]
@@ -217,22 +219,22 @@ async def test_render_image_stats_stage_runs_dash_x_with_bins_size_and_region(re
 
 
 async def test_render_image_stats_stage_defaults_to_256_bins_and_histogram_returns_counts(render, image):  # noqa: F811
-    result, log = await stats(render, image, stage="cineon", histogram=True)
+    result, log = await stats(render, image, stage="converted", histogram=True)
     [call] = [a for a in logged(log) if "-X" in a]
-    assert call[call.index("-X") + 1].startswith("cineon,256,")
+    assert call[call.index("-X") + 1].startswith("converted,256,")
     assert all(len(c["hist"]) == 256 for c in result.structured_content["channels"])
 
 
 async def test_render_image_stats_stage_histogram_image_is_a_png_chart(render, image):  # noqa: F811
-    result, _ = await stats(render, image, stage="cineon", bins=64, histogram_image=True)
+    result, _ = await stats(render, image, stage="converted", bins=64, histogram_image=True)
     assert not result.is_error, result.content
     [chart] = [c for c in result.content if c.type == "image"]
     assert chart.mime_type == "image/png"
     png = Image.open(io.BytesIO(base64.b64decode(chart.data)))
     assert png.size == (840, 400)
-    # The 95 / 470 / 685 marks are drawn as vertical lines in the mark colour.
+    # The 0 / 65535 marks are drawn as vertical lines in the mark colour.
     row = [x for x in range(png.width) if png.getpixel((x, 160)) == (240, 200, 80)]
-    assert len(row) == 3
+    assert len(row) == 2
 
 
 async def test_render_image_stats_display_stage_is_unchanged(render, image, tmp_path, monkeypatch):  # noqa: F811
@@ -249,12 +251,13 @@ async def test_render_image_stats_display_stage_is_unchanged(render, image, tmp_
 @pytest.mark.parametrize(
     ("arguments", "needle"),
     [
-        ({"stage": "cineon", "detail": "full"}, "detail apply to stage display only"),
+        ({"stage": "converted", "detail": "full"}, "detail apply to stage display only"),
         ({"stage": "converted", "lum_min": 3}, "lum_min apply to stage display only"),
         ({"stage": "converted", "lum_max": 3, "lum_min": 1}, "lum_min, lum_max apply"),
-        ({"stage": "cineon", "bins": 1}, "bins for stage cineon must be 2 to 1024"),
-        ({"stage": "cineon", "bins": 2000}, "bins for stage cineon must be 2 to 1024"),
-        ({"stage": "linear"}, "stage must be one of display, converted, cineon"),
+        ({"stage": "converted", "bins": 1}, "bins for stage converted must be 2 to 1024"),
+        ({"stage": "converted", "bins": 2000}, "bins for stage converted must be 2 to 1024"),
+        ({"stage": "cineon"}, "stage must be one of display, converted"),
+        ({"stage": "linear"}, "stage must be one of display, converted"),
         ({"stage": "display", "bins": 100}, "bins must be 8, 16, 32 or 64"),
     ],
 )
@@ -292,11 +295,11 @@ async def test_render_image_stats_several_paths_with_a_stage(render, image, tmp_
 @pytest.mark.parametrize("mode", ["release", "silent"])
 async def test_render_image_stats_stage_on_an_older_build_is_unsupported(render, image, monkeypatch, mode):  # noqa: F811
     monkeypatch.setenv("FAKE_SPOTS", mode)
-    result, _ = await stats(render, image, stage="cineon")
+    result, _ = await stats(render, image, stage="converted")
     assert "unsupported:" in error_text(result) and "staged sampling" in error_text(result)
 
 
-@pytest.mark.parametrize("stage", ["converted", "cineon"])
+@pytest.mark.parametrize("stage", ["converted"])
 async def test_live_image_stats_refuses_a_pipeline_stage_and_points_to_render(art, tmp_path, stage):  # noqa: F811
     photo = str(tmp_path / "a.ARW")
     FakeEditor(art).add(photo, EDITOR_PROFILE)

@@ -617,10 +617,7 @@ HISTORY_MSG_FILMNEGATIVE_REF_SPOT;FN - Reference input
 HISTORY_MSG_FILMNEGATIVE_METHOD;Film Negative - Method
 HISTORY_MSG_FILMNEGATIVE_DENSITY;Film Negative - Density parameters
 HISTORY_MSG_FILMNEGATIVE_CINEON;Film Negative - Cineon export
-HISTORY_MSG_FILMNEGATIVE_TARGET;Film Negative - Target
-HISTORY_MSG_FILMNEGATIVE_PRESERVE_RANGE;Film Negative - Preserve working RGB range
 HISTORY_MSG_FILMNEGATIVE_FLARE;Film Negative - Flare
-HISTORY_MSG_FILMNEGATIVE_DENOISE_FIRST;Film Negative - Denoise before inversion
 HISTORY_MSG_FILMSIMULATION_AFTER_TONE_CURVE;Film Simulation - After tone curve
 HISTORY_MSG_FILMSIMULATION_CLUT_PARAMS;Film Simulation - LUT parameters
 HISTORY_MSG_FLATFIELD_EMBEDDED;Flat-field embedded
@@ -1612,53 +1609,11 @@ TP_FILMNEGATIVE_ERR_MATRIX_BASIS_EMPTY;Film Negative: a non-identity density mat
 TP_FILMNEGATIVE_ERR_MATRIX_BASIS_VERSION;Film Negative: MatrixBasis is not version 1 JSON. Select Identity or rebind the matrix to the current processing space and profile
 TP_FILMNEGATIVE_ERR_MATRIX_BASIS_MISMATCH;Film Negative: bound color_space=%1 profile="%2" does not match active color_space=%3 profile="%4". Select Identity or re-select the matrix preset to rebind. Coefficients are not reused in another basis
 TP_FILMNEGATIVE_ERR_MATRIX_BASIS_SOURCE;Input gamma or source identity does not match the binding. Rebind the matrix.
-TP_FILMNEGATIVE_ERR_LUT_HASH;Film Negative: Cineon print LUT '%1' content does not match the saved identity. The file was replaced or the identity was not recorded. No other LUT was used
-TP_FILMNEGATIVE_ERR_LUT_PRIMARIES;Film Negative: Cineon LUT primaries '%1' / '%2' are not invertible matrix profiles. The print LUT was not applied
 TP_FILMNEGATIVE_ERR_MATRIX_BASIS_CONTENT;Custom profile content changed.
-TP_FILMNEGATIVE_ERR_PAPER_CURVE;Film Negative: unknown paper curve '%1'. Paper response not applied
-TP_FILMNEGATIVE_ERR_PAPER_BASIS;Film Negative: paper basis does not match the inversion color space. Conversion was not applied. Rebind PaperBasis
 TP_FILMNEGATIVE_ERR_NONFINITE;Film Negative: non-finite sample detected. That pixel was left unchanged
-TP_FILMNEGATIVE_ERR_CINEON_FORMAT;Film Negative: Cineon film-negative target requires a 16-bit integer TIFF. Refusing to write another format
-TP_FILMNEGATIVE_ERR_CINEON_IMAGE;Film Negative: Cineon export needs a floating-point image
-TP_FILMNEGATIVE_ERR_CINEON_TRANSFER;Film Negative: output profile '%1' is not a verified linear transfer. Set the output profile to "(none)" or a linear profile. Cineon was not encoded
-TP_FILMNEGATIVE_ERR_CINEON_PRIMARIES;Film Negative: cannot convert linear RGB into Cineon primaries '%1'. Export was not encoded
-TP_FILMNEGATIVE_ERR_CINEON_RANGE;Film Negative: encoded Cineon values fall outside the integer output range [0,1]. Reduce or fit the encoded range explicitly, or select the Linear target and export a 32-bit floating-point TIFF with output profile "(none)". Export was not written
-TP_FILMNEGATIVE_ERR_LUT_MISSING;Film Negative: Cineon print LUT file is missing: '%1'. Set CineonLUT to an existing .cube file. No other LUT was used
-TP_FILMNEGATIVE_ERR_LUT_UNREADABLE;Film Negative: Cineon print LUT could not be read: '%1'. Check that the file is readable. No other LUT was used
-TP_FILMNEGATIVE_ERR_LUT_LOG;Film Negative: Cineon print LUT '%1' %2. Refusing the file. No other LUT was used
-TP_FILMNEGATIVE_ERR_LUT_BAD;Film Negative: Cineon print LUT '%1' is not usable (%2). No other LUT was used
-TP_FILMNEGATIVE_ERR_LUT_TRANSFER;Film Negative: CineonLUTOutputTransfer is not linear, srgb or gamma_2_4. The print LUT was not applied
-TP_FILMNEGATIVE_ERR_LUT_STAGE;Film Negative: CineonLUTStage is not before_grade or after_grade. The print LUT was not applied
-TP_FILMNEGATIVE_ERR_LUT_NOT_3D;file is not a 3D .cube (LUT_3D_SIZE is required). A 1D LUT is not a Cineon print LUT
-TP_FILMNEGATIVE_ERR_LUT_LENGTH;3D lattice length does not match LUT_3D_SIZE
-TP_FILMNEGATIVE_ERR_LEGACY_LUT_PRIMARIES;Film Negative: the legacy input-space print LUT (LegacyInputLUT) cannot use LUT primaries; clear the LUT primaries or apply the LUT before/after grade in the working space
-TP_FILMNEGATIVE_ERR_LUT_DOMAIN;DOMAIN_MAX must be greater than DOMAIN_MIN (or LUT_3D_INPUT_RANGE must be two numbers, max greater than min)
-TP_FILMNEGATIVE_ERR_LUT_1D;file has a 1D section (LUT_1D_SIZE / LUT_1D_INPUT_RANGE), which is not implemented. Use a pure 3D .cube
-TP_FILMNEGATIVE_ERR_LUT_VIDEO_RANGE;file declares LUT_IN_VIDEO_RANGE / LUT_OUT_VIDEO_RANGE (legal-range scaling), which is not implemented. Use a full-range .cube
-TP_FILMNEGATIVE_ERR_LUT_SIZE;LUT_3D_SIZE must be between 2 and 128
-TP_FILMNEGATIVE_ERR_LUT_LOG_DETAIL;declares an unsupported log output transfer '%1'. Supported decoded outputs are linear, sRGB and gamma 2.4
 HISTORY_MSG_FILMNEGATIVE_FILMBASE_GAINS;Film Negative - Printer lights
-TP_FILMNEGATIVE_TARGET;Target:
-TP_FILMNEGATIVE_TARGET_LINEAR;Linear
-TP_FILMNEGATIVE_TARGET_PAPER;Paper
-TP_FILMNEGATIVE_TARGET_CINEON;Cineon
-TP_FILMNEGATIVE_CINEON_PRIMARIES;Cineon primaries
-TP_FILMNEGATIVE_CINEON_PRIMARIES_TOOLTIP;Colour primaries for a Cineon export. Leave empty to use the current working profile.
 TP_FILMNEGATIVE_CINEON_REFWHITE;Cineon reference white
 TP_FILMNEGATIVE_CINEON_REFWHITE_TOOLTIP;Linear value encoded as Cineon code 685. The default 0.9 makes code 685 the 90% diffuse white. This one value scales NamiColor decoding, print-LUT input encoding and integer Cineon export together. Older profiles without the setting load 1.0.
-TP_FILMNEGATIVE_CINEON_LUT;Cineon print LUT
-TP_FILMNEGATIVE_CINEON_LUT_FILTER;Cube LUT
-TP_FILMNEGATIVE_CINEON_LUT_TOOLTIP;External Cineon-input .cube print LUT. Selecting a file turns off the paper curve. A missing file is an error.
-TP_FILMNEGATIVE_CINEON_LUT_INPUT;LUT input primaries
-TP_FILMNEGATIVE_CINEON_LUT_OUTPUT;LUT output primaries
-TP_FILMNEGATIVE_CINEON_LUT_TRANSFER;LUT output transfer
-TP_FILMNEGATIVE_CINEON_LUT_TRANSFER_LINEAR;Linear
-TP_FILMNEGATIVE_CINEON_LUT_TRANSFER_SRGB;sRGB
-TP_FILMNEGATIVE_CINEON_LUT_TRANSFER_GAMMA;Gamma 2.4
-TP_FILMNEGATIVE_CINEON_LUT_STAGE;LUT location
-TP_FILMNEGATIVE_CINEON_LUT_BEFORE_GRADE;Before grading (legacy)
-TP_FILMNEGATIVE_CINEON_LUT_AFTER_GRADE;After grading (scene-referred)
-TP_FILMNEGATIVE_CINEON_LUT_STAGE_TOOLTIP;After grading: other processing tools operate on scene-referred RGB before the output print LUT. Before grading preserves the legacy placement.
 TP_FILMNEGATIVE_MATRIX_PRESET;Matrix preset:
 TP_FILMNEGATIVE_MATRIX_IDENTITY;Identity
 TP_FILMNEGATIVE_MATRIX_STATUS_M;Status M reference
@@ -1668,22 +1623,6 @@ TP_FILMNEGATIVE_MATRIX_INVALID;Invalid matrix: enter nine finite numbers, each b
 TP_FILMNEGATIVE_CALIBRATION_NOTE;Calibration note:
 TP_FILMNEGATIVE_MATRIX_PRESET_TOOLTIP;Optional digital mask in log-transmission density, for Density and NamiColor. In NamiColor it acts before per-channel alignment, centered at the fixed nominal density reference p=0.7 (not film-base Dmin). Identity leaves the rendering unchanged. Status M is an empirical DiVERE reference, not measured calibration of this scan or a universal correction. A non-identity matrix is bound to the processing space/profile, input transfer and source. Changing that basis requires explicitly re-selecting the preset, or choosing Identity. The selected mask remains active when switching between Density and NamiColor; switching methods does not rebind it.
 HISTORY_MSG_FILMNEGATIVE_MATRIX;Film Negative - Density matrix
-TP_FILMNEGATIVE_PAPER_CURVE;Paper curve:
-TP_FILMNEGATIVE_PAPER_CURVE_TOOLTIP;Reference one-dimensional print response. Ilford grades are a shared RGB curve: they do not desaturate the image or reset matrix and gains. Cineon keeps the curve stored but does not apply it.
-TP_FILMNEGATIVE_PAPER_KODAK_2383;Kodak 2383
-TP_FILMNEGATIVE_PAPER_KODAK_2393;Kodak 2393
-TP_FILMNEGATIVE_PAPER_KODAK_EKTACOLOR_EDGE;Kodak Ektacolor Edge
-TP_FILMNEGATIVE_PAPER_KODAK_ENDURA_PREMIER;Kodak Endura Premier
-TP_FILMNEGATIVE_PAPER_KODAK_PORTRA_ENDURA;Kodak Portra Endura
-TP_FILMNEGATIVE_PAPER_KODAK_SUPRA_ENDURA;Kodak Supra Endura
-TP_FILMNEGATIVE_PAPER_KODAK_ULTRA_ENDURA;Kodak Ultra Endura
-TP_FILMNEGATIVE_PAPER_ILFORD_00;Ilford MGFB 00
-TP_FILMNEGATIVE_PAPER_ILFORD_0;Ilford MGFB 0
-TP_FILMNEGATIVE_PAPER_ILFORD_1;Ilford MGFB 1
-TP_FILMNEGATIVE_PAPER_ILFORD_2;Ilford MGFB 2
-TP_FILMNEGATIVE_PAPER_ILFORD_3;Ilford MGFB 3
-TP_FILMNEGATIVE_PAPER_ILFORD_4;Ilford MGFB 4
-TP_FILMNEGATIVE_PAPER_ILFORD_5;Ilford MGFB 5
 TP_FILMNEGATIVE_OUTPUT_BLACK_OFFSET;Output black offset
 TP_FILMNEGATIVE_PICK;Pick neutral spots
 TP_FILMNEGATIVE_RED;Red ratio
@@ -2204,22 +2143,10 @@ TP_FILMNEGATIVE_NAMI_SHIFT_B;NamiColor blue shift
 TP_FILMNEGATIVE_NAMI_FIT_OFF;NamiColor base fit: off
 TP_FILMNEGATIVE_NAMI_FIT_ON;NamiColor base fit: on
 TP_FILMNEGATIVE_NAMI_FIT_TOOLTIP;When on, the normalized film base is anchored to Cineon code 95 (linear 0 after decoding) and the top end keeps code 1023. Profiles saved before this behaviour keep their original 93/1023 lift (NamiColorFitBaseAnchor=legacy in the sidecar) so they render identically.
-TP_FILMNEGATIVE_PRESERVE_RANGE;Preserve working RGB range
 TP_FILMNEGATIVE_FLARE_R;Flare red
 TP_FILMNEGATIVE_FLARE_G;Flare green
 TP_FILMNEGATIVE_FLARE_B;Flare blue
 TP_FILMNEGATIVE_FLARE_TOOLTIP;Veiling light, as a fraction of full-scale transmission, subtracted before the density log. Measure the light that reached the sensor through opaque areas: sample a fully opaque holder or a blocked, unexposed area. Do NOT use the film base or rebate.
-TP_FILMNEGATIVE_DENOISE_FIRST;Denoise before inversion
-TP_FILMNEGATIVE_DENOISE_FIRST_TOOLTIP;Run the Denoise tool on the negative before the film conversion, where the noise is still close to the sensor noise. Off denoises the inverted positive, as profiles made before this option did. Strength settings act differently in the two orders: retune after switching, checking the darkest areas of the positive at 1:1.
 TP_FILMNEGATIVE_ERR_FLARE;Film Negative: flare must be finite and between 0 and 0.5 for every channel. The conversion was not applied
 TP_FILMNEGATIVE_WARN_MANUAL_VIGNETTING;Vignetting Correction acts on the inverted positive; for negatives use a lens profile or flat-field (raw) instead
-TP_FILMNEGATIVE_PRESERVE_RANGE_TOOLTIP;NamiColor only: preserve finite negative and above-white working RGB through Exposure and the final print-LUT working-RGB store. Other tools retain their own mapping and clipping behavior. LUT input domains remain bounded. No-LUT integer Cineon export rejects encoded values outside [0,1]; for unbounded linear output, use the Linear target and a 32-bit floating-point TIFF with output profile "(none)".
-TP_FILMNEGATIVE_LUT_INPUT_TRANSFER;LUT input transfer
-TP_FILMNEGATIVE_LUT_INPUT_CINEON;Cineon
-TP_FILMNEGATIVE_LUT_INPUT_LOGC3;ARRI LogC3 (EI800)
-TP_FILMNEGATIVE_LUT_INPUT_SLOG3;Sony S-Log3 (normalized 10-bit)
-TP_FILMNEGATIVE_LUT_INPUT_ACESCCT;ACEScct
 TP_FILMNEGATIVE_ERR_NAMICOLOR_PARAMS;NamiColor requires finite parameters, positive channel denominators and a positive finite reference white.
-TP_FILMNEGATIVE_ERR_LUT_INPUT_TRANSFER;The LUT input transfer is invalid or unsupported.
-TP_FILMNEGATIVE_ERR_CINEON_DOMAIN;The image contains nonfinite values or signed values outside the Cineon logarithm domain.
-TP_FILMNEGATIVE_ERR_LUT_NONFINITE;The LUT contains or produces nonfinite values.

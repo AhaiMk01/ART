@@ -55,9 +55,6 @@ protected:
     IIOSampleFormat sampleFormat;
     IIOSampleArrangement sampleArrangement;
     Exiv2Metadata metadataInfo;
-    // Set by a Cineon export so the TIFF is not tagged as sRGB/linear ICC.
-    Glib::ustring saveAnnotation;
-    bool omitUnprofiledSrgbTag;
 
 private:
     void deleteLoadedProfileData();
@@ -70,8 +67,7 @@ public:
           profileLength(0), loadedProfileData(nullptr),
           loadedProfileDataJpg(false),
           loadedProfileLength(0), // iptc(nullptr), exifRoot (nullptr),
-          sampleFormat(IIOSF_UNKNOWN), sampleArrangement(IIOSA_UNKNOWN),
-          omitUnprofiledSrgbTag(false)
+          sampleFormat(IIOSF_UNKNOWN), sampleArrangement(IIOSA_UNKNOWN)
     {
     }
 
@@ -122,7 +118,6 @@ public:
 
     void setMetadata(const Exiv2Metadata &info) { metadataInfo = info; }
     void setOutputProfile(const char *pdata, int plen);
-    void setSaveAnnotation(const Glib::ustring &text);
 
     bool saveMetadata(const Glib::ustring &fname) const;
 

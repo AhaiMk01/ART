@@ -30,6 +30,7 @@ def register(server: MCPServer, session: RenderSession) -> None:
         overwrite: bool = False,
         marks: list[Mark] | None = None,
         paths: list[str] | None = None,
+        stage: str = "display",
     ) -> Annotated[CallToolResult, PreviewOutput]:
         """Render the working profile as a JPEG (long edge `max_size` px, 1 to
         2576) and return its path. `region` {x, y, w, h}, as fractions of the
@@ -64,13 +65,20 @@ def register(server: MCPServer, session: RenderSession) -> None:
         `marks`, `output` and `overwrite` go with one `path` and are
         `out_of_range` with `paths`. For a look at many frames at once
         `contact_sheet(record=false)` is one image; `paths` is for the few
-        frames that need a closer look."""
+        frames that need a closer look.
+
+        `stage` converted (one `path`, no `marks`) shows that
+        stage's own data instead, as `image_stats` measures it: linear RGB
+        through the sRGB curve; no colour management."""
         show = inline if inline is not None else session.inline_previews
+        if stage != "display" and (paths is not None or path is None):
+            with as_tool_errors():
+                raise ops.render_error("out_of_range", "stage goes with one `path`")
         if paths is not None or path is None:
             return await render_batch(ctx, path, paths, max_size, region, output, overwrite, marks, show)
         def render_one() -> Preview:
             with as_tool_errors():
-                return ops.render_preview(session, path, max_size, region, output, overwrite, marks)
+                return ops.render_preview(session, path, max_size, region, output, overwrite, marks, stage)
 
         result = await anyio.to_thread.run_sync(render_one)
         content: list[ContentBlock] = [TextContent(text=result.model_dump_json(exclude_defaults=True))]

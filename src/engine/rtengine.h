@@ -700,12 +700,9 @@ enum class SpotSpace { WORKING, INPUT /* camera */ };
 /** Which point of the pipeline a spot (or the stage statistics) reads.
  * SOURCE: linear, white balanced, before any film inversion (`space`).
  * CONVERTED: linear RGB right after the film-negative conversion and the
- *   input -> working colour conversion, in the working space, before the
- *   before_grade LUT, scene exposure and grading; 0..65535, not clamped.
- * CINEON: the CONVERTED pixels encoded per pixel with the Cineon encode and
- *   reference white of the export, as 10-bit codes (0..1023, may fall outside
- *   for NamiColor). */
-enum class SpotStage { SOURCE, CONVERTED, CINEON };
+ *   input -> working colour conversion, in the working space, before scene
+ *   exposure and grading; 0..65535, not clamped. */
+enum class SpotStage { SOURCE, CONVERTED };
 
 struct SpotRequest {
     int size = 32;
@@ -721,14 +718,14 @@ struct SpotResult {
     int height = 0;
     std::vector<SpotSample> spots;
     SpotStage stage = SpotStage::SOURCE;
-    std::string film;  // CONVERTED/CINEON: disabled|power_law|density|namicolor
-    double w = 0.0;    // CINEON: the reference white used
+    std::string film;  // CONVERTED: disabled|power_law|density|namicolor
+    double w = 0.0;    // CONVERTED: the Cineon reference white of the profile
     std::string error; // set when a spot is outside the frame or a stage fails
 };
 
 /** The "{\"stage\",\"unit\",\"width\",\"height\",\"spots\":[...]}" JSON body
- * of a result ("film" and, for cineon, "w" follow "unit" for the converted
- * and cineon stages; non-finite numbers are written as null) (the
+ * of a result ("film" and "w" follow "unit" for the converted stage;
+ * non-finite numbers are written as null) (the
  * ART-SPOTS line of art-cli, the sample_spots result of the live channel). */
 std::string spotResultJson(const SpotResult &res);
 
@@ -743,11 +740,15 @@ bool sampleSpots(ProcessingJob *job, const SpotRequest &req, SpotResult &res,
 
 /** Whole-image statistics of a pipeline stage (art-cli -X). */
 struct StageStatsRequest {
-    SpotStage stage = SpotStage::CONVERTED; // CONVERTED or CINEON
+    SpotStage stage = SpotStage::CONVERTED; // CONVERTED only
     int bins = 256;                         // 2..1024
     int maxsize = 0; // longest edge after box downscale, 0 = full resolution
     bool hasRegion = false;
     double x0 = 0, y0 = 0, x1 = 1, y1 = 1; // fractions of the cropped frame
+    // Also write the measured pixels as an 8-bit JPEG here (empty: none),
+    // through the sRGB curve, no colour management. A view of the data, not
+    // a rendering.
+    std::string imagePath;
 };
 
 struct StageChannelStats {
@@ -771,25 +772,13 @@ struct StageStatsResult {
 std::string stageStatsJson(const StageStatsResult &res);
 
 /** Runs the real output pipeline of processImage() up to the tap of the
- * CONVERTED spots (after the film conversion and colour conversion, before
- * the before_grade LUT), crops (if enabled), box-downscales in linear light,
- * encodes (CINEON) and computes the statistics. No image is produced. The job
+ * CONVERTED spots (after the film conversion and colour conversion), crops
+ * (if enabled), box-downscales in linear light and computes the statistics. No image is produced. The job
  * is not consumed: destroy it with ProcessingJob::destroy().
  * @return false on failure (errorCode set for load errors, res.error for
  * contract failures) */
 bool stageStats(ProcessingJob *job, const StageStatsRequest &req,
                 StageStatsResult &res, int &errorCode);
-
-/** If the film-negative target is Cineon, encode `img` in place for a 16-bit
- * integer TIFF (`format` "tif", `bits` 16, `isFloat` false) and return an
- * empty string. The editor pipeline is left linear; this runs once, at save.
- * Any other format returns an error and does not write code values. Linear
- * scene values are `pixel / 65535`. A non-empty cineonPrimaries name is
- * converted with the existing matrix-profile helper, or the export fails. */
-Glib::ustring prepareFilmNegativeCineonExport(
-    IImagefloat *img, const procparams::FilmNegativeParams &fnp,
-    const procparams::ColorManagementParams &icm,
-    const Glib::ustring &format, int bits, bool isFloat);
 
 /** This class is used to control the batch processing. The class implementing
  * this interface will be called when the full processing of an image is ready

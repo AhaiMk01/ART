@@ -27,7 +27,7 @@ pytestmark = pytest.mark.anyio
 
 EDIT_PROFILE_CEILING = 20_000
 """edit_profile's input schema in characters (compact JSON): 29,984 before it
-was compacted. The ~40 typed film_negative fields (density, NamiColor, print LUT,
+was compacted. The ~40 typed film_negative fields (density, NamiColor,
 preserve_range) pushed it past 23,000; their descriptions were trimmed, with the
 detail moved to the film-negative skill, to fit back under the bound. Shrink the
 schema rather than raise the bound."""

@@ -5,7 +5,7 @@ Engine coverage lives in test_integration_film_negative.py (needs ART_DIR).
 
 Expected values are handwritten literals from issue #46 (and the Colour
 Cineon convention). They are not read back from filmnegativeproc.cc,
-papercurve.cc, or cineonlut.cc, and this file does not call art-cli.
+or the paper/LUT code (removed), and this file does not call art-cli.
 
 Profile method selection is implemented only in C++:
 ProcParams::load and KeyFilePartialProfile::applyTo in

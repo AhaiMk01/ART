@@ -14,7 +14,6 @@ channel medians of the central 60% of the input (20% border cut) and
 ``ref_output`` is 65535/24 grey.
 """
 
-import hashlib
 import json
 import math
 import statistics
@@ -128,26 +127,6 @@ def read_color_space(entries: Group) -> str:
     return "input" if entries.get("ColorSpace") == "0" else "working"
 
 
-def read_cineon_lut_stage(profile: KeyFile) -> str:
-    """The stored order, or ART's version-aware default for a missing key."""
-    entries = profile.get(GROUP) or {}
-    if "CineonLUTStage" in entries:
-        return entries["CineonLUTStage"]
-    version = profile.get("Version", {}).get("Version", "")
-    if version.isdigit() and int(version) < 1056 and "CineonLUT" in entries:
-        return "before_grade"
-    return "after_grade"
-
-
-def read_preserve_range(profile: KeyFile) -> str:
-    """The stored flag, or ART's version-aware default for a missing key."""
-    entries = profile.get(GROUP) or {}
-    if "PreserveRange" in entries:
-        return entries["PreserveRange"]
-    version = profile.get("Version", {}).get("Version", "")
-    return "false" if version.isdigit() and int(version) < 1057 else "true"
-
-
 def read_cineon_reference_white(profile: KeyFile) -> str:
     """The stored W, or ART's version-aware default for a missing key."""
     entries = profile.get(GROUP) or {}
@@ -155,15 +134,6 @@ def read_cineon_reference_white(profile: KeyFile) -> str:
         return entries["CineonReferenceWhite"]
     version = profile.get("Version", {}).get("Version", "")
     return "1" if version.isdigit() and int(version) < 1058 else "0.9"
-
-
-def read_denoise_before_inversion(profile: KeyFile) -> str:
-    """The stored flag, or ART's version-aware default for a missing key."""
-    entries = profile.get(GROUP) or {}
-    if "DenoiseBeforeInversion" in entries:
-        return entries["DenoiseBeforeInversion"]
-    version = profile.get("Version", {}).get("Version", "")
-    return "false" if version.isdigit() and int(version) < 1059 else "true"
 
 
 def read_fit_base_anchor(profile: KeyFile) -> str:
@@ -224,27 +194,7 @@ def film_version_edits(tool: FilmNegative, profile: KeyFile, mask_opt_in: bool) 
                 f"film_negative: this sidecar is Version {version}; ART reads namicolor_fit_base "
                 f"as the legacy 93/1023 map below Version 1058, not the code 95 anchor. {resave}",
             )
-    new_lut = (
-        bool(tool.cineon_lut)
-        and not entries.get("CineonLUT")
-        and "CineonLUTStage" not in entries
-        and tool.cineon_lut_stage is None
-    )
-    if (
-        version is not None
-        and version < 1054
-        and bool(tool.cineon_lut)
-        and not entries.get("CineonLUT")
-        and _method_name(tool, entries) == "density"
-        and (tool.color_space or read_color_space(entries)) == "input"
-    ):
-        raise AdjustmentError(
-            "out_of_range",
-            f"film_negative: this sidecar is Version {version}; ART would run a new print LUT "
-            "in the legacy input domain for a density conversion in the input space. "
-            "Open and re-save the sidecar in ART (which migrates it), then retry",
-        )
-    return [RawEdit(group=GROUP, key="CineonLUTStage", value="after_grade")] if new_lut else []
+    return []
 
 
 IDENTITY_MATRIX = (1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)
@@ -306,14 +256,6 @@ _FILM_TYPE = {
     "1": "reversal",
     "negative": "negative",
     "reversal": "reversal",
-}
-_TARGET = {
-    "0": "linear",
-    "1": "paper",
-    "2": "cineon",
-    "linear": "linear",
-    "paper": "paper",
-    "cineon": "cineon",
 }
 
 
@@ -450,78 +392,15 @@ def check_matrix_binding(tool: FilmNegative, profile: KeyFile, entries: Group) -
         )
 
 
-def stamp_lut_sha(tool: FilmNegative, profile: KeyFile) -> None:
-    """Record the SHA-256 of a newly chosen print LUT, as ART's panel does when
-    a LUT is picked. A request that names the stored LUT again keeps the stored
-    hash, so ART can still detect a replaced file."""
-    if not tool.cineon_lut or tool.cineon_lut_sha256 is not None:
-        return
-    entries = profile.get(GROUP) or {}
-    if tool.cineon_lut == unescape(entries.get("CineonLUT", "")) and entries.get("CineonLUTSha256", ""):
-        return
-    try:
-        data = Path(tool.cineon_lut).read_bytes()
-    except OSError as error:
-        raise AdjustmentError(
-            "out_of_range",
-            f"film_negative: cannot read cineon_lut {tool.cineon_lut} to record its SHA-256 "
-            f"({error.strerror or error}); give an absolute path, or cineon_lut_sha256",
-        ) from None
-    tool.cineon_lut_sha256 = hashlib.sha256(data).hexdigest()
-
-
 def check_density_bindings(tool: FilmNegative, profile: KeyFile) -> None:
     """Fail closed for the density method as ART does at render time: a
-    non-identity matrix needs its calibration binding and a print LUT needs
-    its SHA-256."""
+    non-identity matrix needs its calibration binding."""
     entries = profile.get(GROUP) or {}
     if _method_name(tool, entries) != "density":
         return
     version = profile_version(profile)
     if (version is None or version >= 1046) and _preset_name(tool, entries) != "identity":
         check_matrix_binding(tool, profile, entries)
-    lut = tool.cineon_lut if tool.cineon_lut is not None else entries.get("CineonLUT", "")
-    sha = tool.cineon_lut_sha256 if tool.cineon_lut_sha256 is not None else entries.get("CineonLUTSha256", "")
-    if lut and not sha:
-        raise AdjustmentError(
-            "out_of_range",
-            "film_negative: cineon_lut requires cineon_lut_sha256 (the SHA-256 of the .cube bytes); "
-            "ART refuses to render a print LUT without it",
-        )
-
-
-def check_legacy_lut_primaries(tool: FilmNegative, profile: KeyFile) -> None:
-    """ART fails the render of the legacy input-space print LUT (density, input
-    colour space, before_grade, LegacyInputLUT) when a LUT primaries map is set:
-    the map would run on input-space pixels."""
-    entries = profile.get(GROUP) or {}
-    if _method_name(tool, entries) != "density":
-        return
-    if (tool.color_space or read_color_space(entries)) != "input":
-        return
-    if (tool.cineon_lut_stage or read_cineon_lut_stage(profile)) != "before_grade":
-        return
-    version = profile_version(profile)
-    legacy = entries.get("LegacyInputLUT") == "true" or (
-        "LegacyInputLUT" not in entries and version is not None and version < 1054 and bool(entries.get("CineonLUT"))
-    )
-    if not legacy:
-        return
-    lut = tool.cineon_lut if tool.cineon_lut is not None else entries.get("CineonLUT", "")
-    if not lut:
-        return  # primaries without a LUT do nothing
-    for field, key in (
-        ("cineon_lut_input_primaries", "CineonLUTInputPrimaries"),
-        ("cineon_lut_output_primaries", "CineonLUTOutputPrimaries"),
-    ):
-        value = getattr(tool, field)
-        if (value if value is not None else entries.get(key, "")):
-            raise AdjustmentError(
-                "out_of_range",
-                f"film_negative: this profile runs its print LUT in the legacy input space "
-                f"(density, input colour space, before_grade); ART refuses to render it with {field}. "
-                "Clear the primaries, or use after_grade or the working colour space",
-            )
 
 
 def check_legacy(tool: FilmNegative, entries: Group | None, version: int | None = None) -> None:
@@ -536,43 +415,6 @@ def check_legacy(tool: FilmNegative, entries: Group | None, version: int | None 
             f"(BackCompat={entries.get('BackCompat', '?')}), which is raw-edit only "
             "(ART reads its references through a conversion); use raw_edits",
         )
-
-
-def check_cineon_lut_excludes_paper(tool: FilmNegative, entries: Group | None) -> None:
-    """A Cineon print LUT and a paper target cannot both be active."""
-    entries = entries or {}
-    if _method_name(tool, entries) == "namicolor":
-        return  # NamiColor retains but never applies the density paper target.
-    lut = tool.cineon_lut if tool.cineon_lut is not None else entries.get("CineonLUT", "")
-    if tool.target_mode is not None:
-        mode = tool.target_mode
-    else:
-        stored = entries.get("TargetMode")
-        mode = _stored_name(stored, _TARGET, "linear")
-    if lut and mode == "paper":
-        raise AdjustmentError(
-            "out_of_range",
-            "film_negative: cineon_lut and target_mode paper are mutually exclusive; "
-            "the paper curve is not applied when a Cineon print LUT is set",
-        )
-
-
-def check_paper_basis(tool: FilmNegative, entries: Group | None) -> None:
-    """A paper basis is ``input|<profile>`` or ``working|<profile>``, or empty;
-    ART refuses any other form when it renders a paper target."""
-    if _method_name(tool, entries or {}) == "namicolor":
-        return
-    basis = tool.paper_basis
-    if not basis:
-        return
-    space, bar, profile = basis.partition("|")
-    if space in ("input", "working") and bar and profile:
-        return
-    raise AdjustmentError(
-        "out_of_range",
-        f"film_negative: paper_basis {basis!r} must be input|<profile> or "
-        "working|<profile> (for example working|Rec2020), or empty",
-    )
 
 
 def _picker_applies(tool: FilmNegative, entries: Group) -> Triple | None:
@@ -737,7 +579,7 @@ def read_triple_field(stored: str | None, allow_negative: bool = False) -> list[
 
 
 BASE_TARGET_DENSITY = 4.0
-"""Rebate maps to linear 10^-4 before paper, LUT, and black offset."""
+"""Rebate maps to linear 10^-4 before the black offset."""
 _RAW_SUFFIXES = {
     ".3fr",
     ".arw",

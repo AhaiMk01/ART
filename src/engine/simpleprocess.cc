@@ -381,19 +381,6 @@ private:
                       << std::endl;
         }
 
-        // Denoise the camera-linear negative instead of the inverted positive.
-        // With Inversion colour space = working the image is converted first,
-        // which is the space the denoise tool expects. With Inversion colour
-        // space = input it runs on the input-space pixels (the denoise tool
-        // still reads them through the working-profile matrices).
-        const bool denoiseFirst = params.filmNegative.enabled &&
-                                  params.filmNegative.denoiseBeforeInversion &&
-                                  params.denoise.enabled;
-        const auto runDenoise = [&]() {
-            ART_PROFILE_SCOPE("denoise");
-            ipf.denoise(imgsrc, currWB, img, params.denoise);
-        };
-
         bool converted = false;
         if (params.filmNegative.colorSpace !=
             FilmNegativeParams::ColorSpace::INPUT) {
@@ -401,10 +388,6 @@ private:
                 imgsrc->convertColorSpace(img, params.icm, currWB);
             }
             converted = true;
-        }
-
-        if (denoiseFirst) {
-            runDenoise();
         }
 
         if (params.filmNegative.enabled) {
@@ -435,13 +418,9 @@ private:
             }
             return false; // the caller still owns the job
         }
-        if (!ipf.filmNegativeApplyLut(
-                img, FilmNegativeParams::CineonLUTStage::BEFORE_GRADE)) {
-            return fail();
-        }
-
-        if (params.denoise.enabled && !denoiseFirst) {
-            runDenoise();
+        if (params.denoise.enabled) {
+            ART_PROFILE_SCOPE("denoise");
+            ipf.denoise(imgsrc, currWB, img, params.denoise);
         }
         return true;
     }
@@ -530,10 +509,6 @@ private:
 
         stop = stop || ipf.process(ImProcFunctions::Stage::STAGE_2, img);
         stop = stop || ipf.process(ImProcFunctions::Stage::STAGE_3, img);
-        if (ipf.filmNegativeContractFailed()) {
-            fail();
-            return nullptr;
-        }
 
         if (pl) {
             pl->setProgress(0.60);

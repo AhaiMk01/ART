@@ -10,10 +10,23 @@ from pydantic import BaseModel
 from art_mcp import artdir, keyfile
 from art_mcp.concurrency import image_key
 from art_mcp.marks import Mark, check_marks, mark_file
-from art_mcp.render.artcli import Rect, crop_profile, preview_args, region_rect, resize_profile
+from art_mcp.render.artcli import (
+    ArtCliError,
+    ArtCliTimeout,
+    Rect,
+    crop_profile,
+    looks_like_help,
+    preview_args,
+    region_rect,
+    resize_profile,
+    stage_stats_args,
+)
 from art_mcp.render.errors import RenderError, render_error
 from art_mcp.render.export_ops import move_over
 from art_mcp.render.session import RenderSession
+from art_mcp.sampling import UNSUPPORTED_STAGE
+
+PREVIEW_STAGES = ("display", "converted")
 
 PREVIEW_SIZE = 1024
 MAX_PREVIEW_SIZE = 2576
@@ -245,9 +258,16 @@ def render_preview(
     output: str | None = None,
     overwrite: bool = False,
     marks: list[Mark] | None = None,
+    stage: str = "display",
 ) -> Preview:
     check_size_and_region(max_size, region)
     marks = marks or []
+    if stage not in PREVIEW_STAGES:
+        raise render_error("out_of_range", f"stage must be one of {', '.join(PREVIEW_STAGES)}")
+    if stage != "display":
+        if marks:
+            raise render_error("out_of_range", "marks go with stage display")
+        return render_stage_view(session, path, stage, max_size, region, output, overwrite)
     check_marks(marks, None, render_error)
     dest = check_output(output, Path(path), overwrite) if output is not None else None
     warnings: list[str] = []
@@ -273,6 +293,49 @@ def render_preview(
         place_output(rendered, dest, overwrite)
         rendered = dest
     return Preview(path=str(rendered), max_size=max_size, warnings=warnings)
+
+
+def render_stage_view(
+    session: RenderSession,
+    path: str,
+    stage: str,
+    max_size: int,
+    region: Region | None,
+    output: str | None,
+    overwrite: bool,
+) -> Preview:
+    """The film pipeline's own data at ``stage`` as a JPEG (art-cli ``-X``
+    with an output file): converted through the sRGB curve, no colour
+    management, crop applied; ``region`` is a fraction of the cropped frame."""
+    dest = check_output(output, Path(path), overwrite) if output is not None else None
+    box = None if region is None else (region.x, region.y, min(region.x + region.w, 1.0), min(region.y + region.h, 1.0))
+    with session.image(path) as wp:
+        profile = session.previews.new_file("profile", ".arp")
+        rendered = session.previews.new_file("stage", ".jpg")
+        try:
+            profile.write_text(keyfile.dumps(wp.changes.profile), encoding="utf-8")
+            args = stage_stats_args(wp.image, profile, stage, 2, max_size, box)
+            at = args.index("-c")
+            args[at:at] = ["-o", str(rendered)]
+            try:
+                session.cli.run(args)
+            except ArtCliTimeout as e:
+                raise render_error("timeout", str(e)) from e
+            except ArtCliError as e:
+                if e.returncode == -1 and looks_like_help(str(e)):
+                    raise render_error("unsupported", UNSUPPORTED_STAGE) from e
+                raise render_error("render_failed", str(e)) from e
+            if not rendered.exists():
+                raise render_error("unsupported", UNSUPPORTED_STAGE)
+        except BaseException:
+            rendered.unlink(missing_ok=True)
+            raise
+        finally:
+            profile.unlink(missing_ok=True)
+    if dest is not None:
+        place_output(rendered, dest, overwrite)
+        rendered = dest
+    return Preview(path=str(rendered), max_size=max_size)
 
 
 def mark_rendering(rendered: Path, marks: list[Mark], shown: Rect) -> list[str]:

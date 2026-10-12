@@ -1,14 +1,13 @@
 """Staged observation against the real engine (needs ART_DIR naming a build with
-art-cli ``-x converted|cineon`` and ``-X``): a small synthetic film negative of
+art-cli ``-x converted`` and ``-X``): a small synthetic film negative of
 uniform patches, read at the pre-inversion source, the recovered linear
-working-space RGB, the Cineon codes and the 8-bit display, all through the
+working-space RGB and the 8-bit display, all through the
 Render server.
 
 Skipped without ART_DIR; skipped too when that build has no staged sampling.
 """
 
 import json
-import math
 
 import pytest
 from mcp.client.client import Client
@@ -27,19 +26,11 @@ pytestmark = [
 
 PATCHES = [(32, 24, 16), (96, 48, 32), (128, 96, 48), (200, 160, 128)]
 SIZE = 32  # one patch is SIZE x SIZE pixels
-BLACK, WHITE = 95.0, 685.0
-SOFT_CLIP = 10 ** ((BLACK - WHITE) / 300.0)
 
 
 @pytest.fixture
 def anyio_backend():
     return "asyncio"
-
-
-def cineon_code(converted, reference_white=1.0):
-    """Cineon code (0..1023 scale) of a linear 0..65535 value, the engine's encode."""
-    x = max(0.0, converted / 65535.0) / reference_white
-    return WHITE + 300.0 * math.log10(x * (1.0 - SOFT_CLIP) + SOFT_CLIP)
 
 
 @pytest.fixture
@@ -90,35 +81,35 @@ async def spots(client, scan, stage, **extra):
     return result.structured_content
 
 
-async def test_stages_are_labelled_and_cineon_spots_encode_the_converted_spots(server, scan):
+async def test_stages_are_labelled_and_differ(server, scan):
     async with Client(server) as client:
         await opened(client, scan)
         source = await spots(client, scan, "source")
         converted = await spots(client, scan, "converted")
-        cineon = await spots(client, scan, "cineon")
 
     assert (source["stage"], source["unit"]) == ("source", "linear_65535")
     assert (converted["stage"], converted["unit"]) == ("converted", "linear_65535")
-    assert (cineon["stage"], cineon["unit"]) == ("cineon", "cineon_code")
     # The stages are different data: the recovered light is not the negative's source.
     assert converted["spots"][0]["avg"] != source["spots"][0]["avg"]
-    for conv, cin in zip(converted["spots"], cineon["spots"], strict=True):
-        assert (conv["x"], conv["y"]) == (cin["x"], cin["y"])
-        for channel in range(3):
-            # A uniform patch: the mean of per-pixel codes is the code of the mean.
-            assert cin["avg"][channel] == pytest.approx(cineon_code(conv["avg"][channel]), abs=0.75)
+
+
+async def test_the_cineon_stage_is_gone(server, scan):
+    async with Client(server) as client:
+        await opened(client, scan)
+        result = await client.call_tool("sample_spots", {"path": str(scan), "spots": centres()[:1], "stage": "cineon"})
+    assert result.is_error and "out_of_range:" in result.content[0].text
 
 
 async def test_source_space_does_not_apply_to_a_staged_read(server, scan):
     async with Client(server) as client:
         await opened(client, scan)
         result = await client.call_tool(
-            "sample_spots", {"path": str(scan), "spots": centres()[:1], "stage": "cineon", "space": "input"}
+            "sample_spots", {"path": str(scan), "spots": centres()[:1], "stage": "converted", "space": "input"}
         )
     assert result.is_error and "out_of_range:" in result.content[0].text
 
 
-@pytest.mark.parametrize("stage", ["converted", "cineon"])
+@pytest.mark.parametrize("stage", ["converted"])
 @pytest.mark.parametrize("max_size", [0, 16])
 async def test_stage_statistics_of_a_uniform_patch_equal_the_spot(server, scan, stage, max_size):
     # The first patch is a quarter of the frame, so the fractions 0.02 to 0.23 are inside it.
@@ -135,10 +126,10 @@ async def test_stage_statistics_of_a_uniform_patch_equal_the_spot(server, scan, 
     assert not result.is_error, result.content
     data = result.structured_content
     assert (data["stage"], data["bins"]) == (stage, 1024)
-    assert data["unit"] == ("cineon_code" if stage == "cineon" else "linear_65535")
+    assert data["unit"] == "linear_65535"
     lo, hi = data["range"]
     width = (hi - lo) / 1024
-    assert (lo, hi) == ((-100.0, 1100.0) if stage == "cineon" else (-6553.5, 131070.0))
+    assert (lo, hi) == (-6553.5, 131070.0)
     assert data["source_width"] == SIZE * len(PATCHES) and data["source_height"] == SIZE
     for channel, stats in enumerate(data["channels"]):
         assert stats["nonfinite"] == 0 and stats["below"] == 0 and stats["above"] == 0
@@ -152,7 +143,7 @@ async def test_stage_histogram_chart_and_counts(server, scan):
         await opened(client, scan)
         result = await client.call_tool(
             "image_stats",
-            {"path": str(scan), "stage": "cineon", "bins": 64, "histogram": True, "histogram_image": True},
+            {"path": str(scan), "stage": "converted", "bins": 64, "histogram": True, "histogram_image": True},
         )
     if result.is_error and "unsupported" in result.content[0].text:
         pytest.skip(result.content[0].text)
@@ -165,7 +156,7 @@ async def test_stage_histogram_chart_and_counts(server, scan):
     assert any(c.type == "image" for c in result.content)
 
 
-async def test_display_statistics_are_unchanged_and_not_cineon(server, scan):
+async def test_display_statistics_are_unchanged(server, scan):
     async with Client(server) as client:
         await opened(client, scan)
         plain = await client.call_tool("image_stats", {"path": str(scan)})
@@ -180,15 +171,50 @@ def test_art_cli_prints_the_documented_lines(tmp_path, scan):
     """The raw art-cli contract: ART-SPOTS stage/unit and the ART-STAGESTATS line."""
     profile = tmp_path / "p.arp"
     profile.write_text(keyfile.dumps({}))
-    spots = run_cli(["-a", "-x", "8,cineon,16,16", "-p", str(profile), "-c", str(scan)], tmp_path)
+    spots = run_cli(["-a", "-x", "8,converted,16,16", "-p", str(profile), "-c", str(scan)], tmp_path)
     if spots.returncode != 0:
         pytest.skip("this ART has no staged sampling: " + (spots.stdout + spots.stderr)[:200])
     line = next(line for line in spots.stdout.splitlines() if line.startswith("ART-SPOTS "))
     payload = json.loads(line.removeprefix("ART-SPOTS "))
-    assert (payload["stage"], payload["unit"]) == ("cineon", "cineon_code")
-    stats = run_cli(["-a", "-X", "cineon,64,0", "-p", str(profile), "-c", str(scan)], tmp_path)
+    assert (payload["stage"], payload["unit"]) == ("converted", "linear_65535")
+    stats = run_cli(["-a", "-X", "converted,64,0", "-p", str(profile), "-c", str(scan)], tmp_path)
     assert stats.returncode == 0, stats.stdout + stats.stderr
     line = next(line for line in stats.stdout.splitlines() if line.startswith("ART-STAGESTATS "))
     payload = json.loads(line.removeprefix("ART-STAGESTATS "))
-    assert payload["stage"] == "cineon" and payload["range"] == [-100, 1100]
+    assert payload["stage"] == "converted" and payload["range"] == [-6553.5, 131070]
     assert len(payload["channels"]) == 3 and len(payload["channels"][0]["hist"]) == 64
+
+
+@pytest.mark.parametrize("stage", ["converted"])
+async def test_stage_preview_shows_the_measured_data(server, scan, stage):
+    # Each patch's pixel in the stage view is its spot value as the view maps it.
+    async with Client(server) as client:
+        await opened(client, scan)
+        spot = (await spots(client, scan, stage))["spots"]
+        result = await client.call_tool("render_preview", {"path": str(scan), "stage": stage, "max_size": 128})
+        if result.is_error and "unsupported" in result.content[0].text:
+            pytest.skip(result.content[0].text)
+        assert not result.is_error, result.content
+        # The server removes its previews folder when it stops: read it now.
+        with Image.open(result.structured_content["path"]) as view:
+            size, pixels = view.size, view.convert("RGB")
+    assert size == (SIZE * len(PATCHES), SIZE)
+    for index, measured in enumerate(spot):
+        pixel = pixels.getpixel((index * SIZE + SIZE // 2, SIZE // 2))
+        for channel in range(3):
+            v = measured["avg"][channel]
+            linear = max(0.0, v / 65535)
+            expected = 12.92 * linear if linear <= 0.0031308 else 1.055 * linear ** (1 / 2.4) - 0.055
+            assert pixel[channel] == pytest.approx(255 * min(1.0, expected), abs=3)
+
+
+async def test_stage_preview_refuses_marks_batches_and_unknown_stages(server, scan):
+    async with Client(server) as client:
+        await opened(client, scan)
+        marked = await client.call_tool(
+            "render_preview", {"path": str(scan), "stage": "converted", "marks": [{"x": 8, "y": 8}]}
+        )
+        batch = await client.call_tool("render_preview", {"paths": [str(scan)], "stage": "converted"})
+        unknown = await client.call_tool("render_preview", {"path": str(scan), "stage": "source"})
+    for result in (marked, batch, unknown):
+        assert result.is_error and "out_of_range:" in result.content[0].text

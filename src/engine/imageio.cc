@@ -114,12 +114,6 @@ void ImageIO::setOutputProfile(const char *pdata, int plen)
     profileLength = plen;
 }
 
-void ImageIO::setSaveAnnotation(const Glib::ustring &text)
-{
-    saveAnnotation = text;
-    omitUnprofiledSrgbTag = !text.empty();
-}
-
 ImageIO::~ImageIO()
 {
 
@@ -1359,9 +1353,6 @@ int ImageIO::saveTIFF(const Glib::ustring &fname, int bps, bool isFloat,
                          ? PREDICTOR_FLOATINGPOINT
                          : PREDICTOR_HORIZONTAL);
     }
-    if (!saveAnnotation.empty()) {
-        TIFFSetField(out, TIFFTAG_IMAGEDESCRIPTION, saveAnnotation.c_str());
-    }
     if (profileData) {
         TIFFSetField(out, TIFFTAG_ICCPROFILE, profileLength, profileData);
     }
@@ -1559,13 +1550,7 @@ bool ImageIO::saveMetadata(const Glib::ustring &fname) const
     if (has_meta) {
         try {
             metadataInfo.saveToImage(pl, fname, false);
-            if (!saveAnnotation.empty()) {
-                Exiv2Metadata outmd(fname);
-                outmd.load();
-                outmd.exifData()["Exif.Image.ImageDescription"] = saveAnnotation;
-                outmd.exifData()["Exif.Photo.ColorSpace"] = 65535;
-                outmd.saveToImage(nullptr, fname, true);
-            } else if (!profileData && !omitUnprofiledSrgbTag) {
+            if (!profileData) {
                 Exiv2Metadata outmd(fname);
                 outmd.load();
                 outmd.exifData()["Exif.Photo.ColorSpace"] = 1;

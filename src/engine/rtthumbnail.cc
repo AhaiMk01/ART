@@ -1127,12 +1127,6 @@ IImage8 *Thumbnail::processImage(const procparams::ProcParams &params,
             return nullptr;
         }
     }
-    if (!ipf.filmNegativeApplyLut(
-            baseImg, FilmNegativeParams::CineonLUTStage::BEFORE_GRADE)) {
-        delete baseImg;
-        return nullptr;
-    }
-
     int origFW;
     int origFH;
     double tscale = 0.0;
@@ -1182,10 +1176,6 @@ IImage8 *Thumbnail::processImage(const procparams::ProcParams &params,
     stop = stop || ipf.process(ImProcFunctions::Stage::STAGE_1, baseImg);
     stop = stop || ipf.process(ImProcFunctions::Stage::STAGE_2, baseImg);
     stop = stop || ipf.process(ImProcFunctions::Stage::STAGE_3, baseImg);
-    if (ipf.filmNegativeContractFailed()) {
-        delete baseImg;
-        return nullptr;
-    }
 
     // obtain final image
     Image8 *readyImg = nullptr;

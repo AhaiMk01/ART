@@ -499,7 +499,7 @@ std::map<std::string, std::string> preview_args(const JsonDoc &doc,
 // The `sample_spots` op's args. `spots` is an array of [x, y] pairs or of
 // {"x", "y"} objects (whole numbers); `size` a whole number (default 32),
 // `space` "working" (default) or "input", `stage` "source" (default, in
-// `space`), "converted" or "cineon" (see SpotStage). On failure `error` is the error
+// `space`), or "converted" (see SpotStage). On failure `error` is the error
 // object.
 bool parse_sample_args(const JsonDoc &doc, const JsonNode *args,
                        std::string &path, art::engine::SpotRequest &req,
@@ -1156,15 +1156,13 @@ bool parse_sample_args(const JsonDoc &doc, const JsonNode *args,
         return false;
     }
     static const char *const STAGE =
-        "\"stage\" must be \"source\", \"converted\" or \"cineon\"";
+        "\"stage\" must be \"source\" or \"converted\"";
     it = strs.find("stage");
     if (it != strs.end()) {
         if (it->second == "source") {
             req.stage = art::engine::SpotStage::SOURCE;
         } else if (it->second == "converted") {
             req.stage = art::engine::SpotStage::CONVERTED;
-        } else if (it->second == "cineon") {
-            req.stage = art::engine::SpotStage::CINEON;
         } else {
             error = error_object("bad_request", STAGE);
             return false;

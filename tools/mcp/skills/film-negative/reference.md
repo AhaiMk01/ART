@@ -80,25 +80,23 @@ RAW decode and preprocessing
 -> endpoint terms: namicolor_input_gain, black, gain, shift, master terms
 -> FitBase (fit_base_anchor)
 -> Cineon decode with W (cineon_reference_white) into ART's signed linear RGB
--> [print LUT, legacy before_grade only]
 -> scene exposure, colour and tonal adjustments in the declared working basis
--> print LUT (after_grade, the default for new conversions)
--> output colour management and display export; integer Cineon export re-encodes with W
+-> output colour management and display export
 ```
 
 Three kinds of setting act in this chain; keep them apart when reasoning
 and when reporting:
 
 - encoding convention: the constants 95 and 685, `b`, and
-  `cineon_reference_white` (W). They define what a code means and are shared
-  by the decode, the print-LUT input encode and the integer Cineon export.
+  `cineon_reference_white` (W). They define what a code means inside
+  NamiColor's decode.
   They do not look at the picture;
 - endpoint estimation: `namicolor_black`, `namicolor_gain`,
   `namicolor_shift`, the master terms, `namicolor_input_gain` and FitBase
   place the film base and a chosen white on codes, per image or per roll,
   from picture evidence (sample_spots, luminance, inspection);
-- aesthetic grading: scene exposure, curves, colour correction and the
-  print LUT. These are choices about the look, not measurements.
+- aesthetic grading: scene exposure, curves and colour correction. These
+  are choices about the look, not measurements.
 
 Use `method=namicolor`, `film_type=negative`, `color_space=working` for this
 path. Select and record the actual input and working profiles; no RGB gamut
@@ -167,8 +165,7 @@ q0_c = 0.8 - NamiColorInputGain * Dmask_c             # reversal
 The fixed pivot 0.7 is a numerical density anchor, not measured film Dmin.
 This is an effective capture model in the declared RGB basis, not a measured
 spectral dye separation. Density's matrix order and printer-light controls
-remain separate; its paper target and film-base picker do not become NamiColor
-controls.
+remain separate; its film-base picker does not become a NamiColor control.
 
 Use `matrix_preset=custom` to edit the nine finite `matrix` coefficients.
 Every nonidentity preset requires `matrix_basis`, versioned JSON containing
@@ -195,7 +192,7 @@ capture conditions, processing basis and limitations in `calibration_note`.
 After changing it, recompute any source anchors through the mask and refit
 channel alignment; compare tonal levels, unfitted materials and reserved
 frames with the same diagnostic viewing response. Do not infer a measured
-calibration from a neutral patch or a more pleasing print LUT result.
+calibration from a neutral patch or a more pleasing print look.
 
 
 ## Luminance and endpoint evidence
@@ -209,7 +206,7 @@ Label clipping introduced by the view; inspect the linear or log data where
 the display hides highlight or shadow differences.
 
 Use existing image/data facilities to make a temporary diagnostic view from
-a declared linear or Cineon export. Leave the retained conversion unchanged.
+a declared linear export. Leave the retained conversion unchanged.
 For the stage you want to look at, use the matching tool and `stage` (see
 "Observing each stage" below); previews and `image_stats` with the default
 `stage` read display-encoded output, which is a different stage.
@@ -240,7 +237,7 @@ Keep a baseline when testing proxy endpoints. A common affine mapping in
 Cineon code space, `C_new = a*C_old + b`, can preserve the existing neutral
 axis while changing the common span; identify the reference points and
 whether the mapping precedes or follows a gamut conversion. Inspect the
-LUT result for lost shadow structure, flattened highlights and colour
+result for lost shadow structure, flattened highlights and colour
 changes. Return to the baseline if the selected proxies over-stretch the
 scene rather than interpreting the loss as proof of calibration.
 
@@ -272,9 +269,9 @@ with exponents `e = (-G*RedRatio, -G, -G*BlueRatio)`, `G` = `GreenExponent`
 
 ART order for a film negative: pre-inversion corrections, inversion, then positive-domain tools.
 - Vignetting: lens-profile correction (lensfun, LCP, EXIF; raw only, applied pre-inversion) and a raw flat-field are the right tools. The manual Vignetting Correction acts on the inverted positive, so it is wrong for a negative. Measured on a synthetic negative with a 30% corner falloff: the positive's edge/centre was 1.45; Amount +50 worsened it to 1.91. The falloff also adds a colour cast that no neutral post-inversion gain can remove. Scans (TIFF) have no pre-inversion vignetting path in ART; ART warns when the manual tool is non-zero with film negative enabled.
-- Denoise: `denoise_before_inversion` (default true on new profiles; false on a sidecar below version 1059 without the key, where denoise ran after inversion). It applies to full-resolution output and 1:1 crops; the preview has no denoise. An explicit value always wins. Strength settings do not carry over between the two orders: measured on a real negative at the same Luminance/Chrominance, denoising before inversion left about 3x more noise in the darkest positive areas (thin, bright negative) and about half in midtones. Retune strength by checking a 1:1 crop of the darkest and a midtone area after switching; do not copy denoise values from a profile with the other order.
+- Denoise: ART denoises the inverted positive (sidecars before version 1061 could denoise the negative first; that option is gone and such sidecars may need their strength retuned). It applies to full-resolution output and 1:1 crops; the preview has no denoise. Check the darkest and a midtone area at 1:1.
 - Flare: `flare` = r;g;b, a linear transmission fraction 0..0.5 per channel subtracted from the normalised scan before the log (density and NamiColor only, not power-law; absent = 0). To estimate it, `sample_spots(stage=source)` on a fully OPAQUE area (film holder, blocked mask) in the same frame and lighting. Do not use the film base or rebate: that is Dmin, not flare. The result is an estimate; subtracting too much clips dense negative areas, so check the shadows after changing it.
-- Grading: scene-linear gains (exposure, white balance) and printer-light offsets are domain-independent. Non-linear tools placed before the print LUT are looks. The print LUT or paper curve is the tone curve.
+- Grading: scene-linear gains (exposure, white balance) and printer-light offsets are domain-independent.
 
 ## Density method
 
@@ -295,308 +292,81 @@ Anchor `P = 4.1 - Dmax` (negative) or `0.7` (reversal). Row-major matrix `M`:
 `B_i = P + sum_j M_ij * (A_j - P)`, then
 `C_i = P + h_i * (B_i - P) - RGBGains_i`. Linear target: `L_c = 10^(-C_c)`,
 written back as `65535 * L_c`. A gain of `+0.1` multiplies that linear value
-by `10^0.1` before a paper curve or black offset.
+by `10^0.1` before the black offset.
 
 Status M rows, not transposed: `(1.0197, 0.0317, 0.0091)`,
 `(-0.0052, 0.8933, 0.0521)`, `(0.0131, -0.0011, 0.9712)`.
 
 Film-base pick, negative only: sample before inversion, set
 `RGBGains = C - 4.0` on all three channels, so the rebate maps to linear
-`1e-4` before paper, LUT, and black offset. Out of -3..3, or a bad sample:
+`1e-4` before the black offset. Out of -3..3, or a bad sample:
 no channel changes.
 
-Paper, after `C` and before the exponential: `R = log10(65536)`,
-`u = 1 - clamp(C / R, 0, 1)`, `v = interp(u)`, `C = R * (1 - v)`. Shared
-curve, then per-channel. Endpoint clamp. Unknown id is an error.
+Black offset: `L = max(0, L - offset)` on the linear result.
 
-Black offset: `L = max(0, L - offset)` on the linear result. With a print
-LUT, that means after the LUT is decoded, not before it is applied.
+## NamiColor's internal Cineon decode
 
-## Cineon handoff and print LUTs
+NamiColor works in Cineon code space internally and decodes to linear RGB
+before the rest of ART. Let `W = CineonReferenceWhite` and
+`b = 10^((95 - 685) / 300)`; the decode is
+`L = W*b * expm1((1023*q - 95)/300 * ln(10)) / (1-b)`. Code 95 is linear
+zero and code 685 is linear `W`; every 300 codes is a factor of 10 in linear
+light. New profiles default to `W = 0.9`; a sidecar below version 1058
+without the key loads `W = 1`. W only scales the decoded positive.
 
-Cineon specifies a transfer encoding, not RGB primaries. Declare both the
-gamut and the transfer at each handoff. Let `W = CineonReferenceWhite` and
-`b = 10^((95 - 685) / 300)`. ART's signed NamiColor encode/decode is:
+ART has no print LUT, paper curve or Cineon export (removed in version
+1061; old keys are ignored). For a print-film look, run NamiColor and the
+Cineon LUT in DaVinci Resolve. For a linear handoff, export 32-bit float TIFF
+with output profile `(none)`: ART writes working-space RGB with its linear
+working ICC profile, and over-white values survive. Scene Exposure clamps
+negative RGB at zero, as for any other source.
 
-```
-q = (95 + 300/ln(10) * ln(1 + (L/W)*(1-b)/b)) / 1023
-L = W*b * expm1((1023*q - 95)/300 * ln(10)) / (1-b)
-```
-
-The logarithm requires a positive argument. Density's unsigned encode
-instead uses `(685 + 300*log10(max(0,L/W)*(1-b)+b))/1023`.
-
-The convention is: code 95 is linear zero, and code 685 is 90% diffuse
-white, which is linear `W`. New profiles default to `W = 0.9`, so a linear
-scale where 1.0 is 100% reflectance puts a perfect diffuse white at 0.9.
-A sidecar below version 1058 without a `CineonReferenceWhite` key loads with
-`W = 1`, so it renders unchanged; an explicit value always wins, and a
-partial profile without the key does not change W. W is one shared scale for
-NamiColor's decode, the print-LUT input encode and the integer Cineon
-export; there is no separate value for each. Selecting W does not establish
-that the photograph's linear scale represents 100%.
-
-| linear L | code at W=0.9 | note |
-| --- | --- | --- |
-| 0 | 95 | convention (linear zero) |
-| 0.9 W (= 0.81) | 685 | convention (90% diffuse white) |
-| 0.18 | 480.8 | a check, not an anchor |
-| 1.0 | 698.6 | 100% white, 13.6 codes above 685 |
-| 13.52 W (= 12.17) | 1023 | top of the 10-bit range |
-
-(With W=1: 0.18 maps to 467.8, and code 1023 is linear 13.52.) The common
-"18% grey at 470" is not an anchor: with 300 codes/decade, a pure log
-model puts 0.18 at 685 - 300*log10(0.9/0.18) = 685 - 209.7 = 475.3 codes,
-against the nominal 215-code gap (470). The black offset `b` lifts the actual
-encode to 480.8, about 11 codes (about 0.13 stop) from 470. Code 470 at W=0.9
-corresponds to linear 0.165. Treat
-that as the model's tolerance; do not distort W or the endpoints to hit 470.
-
-`namicolor_input_gain` stays 1 by default. That is a contrast and look
-choice, not a part of the convention: with it, NamiColor's capture-density
-slope is about 0.29 D per decade of exposure against the nominal 0.6 gamma
-of Cineon-encoded film. Change it as a look decision and re-estimate the
-endpoints afterwards, since the relative slopes scale with it.
-
-NamiColor uses W in both its internal Cineon decode and subsequent export
-or LUT encode. Changing it alone largely cancels in an otherwise unchanged
-decode/encode pair; intervening processing can still change pixels. It is
-not an independent Dmin or white-alignment control. Dmin to 95 and the
-chosen white to 685 are per-image endpoint estimates (below), not encoding
-constants and not automatic minimum/maximum.
-
-### Endpoint recipe: Dmin to 95, chosen white to 685
-
-Use existing parameters and `sample_spots`; no new helper is needed. The
-result is a scene estimate, not a calibration. Without a film-base patch
-and without capture calibration, make no absolute density claim: say that
-the near-black and white proxies are assumptions and report their
-uncertainty.
-
-1. Pick a Dmin candidate and a white candidate from evidence. Inspect the
-   ungraded positive and luminance at readable size, then take samples whose
-   whole footprint fits inside the material. Prefer clear film base (Dmin
-   including fog) for the dark end and a diffuse, evenly lit material for the
-   white. Exclude rebate and other off-film areas, dust and scratches,
-   speculars, emitters and light sources, text and edges, and "neutrals" that
-   have no independent reason to be neutral. Never take a raw image
-   minimum/maximum or a percentile as an endpoint. If no film base is visible,
-   call the dark reference a near-black proxy.
-2. Sample both with `sample_spots` in the declared space (it returns linear
-   0..65535, white-balanced, before inversion). `T_D,c` and `T_W,c` are
-   `avg_c/65535` for the dark and white candidates. With a custom digital
-   mask, mix the densities `-log10(T)` through it first and use the mixed
-   values.
-3. Targets are `q_D = 95/1023` and `q_W = 685/1023` with FitBase off; with
-   FitBase `code95` they are `q_D = 0` and `q_W = 590/928` before the remap.
-   With `g = namicolor_input_gain`, `q0 = 1 - g*log10(16*T)`:
-
-   ```
-   den_c   = (q0_W,c - q0_D,c) / (q_W - q_D)
-           = g * log10(T_D,c / T_W,c) / (q_W - q_D)
-   shift_c = q_D * den_c - q0_D,c - master_shift - black_c
-   gain_c  = 1 - master_gain + black_c - den_c
-   ```
-
-   Each channel then maps its Dmin sample to `q_D` and its white sample to
-   `q_W`. Within the parameter ranges (`gain` -1..1, `black` -0.5..0.5,
-   `master_gain` -0.5..0.5) `den_c` is limited to roughly 0..3; if a
-   channel falls outside, lower `g`, which scales every `den_c`, or use
-   `black`. Equal `T_D,c/T_W,c` ratios give equal slopes; unequal ones are
-   exactly the relative slopes of the estimate.
-4. Apply with the existing `edit_profile`, read the profile back, render, and
-   inspect the images. Sample the unconverted source again for independent
-   materials and other frames to check transfer. Check that 18% grey sits near
-   480.8, not 470, and keep the baseline if the endpoints over-stretch the
-   scene. A white chosen as 685 is "90% diffuse white" only if the material
-   really is one; the scene may deliberately hold brighter values.
-
-A managed Cineon handoff requires 16-bit integer TIFF, a linear output
-basis before encoding, and explicit Cineon primaries. Stored values are
-`round(q*65535)`, not left-shifted 10-bit packing; scopes can report
-`sample*1023/65535`. With NamiColor range preservation enabled, ART rejects
-an integer handoff if the rounded value falls outside 0..65535 rather than
-silently clipping. Legacy range policy clamps these values. Ordinary
-previews remain display images.
-This is a positive-oriented log intermediate: higher codes mean brighter
-recovered scene values. The export is taken at the processed output stage,
-not a direct dump immediately after the inversion operator. Identify any
-intervening processing and endpoint uncertainty when handing it off.
-
-If `open_image` rejects a Cineon-target sidecar while initializing an ordinary
-render, open its linear-target baseline instead, set the Cineon target in
-that working session, and export integer TIFF. Restore the linear target and
-display output profile before requesting an ordinary preview. Verify the
-handoff from its actual encoded data, not a claimed display-preview reload.
-
-For a LUT, read its header/documentation and record the actual file/hash,
-input primaries/transfer and output primaries/transfer. The sequence is
-linear working RGB -> linear LUT-input RGB -> required input encoding
--> cube -> decode output transfer -> working/output colour management.
-Convert primaries in linear RGB, not by relabelling log values. ART's `sRGB`
-matrix profile has Rec.709 primaries; the explicit transfer field determines
-whether those values use Cineon, sRGB or gamma 2.4.
-
-For new conversions, use `cineon_lut_stage=after_grade`: ART applies the
-film LUT at the end of its shared processing stage 3, after scene adjustments
-and before output sharpening and colour management. The active LUT receives
-RGB even when a preceding tool used Lab internally. This is not Resolve's HDR
-palette; each ART tool retains its own processing semantics.
-
-`before_grade` preserves the former LUT-before-adjustments order. Profiles
-older than version 1056 carrying `CineonLUT` without `CineonLUTStage` load in
-that mode; a partial omitting both keys preserves the active position.
-The older Density/input-domain compatibility route also remains effective
-only in `before_grade`. Switching to `after_grade` is an explicit change of
-rendering order, not a sidecar upgrade that should silently change the look.
-Compare with fixed conversion parameters and read back the saved position.
-
-A no-LUT export still passes through the selected scene adjustments and
-output conversion; it is not a direct dump of NamiColor's internal buffer.
-Disable the print LUT when handing off an unprinted scene intermediate.
-
-NamiColor's `preserve_range` retains finite signed values in scene Exposure
-and in the working RGB returned from the print LUT. New conversions enable
-it; conversions loaded from profiles older than version 1057 retain the
-previous zero floors unless explicitly changed. Unrelated partial profiles
-do not change this policy. Compare an explicit opt-in under the same viewing
-conditions, and save the chosen policy with the conversion.
-
-This is not a global bypass of ART's mappings: other tone tools retain their
-own semantics, LUT inputs are still bounded by the cube's domain, and output
-colour management can map or clip values. For an unprinted linear handoff,
-disable the print LUT and export 32-bit float TIFF with output profile
-`(none)`: ART writes working-space RGB with its linear working ICC profile.
-Finite signed and over-white values survive this storage path; integer TIFF
-and display previews are not equivalent evidence. Half-float has reduced
-precision and range. If an integer Cineon handoff fails, inspect the affected
-scene adjustments and encoded range, or use the linear float handoff; do not
-silently switch back to clipping and claim the same numerical result.
-
-A named 2383 LUT is a print/look response, not a neutral calibration.
-The name or a D65 output white does not establish its input gamut or promise
-neutral shadows. Declare an assumed input gamut when the documentation is
-incomplete. Freeze conversion, exposure and viewing conditions while
-comparing LUT/no-LUT; retain a supported baseline instead of automatically
-correcting every LUT-induced hue change in the inversion.
-
-### LUT contract procedure
-
-Before using a print `.cube`, write a contract with one row per item and tag
-every row. DOCUMENTED names its source (header line, vendor page), VERIFIED
-names the evidence (a command, a probe render), ASSUMED says it is a
-convention or guess. Items: file path; sha256 (of the bytes ART will read; `edit_profile` records
-it when `cineon_lut` names a new file without `cineon_lut_sha256`, and keeps the
-stored hash when the same path is named again: give the hash, or clear and
-re-set the path, after replacing a file's contents);
-LUT size and domain; input transfer; input primaries; output transfer; output
-primaries; white point; stage (`after_grade` or `before_grade`); `W`. A name,
-a folder name or a D65 white point is not gamut evidence. Keep the table in
-your evidence notes; ART stores only the executable fields, not the tags.
-Set `cineon_reference_white` explicitly (0.9 unless a comparison needs 1).
-ART refuses a cube with a 1D section (`LUT_1D_SIZE`, `LUT_1D_INPUT_RANGE`),
-a video-range key (`LUT_IN_VIDEO_RANGE`, `LUT_OUT_VIDEO_RANGE`), a `DOMAIN_MIN` /
-`DOMAIN_MAX` with fewer than three numbers, a non-increasing domain, or a header
-that declares a log output transfer (for example `# OUTPUT_TRANSFER: ARRI LogC3`).
-It honours `LUT_3D_INPUT_RANGE` / `DOMAIN_MIN` / `DOMAIN_MAX` as the
-encoded-input domain, so a range other than 0..1 changes the render. `TITLE` and
-unknown keys are ignored: check them yourself.
-
-A legacy input-space print LUT (density, input colour space, `before_grade`,
-`LegacyInputLUT` true, as migrated from a pre-1054 sidecar, with a LUT set) cannot use LUT
-primaries: ART refuses to render it with `cineon_lut_input_primaries` or
-`cineon_lut_output_primaries` set, and the edit is refused. Clear the primaries,
-or use `after_grade` or the working colour space.
-
-Chain order: linear primaries map (working -> LUT input) -> input encode ->
-cube -> output decode -> linear primaries map (LUT output -> working). ART
-builds both maps from ICC colorants, which are D50-relative, so chromatic
-adaptation is implicit in the profiles and the cube's D65 label is not used.
-It only matters for a non-Rec.709 working space. `gamma_2_4` is a pure power
-(`y^2.4`), not BT.1886 with black. Empty `cineon_lut_output_primaries` means
-the same as the input primaries; both empty means no primaries map.
-
-Verified contract for `Rec709-Kodak-2383-D65.cube`
-(`E:/mcp_tmp/film03295-density-r2/results/2383-comparison/`):
-
-| item | value | tag |
-| --- | --- | --- |
-| sha256 | `d315680d7c6c84a941dc41c8c9fea7afe0007c58811bc6f008edc56c15057b60` | VERIFIED (sha256sum; matches the sidecar and provenance.json) |
-| size / domain | 3D, `LUT_3D_SIZE 33`, `LUT_3D_INPUT_RANGE 0.0 1.0` | DOCUMENTED (header; ART applies it) |
-| input transfer | Cineon log | DOCUMENTED (header "Input: Cineon Log") |
-| input primaries | Rec.709 (`sRGB` matrix profile) | ASSUMED (Resolve convention; header silent) |
-| output transfer | Gamma 2.4 | DOCUMENTED (header "Display: ITU-Rec.709, Gamma 2.4"); pure power vs BT.1886 not stated; not verified by probing |
-| output primaries | Rec.709 | DOCUMENTED (header); not verified by probing |
-| white point | D65 | DOCUMENTED (header); not gamut evidence |
-| stage | `after_grade` | chosen, saved in the sidecar |
-| W | 0.9 (685 = 90% diffuse white) | ASSUMED (step convention; header silent). W=1 is a comparison run only |
-| upstream | `imnz730/LUTs`, `Film Looks/Rec709 Kodak 2383 D65.cube` | DOCUMENTED (provenance.json); byte identity with Resolve's bundled copy not checked |
-
-Separating conversion error from print look, with fixed conversion
-parameters and the same frame: (1) render with no LUT; (2) render with an
-identity cube (`out = in`, any size) and the same declared transfers,
-primaries and W, so only the encode/decode and primaries chain acts; the
-difference from (1) is conversion error (here the Cineon-to-gamma-2.4
-display mapping), not look; (3) render with the real cube; the difference
-from (2) is the print look alone. Repeat at the other stage if the order is
-in question. Call the result a print-look experiment, not film calibration.
-
-`image_stats` with the default `stage: "display"` describes display-encoded
-output, not Cineon density. The Cineon distribution is `image_stats`
-`stage: "cineon"` (Render server), which reads the actual encoded data; see
-"Observing each stage". Use luminance for locating regions and per-channel
-statistics for channel differences; neither certifies original colour.
+Profiles from version 1060 floor transmission at one 16-bit code
+(`TransmissionFloor`, 1/65535) before the log, so raw values at black (dense
+lamps, emitters) decode to large but finite values; sidecars before 1060 keep
+1e-10 and can fail with "non-finite sample" where a steep fit meets them.
 
 ## Observing each stage
 
-One film conversion has four observable stages. Name the stage, space,
+One film conversion has three observable stages. Name the stage, space,
 transfer and unit with every number you quote.
 
 | What | Tool and stage | Space / transfer | Unit |
 |---|---|---|---|
 | Pre-inversion samples | `sample_spots` `stage: "source"` (default), `space` working or input | working space or camera space, linear, white-balanced | linear 0..65535 |
-| Recovered light | `sample_spots` / `image_stats` `stage: "converted"` | working space (the profile's), linear, right after film + colour conversion, before LUT, exposure and grading | linear 0..65535; may be negative or above 65535 |
-| Cineon encoding | `sample_spots` / `image_stats` `stage: "cineon"` | the converted pixels, encoded per pixel to Cineon codes with the profile's reference white W (`w` in the result) | `cineon_code` 0..1023; may fall outside |
-| Display statistics | `image_stats` `stage: "display"` (default) | the 8-bit output after the whole pipeline and output profile | 0..255; not Cineon, not linear |
+| Recovered light | `sample_spots` / `image_stats` / `render_preview` `stage: "converted"` | working space (the profile's), linear, right after film + colour conversion, before exposure and grading | linear 0..65535; may be negative or above 65535 |
+| Display statistics | `image_stats` `stage: "display"` (default) | the 8-bit output after the whole pipeline and output profile | 0..255; not linear |
 
-- Source and converted/cineon spots come from the same pixels: for a
-  uniform patch the cineon `avg` equals the Cineon encode of the converted
-  `avg` (685 + 300 log10(x/W (1 - s) + s), x = converted/65535, s = 10^(-590/300)).
-  `space` applies to `source` only; asking for `input` with another stage is
-  refused. If Film Negative is off the result says `film: "disabled"`: the
-  stages are then the plain image, not a conversion.
+- `render_preview` with `stage` converted shows those pixels through the
+  sRGB curve (no colour management, crop applied, no marks): a look at the
+  data, not a rendering.
+- Source and converted spots come from the same pixels. `space` applies to
+  `source` only; asking for `input` with another stage is refused. If Film
+  Negative is off the result says `film: "disabled"`: the stage is then the
+  plain image, not a conversion.
 - `image_stats` with a stage returns per channel (r, g, b) `min`, `max`,
   `mean`, `p01`, `p50`, `p99`, `below` / `above` (pixels outside the fixed
-  `range`: converted [-6553.5, 131070], cineon [-100, 1100]), `nonfinite`
-  and, with `histogram`, `bins` counts (2..1024, default 256) over that range.
-  Percentiles are exact (nearest rank over every finite value, out-of-range
-  ones included), not read from the bins. `histogram_image`
-  draws R / G / B over the range with the Cineon axis marked at 95 (black),
-  470 (nominal 18% grey) and 685 (linear W, 90% diffuse white by
-  convention). The marks are fixed codes: linear 0.18 lands at 480.8 with
-  W = 0.9 and at 467.8 with W = 1, so 470 is a check, not an anchor.
+  `range` [-6553.5, 131070]), `nonfinite` and, with `histogram`, `bins`
+  counts (2..1024, default 256) over that range. Percentiles are exact
+  (nearest rank over every finite value, out-of-range ones included), not
+  read from the bins.
 - Crop, region and downscale: the frame is the cropped frame (the working
   profile's crop applies). `region` is fractions of that cropped frame.
-  `max_size` box-downscales the frame by averaging in linear light *before*
-  the Cineon encode, so a downscaled cineon distribution is of averaged
-  light and is narrower than the full-size one (0 = full size; large raws are
-  slow). The `width`/`height` of the result are the measured size,
-  `source_width`/`source_height` the cropped frame. Read spots, not
-  downscaled histograms, to check an exact code.
+  `max_size` box-downscales the frame by averaging in linear light, so a
+  downscaled distribution is narrower than the full-size one (0 = full size;
+  large raws are slow). The `width`/`height` of the result are the measured
+  size, `source_width`/`source_height` the cropped frame. Read spots, not
+  downscaled histograms, to check an exact value.
 - The Live server has no full-resolution stage tap: `image_stats` there
   measures the 8-bit preview only and refuses a stage; use the Render server.
   Live `sample_spots` does accept `stage`.
 - Display statistics (percentiles, clipping, `lum`) are encoded output
-  values after tone, LUT and output profile. They show what the picture
-  looks like, not whether the Cineon codes sit at 95..685; do not quote them
-  as a Cineon scope.
+  values after tone and output profile. They show what the picture looks
+  like; do not quote them as linear values.
 
 Strong endpoint stretches can fail ART's finite-value checks during
 inversion. Preserve the failure and original parameters; clipping or
-zeroing invalid pixels is not a successful conversion. If an explicitly
-labelled comparison is made from a valid exported intermediate, process
-both baseline and candidate through that same route, inspect the results,
-and state that it is not an ART re-render or a reproducible ART sidecar.
+zeroing invalid pixels is not a successful conversion.
 
 ## Capture exposure normalization
 
@@ -639,7 +409,7 @@ fitted shutter-group colour balances. Add scene/output gains separately.
 Recompute capture compensation after changing slopes or matrix.
 
 The method-specific compensation preserves the inversion coordinate before
-paper/LUT/black offset, and therefore its output when those settings stay fixed.
+the black offset, and therefore its output when that setting stays fixed.
 Floor-clamped source samples are outside
 the derivation. Normalize the samples for fitting and compensate the original
 input in the profile; applying both corrections to the processing input would
@@ -668,7 +438,7 @@ That fit determines neither physical Dmin nor absolute scene reflectance.
 
 ### Density-specific reduction
 
-For identity matrix, negative film and no paper/LUT/black offset, the equations
+For identity matrix, negative film and no black offset, the equations
 reduce to `L_c = K_c * T_c^(-k_c)`, where:
 
 ```
@@ -687,8 +457,8 @@ before rendering. Relative gains balance channels. With unit slopes and `g = 1`,
 leaves this result unchanged. Fix Dmax as a model anchor while estimating gains.
 Only products `g*h_c` determine these identity-path slopes; use common g first
 and hold one channel slope fixed when estimating relative channel slopes.
-These reductions do not describe a nonidentity matrix or a rendered paper/LUT
-response; use the full equations for those paths.
+These reductions do not describe a nonidentity matrix; use the full equations
+for that path.
 
 For a credible pair of neutral candidates in the same illumination, a desired
 linear ratio `r = L_bright/L_dark > 1` gives the candidate channel slope
@@ -738,7 +508,7 @@ fit warning, not evidence of several digitization setups. Diagnose in order:
    ```
 
    `B_new_anchor` uses the candidate gamma/matrix and the same exposure-normalized
-   input sample. This preserves the old reference output before paper/LUT;
+   input sample. This preserves the old reference output before the black offset;
    it is an offset initialization, not proof that the reference is neutral.
    A chosen grey level is a viewing assumption, not measured reflectance.
    Recompute frame exposure compensation after every slope/matrix change.

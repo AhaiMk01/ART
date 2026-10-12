@@ -20,15 +20,13 @@ from pydantic import BaseModel, Field, SerializerFunctionWrapHandler, Validation
 from art_mcp.render.artcli import Rect, region_rect
 
 SPACES = ("working", "input")
-STAGES = ("source", "converted", "cineon")
+STAGES = ("source", "converted")
 """Where in the film pipeline a spot is read: `source` (pre-inversion, in `space`), `converted` (linear
-working-space RGB right after film + colour conversion), `cineon` (those pixels as Cineon codes)."""
-STAGE_UNITS = {"source": "linear_65535", "converted": "linear_65535", "cineon": "cineon_code"}
-STATS_STAGES = ("display", "converted", "cineon")
+working-space RGB right after film + colour conversion)."""
+STAGE_UNITS = {"source": "linear_65535", "converted": "linear_65535"}
+STATS_STAGES = ("display", "converted")
 STAGE_BINS = (2, 1024)
-STAGE_RANGES = {"converted": (-6553.5, 131070.0), "cineon": (-100.0, 1100.0)}
-CINEON_MARKS = (95, 470, 685)
-"""Cineon codes drawn on the chart axis: black (linear 0), nominal 18% grey, white (linear W)."""
+STAGE_RANGES = {"converted": (-6553.5, 131070.0)}
 STAGESTATS_PREFIX = "ART-STAGESTATS "
 Stage = str
 StatsStage = str
@@ -41,7 +39,7 @@ DEFAULT_SIZE = 32
 SPOTS_PREFIX = "ART-SPOTS "
 
 UNSUPPORTED_SPOTS = "needs an ART build with spot sampling (the fork); point --art-dir/ART_DIR at it"
-UNSUPPORTED_STAGE = "needs an ART build with staged sampling (stage converted / cineon); point --art-dir/ART_DIR at it"
+UNSUPPORTED_STAGE = "needs an ART build with staged sampling (stage converted); point --art-dir/ART_DIR at it"
 
 SKILLS_POINTER = "Step-by-step workflows (film negatives, faded slides): see the skills in tools/mcp/skills."
 
@@ -59,11 +57,9 @@ and the error says which spots it covered.
 white-balanced, in `space` ("working" = the working profile's working space,
 "input" = camera space; `space` is for source only); "converted" = linear
 working-space RGB right after film conversion and colour conversion, before
-LUT, exposure and grading; may be negative or above 65535 (same 0..65535 scale); "cineon" = those
-pixels encoded per pixel to Cineon codes (0..1023) with the profile's reference
-white W; may fall outside 0..1023. Result `unit`: "linear_65535" or
-"cineon_code". A square's `avg` is the mean of its pixels' values at that
-stage (cineon: mean of codes).
+exposure and grading; may be negative or above 65535 (same 0..65535 scale).
+Result `unit`: "linear_65535". A square's `avg` is the mean of its pixels' values at that
+stage.
 
 Mapping a preview pixel (px, py) to the frame: a Render whole-image preview
 shows the crop when one is enabled, so x = crop.x + px * crop.w / preview_w
@@ -272,19 +268,18 @@ small one has few pixels (at least 16 are needed, else out_of_range): raise
     + SKILLS_POINTER
 )
 
-STAGE_STATS_DOC = """ `stage`: "display" (default) is all of the above. "converted" / "cineon" (Render only)
-measure the film pipeline's own float data instead, not the 8-bit display: per channel
+STAGE_STATS_DOC = """ `stage`: "display" (default) is all of the above. "converted" (Render only)
+measures the film pipeline's own float data instead, not the 8-bit display: per channel
 r, g, b `min`/`max`/`mean`/`p01`/`p50`/`p99`, `below`/`above`/`nonfinite` counts and a
 `bins`-bin (2 to 1024, default 256) histogram over the fixed `range`: converted =
 linear working-space RGB after film + colour conversion, [-6553.5, 131070] on the
-0..65535 scale; cineon = those pixels as Cineon codes with reference white `w`,
-[-100, 1100]. `max_size` (0 = full size) box-downscales the cropped frame in linear
-light before encoding, so cineon values are of averaged light; `region` is a fraction
+0..65535 scale. `max_size` (0 = full size) box-downscales the cropped frame in linear
+light; `region` is a fraction
 of the cropped frame; `detail`, `lum_min` and `lum_max` are display only.
-`histogram_image` draws R/G/B over the range (cineon: 95 / 470 / 685 marked);
+`histogram_image` draws R/G/B over the range;
 `histogram` returns the counts."""
 STAGE_ONLY_RENDER = (
-    "stage {stage!r} (the film pipeline's linear / Cineon data) needs the Render server's "
+    "stage {stage!r} (the film pipeline's linear data) needs the Render server's "
     "image_stats: the editor has no full-resolution stage tap. Live image_stats measures "
     "the 8-bit preview only (stage display)."
 )
@@ -469,19 +464,17 @@ class StageChannel(OmitNone):
 
 
 class StageStats(OmitNone):
-    """A film pipeline stage's per-channel statistics (`stage` converted or cineon)."""
+    """A film pipeline stage's per-channel statistics (`stage` converted)."""
 
     stage: str
     unit: str
-    """`linear_65535` (converted) or `cineon_code` (cineon)."""
+    """`linear_65535`."""
     width: int
     height: int
     """The measured image after the linear box downscale (and the region, if any)."""
     source_width: int
     source_height: int
     """The cropped frame before downscaling."""
-    w: float
-    """Cineon reference white W (linear 0..1 scale) the codes use."""
     film: str | None = None
     """"disabled" when Film Negative is off: the stage is then the plain image."""
     range: list[float]
@@ -625,8 +618,7 @@ def _histogram_image(stats: ImageStats, label: str) -> ImageContent:
 
 
 def _stage_histogram_image(stats: StageStats, label: str) -> ImageContent:
-    """Overlaid R, G, B histograms of a pipeline stage over its `range`; for
-    cineon the axis is in codes with 95 / 470 / 685 marked."""
+    """Overlaid R, G, B histograms of a pipeline stage over its `range`."""
     from PIL import Image, ImageDraw, ImageFont
 
     counts = [channel.hist for channel in stats.channels]
@@ -642,8 +634,6 @@ def _stage_histogram_image(stats: StageStats, label: str) -> ImageContent:
     scope = (
         f"{stats.stage} ({stats.unit}) {stats.width} x {stats.height} from {stats.source_width} x {stats.source_height}"
     )
-    if stats.stage == "cineon":
-        scope += f"; W={stats.w:g}"
     draw.text((16, 38), scope, fill=foreground, font=font)
     left, right, top, bottom = 70, 814, 100, 300
 
@@ -654,12 +644,8 @@ def _stage_histogram_image(stats: StageStats, label: str) -> ImageContent:
         y = bottom - round(fraction * (bottom - top))
         draw.line((left, y, right, y), fill=grid)
         draw.text((4, y - 8), f"{peak * fraction:.2f}%", fill=foreground, font=font)
-    if stats.stage == "cineon":
-        ticks = [(float(v), str(v)) for v in range(0, 1001, 200)]
-        marks = [(float(v), str(v)) for v in CINEON_MARKS]
-    else:
-        ticks = [(lo, f"{lo:g}"), (hi, f"{hi:g}")]
-        marks = [(0.0, "0"), (65535.0, "65535")]
+    ticks = [(lo, f"{lo:g}"), (hi, f"{hi:g}")]
+    marks = [(0.0, "0"), (65535.0, "65535")]
     for value, text in ticks:
         x = x_of(value)
         draw.line((x, top, x, bottom), fill=grid)

@@ -27,14 +27,11 @@ from art_mcp.curves import LinearCurve, PointCurve, curve_warnings, decode, draw
 from art_mcp.filmnegative import GROUP as FILM_GROUP
 from art_mcp.filmnegative import (
     Estimate,
-    check_cineon_lut_excludes_paper,
     check_density_bindings,
     check_legacy,
-    check_legacy_lut_primaries,
     check_matrix_coefficients,
     check_namicolor,
     check_namicolor_matrix_basis,
-    check_paper_basis,
     film_base_edits,
     film_version_edits,
     format_triple,
@@ -42,14 +39,10 @@ from art_mcp.filmnegative import (
     parse_triple,
     picker_edits,
     profile_version,
-    read_cineon_lut_stage,
     read_cineon_reference_white,
-    read_denoise_before_inversion,
     read_fit_base_anchor,
     read_matrix_field,
-    read_preserve_range,
     read_triple_field,
-    stamp_lut_sha,
 )
 from art_mcp.keyfile import KeyFile, escape, unescape
 from art_mcp.schema import (
@@ -346,12 +339,7 @@ class WorkingChanges:
                 check_matrix_coefficients(tool, self.profile.get(group))
                 mask_opt_in = check_namicolor_matrix_basis(tool, self.profile)
                 implied += film_version_edits(tool, self.profile, mask_opt_in)
-                check_cineon_lut_excludes_paper(tool, self.profile.get(group))
-                check_paper_basis(tool, self.profile.get(group))
-                tool = tool.model_copy()  # stamping must not leak into the next image of a batch
-                stamp_lut_sha(tool, self.profile)
                 check_density_bindings(tool, self.profile)
-                check_legacy_lut_primaries(tool, self.profile)
                 explicit += film_base_edits(tool, self.profile, raw_source)
             values = {f: getattr(tool, f) for f in model.model_fields if getattr(tool, f) is not None}
             if not values:
@@ -498,7 +486,7 @@ class WorkingChanges:
         return changed
 
     def partial_profile(self) -> KeyFile:
-        """Changed values, with Film Negative's version, LUT order and range setting."""
+        """Changed values, with Film Negative's version and range setting."""
         partial: KeyFile = {}
         regions_dropped = False
         for (group, key), loaded in self._loaded.items():
@@ -527,19 +515,13 @@ def _with_whole_regions(partial: KeyFile, profile: KeyFile, force: bool = False)
 
 
 def _with_film_compatibility(partial: KeyFile, profile: KeyFile) -> KeyFile:
-    """Keep Film Negative migrations, LUT order and range in exported partials."""
+    """Keep Film Negative migrations and range in exported partials."""
     entries = partial.get(FILM_GROUP)
     if entries is None:
         return partial
     version = ppversion_of(profile)
     if version is not None and version < PPVERSION:
         partial.setdefault(VERSION_GROUP, {})["Version"] = str(version)
-    if "CineonLUT" in entries and "CineonLUTStage" not in entries:
-        entries["CineonLUTStage"] = read_cineon_lut_stage(profile)
-    if "Method" in entries and "PreserveRange" not in entries:
-        entries["PreserveRange"] = read_preserve_range(profile)
-    if "Method" in entries and "DenoiseBeforeInversion" not in entries:
-        entries["DenoiseBeforeInversion"] = read_denoise_before_inversion(profile)
     if "Method" in entries and "CineonReferenceWhite" not in entries:
         entries["CineonReferenceWhite"] = read_cineon_reference_white(profile)
     if "Method" in entries and "NamiColorFitBaseAnchor" not in entries:
@@ -556,7 +538,7 @@ def partial_vs_default(profile: KeyFile, default: KeyFile) -> KeyFile:
     left out; so is one only the default has (a partial profile can't unset a
     key, and the target image's own value is its default anyway); a key only
     ``profile`` has counts as different. Old Film Negative values retain their
-    version-dependent migrations, effective print-LUT order and range setting."""
+    version-dependent migrations, and range setting."""
     partial: KeyFile = {}
     for group, entries in profile.items():
         if group == VERSION_GROUP:
@@ -565,12 +547,6 @@ def partial_vs_default(profile: KeyFile, default: KeyFile) -> KeyFile:
         for key, value in entries.items():
             if was.get(key) != value:
                 partial.setdefault(group, {})[key] = value
-    if FILM_GROUP in profile and read_cineon_lut_stage(profile) != read_cineon_lut_stage(default):
-        partial.setdefault(FILM_GROUP, {})["CineonLUTStage"] = read_cineon_lut_stage(profile)
-    if FILM_GROUP in profile and read_preserve_range(profile) != read_preserve_range(default):
-        partial.setdefault(FILM_GROUP, {})["PreserveRange"] = read_preserve_range(profile)
-    if FILM_GROUP in profile and read_denoise_before_inversion(profile) != read_denoise_before_inversion(default):
-        partial.setdefault(FILM_GROUP, {})["DenoiseBeforeInversion"] = read_denoise_before_inversion(profile)
     if FILM_GROUP in profile and read_cineon_reference_white(profile) != read_cineon_reference_white(default):
         partial.setdefault(FILM_GROUP, {})["CineonReferenceWhite"] = read_cineon_reference_white(profile)
     if FILM_GROUP in profile and read_fit_base_anchor(profile) != read_fit_base_anchor(default):
@@ -662,15 +638,6 @@ def typed_adjustments(profile: KeyFile) -> tuple[dict[str, dict[str, Any]], set[
                     consumed.add((field_grp, key))
                 continue
             if stored is None:
-                if name == "film_negative" and field == "cineon_lut_stage":
-                    values[field] = read_cineon_lut_stage(profile)
-                    continue
-                if name == "film_negative" and field == "preserve_range":
-                    values[field] = read_preserve_range(profile) == "true"
-                    continue
-                if name == "film_negative" and field == "denoise_before_inversion":
-                    values[field] = read_denoise_before_inversion(profile) == "true"
-                    continue
                 if name == "film_negative" and field == "cineon_reference_white":
                     values[field] = float(read_cineon_reference_white(profile))
                     continue

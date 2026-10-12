@@ -421,10 +421,6 @@ void ImProcCoordinator::updatePreviewImage(int todo, bool panningRelatedChange)
             if (!converted) {
                 imgsrc->convertColorSpace(orig_prev, params.icm, currWB);
             }
-            if (!ipf.filmNegativeApplyLut(
-                    orig_prev, FilmNegativeParams::CineonLUTStage::BEFORE_GRADE)) {
-                return;
-            }
 
             ipf.firstAnalysis(orig_prev, params, vhist16);
         }
@@ -562,9 +558,6 @@ void ImProcCoordinator::updatePreviewImage(int todo, bool panningRelatedChange)
             bufs_[1]->copyTo(bufs_[2]);
             pipeline_stop_[3] =
                 stop || ipf.process(ImProcFunctions::Stage::STAGE_3, bufs_[2]);
-            if (ipf.filmNegativeContractFailed()) {
-                return;
-            }
         }
         stop = stop || pipeline_stop_[3];
 

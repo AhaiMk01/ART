@@ -1563,13 +1563,10 @@ struct FilmNegativeParams {
     std::array<double, 3> namicolorGain;
     std::array<double, 3> namicolorShift;
     bool namicolorFitBase;
-    // NamiColor: retain signed exposure/LUT RGB and reject clipped Cineon
-    // handoffs. Individual tone tools still define their own mappings.
-    bool preserveRange;
-    // Run the denoise tool on the camera-linear negative, before the film
-    // conversion (default). false denoises the inverted positive, as sidecars
-    // before 1059 did.
-    bool denoiseBeforeInversion;
+    // Lowest transmission (1 = full scale) taken before the log in Density
+    // and NamiColor: one 16-bit code by default. Sidecars before 1060 used
+    // 1e-10, which let raw values at black decode to non-finite output.
+    double transmissionFloor;
     // Veiling light / flare per channel: linear transmission fraction of full
     // scale (1 = 65535), 0..0.5, subtracted from the normalised, input-
     // linearised transmission before the log in Density and NamiColor.
@@ -1592,35 +1589,10 @@ struct FilmNegativeParams {
     std::array<double, 3> channelGamma;
     double outputBlackOffset;
 
-    // Export target. The density tool always writes linear RGB; CINEON is
-    // applied only when saving a 16-bit integer TIFF. PAPER applies the
-    // reference print curve before the exponential conversion.
-    enum class TargetMode { LINEAR = 0, PAPER, CINEON };
-    TargetMode targetMode;
-    // Empty means the working profile selected at export.
-    Glib::ustring cineonPrimaries;
     // Linear value encoded as Cineon code 685 (default 0.9 = 90% diffuse
     // white; sidecars before 1058 without the key load 1.0). One shared scale
-    // for NamiColor decode, print-LUT input encode and integer Cineon export.
+    // for the NamiColor decode.
     double cineonReferenceWhite;
-    // Empty CineonLUT means no print LUT. Mutually exclusive with paper.
-    Glib::ustring cineonLUT;
-    Glib::ustring cineonLUTInputPrimaries;
-    Glib::ustring cineonLUTOutputPrimaries;
-    enum class CineonLUTInputTransfer {
-        CINEON = 0, LINEAR, SRGB, GAMMA_2_4, LOGC3, SLOG3, ACESCCT
-    };
-    CineonLUTInputTransfer cineonLUTInputTransfer;
-    enum class CineonLUTStage { BEFORE_GRADE = 0, AFTER_GRADE };
-    CineonLUTStage cineonLUTStage;
-    bool legacyInputLUT;
-    enum class CineonLUTOutputTransfer {
-        LINEAR = 0,
-        SRGB,
-        GAMMA_2_4,
-        UNSUPPORTED
-    };
-    CineonLUTOutputTransfer cineonLUTOutputTransfer;
     static std::array<double, 9> identityMatrix();
     static std::array<double, 9> statusMReferenceMatrix();
     /// Versioned JSON binding: space, profile, content, input_gamma, source.
@@ -1635,12 +1607,6 @@ struct FilmNegativeParams {
                                    double inputGamma,
                                    const Glib::ustring &sourceId,
                                    Glib::ustring &message);
-    // Stable curve identifier. Inactive unless targetMode is PAPER.
-    Glib::ustring paperCurve;
-    // "input|profile" or "working|profile". Empty is not a match.
-    Glib::ustring paperBasis;
-    // SHA-256 of the .cube bytes. Empty is not a content identity.
-    Glib::ustring cineonLUTSha256;
     FilmNegativeParams();
 
     bool operator==(const FilmNegativeParams &other) const;

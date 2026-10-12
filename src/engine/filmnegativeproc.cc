@@ -45,10 +45,9 @@
 #include "color.h"
 #include "iccstore.h"
 #include "rt_math.h"
-#include "cineonlut.h"
-#include "papercurve.h"
 #include "../utils/multilangmgr.h"
 #include "imageio.h"
+#include "image8.h"
 #include "linalgebra.h"
 
 namespace art { namespace engine {
@@ -268,8 +267,7 @@ bool resolveInputGamma(const FilmNegativeParams &params, SourceTransfer src,
     return false;
 }
 
-// Always writes linear RGB (0..65535). TargetMode::CINEON is an export
-// encoding, applied once in prepareFilmNegativeCineonExport, never here.
+// Always writes linear RGB (0..65535).
 bool activeDensityMatrix(const FilmNegativeParams &params,
                          const ColorManagementParams &icm, ProgressListener *pl,
                          const Glib::ustring &sourceId, float M[9])
@@ -305,30 +303,6 @@ bool activeDensityMatrix(const FilmNegativeParams &params,
     }
     filmNegError(pl, message);
     return false;
-}
-
-bool paperBasisMatches(const FilmNegativeParams &params,
-                       const ColorManagementParams &icm)
-{
-    const Glib::ustring &stored = params.paperBasis;
-    const auto bar = stored.find('|');
-    if (stored.empty() || bar == Glib::ustring::npos || bar == 0 ||
-        bar + 1 >= stored.length()) {
-        return false;
-    }
-    const Glib::ustring space = stored.substr(0, bar);
-    const Glib::ustring profile = stored.substr(bar + 1);
-    if (profile.empty()) {
-        return false;
-    }
-    const bool input =
-        params.colorSpace == FilmNegativeParams::ColorSpace::INPUT;
-    if (space != (input ? "input" : "working")) {
-        return false;
-    }
-    const Glib::ustring active =
-        input ? icm.inputProfile : icm.workingProfile;
-    return profile == active;
 }
 
 void leaveUnconverted(Imagefloat *input, Imagefloat *output)
@@ -419,29 +393,9 @@ bool doProcessDensity(Imagefloat *input, Imagefloat *output,
         outputBlackOffset = 0.f;
     }
 
-    // A Cineon print LUT replaces the paper curve. Do not apply both.
-    const bool cineonLutActive = !params.cineonLUT.empty();
-    const bool paperTarget =
-        params.targetMode == FilmNegativeParams::TargetMode::PAPER &&
-        !cineonLutActive;
-    bool paperOk = false;
-    if (paperTarget) {
-        if (!paperBasisMatches(params, icm)) {
-            filmNegError(pl, art::utils::M("TP_FILMNEGATIVE_ERR_PAPER_BASIS"));
-            leaveUnconverted(input, output);
-            return false;
-        }
-        if (!findPaperCurve(params.paperCurve)) {
-            filmNegError(pl, Glib::ustring::compose(
-                                 art::utils::M("TP_FILMNEGATIVE_ERR_PAPER_CURVE"),
-                                 params.paperCurve));
-            leaveUnconverted(input, output);
-            return false;
-        }
-        paperOk = true;
-    }
     const bool isNegative =
         (params.filmType == FilmNegativeParams::FilmType::NEGATIVE);
+    const float tFloor = static_cast<float>(params.transmissionFloor);
 
     const int rheight = input->getHeight();
     const int rwidth = input->getWidth();
@@ -484,7 +438,7 @@ bool doProcessDensity(Imagefloat *input, Imagefloat *output,
                 // Veiling light is linear transmission: remove it before the
                 // log, then the usual floor applies.
                 norm -= flare[c];
-                const float Tc = norm > 1e-10f ? norm : 1e-10f;
+                const float Tc = norm > tFloor ? norm : tFloor;
 
                 float Dc = -std::log10(Tc);
                 float Ac;
@@ -512,25 +466,14 @@ bool doProcessDensity(Imagefloat *input, Imagefloat *output,
                 density[c] = P + channelGamma[c] * (B[c] - P) - rgbGains[c];
             }
 
-            // Cineon returns the linear result (encoding is a later ticket).
-            // Unknown curves are not replaced by another response.
-            if (paperOk) {
-                applyPaperCurves(density[0], density[1], density[2],
-                                 params.paperCurve);
-            }
-
             for (int c = 0; c < 3; ++c) {
                 float Lc = static_cast<float>(std::pow(10.0, -density[c]));
                 if (!std::isfinite(Lc)) {
                     Lc = 0.f;
                 }
-                // A print LUT decodes to linear later. Offset applies to that
-                // decoded result, not to the pre-LUT density inversion.
-                if (!cineonLutActive) {
-                    Lc -= outputBlackOffset;
-                    if (!(Lc > 0.f) || !std::isfinite(Lc)) {
-                        Lc = 0.f;
-                    }
+                Lc -= outputBlackOffset;
+                if (!(Lc > 0.f) || !std::isfinite(Lc)) {
+                    Lc = 0.f;
                 }
                 float scaled = S * Lc;
                 if (!std::isfinite(scaled)) {
@@ -551,6 +494,16 @@ bool doProcessDensity(Imagefloat *input, Imagefloat *output,
         filmNegError(pl, art::utils::M("TP_FILMNEGATIVE_ERR_NONFINITE"));
     }
     return nonFiniteCount == 0;
+}
+
+// Standard Cineon decode of a normalized 10-bit code: 95 is linear zero,
+// 685 is referenceWhite (signed, so codes below 95 decode below zero).
+double decodeFilmCineon(double code, double referenceWhite)
+{
+    static const double b = std::pow(10.0, (95.0 - 685.0) / 300.0);
+    return referenceWhite * b *
+           std::expm1((1023.0 * code - 95.0) / 300.0 * std::log(10.0)) /
+           (1.0 - b);
 }
 
 // NamiColor 3.1 log-channel alignment (Wavechaser/HikariDragon, GPL-3.0).
@@ -620,6 +573,7 @@ bool doProcessNamiColor(Imagefloat *input, Imagefloat *output,
     }
     const double densityPivot = 0.7;
     const double log16 = applyMask ? std::log10(16.0) : 0.0;
+    const double tFloor = params.transmissionFloor;
     int nonFiniteCount = 0;
 #ifdef _OPENMP
     #pragma omp parallel for reduction(+:nonFiniteCount)
@@ -643,7 +597,7 @@ bool doProcessNamiColor(Imagefloat *input, Imagefloat *output,
                     }
                     t -= params.flare[c];
                     centeredDensity[c] =
-                        -std::log10(std::max(t, 1e-10)) - densityPivot;
+                        -std::log10(std::max(t, tFloor)) - densityPivot;
                 }
                 if (!finite) {
                     ++nonFiniteCount;
@@ -675,7 +629,7 @@ bool doProcessNamiColor(Imagefloat *input, Imagefloat *output,
                             transmission);
                     }
                     transmission -= params.flare[c];
-                    transmission = std::max(transmission, 1e-10);
+                    transmission = std::max(transmission, tFloor);
                     q = negative
                         ? 1.0 - params.namicolorInputGain *
                                     std::log10(16.0 * transmission)
@@ -723,29 +677,6 @@ bool processLinearFilm(Imagefloat *input, Imagefloat *output,
         return doProcessNamiColor(input, output, params, src, pl, matrix);
     }
     return doProcessDensity(input, output, params, icm, src, pl, matrix);
-}
-
-// The legacy route runs the cube before the input->working conversion, while
-// the primaries map assumes working-space pixels: refuse that combination.
-bool legacyInputLutPrimariesOk(const FilmNegativeParams &params,
-                               ProgressListener *pl)
-{
-    if (params.cineonLUT.empty() ||
-        (params.cineonLUTInputPrimaries.empty() &&
-         params.cineonLUTOutputPrimaries.empty())) {
-        return true;
-    }
-    filmNegError(pl, art::utils::M("TP_FILMNEGATIVE_ERR_LEGACY_LUT_PRIMARIES"));
-    return false;
-}
-
-bool legacyInputLut(const FilmNegativeParams &params)
-{
-    return params.method == FilmNegativeParams::Method::DENSITY &&
-           params.colorSpace == FilmNegativeParams::ColorSpace::INPUT &&
-           params.cineonLUTStage ==
-               FilmNegativeParams::CineonLUTStage::BEFORE_GRADE &&
-           params.legacyInputLUT;
 }
 
 /**
@@ -830,12 +761,11 @@ bool doProcess(Imagefloat *input, Imagefloat *output,
             blineout[j] = CLIP(bmult * pow_F(blinein[j], bexp));
         }
     }
-    // Power-law ignores the dormant Density/NamiColor LUT controls.
     return refsUpdated;
 }
 
 // Printer-light gains that map a rebate sample to density 4 (linear 1e-4)
-// before paper, LUT, and black offset. C is the matrix/channel-adjusted
+// before the black offset. C is the matrix/channel-adjusted
 // density with the current RGBGains omitted. Writes gains only if every
 // channel is finite and inside [-3, 3].
 bool filmBaseGainsFromAverage(const float avg[3],
@@ -884,7 +814,8 @@ bool filmBaseGainsFromAverage(const float avg[3],
         }
         // Same veiling-light subtraction as the render, so picks match it.
         norm -= static_cast<float>(params.flare[c]);
-        const float Tc = norm > 1e-10f ? norm : 1e-10f;
+        const float tFloor = static_cast<float>(params.transmissionFloor);
+        const float Tc = norm > tFloor ? norm : tFloor;
         const float Dc = -std::log10(Tc);
         A[c] = densityDmax - p - densityGamma * (Dc - p);
         if (!std::isfinite(A[c])) {
@@ -941,11 +872,6 @@ bool art::engine::ImProcFunctions::filmNegativeProcess(Imagefloat *input,
             sourceTransfer(imgsrc && imgsrc->isRAW(), this->params->icm);
         filmNegContractFailed = !processLinearFilm(
             input, output, fnp, this->params->icm, src, sourceId, plistener);
-        if (!filmNegContractFailed && legacyInputLut(fnp)) {
-            filmNegContractFailed =
-                !legacyInputLutPrimariesOk(fnp, plistener) ||
-                !applyCineonPrintLut(output, fnp, this->params->icm, plistener);
-        }
         return false;
     }
 
@@ -1042,55 +968,10 @@ void art::engine::ImProcFunctions::filmNegativeProcess(
     if (params.method != FilmNegativeParams::Method::POWER_LAW) {
         filmNegContractFailed = !processLinearFilm(
             input, output, params, this->params->icm, src, sourceId, plistener);
-        if (!filmNegContractFailed && legacyInputLut(params)) {
-            filmNegContractFailed =
-                !legacyInputLutPrimariesOk(params, plistener) ||
-                !applyCineonPrintLut(output, params, this->params->icm,
-                                     plistener);
-        }
         return;
     }
     RGB refIn = params.refInput, refOut = params.refOutput;
     doProcess(input, output, params, refIn, refOut);
-}
-
-bool art::engine::ImProcFunctions::filmNegativeApplyLut(
-    Imagefloat *img, FilmNegativeParams::CineonLUTStage stage)
-{
-    const FilmNegativeParams &fnp = params->filmNegative;
-    if (!fnp.enabled) {
-        // A stale failure from a previous enabled run must not block a
-        // pipeline that no longer runs the tool.
-        filmNegContractFailed = false;
-        return true;
-    }
-    if (filmNegContractFailed) {
-        return false;
-    }
-    if (fnp.method == FilmNegativeParams::Method::POWER_LAW ||
-        fnp.cineonLUT.empty()) {
-        return true;
-    }
-    if (fnp.cineonLUTStage != FilmNegativeParams::CineonLUTStage::BEFORE_GRADE &&
-        fnp.cineonLUTStage != FilmNegativeParams::CineonLUTStage::AFTER_GRADE) {
-        filmNegError(plistener, art::utils::M("TP_FILMNEGATIVE_ERR_LUT_STAGE"));
-        filmNegContractFailed = true;
-        return false;
-    }
-    if (fnp.cineonLUTStage != stage || legacyInputLut(fnp)) {
-        return true;
-    }
-    img->setMode(Imagefloat::Mode::RGB, multiThread);
-    filmNegContractFailed =
-        !applyCineonPrintLut(img, fnp, params->icm, plistener);
-    return !filmNegContractFailed;
-}
-
-bool art::engine::ImProcFunctions::filmNegativeApplyLutAfterGrade(
-    Imagefloat *img)
-{
-    return filmNegativeApplyLut(
-        img, FilmNegativeParams::CineonLUTStage::AFTER_GRADE);
 }
 
 namespace {
@@ -1150,7 +1031,7 @@ SpotStatus checkSpots(int fw, int fh, const SpotRequest &req,
     return SpotStatus::OK;
 }
 
-// the CONVERTED / CINEON spots, defined at the end of this file
+// the CONVERTED spots, defined at the end of this file
 SpotStatus sampleSpotsStage(ImProcFunctions &ipf, ImageSource *imgsrc,
                             const ColorTemp &currWB, const ProcParams &params,
                             int fw, int fh, const SpotRequest &req,
@@ -1182,14 +1063,12 @@ namespace {
 
 const char *stageName(SpotStage s)
 {
-    return s == SpotStage::CONVERTED
-               ? "converted"
-               : s == SpotStage::CINEON ? "cineon" : "source";
+    return s == SpotStage::CONVERTED ? "converted" : "source";
 }
 
-const char *stageUnit(SpotStage s)
+const char *stageUnit(SpotStage)
 {
-    return s == SpotStage::CINEON ? "cineon_code" : "linear_65535";
+    return "linear_65535";
 }
 
 // JSON has no NaN/Inf
@@ -1582,166 +1461,7 @@ void art::engine::Thumbnail::processFilmNegativeV2(
 // ----------------- <<< legacy mode <<< ------------
 
 
-namespace {
-
-
-// Transfer is verified for "(none)" (working RGB stays linear), the known
-// sRGB "No ICM" path, and ART profiles getProfileParametricTRC can read.
-// A named profile whose transfer is not reported is refused.
-bool cineonSourceIsLinear(const procparams::ColorManagementParams &icm,
-                          Glib::ustring &basis, Glib::ustring &error)
-{
-    const Glib::ustring &out = icm.outputProfile;
-    if (out == procparams::ColorManagementParams::NoProfileString) {
-        basis = icm.workingProfile;
-        return true;
-    }
-    const Glib::ustring shown =
-        out.empty() ? procparams::ColorManagementParams::NoICMString : out;
-    if (out.empty() ||
-        out == procparams::ColorManagementParams::NoICMString) {
-        error = Glib::ustring::compose(
-            art::utils::M("TP_FILMNEGATIVE_ERR_CINEON_TRANSFER"), shown);
-        return false;
-    }
-    cmsHPROFILE prof = ICCStore::getInstance()->getProfile(out);
-    float gamma = 0.f;
-    float slope = 0.f;
-    if (!prof || !ICCStore::getProfileParametricTRC(prof, gamma, slope) ||
-        gamma != 1.f || slope != 0.f) {
-        error = Glib::ustring::compose(
-            art::utils::M("TP_FILMNEGATIVE_ERR_CINEON_TRANSFER"), shown);
-        return false;
-    }
-    basis = out;
-    return true;
-}
-
-bool convertLinearBasis(Imagefloat *img, const Glib::ustring &from,
-                        const Glib::ustring &to)
-{
-    if (from == to) {
-        return true;
-    }
-    if (from.empty() || to.empty()) {
-        return false;
-    }
-    Mat33<float> fromM;
-    Mat33<float> toM;
-    Mat33<float> toInv;
-    if (!ICCStore::getInstance()->getProfileMatrix(from, fromM) ||
-        !ICCStore::getInstance()->getProfileMatrix(to, toM) ||
-        !inverse(toM, toInv)) {
-        return false;
-    }
-    const Mat33<float> conv = dot_product(toInv, fromM);
-    const int height = img->getHeight();
-    const int width = img->getWidth();
-    for (int row = 0; row < height; ++row) {
-        for (int col = 0; col < width; ++col) {
-            Vec3<float> rgb(img->r(row, col) / 65535.f,
-                            img->g(row, col) / 65535.f,
-                            img->b(row, col) / 65535.f);
-            rgb = dot_product(conv, rgb);
-            img->r(row, col) = rgb[0] * 65535.f;
-            img->g(row, col) = rgb[1] * 65535.f;
-            img->b(row, col) = rgb[2] * 65535.f;
-        }
-    }
-    return true;
-}
-
-} // namespace
-
-Glib::ustring prepareFilmNegativeCineonExport(
-    IImagefloat *img, const procparams::FilmNegativeParams &fnp,
-    const procparams::ColorManagementParams &icm,
-    const Glib::ustring &format, int bits, bool isFloat)
-{
-    if (!fnp.enabled ||
-        fnp.method == procparams::FilmNegativeParams::Method::POWER_LAW) {
-        return Glib::ustring();
-    }
-    if (!fnp.cineonLUT.empty()) {
-        return Glib::ustring();
-    }
-    if (fnp.targetMode != procparams::FilmNegativeParams::TargetMode::CINEON) {
-        return Glib::ustring();
-    }
-
-    const bool tiff16 = format == "tif" && bits == 16 && !isFloat;
-    if (!tiff16) {
-        return art::utils::M("TP_FILMNEGATIVE_ERR_CINEON_FORMAT");
-    }
-    if (!img) {
-        return art::utils::M("TP_FILMNEGATIVE_ERR_CINEON_IMAGE");
-    }
-    if (!std::isfinite(fnp.cineonReferenceWhite) ||
-        fnp.cineonReferenceWhite <= 0.0) {
-        return art::utils::M("TP_FILMNEGATIVE_ERR_CINEON_DOMAIN");
-    }
-
-    Glib::ustring basis;
-    Glib::ustring transferError;
-    if (!cineonSourceIsLinear(icm, basis, transferError)) {
-        return transferError;
-    }
-
-    Imagefloat *out = static_cast<Imagefloat *>(img);
-    out->syncCpuForWrite();
-
-    const Glib::ustring target =
-        fnp.cineonPrimaries.empty() ? icm.workingProfile : fnp.cineonPrimaries;
-    if (!convertLinearBasis(out, basis, target)) {
-        return Glib::ustring::compose(
-            art::utils::M("TP_FILMNEGATIVE_ERR_CINEON_PRIMARIES"),
-            target.empty() ? Glib::ustring("(empty)") : target);
-    }
-
-    double referenceWhite = fnp.cineonReferenceWhite;
-    const bool preserveSigned =
-        fnp.method == procparams::FilmNegativeParams::Method::NAMICOLOR;
-    if (!preserveSigned) {
-        referenceWhite = std::max(1e-6, std::min(1e6, referenceWhite));
-    }
-
-    const int height = out->getHeight();
-    const int width = out->getWidth();
-    for (int row = 0; row < height; ++row) {
-        float *channel[3] = {out->r(row), out->g(row), out->b(row)};
-        for (int col = 0; col < width; ++col) {
-            for (int c = 0; c < 3; ++c) {
-                const float v = channel[c][col];
-                const double y = encodeFilmCineon(
-                    static_cast<double>(v) / 65535.0, referenceWhite,
-                    preserveSigned);
-                if (!std::isfinite(v) || !std::isfinite(y)) {
-                    return art::utils::M("TP_FILMNEGATIVE_ERR_CINEON_DOMAIN");
-                }
-                const double encoded = std::round(y * 65535.0);
-                if (preserveSigned && fnp.preserveRange &&
-                    (encoded < 0.0 || encoded > 65535.0)) {
-                    return art::utils::M("TP_FILMNEGATIVE_ERR_CINEON_RANGE");
-                }
-                channel[c][col] = static_cast<float>(
-                    std::max(0.0, std::min(65535.0, encoded)));
-            }
-        }
-    }
-
-    // Do not embed a linear or sRGB ICC that describes these code values as
-    // scene-linear or display-encoded RGB.
-    out->setOutputProfile(nullptr, 0);
-    std::ostringstream rw;
-    rw.imbue(std::locale::classic());
-    rw << referenceWhite;
-    out->setSaveAnnotation(Glib::ustring::compose(
-        "Cineon full-range encoding, primaries=%1, reference white=%2", target,
-        Glib::ustring(rw.str())));
-    return Glib::ustring();
-}
-
-// ----------------- stage observation (CONVERTED / CINEON) -----------------
+// ----------------- stage observation (CONVERTED) -----------------
 
 namespace {
 
@@ -1764,7 +1484,7 @@ const char *filmStageName(const ProcParams &p)
 // Brings `img` (a getImage() result: linear, white balanced, camera space) to
 // the CONVERTED stage, in the order ImageProcessor::stage_denoise() uses: the
 // film conversion in the configured colour space, the input -> working colour
-// conversion, no before_grade LUT. Per pixel, so it is valid on a crop of the
+// conversion. Per pixel, so it is valid on a crop of the
 // frame, except for a power-law conversion whose references are estimated
 // from the whole frame (`wholeFrame` false).
 bool convertToStage(ImageSource *imgsrc, const ColorTemp &currWB,
@@ -1801,40 +1521,6 @@ bool convertToStage(ImageSource *imgsrc, const ColorTemp &currWB,
     return true;
 }
 
-// the Cineon encode of prepareFilmNegativeCineonExport()
-struct StageEncoder {
-    double w = 1.0;
-    bool preserveSigned = false;
-    bool convert = false; // the export converts to cineonPrimaries first
-    Glib::ustring target;
-
-    // Cineon code (0..1023 scale) of a linear value on the 0..65535 scale
-    double code(double v) const
-    {
-        return encodeFilmCineon(v / 65535.0, w, preserveSigned) * 1023.0;
-    }
-};
-
-bool stageEncoder(const ProcParams &params, StageEncoder &e, std::string &err)
-{
-    const FilmNegativeParams &f = params.filmNegative;
-    if (!std::isfinite(f.cineonReferenceWhite) ||
-        f.cineonReferenceWhite <= 0.0) {
-        err = art::utils::M("TP_FILMNEGATIVE_ERR_CINEON_DOMAIN");
-        return false;
-    }
-    e.w = f.cineonReferenceWhite;
-    e.preserveSigned =
-        f.enabled && f.method == FilmNegativeParams::Method::NAMICOLOR;
-    if (!e.preserveSigned) {
-        e.w = std::max(1e-6, std::min(1e6, e.w));
-    }
-    e.target = f.cineonPrimaries.empty() ? params.icm.workingProfile
-                                         : f.cineonPrimaries;
-    e.convert = e.target != params.icm.workingProfile;
-    return true;
-}
-
 } // namespace
 
 SpotStatus sampleSpotsStage(ImProcFunctions &ipf, ImageSource *imgsrc,
@@ -1844,14 +1530,6 @@ SpotStatus sampleSpotsStage(ImProcFunctions &ipf, ImageSource *imgsrc,
 {
     res.film = filmStageName(params);
     res.w = params.filmNegative.cineonReferenceWhite;
-    const bool cineon = req.stage == SpotStage::CINEON;
-    StageEncoder enc;
-    if (cineon) {
-        if (!stageEncoder(params, enc, res.error)) {
-            return SpotStatus::FAILED;
-        }
-        res.w = enc.w;
-    }
     const int tr = getCoarseBitMask(params.coarse);
     const int size = req.size;
     for (auto &pos : req.pos) {
@@ -1866,14 +1544,6 @@ SpotStatus sampleSpotsStage(ImProcFunctions &ipf, ImageSource *imgsrc,
                             res.error)) {
             return SpotStatus::FAILED;
         }
-        if (cineon && enc.convert &&
-            !convertLinearBasis(&spotImg, params.icm.workingProfile,
-                                enc.target)) {
-            res.error = "cannot convert the working space to the Cineon "
-                        "primaries " +
-                        std::string(enc.target);
-            return SpotStatus::FAILED;
-        }
         double sum[3] = {0, 0, 0};
         double mx[3] = {-std::numeric_limits<double>::infinity(),
                         -std::numeric_limits<double>::infinity(),
@@ -1882,8 +1552,7 @@ SpotStatus sampleSpotsStage(ImProcFunctions &ipf, ImageSource *imgsrc,
             const float *ch[3] = {spotImg.r(i), spotImg.g(i), spotImg.b(i)};
             for (int j = 0; j < size; ++j) {
                 for (int c = 0; c < 3; ++c) {
-                    const double v =
-                        cineon ? enc.code(ch[c][j]) : double(ch[c][j]);
+                    const double v = ch[c][j];
                     if (!std::isfinite(v)) {
                         res.error = "the spot at " +
                                     std::to_string(pos.first) + "," +
@@ -1966,8 +1635,8 @@ bool filmStageStats(Imagefloat *img, const ProcParams &params,
     res = StageStatsResult();
     res.stage = req.stage;
     res.film = filmStageName(params);
-    if (req.stage != SpotStage::CONVERTED && req.stage != SpotStage::CINEON) {
-        res.error = "the stage must be converted or cineon";
+    if (req.stage != SpotStage::CONVERTED) {
+        res.error = "the stage must be converted";
         return false;
     }
     if (req.bins < 2 || req.bins > 1024 || req.maxsize < 0) {
@@ -1983,17 +1652,9 @@ bool filmStageStats(Imagefloat *img, const ProcParams &params,
                     "0 <= y0 < y1 <= 1";
         return false;
     }
-    const bool cineon = req.stage == SpotStage::CINEON;
-    StageEncoder enc;
     res.w = params.filmNegative.cineonReferenceWhite;
-    if (cineon) {
-        if (!stageEncoder(params, enc, res.error)) {
-            return false;
-        }
-        res.w = enc.w;
-    }
-    res.lo = cineon ? -100.0 : -6553.5;
-    res.hi = cineon ? 1100.0 : 131070.0;
+    res.lo = -6553.5;
+    res.hi = 131070.0;
 
     img->syncCpu();
     const int iw = img->getWidth();
@@ -2033,7 +1694,7 @@ bool filmStageStats(Imagefloat *img, const ProcParams &params,
     res.width = ow;
     res.height = oh;
 
-    // box average, in linear light (before any Cineon encoding)
+    // box average, in linear light
     Imagefloat ds(ow, oh);
     ds.syncCpuForWrite();
 #ifdef _OPENMP
@@ -2064,13 +1725,6 @@ bool filmStageStats(Imagefloat *img, const ProcParams &params,
             ds.b(oy, ox) = static_cast<float>(sb / n);
         }
     }
-    if (cineon && enc.convert &&
-        !convertLinearBasis(&ds, params.icm.workingProfile, enc.target)) {
-        res.error = "cannot convert the working space to the Cineon "
-                    "primaries " +
-                    std::string(enc.target);
-        return false;
-    }
     std::vector<float> vals[3];
     for (int c = 0; c < 3; ++c) {
         vals[c].resize(size_t(ow) * oh);
@@ -2080,13 +1734,33 @@ bool filmStageStats(Imagefloat *img, const ProcParams &params,
         for (int x = 0; x < ow; ++x) {
             for (int c = 0; c < 3; ++c) {
                 const double v = ch3[c][x];
-                vals[c][size_t(y) * ow + x] =
-                    static_cast<float>(cineon ? enc.code(v) : v);
+                vals[c][size_t(y) * ow + x] = static_cast<float>(v);
             }
         }
     }
     for (int c = 0; c < 3; ++c) {
         channelStats(vals[c], res.lo, res.hi, req.bins, res.ch[c]);
+    }
+    if (!req.imagePath.empty()) {
+        Image8 view(ow, oh);
+        for (int y = 0; y < oh; ++y) {
+            for (int x = 0; x < ow; ++x) {
+                unsigned char *dst[3] = {&view.r(y, x), &view.g(y, x),
+                                         &view.b(y, x)};
+                for (int c = 0; c < 3; ++c) {
+                    const double l = vals[c][size_t(y) * ow + x] / 65535.0;
+                    double u = l <= 0.0031308
+                                   ? 12.92 * l
+                                   : 1.055 * std::pow(l, 1.0 / 2.4) - 0.055;
+                    u = std::isfinite(u) ? std::max(0.0, std::min(1.0, u)) : 0.0;
+                    *dst[c] = static_cast<unsigned char>(u * 255.0 + 0.5);
+                }
+            }
+        }
+        if (view.saveAsJPEG(req.imagePath, 92) != IMIO_SUCCESS) {
+            res.error = "cannot write the stage image " + req.imagePath;
+            return false;
+        }
     }
     return true;
 }

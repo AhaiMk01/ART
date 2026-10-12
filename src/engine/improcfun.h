@@ -251,10 +251,7 @@ public:
                              art::engine::Imagefloat *output,
                              const procparams::FilmNegativeParams &params,
                              bool rawSource, const Glib::ustring &sourceId);
-    /// Apply the film LUT only at its selected stage in linear working RGB.
-    bool filmNegativeApplyLut(Imagefloat *img,
-                             FilmNegativeParams::CineonLUTStage stage);
-    /// True after a film conversion or LUT contract failure.
+    /// True after a film conversion contract failure.
     bool filmNegativeContractFailed() const { return filmNegContractFailed; }
 
 private:
@@ -316,7 +313,6 @@ private:
     bool needsLCP();
     bool needsLensfun();
     bool needsDCPProfile();
-    bool filmNegativeApplyLutAfterGrade(Imagefloat *img);
 
     template <class Ret, class Method>
     Ret apply(const char *name, Method op, Imagefloat *img, bool can_skip_sync);

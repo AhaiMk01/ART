@@ -442,12 +442,8 @@ bool parseSpotArg(const std::string &arg, art::engine::SpotRequest &req,
     } else if (tok[1] == "converted") {
         req.space = art::engine::SpotSpace::WORKING;
         req.stage = art::engine::SpotStage::CONVERTED;
-    } else if (tok[1] == "cineon") {
-        req.space = art::engine::SpotSpace::WORKING;
-        req.stage = art::engine::SpotStage::CINEON;
     } else {
-        err = "space must be \"working\", \"input\", \"converted\" or "
-              "\"cineon\"";
+        err = "space must be \"working\", \"input\" or \"converted\"";
         return false;
     }
     req.pos.clear();
@@ -488,10 +484,8 @@ bool parseStageStatsArg(const std::string &arg,
     }
     if (tok[0] == "converted") {
         req.stage = art::engine::SpotStage::CONVERTED;
-    } else if (tok[0] == "cineon") {
-        req.stage = art::engine::SpotStage::CINEON;
     } else {
-        err = "stage must be \"converted\" or \"cineon\"";
+        err = "stage must be \"converted\"";
         return false;
     }
     auto to_int = [](const std::string &s, int &out) -> bool {
@@ -1188,6 +1182,9 @@ int processLineParams(int argc, char **argv)
         }
 
         if (sampling && stageStatsMode) {
+            if (!outputPath.empty() && !outputDirectory) {
+                statsReq.imagePath = outputPath.raw();
+            }
             art::engine::StageStatsResult res;
             bool ok = art::engine::stageStats(job, statsReq, res, errorCode);
             art::engine::ProcessingJob::destroy(job);
@@ -1239,17 +1236,6 @@ int processLineParams(int argc, char **argv)
         }
 
         // save image to disk
-        Glib::ustring cineonError = art::engine::prepareFilmNegativeCineonExport(
-            resultImage, currentParams.filmNegative, currentParams.icm,
-            outputType, bits, isFloat);
-        if (!cineonError.empty()) {
-            errors++;
-            std::cerr << "Error: " << cineonError << std::endl;
-            cpl.error(cineonError);
-            ii->decreaseRef();
-            resultImage->free();
-            continue;
-        }
         if (outputType == "jpg") {
             errorCode =
                 resultImage->saveAsJPEG(outputFile, compression, subsampling);

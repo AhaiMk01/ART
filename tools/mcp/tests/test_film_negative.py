@@ -11,7 +11,6 @@ negative) are reference-formula checks on literals: they do not call the
 engine. Engine coverage lives in test_integration_film_negative.py.
 """
 
-import hashlib
 import json
 import sys
 from pathlib import Path
@@ -30,7 +29,7 @@ from art_mcp.filmnegative import (
 from art_mcp.live.channel import ControlChannel
 from art_mcp.live.server import build_server as build_live
 from art_mcp.preview import PreviewFolder
-from art_mcp.profile import RawEdit, WorkingChanges, partial_vs_default, read_format
+from art_mcp.profile import RawEdit, WorkingChanges, read_format
 from art_mcp.render.artcli import ArtCli
 from art_mcp.render.server import build_server as build_render
 from art_mcp.schema import AdjustmentError, describe_adjustments, parse_adjustments
@@ -95,22 +94,14 @@ def test_describe_lists_the_fields_with_ranges_and_keys():
     assert tool.fields["film_type"].enum == ["negative", "reversal"]
     assert tool.fields["color_space"].enum == ["working", "input"]
     assert tool.fields["matrix_preset"].enum == ["identity", "status_m_reference", "custom"]
-    assert tool.fields["target_mode"].enum == ["linear", "paper", "cineon"]
-    assert tool.fields["cineon_lut_stage"].enum == ["before_grade", "after_grade"]
-    assert tool.fields["cineon_lut_stage"].default == "after_grade"
-    assert tool.fields["cineon_lut_input_transfer"].enum == [
-        "cineon",
-        "linear",
-        "srgb",
-        "gamma_2_4",
-        "logc3",
-        "slog3",
-        "acescct",
-    ]
+    for removed in (
+        "target_mode", "cineon_primaries", "paper_curve", "paper_basis",
+        "cineon_lut", "cineon_lut_stage", "cineon_lut_sha256",
+    ):  # fmt: skip
+        assert removed not in tool.fields
     assert ranges["namicolor_input_gain"] == (0.0, 2.0)
     assert ranges["namicolor_master_gain"] == (-0.5, 0.5)
     assert ranges["namicolor_master_shift"] == (-1.0, 1.0)
-    assert tool.fields["cineon_lut_output_transfer"].enum == ["linear", "srgb", "gamma_2_4"]
     assert tool.fields["cineon_reference_white"].minimum == 1e-6
     assert tool.fields["cineon_reference_white"].maximum == 1e6
     for needle in ("sample_spots", "NamiColor", "Legacy", "skill"):
@@ -153,51 +144,6 @@ def test_a_typed_edit_round_trips_through_the_read_format():
     assert typed["color_space"] == "input" and typed["ref_input"] == [1.0, 2.0, 3.0]
 
 
-@pytest.mark.parametrize(
-    "version, stored, expected",
-    [
-        ("1053", "CineonLUT=print.cube\n", "before_grade"),
-        ("1055", "CineonLUT=print.cube\n", "before_grade"),
-        ("1055", "CineonLUT=\n", "before_grade"),
-        ("1055", "", "after_grade"),
-        ("1056", "CineonLUT=print.cube\n", "after_grade"),
-        (None, "CineonLUT=print.cube\n", "after_grade"),
-        ("1053", "CineonLUT=print.cube\nCineonLUTStage=after_grade\n", "after_grade"),
-        ("1056", "CineonLUTStage=before_grade\n", "before_grade"),
-    ],
-)
-def test_read_profile_exposes_the_effective_print_lut_stage(version, stored, expected):
-    current = profile(extra=stored)
-    if version is None:
-        current.pop("Version")
-    else:
-        current["Version"]["Version"] = version
-    view = read_format(current)
-    assert view.adjustments["film_negative"]["cineon_lut_stage"] == expected
-    assert "CineonLUTStage" not in view.raw.get("Film Negative", {})
-
-
-def test_changed_only_read_reports_old_effective_lut_order_against_current_default():
-    old = profile(extra="CineonLUT=print.cube\n")
-    current = keyfile.loads(keyfile.dumps(old))
-    current["Version"]["Version"] = "1056"
-    view = read_format(old, default=current)
-    assert view.adjustments["film_negative"] == {"cineon_lut_stage": "before_grade"}
-
-
-@pytest.mark.parametrize("value", ["post_grade", "0", "1", 0, 1])
-def test_unknown_print_lut_stage_is_not_a_typed_adjustment(value):
-    with pytest.raises(AdjustmentError, match="before_grade, after_grade") as error:
-        adj(cineon_lut_stage=value)
-    assert error.value.code == "out_of_range"
-
-
-def test_unknown_native_print_lut_stage_stays_raw_in_the_read_format():
-    view = read_format(profile(extra="CineonLUTStage=post_grade\n"))
-    assert "cineon_lut_stage" not in view.adjustments["film_negative"]
-    assert view.raw["Film Negative"]["CineonLUTStage"] == "post_grade"
-
-
 @pytest.mark.parametrize("method", ["namicolor", "2"])
 def test_namicolor_effective_settings_round_trip_without_reference_inference(method):
     changes = WorkingChanges(profile("0;0;0", "0;0;0", extra=f"Method={method}\n"))
@@ -211,8 +157,6 @@ def test_namicolor_effective_settings_round_trip_without_reference_inference(met
         "namicolor_fit_base": True,
         "fit_base_anchor": "code95",
         "ref_input": [100, 200, 300],
-        "cineon_lut_input_transfer": "logc3",
-        "target_mode": "cineon",
     }
     result = changes.edit(adj(**fields), [])
     typed = read_format(changes.profile).adjustments["film_negative"]
@@ -291,40 +235,27 @@ def test_only_power_law_to_power_law_uses_reference_picker(current, requested):
     assert changes.profile["Film Negative"]["RefOutput"] == "1000;1000;1000"
 
 
-def test_namicolor_transition_preserves_inactive_density_settings_and_legacy_lut_flag():
+def test_namicolor_transition_preserves_inactive_density_settings():
     changes = WorkingChanges(
-        profile(
-            extra=(
-                "Method=density\nTargetMode=paper\nPaperBasis=working|Rec2020\n"
-                "RGBGains=0.5;-0.5;1\nOutputBlackOffset=0.01\nLegacyInputLUT=true\n"
-            )
-        )
+        profile(extra="Method=density\nRGBGains=0.5;-0.5;1\nOutputBlackOffset=0.01\n")
     )
-    changes.edit(adj(method="namicolor", cineon_lut="print.cube", cineon_lut_sha256="a" * 64), [])
+    changes.edit(adj(method="namicolor"), [])
     typed = read_format(changes.profile).adjustments["film_negative"]
     assert typed["rgb_gains"] == [0.5, -0.5, 1]
-    assert typed["output_black_offset"] == 0.01 and typed["target_mode"] == "paper"
-    assert read_format(changes.profile).raw["Film Negative"] == {"LegacyInputLUT": "true"}
-    # Density's paper/LUT exclusion becomes active again on switching back.
-    with pytest.raises(AdjustmentError, match="mutually exclusive"):
-        changes.edit(adj(method="density"), [])
-    changes.edit(adj(method="density", cineon_lut=""), [])
+    assert typed["output_black_offset"] == 0.01
+    changes.edit(adj(method="density"), [])
     assert read_format(changes.profile).adjustments["film_negative"]["rgb_gains"] == [0.5, -0.5, 1]
 
 
-@pytest.mark.parametrize("transfer", ["cineon", "linear", "srgb", "gamma_2_4", "logc3", "slog3", "acescct"])
-def test_lut_input_transfer_contract_round_trips_without_changing_output_transfer(transfer):
-    changes = WorkingChanges(profile(extra="CineonLUTOutputTransfer=srgb\n"))
-    changes.edit(adj(cineon_lut_input_transfer=transfer), [])
-    typed = read_format(changes.profile).adjustments["film_negative"]
-    assert typed["cineon_lut_input_transfer"] == transfer
-    assert typed["cineon_lut_output_transfer"] == "srgb"
-
-
-@pytest.mark.parametrize("transfer", ["logc3", "slog3", "acescct"])
-def test_log_lut_input_contracts_do_not_make_log_outputs_supported(transfer):
-    with pytest.raises(AdjustmentError):
-        adj(cineon_lut_input_transfer=transfer, cineon_lut_output_transfer=transfer)
+def test_namicolor_mask_opt_in_is_refused_below_1055():
+    basis = '{"v":1,"color_space":"working","profile":"Rec2020","input_gamma":"1","source":"Unknown"}'
+    old = profile(extra=f"Method=namicolor\nMatrixBasis={basis}\n")
+    old["Version"]["Version"] = "1054"
+    changes = WorkingChanges(old)
+    before = keyfile.dumps(changes.profile)
+    with pytest.raises(AdjustmentError, match="Version 1054"):
+        changes.edit(adj(matrix_preset="custom", matrix=[1, 0.2, 0, 0, 1, 0, 0, 0, 1], matrix_basis=basis), [])
+    assert keyfile.dumps(changes.profile) == before
 
 
 def test_namicolor_coupled_edit_can_repair_a_stored_denominator():
@@ -360,42 +291,11 @@ def test_namicolor_settings_remain_inactive_in_old_methods(method):
         {"namicolor_black": [-0.6, 0, 0]},
         {"namicolor_gain": [0, 0]},
         {"namicolor_shift": [0, 0, float("nan")]},
-        {"cineon_lut_input_transfer": "logc4"},
     ],
 )
 def test_invalid_namicolor_typed_values_are_rejected(fields):
     with pytest.raises(AdjustmentError):
         adj(method="namicolor", **fields)
-
-
-def test_cineon_lut_fields_round_trip():
-    changes = WorkingChanges(profile())
-    changes.edit(
-        adj(
-            cineon_lut="C:/luts/print.cube",
-            cineon_lut_sha256="a" * 64,
-            cineon_lut_input_primaries="ProPhoto",
-            cineon_lut_output_primaries="sRGB",
-            cineon_lut_output_transfer="gamma_2_4",
-        ),
-        [],
-    )
-    typed = read_format(changes.profile).adjustments["film_negative"]
-    assert typed["cineon_lut"] == "C:/luts/print.cube"
-    assert typed["cineon_lut_input_primaries"] == "ProPhoto"
-    assert typed["cineon_lut_output_primaries"] == "sRGB"
-    assert typed["cineon_lut_output_transfer"] == "gamma_2_4"
-
-
-def test_paper_and_cineon_lut_are_mutually_exclusive():
-    with pytest.raises(AdjustmentError, match="mutually exclusive"):
-        WorkingChanges(profile()).edit(adj(target_mode="paper", cineon_lut="print.cube"), [])
-    stored = profile(extra="TargetMode=1\n")
-    with pytest.raises(AdjustmentError, match="mutually exclusive"):
-        WorkingChanges(stored).edit(adj(cineon_lut="print.cube"), [])
-    stored_lut = profile(extra="CineonLUT=print.cube\n")
-    with pytest.raises(AdjustmentError, match="mutually exclusive"):
-        WorkingChanges(stored_lut).edit(adj(target_mode="paper"), [])
 
 
 @pytest.mark.parametrize("extra", ["BackCompat=1\n", "BackCompat=2\nRedBase=5\n"])
@@ -441,56 +341,12 @@ def test_a_value_outside_the_schema_stays_raw():
         {"matrix": [1, 0, 0, 0, 1, 0, 0, 0]},
         {"matrix": [11, 0, 0, 0, 1, 0, 0, 0, 1]},
         {"matrix_preset": "status_m"},
-        {"paper_curve": "not_a_curve"}, {"target_mode": "print"},
     ],
 )  # fmt: skip
 def test_out_of_range_values_are_refused(fields):
     with pytest.raises(AdjustmentError) as e:
         parse_adjustments({"film_negative": fields})
     assert e.value.code == "out_of_range"
-
-
-def test_paper_target_round_trips_and_does_not_drop_cineon_fields():
-    changes = WorkingChanges(profile())
-    result = changes.edit(
-        adj(
-            method="density",
-            target_mode="paper",
-            paper_curve="ilford_mgfb_00",
-            paper_basis="working|Rec2020",
-            cineon_primaries="ProPhoto",
-            cineon_reference_white=1.0,
-        ),
-        [],
-    )
-    assert values(result)["TargetMode"] == "paper"
-    assert values(result)["PaperCurve"] == "ilford_mgfb_00"
-    assert values(result)["PaperBasis"] == "working|Rec2020"
-    assert values(result)["CineonPrimaries"] == "ProPhoto"
-    typed = read_format(changes.profile).adjustments["film_negative"]
-    assert typed["target_mode"] == "paper"
-    assert typed["paper_curve"] == "ilford_mgfb_00"
-    assert typed["paper_basis"] == "working|Rec2020"
-    assert typed["cineon_primaries"] == "ProPhoto"
-
-
-@pytest.mark.parametrize("basis", ["working", "input", "Rec2020", "working|", "|Rec2020", "output|Rec2020"])
-def test_paper_basis_needs_a_space_and_a_profile(basis):
-    # ART refuses anything but `input|<profile>` or `working|<profile>` at render
-    # time (TP_FILMNEGATIVE_ERR_PAPER_BASIS); refuse it here, with the form.
-    changes = WorkingChanges(profile())
-    with pytest.raises(AdjustmentError) as e:
-        changes.edit(adj(method="density", paper_basis=basis), [])
-    assert e.value.code == "out_of_range"
-    assert "input|<profile>" in str(e.value)
-    assert changes.profile["Film Negative"].get("PaperBasis") is None
-
-
-@pytest.mark.parametrize("basis", ["", "input|(cameraICC)", "working|Rec2020"])
-def test_paper_basis_accepts_empty_or_space_and_profile(basis):
-    changes = WorkingChanges(profile())
-    result = changes.edit(adj(method="density", paper_basis=basis), [])
-    assert values(result)["PaperBasis"] == basis
 
 
 def test_density_fields_round_trip():
@@ -614,12 +470,11 @@ def test_input_gamma_round_trips_and_defaults_to_one():
 
 
 def test_integer_enum_sidecars_still_read_as_names():
-    stored = profile(extra="Method=1\nFilmType=1\nMatrixPreset=2\nTargetMode=2\n")
+    stored = profile(extra="Method=1\nFilmType=1\nMatrixPreset=2\n")
     typed = read_format(stored).adjustments["film_negative"]
     assert typed["method"] == "density"
     assert typed["film_type"] == "reversal"
     assert typed["matrix_preset"] == "custom"
-    assert typed["target_mode"] == "cineon"
 
 
 def test_input_gamma_linearizes_a_power_encoded_scan_once():
@@ -1064,7 +919,6 @@ async def test_namicolor_consumer_edit_get_describe_and_atomic_rejection(
         "namicolor_shift": [0, -0.1, 0.2],
         "namicolor_fit_base": True,
         "fit_base_anchor": "code95",
-        "cineon_lut_input_transfer": "acescct",
         "ref_input": [3000, 4000, 64],
     }
     async with Client(server) as client:
@@ -1082,7 +936,6 @@ async def test_namicolor_consumer_edit_get_describe_and_atomic_rejection(
     assert not edited.is_error, edited.content
     description = described.structured_content["tools"]["film_negative"]["fields"]
     assert "namicolor" in description["method"]["enum"]
-    assert "acescct" in description["cineon_lut_input_transfer"]["enum"]
     typed = got.structured_content["adjustments"]["film_negative"]
     assert {name: typed[name] for name in fields} == fields
     assert typed["ref_output"] == [0.0, 0.0, 0.0]
@@ -1107,13 +960,13 @@ def test_inactive_power_law_compatibility_data_does_not_hide_other_methods(metho
     assert raw["BackCompat"] == "2" and raw["RedBase"] == "5"
 
 
-def test_namicolor_round_trip_preserves_active_matrix_and_inactive_paper_basis():
+def test_namicolor_round_trip_preserves_active_matrix_and_inactive_density_keys():
     basis = '{"v":1,"color_space":"working","profile":"Rec2020","input_gamma":"1","source":"Unknown"}'
     changes = WorkingChanges(
         profile(
             extra=(
                 "Method=namicolor\nMatrixPreset=custom\nMatrix=1;0.2;0;0;1;0;0;0;1\n"
-                f"MatrixBasis={basis}\nPaperBasis=old basis not used here\n"
+                f"MatrixBasis={basis}\nOutputBlackOffset=0.01\n"
             )
         )
     )
@@ -1184,275 +1037,6 @@ def test_namicolor_typed_mask_binding_rejection_is_atomic(basis):
     assert keyfile.dumps(changes.profile) == before
 
 
-@pytest.mark.parametrize("stage", ["before_grade", "after_grade"])
-def test_explicit_lut_stage_keeps_the_version_and_the_old_dormant_namicolor_mask(stage):
-    retained = "1;0.2;0;0;1;0;0;0;1"
-    old = profile(extra=(
-        f"Method=namicolor\nCineonLUT=print.cube\nMatrixPreset=custom\nMatrix={retained}\n"
-        "MatrixBasis=old incompatible binding\nCalibrationNote=retained provenance\n"
-    ))
-    old["Version"]["Version"] = "1054"
-    changes = WorkingChanges(old)
-    result = changes.edit(adj(cineon_lut_stage=stage), [])
-    typed = read_format(changes.profile).adjustments["film_negative"]
-    assert read_format(changes.profile).ppversion == 1054
-    assert typed["cineon_lut_stage"] == stage
-    assert changes.profile["Film Negative"]["MatrixPreset"] == "custom"
-    assert changes.profile["Film Negative"]["Matrix"] == retained
-    assert typed["matrix_basis"] == "old incompatible binding"
-    assert typed["calibration_note"] == "retained provenance"
-    assert not any(edit.group == "Version" for edit in result.implied)
-
-
-def test_stage_and_mask_together_are_refused_on_an_old_profile():
-    basis = '{"v":1,"color_space":"working","profile":"Rec2020","input_gamma":"1","source":"Unknown"}'
-    old = profile(extra=f"Method=namicolor\nCineonLUT=print.cube\nMatrixPreset=custom\nMatrixBasis={basis}\n")
-    old["Version"]["Version"] = "1054"
-    changes = WorkingChanges(old)
-    before = keyfile.dumps(changes.profile)
-    with pytest.raises(AdjustmentError, match="re-save the sidecar in ART"):
-        changes.edit(adj(
-            cineon_lut_stage="after_grade", matrix_preset="custom",
-            matrix=[1, 0.2, 0, 0, 1, 0, 0, 0, 1],
-        ), [])
-    assert keyfile.dumps(changes.profile) == before
-
-
-def test_stage_edit_on_a_pre1054_input_lut_profile_keeps_its_version():
-    old = profile(extra="Method=density\nCineonLUT=print.cube\nCineonLUTSha256=" + "a" * 64 + "\n")
-    old["Version"]["Version"] = "1053"
-    old["Film Negative"]["ColorSpace"] = "0"
-    changes = WorkingChanges(old)
-    changes.edit(adj(cineon_lut_stage="after_grade"), [])
-    assert read_format(changes.profile).ppversion == 1053
-    assert "LegacyInputLUT" not in changes.profile["Film Negative"]  # ART derives it below 1054
-    assert read_format(changes.profile).adjustments["film_negative"]["cineon_lut_stage"] == "after_grade"
-    changes.edit(adj(cineon_lut_stage="before_grade"), [])
-    assert read_format(changes.profile).adjustments["film_negative"]["cineon_lut_stage"] == "before_grade"
-
-
-def test_namicolor_mask_opt_in_is_refused_below_1055_and_keeps_the_print_lut_order():
-    basis = '{"v":1,"color_space":"working","profile":"Rec2020","input_gamma":"1","source":"Unknown"}'
-    old = profile(extra=f"Method=namicolor\nCineonLUT=print.cube\nMatrixBasis={basis}\n")
-    old["Version"]["Version"] = "1054"
-    changes = WorkingChanges(old)
-    with pytest.raises(AdjustmentError, match="Version 1054"):
-        changes.edit(adj(matrix_preset="custom", matrix=[1, 0.2, 0, 0, 1, 0, 0, 0, 1]), [])
-    view = read_format(changes.profile)
-    assert view.ppversion == 1054
-    assert view.adjustments["film_negative"]["cineon_lut_stage"] == "before_grade"
-
-
-@pytest.mark.parametrize("version", ["1053", "1054", "1055"])
-def test_unrelated_film_and_scene_edits_preserve_old_effective_print_lut_order(version):
-    old = profile(extra="Method=density\nCineonLUT=print.cube\nCineonLUTSha256=" + "a" * 64 + "\n")
-    old["Version"]["Version"] = version
-    changes = WorkingChanges(old)
-    changes.edit(adj(calibration_note="scanner notes"), [])
-    changes.edit(parse_adjustments({"exposure": {"compensation": 0.5}}), [])
-    view = read_format(changes.profile)
-    assert view.ppversion == int(version)
-    assert view.adjustments["film_negative"]["cineon_lut_stage"] == "before_grade"
-    assert "CineonLUTStage" not in changes.partial_profile()["Film Negative"]
-
-
-@pytest.mark.parametrize("stored", ["", "CineonLUT=\n"])
-def test_a_new_lut_on_an_old_profile_uses_scene_grading_order(stored):
-    changes = WorkingChanges(profile(extra=f"Method=density\n{stored}"))
-    changes.edit(adj(cineon_lut="new-print.cube", cineon_lut_sha256="a" * 64), [])
-    view = read_format(changes.profile)
-    assert view.ppversion == 1055  # [Version] is left as it was
-    assert changes.profile["Film Negative"]["CineonLUTStage"] == "after_grade"
-    assert view.adjustments["film_negative"]["cineon_lut_stage"] == "after_grade"
-    assert changes.partial_profile()["Film Negative"]["CineonLUTStage"] == "after_grade"
-
-
-def test_replacing_an_old_active_lut_does_not_change_its_order():
-    stored = "Method=density\nCineonLUT=old-print.cube\nCineonLUTSha256=" + "a" * 64 + "\n"
-    changes = WorkingChanges(profile(extra=stored))
-    changes.edit(adj(cineon_lut="new-print.cube", cineon_lut_sha256="a" * 64), [])
-    assert read_format(changes.profile).ppversion == 1055
-    assert read_format(changes.profile).adjustments["film_negative"]["cineon_lut_stage"] == "before_grade"
-    exported = keyfile.loads(keyfile.dumps(changes.partial_profile()))
-    assert exported["Film Negative"]["CineonLUTStage"] == "before_grade"
-    assert read_format(exported).adjustments["film_negative"]["cineon_lut_stage"] == "before_grade"
-
-
-def test_explicit_stage_partial_round_trip_keeps_the_stored_version():
-    old = profile(extra="Method=density\nCineonLUT=print.cube\nCineonLUTSha256=" + "a" * 64 + "\n")
-    old["Version"]["Version"] = "1053"
-    old["Film Negative"]["ColorSpace"] = "0"
-    changes = WorkingChanges(old)
-    changes.edit(adj(cineon_lut_stage="after_grade"), [])
-    exported = keyfile.loads(keyfile.dumps(changes.partial_profile()))
-    assert exported["Version"]["Version"] == "1053"
-    assert exported["Film Negative"]["CineonLUTStage"] == "after_grade"
-    assert read_format(exported).adjustments["film_negative"]["cineon_lut_stage"] == "after_grade"
-
-
-def test_partial_against_default_preserves_old_stage_mask_and_input_domain_migrations():
-    old = profile(extra=(
-        "Method=namicolor\nCineonLUT=print.cube\nMatrixPreset=custom\n"
-        "Matrix=1;0.2;0;0;1;0;0;0;1\nMatrixBasis=old inactive binding\n"
-    ))
-    old["Version"]["Version"] = "1054"
-    current = profile(extra="Method=density\nCineonLUT=\n")
-    current["Version"]["Version"] = "1056"
-    exported = keyfile.loads(keyfile.dumps(partial_vs_default(old, current)))
-    assert exported["Version"]["Version"] == "1054"
-    assert exported["Film Negative"]["CineonLUTStage"] == "before_grade"
-    assert read_format(exported).adjustments["film_negative"]["cineon_lut_stage"] == "before_grade"
-    old["Version"]["Version"] = "1053"
-    old["Film Negative"].update({"Method": "density", "ColorSpace": "0"})
-    exported = keyfile.loads(keyfile.dumps(partial_vs_default(old, current)))
-    assert exported["Version"]["Version"] == "1053"
-    assert exported["Film Negative"]["CineonLUTStage"] == "before_grade"
-
-
-def test_partial_against_default_includes_an_implicit_stage_difference():
-    old = profile(extra="CineonLUT=print.cube\n")
-    current = keyfile.loads(keyfile.dumps(old))
-    current["Version"]["Version"] = "1056"
-    exported = keyfile.loads(keyfile.dumps(partial_vs_default(old, current)))
-    assert exported["Film Negative"]["CineonLUTStage"] == "before_grade"
-    assert read_format(exported).adjustments["film_negative"]["cineon_lut_stage"] == "before_grade"
-
-
-@pytest.mark.parametrize("backend", ["render", "live"])
-async def test_consumer_can_change_old_lut_order_and_reject_an_unknown_stage_atomically(
-    backend, tmp_path, monkeypatch, image, request
-):
-    extra = "Method=density\nCineonLUT=print.cube\nCineonLUTSha256=" + "a" * 64 + "\n"
-    if backend == "render":
-        server, _ = render_server(tmp_path, monkeypatch, image, extra=extra)
-        path = str(image)
-    else:
-        art = request.getfixturevalue("art")
-        editor = FakeEditor(art)
-        path = str(tmp_path / "a.ARW")
-        editor.add(path, BASE.format(ref_in="0;0;0", ref_out="0;0;0") + extra)
-        server = build_live(ControlChannel(art.config_dir))
-    async with Client(server) as client:
-        if backend == "render":
-            await client.call_tool("open_image", {"path": path})
-        before = await client.call_tool("get_profile", {"path": path})
-        unrelated = await client.call_tool("edit_profile", {
-            "path": path, "adjustments": {"film_negative": {"calibration_note": "kept order"}},
-        })
-        unchanged_order = await client.call_tool("get_profile", {"path": path})
-        edited = await client.call_tool("edit_profile", {
-            "path": path, "adjustments": {"film_negative": {"cineon_lut_stage": "after_grade"}},
-        })
-        after = await client.call_tool("get_profile", {"path": path})
-        rejected = await client.call_tool("edit_profile", {
-            "path": path, "adjustments": {"film_negative": {
-                "cineon_lut_stage": "post_grade", "calibration_note": "must not land",
-            }},
-        })
-        after_rejection = await client.call_tool("get_profile", {"path": path})
-    assert not unrelated.is_error, unrelated.content
-    assert not edited.is_error, edited.content
-    assert before.structured_content["adjustments"]["film_negative"]["cineon_lut_stage"] == "before_grade"
-    assert unchanged_order.structured_content["adjustments"]["film_negative"]["cineon_lut_stage"] == "before_grade"
-    assert after.structured_content["adjustments"]["film_negative"]["cineon_lut_stage"] == "after_grade"
-    assert rejected.is_error and "out_of_range" in str(rejected.content)
-    assert (
-        after_rejection.structured_content["adjustments"]["film_negative"]
-        == after.structured_content["adjustments"]["film_negative"]
-    )
-
-
-async def test_render_consumer_saves_explicit_stage_and_the_stored_version_in_partial(
-    tmp_path, monkeypatch, image
-):
-    extra = "Method=density\nCineonLUT=print.cube\nCineonLUTSha256=" + "a" * 64 + "\n"
-    server, _ = render_server(tmp_path, monkeypatch, image, extra=extra)
-    sidecar = image.with_name(image.name + ".arp")
-    sidecar.write_text(
-        sidecar.read_text()
-        .replace("Version=1055", "Version=1053")
-        .replace("ColorSpace=1", "ColorSpace=0")
-    )
-    dest = tmp_path / "grading-order.arp"
-    async with Client(server) as client:
-        await client.call_tool("open_image", {"path": str(image)})
-        edited = await client.call_tool("edit_profile", {
-            "path": str(image), "adjustments": {"film_negative": {"cineon_lut_stage": "after_grade"}},
-        })
-        saved = await client.call_tool("save_partial_profile", {"path": str(image), "dest": str(dest)})
-    assert not edited.is_error, edited.content
-    assert not saved.is_error, saved.content
-    exported = keyfile.loads(dest.read_text())
-    assert exported["Version"]["Version"] == "1053"
-    assert exported["Film Negative"]["CineonLUTStage"] == "after_grade"
-
-
-async def test_live_stage_opt_in_preserves_dormant_mask_without_sending_a_version_group(art, tmp_path):
-    editor = FakeEditor(art)
-    path = str(tmp_path / "a.ARW")
-    old = profile(extra=(
-        "Method=namicolor\nCineonLUT=print.cube\nMatrixPreset=custom\n"
-        "Matrix=1;0.2;0;0;1;0;0;0;1\nMatrixBasis=old inactive binding\n"
-    ))
-    old["Version"]["Version"] = "1054"
-    editor.add(path, keyfile.dumps(old))
-    async with Client(build_live(ControlChannel(art.config_dir))) as client:
-        edited = await client.call_tool("edit_profile", {
-            "path": path, "adjustments": {"film_negative": {"cineon_lut_stage": "after_grade"}},
-        })
-        got = await client.call_tool("get_profile", {"path": path})
-    assert not edited.is_error, edited.content  # The fake enforces ART's Version-group prohibition.
-    typed = got.structured_content["adjustments"]["film_negative"]
-    assert typed["cineon_lut_stage"] == "after_grade"
-    assert typed["matrix_basis"] == "old inactive binding"
-
-
-def test_range_opt_in_keeps_version_implicit_lut_order_and_dormant_mask():
-    old = profile(extra=(
-        "Method=namicolor\nCineonLUT=print.cube\nMatrixPreset=custom\n"
-        "Matrix=1;0.2;0;0;1;0;0;0;1\nMatrixBasis=old inactive binding\n"
-    ))
-    old["Version"]["Version"] = "1054"
-    changes = WorkingChanges(old)
-    assert read_format(changes.profile).adjustments["film_negative"]["preserve_range"] is False
-    changes.edit(adj(preserve_range=True), [])
-    view = read_format(changes.profile)
-    assert view.ppversion == 1054
-    assert view.adjustments["film_negative"]["preserve_range"] is True
-    assert view.adjustments["film_negative"]["cineon_lut_stage"] == "before_grade"
-    assert changes.profile["Film Negative"]["MatrixBasis"] == "old inactive binding"
-    saved = keyfile.loads(keyfile.dumps(changes.partial_profile()))
-    assert read_format(saved).adjustments["film_negative"]["preserve_range"] is True
-    assert saved["Film Negative"]["PreserveRange"] == "true"
-
-
-def test_range_opt_in_keeps_the_version_of_an_old_density_input_lut_profile():
-    old = profile(extra="Method=density\nCineonLUT=print.cube\nCineonLUTSha256=" + "a" * 64 + "\n")
-    old["Version"]["Version"] = "1053"
-    old["Film Negative"]["ColorSpace"] = "0"
-    changes = WorkingChanges(old)
-    changes.edit(adj(preserve_range=True), [])
-    assert read_format(changes.profile).ppversion == 1053
-    assert changes.profile["Film Negative"]["PreserveRange"] == "true"
-    assert read_format(changes.profile).adjustments["film_negative"]["cineon_lut_stage"] == "before_grade"
-
-
-def test_stage_opt_in_does_not_enable_signed_range_on_an_old_conversion():
-    changes = WorkingChanges(profile(extra="Method=namicolor\nCineonLUT=print.cube\n"))
-    changes.edit(adj(cineon_lut_stage="after_grade"), [])
-    assert read_format(changes.profile).adjustments["film_negative"]["preserve_range"] is False
-    changes.edit(adj(namicolor_master_shift=-.1), [])
-    assert read_format(changes.profile).adjustments["film_negative"]["preserve_range"] is False
-
-
-def test_method_partial_carries_old_range_policy_to_a_new_profile():
-    changes = WorkingChanges(profile())
-    changes.edit(adj(method="namicolor"), [])
-    saved = keyfile.loads(keyfile.dumps(changes.partial_profile()))
-    assert saved["Film Negative"]["PreserveRange"] == "false"
-    assert read_format(saved).adjustments["film_negative"]["preserve_range"] is False
-
-
 # -- [Version] is never raised; keys ART ignores at the stored Version refuse ----
 
 OLD_BASIS = '{"v":1,"color_space":"working","profile":"Rec2020","input_gamma":"1","source":"Unknown"}'
@@ -1506,7 +1090,7 @@ def test_no_film_negative_edit_ever_raises_the_version():
     old = profile()
     old["Version"]["Version"] = "1050"
     changes = WorkingChanges(old)
-    changes.edit(adj(preserve_range=True), [])
+    changes.edit(adj(flare=[0.01, 0, 0]), [])
     assert changes.profile["Version"]["Version"] == "1050"
 
 
@@ -1517,17 +1101,6 @@ def test_typed_reference_edits_are_refused_below_1039_like_a_legacy_profile(vers
     with pytest.raises(AdjustmentError, match="legacy"):
         WorkingChanges(old).edit(adj(ref_input=[100, 100, 100]), [])
     assert "film_negative" not in read_format(old).adjustments
-
-
-def test_a_new_print_lut_on_a_pre1054_density_input_profile_is_refused():
-    old = profile(extra="Method=density\n")
-    old["Version"]["Version"] = "1050"
-    old["Film Negative"]["ColorSpace"] = "0"
-    with pytest.raises(AdjustmentError, match="legacy input domain"):
-        WorkingChanges(old).edit(adj(cineon_lut="p.cube", cineon_lut_sha256="a" * 64), [])
-
-
-# -- fail-closed validation matching ART -----------------------------------------
 
 
 @pytest.mark.parametrize("preset", ["status_m_reference", "custom"])
@@ -1584,49 +1157,6 @@ def test_density_method_accepts_a_non_identity_preset_with_its_basis():
     assert changes.profile["Film Negative"]["MatrixPreset"] == "status_m_reference"
 
 
-def test_density_method_refuses_a_print_lut_without_its_sha256():
-    changes = WorkingChanges(profile(extra="Method=density\n"))
-    before = keyfile.dumps(changes.profile)
-    with pytest.raises(AdjustmentError, match="cineon_lut_sha256"):
-        changes.edit(adj(cineon_lut="print.cube"), [])
-    assert keyfile.dumps(changes.profile) == before
-    changes.edit(adj(cineon_lut="print.cube", cineon_lut_sha256="a" * 64), [])
-    assert changes.profile["Film Negative"]["CineonLUTSha256"] == "a" * 64
-
-
-def test_a_newly_chosen_print_lut_gets_its_sha256(tmp_path):
-    cube = tmp_path / "print.cube"
-    cube.write_bytes(b"LUT_3D_SIZE 2\n")
-    digest = hashlib.sha256(cube.read_bytes()).hexdigest()
-    for method in ("density", "namicolor"):
-        changes = WorkingChanges(profile(extra=f"Method={method}\n"))
-        changes.edit(adj(cineon_lut=str(cube)), [])
-        assert changes.profile["Film Negative"]["CineonLUTSha256"] == digest
-
-
-def test_naming_the_stored_print_lut_again_keeps_its_stored_sha256(tmp_path):
-    cube = tmp_path / "print.cube"
-    cube.write_bytes(b"replaced since the hash was recorded\n")
-    changes = WorkingChanges(
-        profile(extra=f"Method=namicolor\nCineonLUT={cube.as_posix()}\nCineonLUTSha256={'a' * 64}\n")
-    )
-    changes.edit(adj(cineon_lut=cube.as_posix(), cineon_lut_stage="after_grade"), [])
-    assert changes.profile["Film Negative"]["CineonLUTSha256"] == "a" * 64
-
-
-def test_switching_print_lut_restamps_and_one_request_stamps_each_image(tmp_path):
-    first, second = tmp_path / "a.cube", tmp_path / "b.cube"
-    first.write_bytes(b"first\n")
-    second.write_bytes(b"second\n")
-    request = adj(cineon_lut=str(second))
-    stored = WorkingChanges(
-        profile(extra=f"Method=namicolor\nCineonLUT={first.as_posix()}\nCineonLUTSha256={'a' * 64}\n")
-    )
-    stored.edit(request, [])
-    assert stored.profile["Film Negative"]["CineonLUTSha256"] == hashlib.sha256(b"second\n").hexdigest()
-    assert request.film_negative.cineon_lut_sha256 is None
-
-
 def test_reference_white_and_fit_base_anchor_follow_the_sidecar_version():
     for version, white, anchor in (("1057", 1.0, "legacy"), ("1058", 0.9, "code95")):
         old = profile(extra="Method=namicolor\n")
@@ -1670,87 +1200,6 @@ def test_partial_of_an_old_conversion_carries_white_1_and_legacy_anchor():
     assert saved["Film Negative"]["NamiColorFitBaseAnchor"] == "legacy"
 
 
-def test_output_primaries_wording_says_input_not_working():
-    fields = describe_adjustments().tools["film_negative"].fields
-    assert "input" in fields["cineon_lut_output_primaries"].description
-    assert "working" not in fields["cineon_lut_output_primaries"].description
-
-
-def _legacy_lut_profile(**stored):
-    extra = "Method=density\nColorSpace=0\nCineonLUT=print.cube\nCineonLUTSha256=" + "a" * 64 + "\n"
-    extra += "CineonLUTStage=before_grade\nLegacyInputLUT=true\n"
-    old = profile(extra=extra)
-    old["Film Negative"].update(stored)
-    return old
-
-
-@pytest.mark.parametrize("field", ["cineon_lut_input_primaries", "cineon_lut_output_primaries"])
-def test_legacy_input_lut_refuses_a_primaries_edit(field):
-    changes = WorkingChanges(_legacy_lut_profile())
-    before = keyfile.dumps(changes.profile)
-    with pytest.raises(AdjustmentError, match="legacy input space"):
-        changes.edit(adj(**{field: "Rec2020"}), [])
-    assert keyfile.dumps(changes.profile) == before
-
-
-def test_legacy_input_lut_refuses_an_edit_that_leaves_stored_primaries_active():
-    changes = WorkingChanges(_legacy_lut_profile(CineonLUTInputPrimaries="Rec2020"))
-    with pytest.raises(AdjustmentError, match="legacy input space"):
-        changes.edit(adj(cineon_lut_stage="before_grade"), [])
-
-
-def test_legacy_input_lut_accepts_primaries_cleared_or_other_routes():
-    changes = WorkingChanges(_legacy_lut_profile(CineonLUTInputPrimaries="Rec2020"))
-    changes.edit(adj(cineon_lut_input_primaries=""), [])
-    changes = WorkingChanges(_legacy_lut_profile(CineonLUTInputPrimaries="Rec2020"))
-    changes.edit(adj(cineon_lut_stage="after_grade"), [])
-    changes = WorkingChanges(_legacy_lut_profile(CineonLUTInputPrimaries="Rec2020"))
-    changes.edit(adj(color_space="working"), [])
-    changes = WorkingChanges(_legacy_lut_profile(LegacyInputLUT="false"))
-    changes.edit(adj(cineon_lut_input_primaries="Rec2020"), [])
-
-    # primaries without a LUT do nothing and ART renders them
-    stored = _legacy_lut_profile(CineonLUTInputPrimaries="Rec2020")
-    stored["Film Negative"]["CineonLUT"] = ""
-    stored["Film Negative"]["CineonLUTSha256"] = ""
-    WorkingChanges(stored).edit(adj(cineon_lut_stage="before_grade"), [])
-
-
-# -- DenoiseBeforeInversion and Flare (PPVERSION 1059) --------------------------
-
-
-def test_denoise_before_inversion_follows_the_sidecar_version():
-    for version, expected in (("1058", False), ("1059", True)):
-        old = profile(extra="Method=density\n")
-        old["Version"]["Version"] = version
-        assert read_format(old).adjustments["film_negative"]["denoise_before_inversion"] is expected
-    explicit = profile(extra="Method=density\nDenoiseBeforeInversion=true\n")
-    explicit["Version"]["Version"] = "1058"
-    assert read_format(explicit).adjustments["film_negative"]["denoise_before_inversion"] is True
-    explicit = profile(extra="Method=density\nDenoiseBeforeInversion=false\n")
-    explicit["Version"]["Version"] = "1059"
-    assert read_format(explicit).adjustments["film_negative"]["denoise_before_inversion"] is False
-
-
-def test_denoise_before_inversion_edit_writes_the_key_and_keeps_version():
-    old = profile(extra="Method=density\n")
-    old["Version"]["Version"] = "1058"
-    changes = WorkingChanges(old)
-    changes.edit(adj(denoise_before_inversion=True), [])
-    assert changes.profile["Film Negative"]["DenoiseBeforeInversion"] == "true"
-    assert changes.profile["Version"]["Version"] == "1058"
-    assert read_format(changes.profile).adjustments["film_negative"]["denoise_before_inversion"] is True
-
-
-def test_partial_of_an_old_conversion_carries_denoise_after_inversion():
-    old = profile()
-    old["Version"]["Version"] = "1058"
-    changes = WorkingChanges(old)
-    changes.edit(adj(method="density"), [])
-    saved = keyfile.loads(keyfile.dumps(changes.partial_profile()))
-    assert saved["Film Negative"]["DenoiseBeforeInversion"] == "false"
-
-
 def test_flare_defaults_to_zero_whatever_the_version():
     for version in ("1050", "1059"):
         old = profile(extra="Method=density\n")
@@ -1773,5 +1222,4 @@ def test_flare_out_of_range_is_refused(flare):
 
 def test_new_fields_are_declared_with_their_defaults():
     fields = describe_adjustments().tools["film_negative"].fields
-    assert fields["denoise_before_inversion"].default is True
     assert fields["flare"].default == [0.0, 0.0, 0.0]

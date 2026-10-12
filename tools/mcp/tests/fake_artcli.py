@@ -20,7 +20,7 @@
   ``[x + 1, y + 1, size + 1]``, on the fake 6000x4000 frame. With
   ``FAKE_SPOTS=release`` it acts like a release art-cli (help, exit -1);
   with ``FAKE_SPOTS=silent`` it exits 0 printing nothing; with ``FAKE_SPOTS=nostage``
-  a ``converted`` / ``cineon`` request is answered without ``stage`` (a build that ignores it).
+  a ``converted`` request is answered without ``stage`` (a build that ignores it).
   ``-X stage,bins,maxsize[,x0,y0,x1,y1]`` prints one ``ART-STAGESTATS`` line (r < g < b,
   each a spike in a bin near the middle of the stage range) and obeys ``FAKE_SPOTS`` the same. With
   ``FAKE_SPOTS_FAIL_X=<x>`` a ``-x`` run that has a spot at that x fails (exit
@@ -117,7 +117,7 @@ if "-X" in args:
     if mode != "silent":
         stage, bins, maxsize, *region = args[args.index("-X") + 1].split(",")
         bins = int(bins)
-        lo, hi = (-100.0, 1100.0) if stage == "cineon" else (-6553.5, 131070.0)
+        lo, hi = -6553.5, 131070.0
         # All pixels in the middle bin; one channel per 1/3 of it, r < g < b.
         middle = bins // 2
         channels = []
@@ -132,9 +132,9 @@ if "-X" in args:
         size = int(maxsize) or 6000
         print("some banner line")
         print("ART-STAGESTATS " + json.dumps({
-            "stage": stage, "unit": "cineon_code" if stage == "cineon" else "linear_65535",
+            "stage": stage, "unit": "linear_65535",
             "width": size, "height": size * 2 // 3, "source_width": 6000, "source_height": 4000,
-            "w": 1.0, "range": [lo, hi], "channels": channels, "region": region,
+            "range": [lo, hi], "channels": channels, "region": region,
         }))
     sys.exit(0)
 
@@ -145,7 +145,7 @@ if "-x" in args:
         sys.exit(-1)
     if mode != "silent":
         size, token, *coords = args[args.index("-x") + 1].split(",")
-        staged = token in ("converted", "cineon")
+        staged = token == "converted"
         spots = [
             {
                 "x": int(x), "y": int(y),
@@ -163,7 +163,7 @@ if "-x" in args:
         print("some banner line")
         extra = {}
         if staged and os.environ.get("FAKE_SPOTS") != "nostage":
-            extra = {"stage": token, "unit": "cineon_code" if token == "cineon" else "linear_65535"}
+            extra = {"stage": token, "unit": "linear_65535"}
         print("ART-SPOTS " + json.dumps({"width": 6000, "height": 4000, **extra, "spots": spots}))
     sys.exit(0)
 
