@@ -1254,6 +1254,13 @@ void RTWindow::MoveFileBrowserToMain()
         if (fpanel->isInspectorVisible()) {
             fCatalog->enableInspector();
         }
+    } else {
+        // already in the main pane: make sure the layout matches
+        FileCatalog *fCatalog = fpanel->fileCatalog;
+        if (fCatalog->get_parent() == fpanel->ribbonPane &&
+            fCatalog->isInTabMode()) {
+            fCatalog->enableTabMode(false);
+        }
     }
 }
 
@@ -1269,6 +1276,14 @@ void RTWindow::MoveFileBrowserToEditor()
         fCatalog->refreshHeight();
         fCatalog->tbLeftPanel_1_visible(false);
         fCatalog->tbRightPanel_1_visible(false);
+    } else {
+        // already in the editor pane: make sure the layout matches
+        FileCatalog *fCatalog = fpanel->fileCatalog;
+        if (fCatalog->get_parent() == epanel->catalogPane &&
+            !fCatalog->isInTabMode()) {
+            fCatalog->enableTabMode(true);
+            fCatalog->refreshHeight();
+        }
     }
 }
 
