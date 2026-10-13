@@ -450,7 +450,7 @@ frame adds its own offset (scene light, printer light). Fit them together
    `var = sd_c^2 + k^2 sd_G^2 + 0.008^2`.
 3. Fit per channel `D_c = k_c * D_G + o_cf`: one slope, one offset per
    frame. Demean within frames, start from within-frame Theil-Sen slopes,
-   iterate Tukey bisquare (c 4.685) on studentized residuals; then give every
+   iterate Huber weights (c 1.345) on studentized residuals; then give every
    frame its offset from the shared slope.
 4. Trust the slope only when several frames carry it. Leave each frame out
    and bootstrap whole frames. The slope is not set when fewer than three
