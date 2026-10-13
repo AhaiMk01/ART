@@ -13,6 +13,8 @@ For a new conversion, use NamiColor in a declared working RGB basis. Preserve ex
 
 Understand the requested result, available profiles and capture conditions before choosing adjustments. A roll normally shares its digitization setup; individual frame exposure, placement and scene lighting can still differ. Separate evidence of a changed setup from ordinary scene variation.
 
+For a whole roll, keep the images you look at out of the main context where you can: every image read stays in it and is reread on every later step. Prefer one contact sheet over many single previews, and when the host can start subagents, give the per-frame visual work (contamination check, neutral picking with zoom checks) to a subagent per group of frames, with the same principles, and take back only its findings, sample table and marked-preview paths; check a sample of its picks yourself.
+
 Confirm that previews arrive as viewable images before using them as evidence. Restore image delivery if a view cannot be inspected; a saved path or unreadable bytes are not a visual review. For ART image transport, consult "Viewing previews" in [reference.md](reference.md).
 
 Inspect each frame's orientation and picture boundaries before using its content for estimation. Derive geometry from that frame, not from another frame's position on the sensor. Verify the resulting positive's orientation, edges and corners at a readable size before treating its geometry as settled; preserve scene content when correcting borders. For coordinate mapping and ART-specific constraints, consult "Per-frame geometry" in [reference.md](reference.md).
