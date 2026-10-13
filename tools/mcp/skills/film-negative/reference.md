@@ -452,7 +452,15 @@ frame adds its own offset (scene light, printer light). Fit them together
    frame. Demean within frames, start from within-frame Theil-Sen slopes,
    iterate Huber weights (c 1.345) on studentized residuals; then give every
    frame its offset from the shared slope.
-4. Trust the slope only when several frames carry it. Leave each frame out
+4. Check that the neutral axis is straight: with `material` rows spanning
+   about 0.5 D_G or more, add a term `q_c * (D_G - 1.2)^2` to step 3. A
+   significant `q` (beyond about 2.5 standard errors) that a positive
+   offset in that channel removes is an additive offset in the scan
+   (scanner flare or a pedestal): subtract the offset that brings `q` to
+   zero from the samples, set it as NamiColor `Flare` (offset / 65535)
+   and refit. A bend that no positive offset removes is not an offset;
+   report it.
+5. Trust the slope only when several frames carry it. Leave each frame out
    and bootstrap whole frames. The slope is not set when fewer than three
    frames have `material` rows at two levels well apart in D_G, when one
    frame moves it on its own, when it jumps between values as single rows
@@ -463,7 +471,7 @@ frame adds its own offset (scene light, printer light). Fit them together
    by light (seen, and beyond tolerance) gives an offset but no slope. When
    the slope is not set, take it from a preset for the same film and setup
    and fit only the offsets.
-5. Shrink each frame's offset toward its light group (frames under one kind
+6. Shrink each frame's offset toward its light group (frames under one kind
    of light: daylight, one interior; never a roll mean across lights; a
    frame whose light no other frame shares, such as a lamp-lit room among
    window-lit ones, is a group of its own and keeps its fitted offset):
@@ -473,7 +481,7 @@ frame adds its own offset (scene light, printer light). Fit them together
    `mean` weighted by `1/(tau^2 + SE^2)`. Count a frame as weak when one
    material sets its offset, or only neutrals brighter than the D_G range
    where the slope was checked (neutral there, mid-tones can be off).
-6. Fold into NamiColor (input gain 1, master and black 0), keeping green's
+7. Fold into NamiColor (input gain 1, master and black 0), keeping green's
    `den_G` and `s_G`, `a = 1 - log10(16)`: `den_c = k_c * den_G`,
    `gain_c = 1 - den_c`, `shift_c = k_c * (a + s_G) - a - o_final,cf`.
 
@@ -621,13 +629,14 @@ spot reads or by whether it agrees with a fit (that is circular).
 Principles:
 
 - Neutral by material: paint (white, grey, black), tyre rubber, dry
-  asphalt, deep shadow on such a surface. Not stone, concrete (most
-  sidewalks and paths), gravel,
-  brick, roofs, bare metal, foliage, fabric or anything coloured; an
-  unlisted material (vinyl, plastic, cardboard) is `uncertain`.
+  asphalt, deep shadow under an object on such a surface. Not stone,
+  concrete (most sidewalks and paths), gravel, brick, roofs, bare metal,
+  foliage, fabric or anything coloured; an unlisted material (vinyl,
+  plastic, cardboard, plaster or whitewash walls) is `uncertain`.
 - One light: surfaces lit by the frame's main light (a subject wholly in
   shade or indoors: that light). Undersides, back-lit faces and shadows on
-  grass take the colour of what lights them.
+  grass take the colour of what lights them; in a sunlit frame a cast
+  shadow is lit by the sky, another light.
 - Measurable: well inside one material, away from edges, text and detail.
   Thin or small objects on a contrasting surround read diluted; dark
   surfaces at a grazing angle carry sheen. Where neutrals are few, still sample
@@ -646,7 +655,9 @@ Steps:
 2. Place squares on every candidate area: ten or more per frame on four or
    more objects across the bands, doubtful ones included (they become
    `uncertain`, not omitted); a missed neutral costs more than a sampled
-   one. Leave a margin of the same material around each.
+   one. A frame with no candidate gets none: record the gap and never
+   fill it with excluded materials. Leave a margin of the same material
+   around each.
 3. Zoom check (`render_preview`, `marks`, `zoom: true`); move squares that
    touch anything else.
 4. Sample (`sample_spots`, stage source, per-spot `size`); sample again after
