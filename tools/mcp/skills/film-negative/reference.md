@@ -104,6 +104,14 @@ is implied by the word Cineon. A camera-supplied profile does not characterize
 the backlight, flare, illumination uniformity or film dyes. A linear TIFF
 handoff is optional, not a prerequisite for inversion inside ART.
 
+With `color_space=working` the input profile acts before the inversion, on
+the light through the negative, not on scene colour. A DCP's hue/saturation
+map and look table are colour-appearance corrections for scene light on the
+sensor and have no meaning for film densities: turn them off before fitting
+(raw edits `[Color Management] ApplyHueSatMap=false` and
+`ApplyLookTable=false`) and keep them off for the roll. The matrix part of
+the profile is still only an approximation of the film channels.
+
 Keep capture white balance consistent, or account for its change before
 sharing conversion parameters. A per-frame camera white balance can alter
 the input channels even when the physical digitization setup is unchanged.
@@ -470,7 +478,9 @@ frame adds its own offset (scene light, printer light). Fit them together
    interval does not show it is set. A frame whose neutrals split
    by light (seen, and beyond tolerance) gives an offset but no slope. When
    the slope is not set, take it from a preset for the same film and setup
-   and fit only the offsets.
+   and fit only the offsets. Slopes belong to the processing basis they were
+   fitted in (colour space, input profile and its options, input gamma): a
+   preset from another basis does not transfer, refit it there.
 6. Shrink each frame's offset toward its light group (frames under one kind
    of light: daylight, one interior; never a roll mean across lights; a
    frame whose light no other frame shares, such as a lamp-lit room among
