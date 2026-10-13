@@ -17,6 +17,7 @@
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "adjuster.h"
+#include "shortcutsmanager.h"
 #include "../engine/rtengine.h"
 #include "guiutils.h"
 #include "../utils/multilangmgr.h"
@@ -117,7 +118,7 @@ Adjuster::Adjuster(Glib::ustring vlabel, double vmin, double vmax, double vstep,
 
     const auto on_double_click = [this](GdkEventButton *event) -> bool {
         if (event->button == 1 && event->type == GDK_2BUTTON_PRESS) {
-            resetValue(event->state & GDK_CONTROL_MASK);
+            resetValue(event->state & ShortcutsManager::primaryMask());
             return false;
         }
         return true;
@@ -393,7 +394,7 @@ void Adjuster::resetValue(bool toInitial)
 void Adjuster::resetPressed(GdkEventButton *event)
 {
 
-    if ((event != nullptr) && (event->state & GDK_CONTROL_MASK) &&
+    if ((event != nullptr) && (event->state & ShortcutsManager::primaryMask()) &&
         (event->button == 1)) {
         resetValue(true);
     } else {

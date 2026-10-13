@@ -28,6 +28,7 @@
 #include "../engine/processingjob.h"
 #include "fastexport.h"
 #include "guiutils.h"
+#include "shortcutsmanager.h"
 #include "options.h"
 #include "placesbrowser.h"
 #include "popupbutton.h"
@@ -205,7 +206,7 @@ private:
     bool softProofPressed(GdkEventButton *event)
     {
         bool active = softProof.get_active();
-        bool show_dialog = (event->state & GDK_CONTROL_MASK);
+        bool show_dialog = (event->state & ShortcutsManager::primaryMask());
         if (active && !show_dialog) {
             return false;
         } else {
@@ -536,6 +537,8 @@ EditorPanel::EditorPanel(FilePanel *filePanel)
       ipc(nullptr), beforeIpc(nullptr), err(0), isProcessing(false),
       histogram_observable(nullptr), histogram_scope_type(ScopeType::NONE)
 {
+
+    bindShortcuts();
 
     epih = new EditorPanelIdleHelper;
     epih->epanel = this;
@@ -961,6 +964,8 @@ EditorPanel::EditorPanel(FilePanel *filePanel)
 
 EditorPanel::~EditorPanel()
 {
+    ShortcutsManager::getInstance()->unbindOwner(this);
+
     if (autosave_conn_.connected()) {
         autosave_conn_.disconnect();
     }
@@ -1686,274 +1691,177 @@ void EditorPanel::tbTopPanel_1_toggled()
  * shortcut keys, since handleShortcutKey is now also triggered in simple editor
  * mode
  */
+void EditorPanel::bindShortcuts()
+{
+    auto sm = ShortcutsManager::getInstance();
+    // handlers that return whether they handled the key...
+    const auto bind = [this, sm](const char *id, std::function<bool()> f,
+                                 ShortcutsManager::Guard enabled = {}) {
+        sm->bind(this, id, [f](GdkEventKey *) { return f(); },
+                 std::move(enabled));
+    };
+    // ... and the ones that always do
+    const auto run = [&bind](const char *id, std::function<void()> f,
+                             ShortcutsManager::Guard enabled = {}) {
+        bind(id, [f]() {
+            f();
+            return true;
+        }, std::move(enabled));
+    };
+    const auto have_file_browser = [this]() {
+        return !simpleEditor && fPanel && !fname.empty();
+    };
+    const auto toggle = [](Gtk::ToggleButton *b) {
+        b->set_active(!b->get_active());
+    };
+
+    // layout
+    run("editor.toggle_top_panel", [=]() {
+        if (tbTopPanel_1) {
+            toggle(tbTopPanel_1);
+        }
+    });
+    run("editor.toggle_history_panel", [=]() { toggle(hidehp); });
+    run("editor.toggle_history_and_right_panels", [=]() {
+        toggle(hidehp);
+        toggle(tbRightPanel_1);
+    });
+    run("editor.toggle_right_panel", [=]() { toggle(tbRightPanel_1); });
+    // hide top AND right AND history panels (and fit the image)
+    run("editor.maximize_preview", [this]() { toggleSidePanels(); });
+    run("editor.maximize_preview_fit",
+        [this]() { toggleSidePanelsZoomFit(); });
+    run("editor.toggle_preview_background", [this]() {
+        iareapanel->imageArea->previewModePanel->togglebackColor();
+    });
+
+    // image
+    run("editor.rotate_right", [this]() { tpc->coarse->rotateRight(); });
+    run("editor.rotate_left", [this]() { tpc->coarse->rotateLeft(); });
+    run("editor.toggle_info", [=]() { toggle(info); });
+    run("editor.toggle_before_after", [=]() { toggle(beforeAfter); });
+    run("editor.zoom_in",
+        [this]() { iareapanel->imageArea->zoomPanel->zoomInClicked(); });
+    run("editor.zoom_out",
+        [this]() { iareapanel->imageArea->zoomPanel->zoomOutClicked(); });
+    run("editor.zoom_100",
+        [this]() { iareapanel->imageArea->zoomPanel->zoom11Clicked(); });
+    run("editor.zoom_fit",
+        [this]() { iareapanel->imageArea->zoomPanel->zoomFitClicked(); });
+
+    // previews
+    run("editor.toggle_red_preview",
+        [this]() { iareapanel->imageArea->previewModePanel->toggleR(); });
+    run("editor.toggle_green_preview",
+        [this]() { iareapanel->imageArea->previewModePanel->toggleG(); });
+    run("editor.toggle_blue_preview",
+        [this]() { iareapanel->imageArea->previewModePanel->toggleB(); });
+    run("editor.toggle_luminosity_preview",
+        [this]() { iareapanel->imageArea->previewModePanel->toggleL(); });
+    run("editor.toggle_sharpening_mask",
+        [this]() { iareapanel->imageArea->indClippedPanel->toggleSharpMask(); });
+    run("editor.toggle_focus_mask",
+        [this]() { iareapanel->imageArea->indClippedPanel->toggleFocusMask(); });
+    run("editor.toggle_false_colors", [this]() {
+        iareapanel->imageArea->indClippedPanel->toggleFalseColors();
+    });
+    run("editor.toggle_shadow_clipping", [this]() {
+        iareapanel->imageArea->indClippedPanel->toggleClipped(false);
+    });
+    run("editor.toggle_highlight_clipping", [this]() {
+        iareapanel->imageArea->indClippedPanel->toggleClipped(true);
+    });
+    run("editor.toggle_grid",
+        [this]() { iareapanel->imageArea->indClippedPanel->toggleGrid(); });
+
+    // file browser
+    run("editor.sync_file_browser",
+        [this]() { fPanel->fileCatalog->selectImage(fname, false); },
+        have_file_browser);
+    run("editor.sync_file_browser_clear_filters",
+        [this]() { fPanel->fileCatalog->selectImage(fname, true); },
+        have_file_browser);
+    run("editor.previous_image", [this]() { openPreviousEditorImage(); },
+        have_file_browser);
+    run("editor.next_image", [this]() { openNextEditorImage(); },
+        have_file_browser);
+
+    // saving and exporting (consumed, but doing nothing, in the GIMP plugin)
+    run("editor.save", [this]() {
+        if (!gimpPlugin) {
+            do_save_image(false);
+        }
+    });
+    run("editor.save_fast", [this]() {
+        if (!gimpPlugin) {
+            do_save_image(true);
+        }
+    });
+    const auto queue = [this](bool fast) {
+        if (!simpleEditor && catalogPane && catalogPane->is_visible() &&
+            fPanel->fileCatalog->isSelected(fname)) {
+            // not ours: the file panel enqueues the whole selection
+            return false;
+        }
+        if (!gimpPlugin && !simpleEditor) {
+            do_queue_image(fast);
+            return true;
+        }
+        return false;
+    };
+    bind("editor.queue", [queue]() { return queue(false); });
+    bind("editor.queue_fast", [queue]() { return queue(true); });
+    run("editor.send_to_external_editor", [this]() {
+        if (!gimpPlugin) {
+            do_send_to_gimp(false);
+        }
+    });
+    run("editor.send_to_external_editor_alt", [this]() {
+        if (!gimpPlugin) {
+            do_send_to_gimp(true);
+        }
+    });
+
+    // history
+    run("editor.undo", [this]() { history->undo(); });
+    run("editor.redo", [this]() { history->redo(); });
+    run("editor.previous_snapshot",
+        [this]() { history->activatePrevSnapshot(); });
+    run("editor.next_snapshot", [this]() { history->activateNextSnapshot(); });
+    run("editor.add_snapshot", [this]() {
+        history->addBookmarkPressed();
+        setProgressStr(M("PROGRESSBAR_SNAPSHOT_ADDED"));
+    });
+
+    // moving the image around with the keyboard (before the focus widget)
+    const auto scroll = [this](int dx, int dy) {
+        auto cw = iareapanel->imageArea->getMainCropWindow();
+        if (!cw) {
+            return false;
+        }
+        const int step = options.editor_keyboard_scroll_step;
+        cw->remoteMove(dx * step, dy * step);
+        return true;
+    };
+    bind("editor.scroll_up", [scroll]() { return scroll(0, -1); });
+    bind("editor.scroll_down", [scroll]() { return scroll(0, 1); });
+    bind("editor.scroll_left", [scroll]() { return scroll(-1, 0); });
+    bind("editor.scroll_right", [scroll]() { return scroll(1, 0); });
+}
+
 bool EditorPanel::handleShortcutKey(GdkEventKey *event)
 {
-
-    bool ctrl = event->state & GDK_CONTROL_MASK;
-    bool shift = event->state & GDK_SHIFT_MASK;
-    bool alt = event->state & GDK_MOD1_MASK;
-#ifdef __WIN32__
-    bool altgr = event->state & GDK_MOD2_MASK;
-#else
-    bool altgr = event->state & GDK_MOD5_MASK;
-#endif
-
     if (shortcut_mgr_ && shortcut_mgr_->keyPressed(event)) {
         return true;
     }
 
-    // Editor Layout
-    switch (getKeyval(event)) {
-    case GDK_KEY_L:
-        if (tbTopPanel_1) {
-            tbTopPanel_1->set_active(
-                !tbTopPanel_1->get_active()); // toggle top panel
-        }
-
-        return true;
-        break;
-
-    case GDK_KEY_l:
-        if (alt) { // toggle left and right panels
-            hidehp->set_active(!hidehp->get_active());
-            tbRightPanel_1->set_active(!tbRightPanel_1->get_active());
-        } else if (ctrl) { // toggle right panel
-            tbRightPanel_1->set_active(!tbRightPanel_1->get_active());
-        } else {
-            hidehp->set_active(
-                !hidehp->get_active()); // toggle History (left panel)
-        }
-        return true;
-
-        break;
-
-    case GDK_KEY_m: // Maximize preview panel: hide top AND right AND history
-                    // panels
-        if (!ctrl && !alt) {
-            toggleSidePanels();
-            return true;
-        }
-
-        break;
-
-    case GDK_KEY_M: // Maximize preview panel: hide top AND right AND history
-                    // panels AND (fit image preview)
-        if (!ctrl && !alt) {
-            toggleSidePanelsZoomFit();
-            return true;
-        }
-
-        break;
+    std::vector<ShortcutScope> chain = {{"editor", this}};
+    if (auto tb = tpc->getToolBar()) {
+        chain.emplace_back("toolbar", tb);
     }
-
-    if (!alt && !ctrl && !altgr && getKeyval(event, false) == GDK_KEY_9) {
-        iareapanel->imageArea->previewModePanel->togglebackColor();
-        return true;
-    }
-
-    if (!alt) {
-        if (!ctrl) {
-            // Normal
-            switch (getKeyval(event)) {
-            case GDK_KEY_bracketright:
-                tpc->coarse->rotateRight();
-                return true;
-
-            case GDK_KEY_bracketleft:
-                tpc->coarse->rotateLeft();
-                return true;
-
-            // case GDK_KEY_i:
-            case GDK_KEY_I:
-                info->set_active(!info->get_active());
-                return true;
-
-            // case GDK_KEY_B:
-            case GDK_KEY_A:
-                beforeAfter->set_active(!beforeAfter->get_active());
-                return true;
-
-            case GDK_KEY_plus:
-            case GDK_KEY_equal:
-            case GDK_KEY_KP_Add:
-                iareapanel->imageArea->zoomPanel->zoomInClicked();
-                return true;
-
-            case GDK_KEY_minus:
-            case GDK_KEY_underscore:
-            case GDK_KEY_KP_Subtract:
-                iareapanel->imageArea->zoomPanel->zoomOutClicked();
-                return true;
-
-            case GDK_KEY_z: // GDK_1
-                iareapanel->imageArea->zoomPanel->zoom11Clicked();
-                return true;
-
-            /*
-            #ifndef __WIN32__
-                            case GDK_KEY_9: // toggle background color of the
-            preview iareapanel->imageArea->previewModePanel->togglebackColor();
-                                return true;
-            #endif
-            */
-            case GDK_KEY_R: // preview mode Red
-                iareapanel->imageArea->previewModePanel->toggleR();
-                return true;
-
-            case GDK_KEY_G: // preview mode Green
-                iareapanel->imageArea->previewModePanel->toggleG();
-                return true;
-
-            case GDK_KEY_B: // preview mode Blue
-                iareapanel->imageArea->previewModePanel->toggleB();
-                return true;
-
-            case GDK_KEY_O: // preview mode Sharpening Contrast mask
-                iareapanel->imageArea->indClippedPanel->toggleSharpMask();
-                return true;
-
-            case GDK_KEY_V: // preview mode Luminosity
-                iareapanel->imageArea->previewModePanel->toggleL();
-                return true;
-
-            case GDK_KEY_F: // preview mode Focus Mask
-                iareapanel->imageArea->indClippedPanel->toggleFocusMask();
-                return true;
-
-            case GDK_KEY_E: // preview mode false colors
-                iareapanel->imageArea->indClippedPanel->toggleFalseColors();
-                return true;
-
-            case GDK_KEY_less:
-                iareapanel->imageArea->indClippedPanel->toggleClipped(false);
-                return true;
-
-            case GDK_KEY_greater:
-                iareapanel->imageArea->indClippedPanel->toggleClipped(true);
-                return true;
-
-            case GDK_KEY_f:
-                iareapanel->imageArea->zoomPanel->zoomFitClicked();
-                return true;
-
-            case GDK_KEY_y: // synchronize filebrowser with image in Editor
-                if (!simpleEditor && fPanel && !fname.empty()) {
-                    fPanel->fileCatalog->selectImage(fname, false);
-                    return true;
-                }
-
-                break; // to avoid gcc complain
-
-            case GDK_KEY_x: // clear filters and synchronize filebrowser with
-                            // image in Editor
-                if (!simpleEditor && fPanel && !fname.empty()) {
-                    fPanel->fileCatalog->selectImage(fname, true);
-                    return true;
-                }
-
-                break; // to avoid gcc complain
-            }
-        } else {
-            // With control
-            switch (getKeyval(event)) {
-            case GDK_KEY_S:
-                if (!gimpPlugin) {
-                    do_save_image(true);
-                }
-                // saveProfile();
-                // setProgressStr (M ("PROGRESSBAR_PROCESSING_PROFILESAVED"));
-                return true;
-
-            case GDK_KEY_s:
-                if (!gimpPlugin) {
-                    do_save_image(false);
-                }
-
-                return true;
-
-            case GDK_KEY_b:
-            case GDK_KEY_B:
-                if (!simpleEditor && catalogPane && catalogPane->is_visible() &&
-                    fPanel->fileCatalog->isSelected(fname)) {
-                    // propagate this to fPanel, so that if there is a
-                    // multiple selection all the selected thumbs get
-                    // enqueued
-                } else if (!gimpPlugin && !simpleEditor) {
-                    do_queue_image(getKeyval(event) == GDK_KEY_B);
-                    return true;
-                }
-                break;
-
-            case GDK_KEY_e:
-            case GDK_KEY_E:
-                if (!gimpPlugin) {
-                    do_send_to_gimp(getKeyval(event) == GDK_KEY_E);
-                }
-
-                return true;
-
-            case GDK_KEY_z:
-                history->undo();
-                return true;
-
-            case GDK_KEY_Z:
-            case GDK_KEY_y:
-                history->redo();
-                return true;
-
-            case GDK_KEY_comma:
-                history->activatePrevSnapshot();
-                return true;
-
-            case GDK_KEY_period:
-                history->activateNextSnapshot();
-                return true;
-
-            case GDK_KEY_g:
-                iareapanel->imageArea->indClippedPanel->toggleGrid();
-                return true;
-            }
-        } // if (!ctrl)
-    } // if (!alt)
-
-    if (alt) {
-        switch (getKeyval(event)) {
-        case GDK_KEY_s:
-            history->addBookmarkPressed();
-            setProgressStr(M("PROGRESSBAR_SNAPSHOT_ADDED"));
-            return true;
-
-            // case GDK_KEY_f:
-            //     iareapanel->imageArea->zoomPanel->zoomFitClicked();
-            //     return true;
-        }
-    }
-
-    if (shift) {
-        switch (getKeyval(event)) {
-        case GDK_KEY_F3: // open Previous image from Editor's perspective
-            if (!simpleEditor && fPanel && !fname.empty()) {
-                EditorPanel::openPreviousEditorImage();
-                return true;
-            }
-
-            break; // to avoid gcc complain
-
-        case GDK_KEY_F4: // open next image from Editor's perspective
-            if (!simpleEditor && fPanel && !fname.empty()) {
-                EditorPanel::openNextEditorImage();
-                return true;
-            }
-
-            break; // to avoid gcc complain
-        }
-    }
-
-    if (tpc->getToolBar() && tpc->getToolBar()->handleShortcutKey(event)) {
-        return true;
-    }
-
-    if (tpc->handleShortcutKey(event)) {
+    chain.emplace_back("toolpanel", tpc);
+    if (ShortcutsManager::getInstance()->dispatch(
+            event, ShortcutPhase::After, chain)) {
         return true;
     }
 
@@ -1968,34 +1876,8 @@ bool EditorPanel::handleShortcutKey(GdkEventKey *event)
 
 bool EditorPanel::keyPressedBefore(GdkEventKey *event)
 {
-    bool ctrl = event->state & GDK_CONTROL_MASK;
-    int dx = 0, dy = 0;
-    const int step = options.editor_keyboard_scroll_step;
-    switch (getKeyval(event)) {
-    case GDK_KEY_KP_Up:
-    case GDK_KEY_Up:
-        dy = -step;
-        break;
-    case GDK_KEY_KP_Down:
-    case GDK_KEY_Down:
-        dy = step;
-        break;
-    case GDK_KEY_KP_Left:
-    case GDK_KEY_Left:
-        dx = -step;
-        break;
-    case GDK_KEY_KP_Right:
-    case GDK_KEY_Right:
-        dx = step;
-        break;
-    }
-    if (dx || dy) {
-        if (ctrl && iareapanel->imageArea->getMainCropWindow()) {
-            iareapanel->imageArea->getMainCropWindow()->remoteMove(dx, dy);
-            return true;
-        }
-    }
-    return false;
+    return ShortcutsManager::getInstance()->dispatch(
+        event, ShortcutPhase::Before, {{"editor-scroll", this}});
 }
 
 bool EditorPanel::keyReleased(GdkEventKey *event)
@@ -2004,19 +1886,12 @@ bool EditorPanel::keyReleased(GdkEventKey *event)
         return true;
     }
 
-    switch (getKeyval(event)) {
-    case GDK_KEY_KP_Up:
-    case GDK_KEY_Up:
-    case GDK_KEY_KP_Down:
-    case GDK_KEY_Down:
-    case GDK_KEY_KP_Left:
-    case GDK_KEY_Left:
-    case GDK_KEY_KP_Right:
-    case GDK_KEY_Right:
+    // the end of a keyboard move of the image (see editor.scroll_*)
+    if (ShortcutsManager::getInstance()->matchesKey(
+            event, ShortcutPhase::Before, "editor-scroll")) {
         if (iareapanel->imageArea->getMainCropWindow()) {
             iareapanel->imageArea->getMainCropWindow()->remoteMoveReady();
         }
-        break;
     }
 
     return false;
@@ -2178,7 +2053,7 @@ BatchQueueEntry *EditorPanel::createBatchQueueEntry(
 
 void EditorPanel::saveAsPressed(GdkEventButton *event)
 {
-    do_save_image(event->state & GDK_CONTROL_MASK);
+    do_save_image(event->state & ShortcutsManager::primaryMask());
 }
 
 void EditorPanel::do_save_image(bool fast_export)
@@ -2312,7 +2187,7 @@ void EditorPanel::do_save_image(bool fast_export)
 
 void EditorPanel::queueImgPressed(GdkEventButton *event)
 {
-    do_queue_image(event->state & GDK_CONTROL_MASK);
+    do_queue_image(event->state & ShortcutsManager::primaryMask());
 }
 
 void EditorPanel::do_queue_image(bool fast_export)
@@ -2327,7 +2202,7 @@ void EditorPanel::do_queue_image(bool fast_export)
 
 void EditorPanel::sendToGimpPressed(GdkEventButton *event)
 {
-    do_send_to_gimp(event->state & GDK_CONTROL_MASK);
+    do_send_to_gimp(event->state & ShortcutsManager::primaryMask());
 }
 
 void EditorPanel::do_send_to_gimp(bool fast_export)

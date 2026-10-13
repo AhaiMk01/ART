@@ -25,6 +25,7 @@
 #include "gdkcolormgmt.h"
 #include "options.h"
 #include "preferences.h"
+#include "shortcutsmanager.h"
 #include "rtimage.h"
 #include "../utils/threadutils.h"
 #include "../utils/version.h"
@@ -403,6 +404,10 @@ RTWindow::RTWindow()
         sigc::mem_fun(*this, &RTWindow::keyReleased));
     signal_scroll_event().connect(
         sigc::mem_fun(*this, &RTWindow::scrollPressed), false);
+    bindShortcuts();
+    // (debug aid) once everything has been created and an image opened
+    Glib::signal_timeout().connect_seconds_once(
+        []() { ShortcutsManager::getInstance()->reportUnbound(); }, 20);
 
     Gtk::Widget *main_widget = nullptr;
     if (simpleEditor) {
@@ -585,6 +590,7 @@ bool RTWindow::on_draw(const ::Cairo::RefPtr<::Cairo::Context> &cr)
 
 RTWindow::~RTWindow()
 {
+    ShortcutsManager::getInstance()->unbindOwner(this);
     idle_register.destroy();
 
     cacheMgr->setProgressListener(nullptr);
@@ -855,35 +861,57 @@ void RTWindow::quit()
     }
 }
 
+void RTWindow::bindShortcuts()
+{
+    auto sm = ShortcutsManager::getInstance();
+    const auto not_simple = []() { return !simpleEditor; };
+
+    sm->bind(this, "window.quit", [this](GdkEventKey *) {
+        quit();
+        return true;
+    });
+    sm->bind(this, "window.fullscreen", [this](GdkEventKey *) {
+        toggle_fullscreen();
+        return true;
+    });
+    // in simpleEditor mode there is only the editor: no tabs to switch
+    sm->bind(this, "window.show_file_browser", [this](GdkEventKey *) {
+        mainNB->set_current_page(mainNB->page_num(*fpanel));
+        return true;
+    }, not_simple);
+    sm->bind(this, "window.show_queue", [this](GdkEventKey *) {
+        mainNB->set_current_page(mainNB->page_num(*bpanel));
+        return true;
+    }, not_simple);
+    sm->bind(this, "window.show_editor", [this](GdkEventKey *) {
+        // single tab mode, editor panel
+        if (isSingleTabMode() && epanel) {
+            mainNB->set_current_page(mainNB->page_num(*epanel));
+        }
+        return true;
+    }, not_simple);
+    sm->bind(this, "window.close_tab", [this](GdkEventKey *) {
+        // multi-tab mode, close editor panel
+        if (!isSingleTabMode() &&
+            mainNB->get_current_page() != mainNB->page_num(*fpanel) &&
+            mainNB->get_current_page() != mainNB->page_num(*bpanel)) {
+            EditorPanel *ep = static_cast<EditorPanel *>(
+                mainNB->get_nth_page(mainNB->get_current_page()));
+            remEditorPanel(ep);
+            return true;
+        }
+        return false;
+    }, not_simple);
+}
+
 bool RTWindow::keyPressed(GdkEventKey *event)
 {
-    bool ctrl = event->state & GDK_CONTROL_MASK;
-    // bool shift = event->state & GDK_SHIFT_MASK;
-
-    auto keyval = getKeyval(event);
-
-    bool try_quit = false;
-#if defined(__APPLE__)
-    bool apple_cmd = event->state & GDK_MOD2_MASK;
-
-    if (keyval == GDK_KEY_q && apple_cmd) {
-        try_quit = true;
-    }
-
-#else
-
-    if (keyval == GDK_KEY_q && ctrl) {
-        try_quit = true;
-    }
-
-#endif
-
-    if (try_quit) {
-        quit();
-    }
-
-    if (keyval == GDK_KEY_F11) {
-        toggle_fullscreen();
+    // the shortcuts of the window itself (quit, fullscreen, main tabs); the
+    // panels below still do their own matching
+    if (ShortcutsManager::getInstance()->dispatch(
+            event, ShortcutPhase::After,
+            {{"window", this}, {"mainwindow", this}})) {
+        return true;
     }
 
     if (simpleEditor)
@@ -892,36 +920,6 @@ bool RTWindow::keyPressed(GdkEventKey *event)
     {
         return epanel->handleShortcutKey(event);
     };
-
-    if (ctrl) {
-        switch (keyval) {
-        case GDK_KEY_F2: // file browser panel
-            mainNB->set_current_page(mainNB->page_num(*fpanel));
-            return true;
-
-        case GDK_KEY_F3: // batch queue panel
-            mainNB->set_current_page(mainNB->page_num(*bpanel));
-            return true;
-
-        case GDK_KEY_F4: // single tab mode, editor panel
-            if (isSingleTabMode() && epanel) {
-                mainNB->set_current_page(mainNB->page_num(*epanel));
-            }
-
-            return true;
-
-        case GDK_KEY_w: // multi-tab mode, close editor panel
-            if (!isSingleTabMode() &&
-                mainNB->get_current_page() != mainNB->page_num(*fpanel) &&
-                mainNB->get_current_page() != mainNB->page_num(*bpanel)) {
-
-                EditorPanel *ep = static_cast<EditorPanel *>(
-                    mainNB->get_nth_page(mainNB->get_current_page()));
-                remEditorPanel(ep);
-                return true;
-            }
-        }
-    }
 
     if (mainNB->get_current_page() == mainNB->page_num(*fpanel)) {
         return fpanel->handleShortcutKey(event);

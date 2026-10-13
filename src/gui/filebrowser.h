@@ -179,6 +179,7 @@ public:
     void rightClicked(ThumbBrowserEntryBase *entry) override;
     void doubleClicked(ThumbBrowserEntryBase *entry) override;
     bool keyPressed(GdkEventKey *event) override;
+    void bindShortcuts();
 
     void saveThumbnailHeight(int height) override;
     int getThumbnailHeight() override;

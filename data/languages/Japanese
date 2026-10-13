@@ -26,7 +26,7 @@ ABOUT_TAB_CREDITS;クレジット
 ABOUT_TAB_LICENSE;ライセンス
 ABOUT_TAB_RELEASENOTES;リリースノート
 ABOUT_TAB_SPLASH;スプラッシュ
-ADJUSTER_RESET_TO_DEFAULT;<b>クリック</b> - デフォルト値にリセット\n<b>Ctrl</b>+<b>クリック</b> - 最後に保存した値にリセット
+ADJUSTER_RESET_TO_DEFAULT;<b>クリック</b> - デフォルト値にリセット\n<b>%primary%</b>+<b>クリック</b> - 最後に保存した値にリセット
 CTL_SIGMOID;シグモイド・トーンマッパー
 CTL_SIGMOID_BASE_PRIMARIES;基本原色
 CTL_SIGMOID_INSET;純色度の減衰
@@ -144,13 +144,13 @@ FILEBROWSER_APPLYPROFILE;プロファイルの適用
 FILEBROWSER_APPLYPROFILE_PARTIAL;プロファイルの適用 (一部)
 FILEBROWSER_AUTODARKFRAME;オート･ダークフレーム
 FILEBROWSER_AUTOFLATFIELD;オート･フラットフィールド
-FILEBROWSER_BROWSEPATHBUTTONHINT;サムネイルのリストを更新\nショートカット: <b>F5</b>
+FILEBROWSER_BROWSEPATHBUTTONHINT;サムネイルのリストを更新\nショートカット: <b>%shortcut(filecatalog.refresh)%</b>
 FILEBROWSER_BROWSEPATHHINT;参照するパスを入力します\n<b>Ctrl-O</b> パスのテキストボックスにフォーカス\n<b>Enter</b> / <b>Ctrl-Enter</b>その場所をブラウズします\n<b>Esc</b> 変更をクリア\n<b>Shift-Esc</b>フォーカスを削除\nパスのショートカット:\n  <b>~</b> - ユーザーのホームディレクトリ\n  <b>!</b> - ユーザーの画像ディレクトリ
 FILEBROWSER_CACHE;キャッシュ
 FILEBROWSER_CACHECLEARFROMFULL;プロファイルを含めcache内をクリアにする
 FILEBROWSER_CACHECLEARFROMPARTIAL;プロファイルを除き cache内をクリアにする
 FILEBROWSER_CLEARPROFILE;プロファイルのクリア
-FILEBROWSER_COLORLABEL_TOOLTIP;カラー･ラベル\n\nドロップダウン･メニューもしくは ショートカット:\n<b>Shift-Ctrl-0</b> カラーなし\n<b>Shift-Ctrl-1</b> レッド\n<b>Shift-Ctrl-2</b> イエロー\n<b>Shift-Ctrl-3</b> グリーン\n<b>Shift-Ctrl-4</b> ブルー\n<b>Shift-Ctrl-5</b> パープル
+FILEBROWSER_COLORLABEL_TOOLTIP;カラー･ラベル\n\nドロップダウン･メニューもしくは ショートカット:\n<b>%shortcut(filebrowser.set_label.0)%</b> カラーなし\n<b>%shortcut(filebrowser.set_label.1)%</b> レッド\n<b>%shortcut(filebrowser.set_label.2)%</b> イエロー\n<b>%shortcut(filebrowser.set_label.3)%</b> グリーン\n<b>%shortcut(filebrowser.set_label.4)%</b> ブルー\n<b>%shortcut(filebrowser.set_label.5)%</b> パープル
 FILEBROWSER_COPYPROFILE;プロファイルをコピー
 FILEBROWSER_CURRENT_NAME;現在の名前:
 FILEBROWSER_DARKFRAME;ダークフレーム
@@ -203,13 +203,13 @@ FILEBROWSER_POPUPTRASH;ゴミ箱へ移動
 FILEBROWSER_POPUPUNRANK;ランクなし
 FILEBROWSER_POPUPUNTRASH;ゴミ箱から移動
 FILEBROWSER_QUERYBUTTONHINT;検索ボックス内のヒントをクリア
-FILEBROWSER_QUERYHINT;ファイルを検索する. <i>ファイル名の一部</i>でも可. 複数の場合は <i>ファイル名をカンマで区切る</i>\n例 <i>1001,1004,1199</i>\n\n入力した名前以外のファイルを検索する場合は 先頭に<i>!=</i>を入れる\n例 <i>!=1001,1004,1199</i>\n\nショートカット:\n<b>Ctrl-f</b> 検索ボックスをフォーカスにする\n<b>Enter</b> 検索を開始\n<b>Shift-Esc</b> クリア\n<b>Esc</b>フォーカスを解除
+FILEBROWSER_QUERYHINT;ファイルを検索する. <i>ファイル名の一部</i>でも可. 複数の場合は <i>ファイル名をカンマで区切る</i>\n例 <i>1001,1004,1199</i>\n\n入力した名前以外のファイルを検索する場合は 先頭に<i>!=</i>を入れる\n例 <i>!=1001,1004,1199</i>\n\nショートカット:\n<b>%shortcut(filecatalog.focus_query)%</b> 検索ボックスをフォーカスにする\n<b>Enter</b> 検索を開始\n<b>Shift-Esc</b> クリア\n<b>Esc</b>フォーカスを解除
 FILEBROWSER_QUERYLABEL; 検索:
-FILEBROWSER_RANK1_TOOLTIP;ランク 1 *\nショートカット: <b>Shift-1</b>
-FILEBROWSER_RANK2_TOOLTIP;ランク 2 *\nショートカット: <b>Shift-2</b>
-FILEBROWSER_RANK3_TOOLTIP;ランク 3 *\nショートカット: <b>Shift-3</b>
-FILEBROWSER_RANK4_TOOLTIP;ランク 4 *\nショートカット: <b>Shift-4</b>
-FILEBROWSER_RANK5_TOOLTIP;ランク 5 *\nショートカット: <b>Shift-5</b>
+FILEBROWSER_RANK1_TOOLTIP;ランク 1 *\nショートカット: <b>%shortcut(filebrowser.set_rank.1)%</b>
+FILEBROWSER_RANK2_TOOLTIP;ランク 2 *\nショートカット: <b>%shortcut(filebrowser.set_rank.2)%</b>
+FILEBROWSER_RANK3_TOOLTIP;ランク 3 *\nショートカット: <b>%shortcut(filebrowser.set_rank.3)%</b>
+FILEBROWSER_RANK4_TOOLTIP;ランク 4 *\nショートカット: <b>%shortcut(filebrowser.set_rank.4)%</b>
+FILEBROWSER_RANK5_TOOLTIP;ランク 5 *\nショートカット: <b>%shortcut(filebrowser.set_rank.5)%</b>
 FILEBROWSER_RENAMEDLGLABEL;ファイル名変更/ファイル移動
 FILEBROWSER_RENAME_DIALOG_LOAD_TIP;設定をファイルから読込
 FILEBROWSER_RENAME_DIALOG_SAVE_TIP;設定をファイルに保存
@@ -223,27 +223,27 @@ FILEBROWSER_SESSION_REMOVE_LABEL;選択したファイルをセッションか�
 FILEBROWSER_SESSION_LOAD_LABEL;ファイルからセッションを読み込む
 FILEBROWSER_SESSION_SAVE_LABEL;セッションをファイルに保存する
 FILECHOOSER_FILTER_ARS;ART セッションファイル (*.ars)
-FILEBROWSER_SHOWCOLORLABEL1HINT;レッド･ラベルの画像を表示\nショートカット: <b>Alt-1</b>
-FILEBROWSER_SHOWCOLORLABEL2HINT;イエロー･ラベルの画像を表示\nショートカット: <b>Alt-2</b>
-FILEBROWSER_SHOWCOLORLABEL3HINT;グリーン･ラベルの画像を表示\nショートカット: <b>Alt-3</b>
-FILEBROWSER_SHOWCOLORLABEL4HINT;ブルー･ラベルの画像を表示\nショートカット: <b>Alt-4</b>
-FILEBROWSER_SHOWCOLORLABEL5HINT;パープル･ラベルの画像を表示\nショートカット: <b>Alt-5</b>
-FILEBROWSER_SHOWDIRHINT;全ての絞り込みをクリア\nショートカット: <b>d</b>
-FILEBROWSER_SHOWEDITEDHINT;編集済み画像を表示\nショートカット: <b>7</b>
-FILEBROWSER_SHOWEDITEDNOTHINT;未編集画像を表示\nショートカット: <b>6</b>
+FILEBROWSER_SHOWCOLORLABEL1HINT;レッド･ラベルの画像を表示\nショートカット: <b>%shortcut(filecatalog.filter_label.1)%</b>
+FILEBROWSER_SHOWCOLORLABEL2HINT;イエロー･ラベルの画像を表示\nショートカット: <b>%shortcut(filecatalog.filter_label.2)%</b>
+FILEBROWSER_SHOWCOLORLABEL3HINT;グリーン･ラベルの画像を表示\nショートカット: <b>%shortcut(filecatalog.filter_label.3)%</b>
+FILEBROWSER_SHOWCOLORLABEL4HINT;ブルー･ラベルの画像を表示\nショートカット: <b>%shortcut(filecatalog.filter_label.4)%</b>
+FILEBROWSER_SHOWCOLORLABEL5HINT;パープル･ラベルの画像を表示\nショートカット: <b>%shortcut(filecatalog.filter_label.5)%</b>
+FILEBROWSER_SHOWDIRHINT;全ての絞り込みをクリア\nショートカット: <b>%shortcut(filecatalog.filter_clear)%</b>
+FILEBROWSER_SHOWEDITEDHINT;編集済み画像を表示\nショートカット: <b>%shortcut(filecatalog.filter_edited)%</b>
+FILEBROWSER_SHOWEDITEDNOTHINT;未編集画像を表示\nショートカット: <b>%shortcut(filecatalog.filter_not_edited)%</b>
 FILEBROWSER_SHOWEXIFINFO;EXIF情報を表示\nショートカット: <b>i</b>\n\nシングル･エディタ･タブのショートカット: <b>Alt-i</b>
 FILEBROWSER_SHOWNOTTRASHHINT;未削除画像のみ表示
 FILEBROWSER_SHOWORIGINALHINT;元画像だけを表示\n\nファイル名は同じだが拡張子が異なる画像がある場合は 環境設定の中のファイルブラウザタブにある拡張子リストの上位に位置する拡張子を持った画像を元画像とする.
-FILEBROWSER_SHOWRANK1HINT;１つ星ランクを表示\nショートカット: <b>1</b>
-FILEBROWSER_SHOWRANK2HINT;２つ星ランクを表示\nショートカット: <b>2</b>
-FILEBROWSER_SHOWRANK3HINT;３つ星ランクを表示\nショートカット: <b>3</b>
-FILEBROWSER_SHOWRANK4HINT;４つ星ランクを表示\nショートカット: <b>4</b>
-FILEBROWSER_SHOWRANK5HINT;５つ星ランクを表示\nショートカット: <b>5</b>
-FILEBROWSER_SHOWRECENTLYSAVEDHINT;最近保存された画像を表示\nショートカット:  <b>Alt-7</b>
-FILEBROWSER_SHOWRECENTLYSAVEDNOTHINT;最近保存されていない画像を表示\nショートカット: <b>Alt-6</b>
-FILEBROWSER_SHOWTRASHHINT;ゴミ箱の内容を表示\nショートカット: <b>Ctrl-t</b>
-FILEBROWSER_SHOWUNCOLORHINT;カラー･ラベルのない画像を表示\nショートカット: <b>Alt-0</b>
-FILEBROWSER_SHOWUNRANKHINT;ランクなし画像を表示\nショートカット:  <b>0</b>
+FILEBROWSER_SHOWRANK1HINT;１つ星ランクを表示\nショートカット: <b>%shortcut(filecatalog.filter_rank.1)%</b>
+FILEBROWSER_SHOWRANK2HINT;２つ星ランクを表示\nショートカット: <b>%shortcut(filecatalog.filter_rank.2)%</b>
+FILEBROWSER_SHOWRANK3HINT;３つ星ランクを表示\nショートカット: <b>%shortcut(filecatalog.filter_rank.3)%</b>
+FILEBROWSER_SHOWRANK4HINT;４つ星ランクを表示\nショートカット: <b>%shortcut(filecatalog.filter_rank.4)%</b>
+FILEBROWSER_SHOWRANK5HINT;５つ星ランクを表示\nショートカット: <b>%shortcut(filecatalog.filter_rank.5)%</b>
+FILEBROWSER_SHOWRECENTLYSAVEDHINT;最近保存された画像を表示\nショートカット:  <b>%shortcut(filecatalog.filter_recently_saved)%</b>
+FILEBROWSER_SHOWRECENTLYSAVEDNOTHINT;最近保存されていない画像を表示\nショートカット: <b>%shortcut(filecatalog.filter_not_recently_saved)%</b>
+FILEBROWSER_SHOWTRASHHINT;ゴミ箱の内容を表示\nショートカット: <b>%shortcut(filecatalog.toggle_trash)%</b>
+FILEBROWSER_SHOWUNCOLORHINT;カラー･ラベルのない画像を表示\nショートカット: <b>%shortcut(filecatalog.filter_no_label)%</b>
+FILEBROWSER_SHOWUNRANKHINT;ランクなし画像を表示\nショートカット:  <b>%shortcut(filecatalog.filter_unranked)%</b>
 FILEBROWSER_SORT_LABEL;サムネイル順序
 FILEBROWSER_SORT_FILENAME;ファイル名
 FILEBROWSER_SORT_FILENAME_REV;ファイル名 (逆順)
@@ -254,7 +254,7 @@ FILEBROWSER_SORT_MODTIME_REV;ファイル更新日時 (逆順)
 FILEBROWSER_SORT_PROCTIME;最終保存日時
 FILEBROWSER_SORT_PROCTIME_REV;最終保存日時 (逆順)
 FILEBROWSER_THUMBSIZE;サムネイルのサイズ
-FILEBROWSER_UNRANK_TOOLTIP;ランクなし\nショートカット: <b>Shift-0</b>
+FILEBROWSER_UNRANK_TOOLTIP;ランクなし\nショートカット: <b>%shortcut(filebrowser.set_rank.0)%</b>
 FILEBROWSER_ZOOMINHINT;サムネイルサイズの拡大\nショートカット: <b>+</b>\n\nシングル･エディタ･タブのショートカット: <b>Alt-+</b>
 FILEBROWSER_ZOOMOUTHINT;サムネイルサイズの縮小\nショートカット: <b>-</b>\n\nシングル･エディタ･タブのショートカット: <b>Alt--</b>
 FILECHOOSER_FILTER_ANY;全てのファイル
@@ -753,7 +753,7 @@ HISTORY_MSG_TONECURVE_MODE;トーンカーブ - モード
 HISTORY_MSG_TONECURVE_WHITEPOINT;トーンカーブ - ホワイトポイント
 HISTORY_MSG_WBALANCE_MULT;ホワイトバランス - multipliers
 HISTORY_NEWSNAPSHOT;追加
-HISTORY_NEWSNAPSHOT_TOOLTIP;ショートカット: <b>Alt-s</b>
+HISTORY_NEWSNAPSHOT_TOOLTIP;ショートカット: <b>%shortcut(editor.add_snapshot)%</b>
 HISTORY_SNAPSHOT;スナップショット
 HISTORY_SNAPSHOTS;スナップショット
 HISTORY_SNAPSHOT_CONFIRM_UPDATE;現在のスナップショットを上書き?
@@ -799,17 +799,17 @@ ICCPROFCREATOR_SAVEDIALOG_TITLE;...でICCプロファイルを保存
 ICCPROFCREATOR_SLOPE;勾配
 ICCPROFCREATOR_TRC_PRESET;トーン再現カーブ:
 INSPECTOR_ENABLE_CMS;カラーマネジメント有効化.
-INSPECTOR_FOCUS_MASK;フォーカスマスク.\nショートカット: <b>Shift-f</b>.
-INSPECTOR_HISTOGRAM;ヒストグラム.\nショートカット: <b>h</b>.
-INSPECTOR_INFO;情報.\nショートカット: <b>Shift-i</b>.
-INSPECTOR_PREVIEW;埋込プレビュー画像.\nショートカット: <b>j</b>.
-INSPECTOR_RAW_LINEAR;リニアトーンカーブを使った高速Rawレンダリング.\nショートカット: <b>r</b>.
-INSPECTOR_RAW_FILM;フィルム状トーンカーブを使った高速Rawレンダリング.\nショートカット: <b>f</b>.
-INSPECTOR_RAW_CLIP;クリップされたRawピクセル.\nショートカット: <b>w</b>.
-INSPECTOR_RAW_SHADOW;シャドウ増幅トーンカーブを使った高速Rawレンダリング.\nショートカット: <b>s</b>.
-INSPECTOR_SPLIT;分割表示 (Split view).\nショートカット: <b>y</b>.
-INSPECTOR_ZOOM_FIT;ウィンドウに合わせる.\nショートカット: <b>x</b>.
-INSPECTOR_ZOOM_11;100%にズーム.\nショートカット: <b>z</b>.
+INSPECTOR_FOCUS_MASK;フォーカスマスク.\nショートカット: <b>%shortcut(inspector.toggle_focus_mask)%</b>.
+INSPECTOR_HISTOGRAM;ヒストグラム.\nショートカット: <b>%shortcut(inspector.toggle_histogram)%</b>.
+INSPECTOR_INFO;情報.\nショートカット: <b>%shortcut(inspector.toggle_info)%</b>.
+INSPECTOR_PREVIEW;埋込プレビュー画像.\nショートカット: <b>%shortcut(inspector.mode_jpeg)%</b>.
+INSPECTOR_RAW_LINEAR;リニアトーンカーブを使った高速Rawレンダリング.\nショートカット: <b>%shortcut(inspector.mode_raw_linear)%</b>.
+INSPECTOR_RAW_FILM;フィルム状トーンカーブを使った高速Rawレンダリング.\nショートカット: <b>%shortcut(inspector.mode_raw_film_curve)%</b>.
+INSPECTOR_RAW_CLIP;クリップされたRawピクセル.\nショートカット: <b>%shortcut(inspector.mode_raw_clip_warning)%</b>.
+INSPECTOR_RAW_SHADOW;シャドウ増幅トーンカーブを使った高速Rawレンダリング.\nショートカット: <b>%shortcut(inspector.mode_raw_shadow_boost)%</b>.
+INSPECTOR_SPLIT;分割表示 (Split view).\nショートカット: <b>%shortcut(inspector.toggle_split)%</b>.
+INSPECTOR_ZOOM_FIT;ウィンドウに合わせる.\nショートカット: <b>%shortcut(inspector.zoom_fit)%</b>.
+INSPECTOR_ZOOM_11;100%にズーム.\nショートカット: <b>%shortcut(inspector.zoom_100)%</b>.
 IPTCPANEL_CATEGORY;カテゴリ
 IPTCPANEL_CATEGORYHINT;画像の意図
 IPTCPANEL_CITY;都市
@@ -856,25 +856,25 @@ LABMASKS_AREA_MASK_EMPTY_WARNING;警告: 今のエリアの形の組合わせで
 LINKED_MASK_NOT_FOUND_WARNING;警告: 転用するマスク "%1->%2" が見当たりません
 MAIN_BUTTON_FULLSCREEN;フルスクリーン
 MAIN_BUTTON_ICCPROFCREATOR;ICCプロファイルクリエーター
-MAIN_BUTTON_NAVNEXT_TOOLTIP;エディタで開いている画像の次の画像に移動します\nショートカット: <b>Shift-F4</b>\n\nファイルブラウザで選択したサムネイルの次の画像に移動するには\nショートカット: <b>F4</b>
-MAIN_BUTTON_NAVPREV_TOOLTIP;エディタで開いている画像の前の画像に移動します\nショートカット: <b>Shift-F3</b>\n\nファイルブラウザで選択したサムネイルの前の画像に移動するには\nショートカット: <b>F3</b>
-MAIN_BUTTON_NAVSYNC_TOOLTIP;現在開いている画像のサムネイルを明示しエディタとファイルブラウザを同期させ ファイルブラウザでのフィルタをクリアします \nショートカット: <b>x</b>\n\n上記と同じですが ファイルブラウザでのフィルタをクリアしません\nショートカット: <b>y</b>\n(開かれていても フィルターで除外されたファイルのサムネイルは 表示されませんので注意してください).
+MAIN_BUTTON_NAVNEXT_TOOLTIP;エディタで開いている画像の次の画像に移動します\nショートカット: <b>%shortcut(editor.next_image)%</b>\n\nファイルブラウザで選択したサムネイルの次の画像に移動するには\nショートカット: <b>%shortcut(filebrowser.open_next)%</b>
+MAIN_BUTTON_NAVPREV_TOOLTIP;エディタで開いている画像の前の画像に移動します\nショートカット: <b>%shortcut(editor.previous_image)%</b>\n\nファイルブラウザで選択したサムネイルの前の画像に移動するには\nショートカット: <b>%shortcut(filebrowser.open_previous)%</b>
+MAIN_BUTTON_NAVSYNC_TOOLTIP;現在開いている画像のサムネイルを明示しエディタとファイルブラウザを同期させ ファイルブラウザでのフィルタをクリアします \nショートカット: <b>%shortcut(editor.sync_file_browser_clear_filters)%</b>\n\n上記と同じですが ファイルブラウザでのフィルタをクリアしません\nショートカット: <b>%shortcut(editor.sync_file_browser)%</b>\n(開かれていても フィルターで除外されたファイルのサムネイルは 表示されませんので注意してください).
 MAIN_BUTTON_PREFERENCES;環境設定
-MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;現在の画像をキュー処理に追加 (Ctrl-clickで即時出力)\nショートカット: <b>Ctrl-s</b> (<b>Ctrl-Shift-b</b>で即時出力)
-MAIN_BUTTON_SAVE_TOOLTIP;現在の画像を保存 (Ctrl-clickで即時出力)\nショートカット: <b>Ctrl-s</b> (<b>Ctrl-Shift-s</b>で即時出力)
+MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;現在の画像をキュー処理に追加 (%primary%-clickで即時出力)\nショートカット: <b>%primary%-s</b> (<b>%shortcut(editor.queue_fast)%</b>で即時出力)
+MAIN_BUTTON_SAVE_TOOLTIP;現在の画像を保存 (%primary%-clickで即時出力)\nショートカット: <b>%shortcut(editor.save)%</b> (<b>%shortcut(editor.save_fast)%</b>で即時出力)
 MAIN_BUTTON_SENDTOEDITOR;外部エディタで画像を編集
-MAIN_BUTTON_SENDTOEDITOR_TOOLTIP;現在の画像を外部エディタで編集\nショートカット: <b>Ctrl-e</b> (<b>Ctrl-Shift-e</b> で即時出力)
-MAIN_BUTTON_SHOWHIDESIDEPANELS_TOOLTIP;表示/非表示 すべてのパネル\nショートカット: <b>m</b>
+MAIN_BUTTON_SENDTOEDITOR_TOOLTIP;現在の画像を外部エディタで編集\nショートカット: <b>%shortcut(editor.send_to_external_editor)%</b> (<b>%shortcut(editor.send_to_external_editor_alt)%</b> で即時出力)
+MAIN_BUTTON_SHOWHIDESIDEPANELS_TOOLTIP;表示/非表示 すべてのパネル\nショートカット: <b>%shortcut(editor.maximize_preview)%</b>
 MAIN_BUTTON_UNFULLSCREEN;フルスクリーン解除
 MAIN_FRAME_EDITOR;編集
-MAIN_FRAME_EDITOR_TOOLTIP; 編集\nショートカット: <b>Ctrl-F4</b>
+MAIN_FRAME_EDITOR_TOOLTIP; 編集\nショートカット: <b>%shortcut(window.show_editor)%</b>
 MAIN_FRAME_FILEBROWSER;ファイルブラウザ
-MAIN_FRAME_FILEBROWSER_TOOLTIP; ファイル･ブラウザ\nショートカット: <b>Ctrl-F2</b>
+MAIN_FRAME_FILEBROWSER_TOOLTIP; ファイル･ブラウザ\nショートカット: <b>%shortcut(window.show_file_browser)%</b>
 MAIN_FRAME_PLACES;場所
 MAIN_FRAME_PLACES_ADD;追加
 MAIN_FRAME_PLACES_DEL;削除
 MAIN_FRAME_QUEUE;キュー
-MAIN_FRAME_QUEUE_TOOLTIP;キューで処理します\nショートカット:  <b>Ctrl-F3</b>
+MAIN_FRAME_QUEUE_TOOLTIP;キューで処理します\nショートカット:  <b>%shortcut(window.show_queue)%</b>
 MAIN_FRAME_RECENT;最近開いたフォルダ
 MAIN_MSG_ALREADYEXISTS;ファイルはすでに存在します
 MAIN_MSG_AUTOSAVING;自動保存中...
@@ -894,52 +894,52 @@ MAIN_MSG_WRITEFAILED;書き込みに失敗しました\n\n<b>"%1"</b>\n\nフォ�
 MAIN_TAB_ADVANCED;高度な機能
 MAIN_TAB_ADVANCED_TOOLTIP;ショートカット: <b>Alt-w</b>
 MAIN_TAB_COLOR;カラー
-MAIN_TAB_COLOR_TOOLTIP;ショートカット: <b>Alt-c</b>
+MAIN_TAB_COLOR_TOOLTIP;ショートカット: <b>%shortcut(toolpanel.tab_color)%</b>
 MAIN_TAB_DETAIL;ディテール
-MAIN_TAB_DETAIL_TOOLTIP;ショートカット: <b>Alt-d</b>
+MAIN_TAB_DETAIL_TOOLTIP;ショートカット: <b>%shortcut(toolpanel.tab_details)%</b>
 MAIN_TAB_DEVELOP;一括編集
 MAIN_TAB_EFFECTS;特殊効果
-MAIN_TAB_EFFECTS_TOOLTIP;ショートカット: <b>Alt-f</b>
+MAIN_TAB_EFFECTS_TOOLTIP;ショートカット: <b>%shortcut(toolpanel.tab_effects)%</b>
 MAIN_TAB_EXIF;Exif
 MAIN_TAB_EXPORT;高速書き出し
 MAIN_TAB_EXPOSURE;露出
-MAIN_TAB_EXPOSURE_TOOLTIP;ショートカット: <b>Alt-e</b>
+MAIN_TAB_EXPOSURE_TOOLTIP;ショートカット: <b>%shortcut(toolpanel.tab_exposure)%</b>
 MAIN_TAB_FAVORITES;お気に入り
-MAIN_TAB_FAVORITES_TOOLTIP;ショートカット: <b>Alt-u</b>
+MAIN_TAB_FAVORITES_TOOLTIP;ショートカット: <b>%shortcut(toolpanel.tab_favorites)%</b>
 MAIN_TAB_FILTER;絞り込み
 MAIN_TAB_INSPECT;画像確認
-MAIN_TAB_INSPECT_TOOLTIP;画像確認画面に切替.\nショートカット: <b>Ctrl-i</b>
+MAIN_TAB_INSPECT_TOOLTIP;画像確認画面に切替.\nショートカット: <b>%shortcut(filepanel.toggle_right_notebook)%</b>
 MAIN_TAB_IPTC;IPTC
 MAIN_TAB_LOCAL;ローカル編集
-MAIN_TAB_LOCAL_TOOLTIP;ショートカット: <b>Alt-x</b>
+MAIN_TAB_LOCAL_TOOLTIP;ショートカット: <b>%shortcut(toolpanel.tab_local)%</b>
 MAIN_TAB_METADATA;メタデータ
-MAIN_TAB_METADATA_TOOLTIP;ショートカット: <b>Alt-m</b>
+MAIN_TAB_METADATA_TOOLTIP;ショートカット: <b>%shortcut(toolpanel.tab_metadata)%</b>
 MAIN_TAB_RAW;raw
-MAIN_TAB_RAW_TOOLTIP;ショートカット: <b>Alt-r</b>
+MAIN_TAB_RAW_TOOLTIP;ショートカット: <b>%shortcut(toolpanel.tab_raw)%</b>
 MAIN_TAB_TRANSFORM;変形
-MAIN_TAB_TRANSFORM_TOOLTIP;ショートカット: <b>Alt-t</b>
-MAIN_TOOLTIP_BACKCOLOR0;プレビューの背景色を指定します: <b>テーマに基づく</b>\nショートカット: <b>9</b>
-MAIN_TOOLTIP_BACKCOLOR1;プレビューの背景色を指定します: <b>黒</b>\nショートカットt: <b>9</b>
-MAIN_TOOLTIP_BACKCOLOR2;プレビューの背景色を指定します: <b>白</b>\nショートカット: <b>9</b>
-MAIN_TOOLTIP_BACKCOLOR3;プレビューの背景色を指定します: <b>中間のグレー</b>\nショートカット: <b>9</b>
+MAIN_TAB_TRANSFORM_TOOLTIP;ショートカット: <b>%shortcut(toolpanel.tab_transform)%</b>
+MAIN_TOOLTIP_BACKCOLOR0;プレビューの背景色を指定します: <b>テーマに基づく</b>\nショートカット: <b>%shortcut(editor.toggle_preview_background)%</b>
+MAIN_TOOLTIP_BACKCOLOR1;プレビューの背景色を指定します: <b>黒</b>\nショートカットt: <b>%shortcut(editor.toggle_preview_background)%</b>
+MAIN_TOOLTIP_BACKCOLOR2;プレビューの背景色を指定します: <b>白</b>\nショートカット: <b>%shortcut(editor.toggle_preview_background)%</b>
+MAIN_TOOLTIP_BACKCOLOR3;プレビューの背景色を指定します: <b>中間のグレー</b>\nショートカット: <b>%shortcut(editor.toggle_preview_background)%</b>
 MAIN_TOOLTIP_BEFOREAFTERLOCK;<b>固定</b> / <b>固定解除</b> - <b>補正前</b> の表示設定\n\n<b>固定</b>: <b>補正前</b>をそのまま表示し変更されません\n<b>固定解除</b>: <b>補正前</b>表示は<b>補正後</b>表示と連動します
-MAIN_TOOLTIP_FALSECOLORS;着色による露光量表示の切替.\nショートカット: <b>Shift-e</b>\n\n凡例 (IRE指数の範囲) :\n%1
+MAIN_TOOLTIP_FALSECOLORS;着色による露光量表示の切替.\nショートカット: <b>%shortcut(editor.toggle_false_colors)%</b>\n\n凡例 (IRE指数の範囲) :\n%1
 MAIN_TOOLTIP_GRIDOVERLAY;グリッド オーバーレイの切替
-MAIN_TOOLTIP_HIDEHP;左パネル 表示/非表示 (履歴含む)\nショートカット:  <b>l</b>
-MAIN_TOOLTIP_INDCLIPPEDH;ハイライト･クリッピング領域の表示\nショートカット: <b>&gt;</b>
-MAIN_TOOLTIP_INDCLIPPEDS;シャドウ･クリッピング領域の表示\nショートカット: <b>&lt;</b>
-MAIN_TOOLTIP_PREVIEWB;<b>ブルー チャンネル</b>表示\nショートカット: <b>Shift-b</b>
-MAIN_TOOLTIP_PREVIEWFOCUSMASK;<b>フォーカス･マスク</b>表示\nショートカット: <b>Shift-f</b>\n\n浅い被写界深度 低ノイズ 高ズームならより正確に表示\n\nノイズの多い画像に対しては 検出精度を向上させるため10から30%縮小して評価します\n\nフォーカス･マスクをオンにすると表示に時間が掛かります
-MAIN_TOOLTIP_PREVIEWG;<b>グリーン チャンネル</b>表示\nショートカット: <b>Shift-g</b>
-MAIN_TOOLTIP_PREVIEWL;<b>輝度</b>表示\nショートカット: <b>Shift-v</b>\n\n0.299*R + 0.587*G + 0.114*B
-MAIN_TOOLTIP_PREVIEWR;<b>レッド チャンネル</b>表示\nショートカット: <b>Shift-r</b>
-MAIN_TOOLTIP_PREVIEWSHARPMASK;プレビューで見る<b>シャープニング機能のコントラストマスク</b>\nショートカット: <b>Shift-o</b>\n\nこの機能が使えるのはシャープニング機能が有効で 画像が100％以上に拡大されている場合だけ
-MAIN_TOOLTIP_QINFO;画像の情報\nショートカット: <b>Shift-i</b>
-MAIN_TOOLTIP_SHOWHIDELP1;表示/非表示 左パネル\nショートカット: <b>l</b>
-MAIN_TOOLTIP_SHOWHIDERP1;表示/非表示 右パネル\nショートカット: <b>Ctrl-l</b>
-MAIN_TOOLTIP_SHOWHIDETP1;表示/非表示 フィルムストリップパネル\nショートカット: <b>Shift-l</b>
+MAIN_TOOLTIP_HIDEHP;左パネル 表示/非表示 (履歴含む)\nショートカット:  <b>%shortcut(editor.toggle_history_panel)%</b>
+MAIN_TOOLTIP_INDCLIPPEDH;ハイライト･クリッピング領域の表示\nショートカット: <b>%shortcut(editor.toggle_highlight_clipping)%</b>
+MAIN_TOOLTIP_INDCLIPPEDS;シャドウ･クリッピング領域の表示\nショートカット: <b>%shortcut(editor.toggle_shadow_clipping)%</b>
+MAIN_TOOLTIP_PREVIEWB;<b>ブルー チャンネル</b>表示\nショートカット: <b>%shortcut(editor.toggle_blue_preview)%</b>
+MAIN_TOOLTIP_PREVIEWFOCUSMASK;<b>フォーカス･マスク</b>表示\nショートカット: <b>%shortcut(editor.toggle_focus_mask)%</b>\n\n浅い被写界深度 低ノイズ 高ズームならより正確に表示\n\nノイズの多い画像に対しては 検出精度を向上させるため10から30%縮小して評価します\n\nフォーカス･マスクをオンにすると表示に時間が掛かります
+MAIN_TOOLTIP_PREVIEWG;<b>グリーン チャンネル</b>表示\nショートカット: <b>%shortcut(editor.toggle_green_preview)%</b>
+MAIN_TOOLTIP_PREVIEWL;<b>輝度</b>表示\nショートカット: <b>%shortcut(editor.toggle_luminosity_preview)%</b>\n\n0.299*R + 0.587*G + 0.114*B
+MAIN_TOOLTIP_PREVIEWR;<b>レッド チャンネル</b>表示\nショートカット: <b>%shortcut(editor.toggle_red_preview)%</b>
+MAIN_TOOLTIP_PREVIEWSHARPMASK;プレビューで見る<b>シャープニング機能のコントラストマスク</b>\nショートカット: <b>%shortcut(editor.toggle_sharpening_mask)%</b>\n\nこの機能が使えるのはシャープニング機能が有効で 画像が100％以上に拡大されている場合だけ
+MAIN_TOOLTIP_QINFO;画像の情報\nショートカット: <b>%shortcut(editor.toggle_info)%</b>
+MAIN_TOOLTIP_SHOWHIDELP1;表示/非表示 左パネル\nショートカット: <b>%shortcut(editor.toggle_history_panel)%</b>
+MAIN_TOOLTIP_SHOWHIDERP1;表示/非表示 右パネル\nショートカット: <b>%shortcut(editor.toggle_right_panel)%</b>
+MAIN_TOOLTIP_SHOWHIDETP1;表示/非表示 フィルムストリップパネル\nショートカット: <b>%shortcut(editor.toggle_top_panel)%</b>
 MAIN_TOOLTIP_THRESHOLD;閾値
-MAIN_TOOLTIP_TOGGLE;<b>補正前</b>/<b>補正後</b> 切り替え\nショートカット: <b>Shift-a</b>
+MAIN_TOOLTIP_TOGGLE;<b>補正前</b>/<b>補正後</b> 切り替え\nショートカット: <b>%shortcut(editor.toggle_before_after)%</b>
 METADATA_LOAD_ERROR;エラー %1 からメタデータ読込に失敗: %2
 METADATA_SAVE_ERROR;エラー %1 にメタデータ書込に失敗: %2
 MONITOR_PROFILE_SYSTEM;システムのデフォルト
@@ -1367,7 +1367,7 @@ SESSION_LABEL;セッション
 SHCSELECTOR_TOOLTIP;この3つのスライダーの位置をリセットするには\nマウスの右ボタンをクリック
 SOFTPROOF_GAMUTCHECK_MONITOR_TOOLTIP;モニタープロファイルに対する色空間外のピクセルをハイライト表示します
 SOFTPROOF_GAMUTCHECK_TOOLTIP;ソフトプルーフが有効な場合 ソフトプルーフプロファイル色域外の色のピクセルを\nソフトプルーフが無効な場合 出力プロファイル色域外の色のピクセルをハイライトで表示します
-SOFTPROOF_TOOLTIP;ソフトプルーフィングは特定のプリンターもしくはモニターでのイメージをシミュレートします. \n但し 環境設定>カラーマネジメントでそれらに合った適切なプロファイルを設定する必要があります.\n(ソフトプルーフィングプロファイルを変更するには <b>Ctrl</b> を押しながらクリックしてください)
+SOFTPROOF_TOOLTIP;ソフトプルーフィングは特定のプリンターもしくはモニターでのイメージをシミュレートします. \n但し 環境設定>カラーマネジメントでそれらに合った適切なプロファイルを設定する必要があります.\n(ソフトプルーフィングプロファイルを変更するには <b>%primary%</b> を押しながらクリックしてください)
 THRESHOLDSELECTOR_B;下
 THRESHOLDSELECTOR_BL;下-左
 THRESHOLDSELECTOR_BR;下-右
@@ -1377,11 +1377,11 @@ THRESHOLDSELECTOR_TL;上-左
 THRESHOLDSELECTOR_TR;上-右
 TOOL_SHORTCUT_HELP_HEADER;ツールショートカット:\n(所定のキーを押したままスライダーを +/- で調節するか マウスホイールで調節する)\n
 TOOLBAR_TOOLTIP_COLORPICKER;ロック式カラーピッカー\n\n有効にすると:\nプレビュー画像上でマウスを左クリックするとカラーピッカーが追加されます. \n左のボタンを押しながらマウスを動かすとカラーピッカーも移動します\nカラーピッカーを削除する時はマウスを右クリックします\nカラーピッカー全てを削除する場合は Shiftボタンを押しながらマウスを右クリックします\nカラーピッカーのマーク以外の部分でマウスを右クリックすれば ハンドツールに戻ります
-TOOLBAR_TOOLTIP_CROP;切り抜き範囲選択\nショートカット:  <b>Shift-c</b>\n切抜き範囲の移動は<b>マウスでドラッグ</b>する\n切抜き範囲の変更は範囲の境界線を動かす
-TOOLBAR_TOOLTIP_HAND;手の平ツール\nショートカット:  <b>h</b>
-TOOLBAR_TOOLTIP_PERSPECTIVE;<b>遠近歪み補正</b>.\nショートカット: <b>Shift-p</b>\n\n遠近歪みを補正するコントロールラインを編集する.
-TOOLBAR_TOOLTIP_STRAIGHTEN;<b>直線選択</b> / <b>角度補正</b>\nショートカット: <b>Shift-s</b>\nプレビュー画像上にガイド線を描画し 垂直または水平方向を指示します. 回転角度は ガイド線の隣に表示されます. 回転の中心は プレビュー画像の中心です
-TOOLBAR_TOOLTIP_WB;スポット･ホワイトバランス\nショートカット:  <b>Shift-w</b>
+TOOLBAR_TOOLTIP_CROP;切り抜き範囲選択\nショートカット:  <b>%shortcut(toolbar.crop)%</b>\n切抜き範囲の移動は<b>マウスでドラッグ</b>する\n切抜き範囲の変更は範囲の境界線を動かす
+TOOLBAR_TOOLTIP_HAND;手の平ツール\nショートカット:  <b>%shortcut(toolbar.hand)%</b>
+TOOLBAR_TOOLTIP_PERSPECTIVE;<b>遠近歪み補正</b>.\nショートカット: <b>%shortcut(toolbar.perspective)%</b>\n\n遠近歪みを補正するコントロールラインを編集する.
+TOOLBAR_TOOLTIP_STRAIGHTEN;<b>直線選択</b> / <b>角度補正</b>\nショートカット: <b>%shortcut(toolbar.straighten)%</b>\nプレビュー画像上にガイド線を描画し 垂直または水平方向を指示します. 回転角度は ガイド線の隣に表示されます. 回転の中心は プレビュー画像の中心です
+TOOLBAR_TOOLTIP_WB;スポット･ホワイトバランス\nショートカット:  <b>%shortcut(toolbar.white_balance_picker)%</b>
 TP_SATURATION_LABEL;彩度/自然な彩度
 TP_BRIGHTCONTRSAT_CONTRAST;コントラスト
 TP_SATURATION_SATURATION;彩度 (Saturation)
@@ -1747,7 +1747,7 @@ TP_LABMASKS_DELTAE_PICK;Pick
 TP_LABMASKS_DELTAE_CHAN_WEIGHT;デルタE (色差) の計算にウエイト付け
 TP_LABMASKS_DELTAE_TOOLTIP;類似色領域を選択\n(CIELABデルタE メトリックに準拠)
 TP_LABMASKS_DRAWNMASK;ブラシマスク
-TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;画面上ブラシ描画のオン/オフ\n\n<i>マウス使用時:</i>\n- <b>Altキーを</b>押したままにすると一時的に "消しゴムモード"になります.\n- 直線は<b>Shiftキー</b>を押しながら描きます\n- <b>Ctrl+マウスホイール</b>でブラシの太さを変えられます,\n- <b>Ctrl+Shift+マウスホイール</b>でブラシの硬さ (hardness) を変えられます\n- <b>Ctrl+クリック</b>でパラメータを変えずに新しいストロークグループを開始します\n(そして同じエリアに複数のストロークが追加できます)\n- <b>第3ボタン</b>を押してキャンバスの描画を停止します\n\n<i>感圧デバイスを使う場合:</i>\n- <b>第1ボタン</b>で "消しゴムモード"のオンオフを行います\n- <b>Shiftキー</b>を押しながら直線を描きます\n- <b>Alt+第1ボタン</b>でブラシの太さを太くします, そして\n- <b>Alt+第2ボタン</b>で細くします\n- <b>第2ボタン</b>で感圧感度モードを切り替えます: オフ, 硬さ (hardness), 太さ (<b>Shift</b>を押すと逆順になります)\n- <b>Ctrl+第2ボタン</b>でキャンバス上の描画を停止します
+TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;画面上ブラシ描画のオン/オフ\n\n<i>マウス使用時:</i>\n- <b>Altキーを</b>押したままにすると一時的に "消しゴムモード"になります.\n- 直線は<b>Shiftキー</b>を押しながら描きます\n- <b>%primary%+マウスホイール</b>でブラシの太さを変えられます,\n- <b>%primary%+Shift+マウスホイール</b>でブラシの硬さ (hardness) を変えられます\n- <b>%primary%+クリック</b>でパラメータを変えずに新しいストロークグループを開始します\n(そして同じエリアに複数のストロークが追加できます)\n- <b>第3ボタン</b>を押してキャンバスの描画を停止します\n\n<i>感圧デバイスを使う場合:</i>\n- <b>第1ボタン</b>で "消しゴムモード"のオンオフを行います\n- <b>Shiftキー</b>を押しながら直線を描きます\n- <b>Alt+第1ボタン</b>でブラシの太さを太くします, そして\n- <b>Alt+第2ボタン</b>で細くします\n- <b>第2ボタン</b>で感圧感度モードを切り替えます: オフ, 硬さ (hardness), 太さ (<b>Shift</b>を押すと逆順になります)\n- <b>%primary%+第2ボタン</b>でキャンバス上の描画を停止します
 TP_LABMASKS_DRAWNMASK_PEN_SETTINGS;ブラシ設定
 TP_LABMASKS_DRAWNMASK_RESET_TIP;すべての軌跡を消去
 TP_LABMASKS_DRAWNMASK_UNDO_TIP;最後の軌跡を消去
@@ -1817,7 +1817,7 @@ TP_PERSPECTIVE_AUTO_BOTH_TOOLTIP;水平および垂直
 TP_PERSPECTIVE_AUTO_HORIZONTAL_TOOLTIP;水平
 TP_PERSPECTIVE_AUTO_VERTICAL_TOOLTIP;垂直
 TP_PERSPECTIVE_CONTROL_LINES;コントロール線
-TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>Ctrl</b>+<b>ドラッグ</b>: 新しい線の描画\n<b>右クリック</b>: 線の削除
+TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>%primary%</b>+<b>ドラッグ</b>: 新しい線の描画\n<b>右クリック</b>: 線の削除
 TP_PERSPECTIVE_CROPFACTOR;35mm換算倍率 (クロップ係数)
 TP_PERSPECTIVE_FLENGTH;焦点距離
 TP_PERSPECTIVE_HORIZONTAL;水平
@@ -1962,7 +1962,7 @@ TP_RGBCURVES_RED;R
 TP_ROTATE_DEGREE;角度
 TP_ROTATE_LABEL;回転
 TP_ROTATE_SELECTLINE;直線選択･角度補正ツール
-TP_SAVEDIALOG_OK_TIP;ショートカット <b>Ctrl-Enter</b>
+TP_SAVEDIALOG_OK_TIP;ショートカット <b>%shortcut(saveas.ok)%</b>
 TP_SHARPENING_AMOUNT;適用量
 TP_SHARPENING_BLUR;ぼかし (Blur) の半径
 TP_SHARPENING_CONTRAST;コントラストの閾値

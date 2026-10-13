@@ -17,6 +17,7 @@
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "thresholdadjuster.h"
+#include "shortcutsmanager.h"
 #include "../engine/rtengine.h"
 #include "guiutils.h"
 #include "../utils/multilangmgr.h"
@@ -189,7 +190,7 @@ void ThresholdAdjuster::resetPressed(GdkEventButton *event)
 
     afterReset = true;
 
-    if ((event != nullptr) && (event->state & GDK_CONTROL_MASK) &&
+    if ((event != nullptr) && (event->state & ShortcutsManager::primaryMask()) &&
         (event->button == 1))
     // CTRL pressed : resetting to current default value
     {

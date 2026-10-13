@@ -18,6 +18,7 @@
  */
 
 #include "spot.h"
+#include "shortcutsmanager.h"
 #include "../engine/refreshmap.h"
 #include "../engine/rt_math.h"
 #include "edit.h"
@@ -657,7 +658,7 @@ bool Spot::button1Pressed(int modifierKey)
     EditDataProvider *editProvider = getEditProvider();
 
     if (editProvider) {
-        if (lastObject == -1 && (modifierKey & GDK_CONTROL_MASK)) {
+        if (lastObject == -1 && (modifierKey & ShortcutsManager::primaryMask())) {
             draggedSide = DraggedSide::SOURCE;
             addNewEntry();
             EditSubscriber::action = ES_ACTION_DRAGGING;
@@ -718,7 +719,7 @@ bool Spot::button3Pressed(int modifierKey)
         return false;
     }
 
-    if ((modifierKey & GDK_CONTROL_MASK) &&
+    if ((modifierKey & ShortcutsManager::primaryMask()) &&
         (EditSubscriber::mouseOverGeometry.at(lastObject) == &targetMODisc ||
          lastObject >= STATIC_MO_OBJ_NBR)) {
         lastObject = SOURCE_DISC;

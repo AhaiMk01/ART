@@ -21,6 +21,7 @@
 #include <cmath>
 
 #include "../utils/multilangmgr.h"
+#include "shortcutsmanager.h"
 #include "mycurve.h"
 #include "thresholdselector.h"
 
@@ -642,7 +643,7 @@ bool ThresholdSelector::on_motion_notify_event(GdkEventMotion *event)
         double dX = ((event->x - tmpX) * dRange) / iw;
 
         // slow motion if CTRL is pressed
-        if (event->state & Gdk::CONTROL_MASK) {
+        if (event->state & ShortcutsManager::primaryMask()) {
             dX *= 0.05;
         }
 

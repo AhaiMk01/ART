@@ -104,7 +104,7 @@ void SoftLight::toolReset(bool to_initial)
 
 void SoftLight::registerShortcuts(ToolShortcutManager *mgr)
 {
-    mgr->addShortcut(GDK_KEY_o, this, strength);
+    mgr->addShortcut("tool.softlight.strength", this, strength);
 }
 
 

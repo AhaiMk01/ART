@@ -21,6 +21,7 @@
 #include "maskspanel.h"
 #include "../engine/iccstore.h"
 #include "eventmapper.h"
+#include "shortcutsmanager.h"
 
 #include <iostream>
 #include <memory>
@@ -446,31 +447,26 @@ public:
             sigc::mem_fun(*this, &DrawnMaskPanel::on_hide));
 
         add_events(Gdk::KEY_PRESS_MASK);
-        const auto keypress = [this](GdkEventKey *evt) -> bool {
-            bool ctrl = evt->state & GDK_CONTROL_MASK;
-            bool shift = evt->state & GDK_SHIFT_MASK;
-            bool alt = evt->state & GDK_MOD1_MASK;
-
-            if (ctrl && !alt) {
-                switch (getKeyval(evt)) {
-                case GDK_KEY_z:
-                case GDK_KEY_Z:
-                    if (shift) {
-                        on_reset();
-                    } else {
-                        on_undo();
-                    }
-                    return true;
-                }
-            }
-            return false;
-        };
+        auto sm = ShortcutsManager::getInstance();
+        sm->bind(this, "drawnmask.undo", [this](GdkEventKey *) {
+            on_undo();
+            return true;
+        });
+        sm->bind(this, "drawnmask.reset", [this](GdkEventKey *) {
+            on_reset();
+            return true;
+        });
         signal_key_press_event().connect(
-            sigc::slot<bool, GdkEventKey *>(keypress), false);
+            [this](GdkEventKey *evt) -> bool {
+                return ShortcutsManager::getInstance()->dispatch(
+                    evt, ShortcutPhase::Before, {{"drawnmask", this}});
+            },
+            false);
     }
 
     ~DrawnMaskPanel()
     {
+        ShortcutsManager::getInstance()->unbindOwner(this);
         brush_preview_clear_conn_.disconnect();
         for (auto geometry : visibleGeometry) {
             delete geometry;
@@ -503,7 +499,7 @@ public:
     bool mouseOver(int modifierKey) override
     {
         if (pressure_mode_ == PRESSURE_OFF) {
-            bool ctrl = modifierKey & GDK_CONTROL_MASK;
+            bool ctrl = modifierKey & ShortcutsManager::primaryMask();
             bool alt = modifierKey & GDK_MOD1_MASK;
             if ((!ctrl && alt) != prev_erase_) {
                 prev_erase_ = (!ctrl && alt);
@@ -523,7 +519,7 @@ public:
         cur_pressure_ = pressure;
         EditSubscriber::action = ES_ACTION_DRAGGING;
         undo_stack_.push_back(mask_->strokes.size());
-        bool ctrl = modifierKey & GDK_CONTROL_MASK;
+        bool ctrl = modifierKey & ShortcutsManager::primaryMask();
         bool shift = modifierKey & GDK_SHIFT_MASK;
         bool alt = modifierKey & GDK_MOD1_MASK;
         bool dragging = shift && !mask_->strokes.empty();
@@ -561,7 +557,7 @@ public:
     bool button2Pressed(int modifierKey, double pressure) override
     {
         cur_pressure_ = pressure;
-        bool ctrl = modifierKey & GDK_CONTROL_MASK;
+        bool ctrl = modifierKey & ShortcutsManager::primaryMask();
         bool alt = modifierKey & GDK_MOD1_MASK;
         if (std::isnan(pressure)) {
             update_pressure(PRESSURE_OFF);
@@ -579,7 +575,7 @@ public:
     bool button3Pressed(int modifierKey, double pressure) override
     {
         cur_pressure_ = pressure;
-        bool ctrl = modifierKey & GDK_CONTROL_MASK;
+        bool ctrl = modifierKey & ShortcutsManager::primaryMask();
         bool alt = modifierKey & GDK_MOD1_MASK;
         bool shift = modifierKey & GDK_SHIFT_MASK;
         if (!std::isnan(pressure) && !ctrl) {
@@ -616,7 +612,7 @@ public:
                     (direction == GDK_SCROLL_SMOOTH && delta < 0.0);
         int incr = isUp ? 1 : -1;
 
-        bool ctrl = bstate & GDK_CONTROL_MASK;
+        bool ctrl = bstate & ShortcutsManager::primaryMask();
         bool shift = bstate & GDK_SHIFT_MASK;
 
         if (update_brush(ctrl, shift, incr)) {
@@ -1652,38 +1648,36 @@ MasksPanel::MasksPanel(MasksContentProvider *cp)
     }
 
     add_events(Gdk::KEY_PRESS_MASK);
-    const auto keypress = [this](GdkEventKey *evt) -> bool {
-        bool ctrl = evt->state & GDK_CONTROL_MASK;
-        bool shift = evt->state & GDK_SHIFT_MASK;
-        bool alt = evt->state & GDK_MOD1_MASK;
-
-        if (ctrl && !shift && !alt) {
-            switch (getKeyval(evt)) {
-            case GDK_KEY_m:
-            case GDK_KEY_M:
-                showMask->set_active(!showMask->get_active());
-                return true;
-            case GDK_KEY_x:
-            case GDK_KEY_X:
-                if (selected_ < masks_.size()) {
-                    listEdited = true;
-                    auto it = list_model_->children().begin();
-                    for (size_t i = 0; i < selected_; ++i) {
-                        ++it;
-                    }
-                    onListEnabledToggled(Gtk::TreePath(it).to_string());
-                    maskShow(selected_, true);
-                }
-                return true;
+    auto sm = ShortcutsManager::getInstance();
+    sm->bind(this, "masks.toggle_show", [this](GdkEventKey *) {
+        showMask->set_active(!showMask->get_active());
+        return true;
+    });
+    sm->bind(this, "masks.toggle_selected_enabled", [this](GdkEventKey *) {
+        if (selected_ < masks_.size()) {
+            listEdited = true;
+            auto it = list_model_->children().begin();
+            for (size_t i = 0; i < selected_; ++i) {
+                ++it;
             }
+            onListEnabledToggled(Gtk::TreePath(it).to_string());
+            maskShow(selected_, true);
         }
-        return false;
-    };
-    signal_key_press_event().connect(sigc::slot<bool, GdkEventKey *>(keypress),
-                                     false);
+        return true;
+    });
+    signal_key_press_event().connect(
+        [this](GdkEventKey *evt) -> bool {
+            return ShortcutsManager::getInstance()->dispatch(
+                evt, ShortcutPhase::Before, {{"maskspanel", this}});
+        },
+        false);
 }
 
-MasksPanel::~MasksPanel() { delete areaMaskToggle; }
+MasksPanel::~MasksPanel()
+{
+    ShortcutsManager::getInstance()->unbindOwner(this);
+    delete areaMaskToggle;
+}
 
 ToolPanelListener *MasksPanel::getListener()
 {
@@ -2399,7 +2393,7 @@ bool MasksPanel::scroll(int modifierKey, GdkScrollDirection direction,
     if (provider) {
         bool is_rectangle = getGeometryType() == Shape::Type::RECTANGLE;
         bool shift = modifierKey & GDK_SHIFT_MASK;
-        bool ctrl = modifierKey & GDK_CONTROL_MASK;
+        bool ctrl = modifierKey & ShortcutsManager::primaryMask();
         bool alt = modifierKey & GDK_MOD1_MASK;
 
         int imW, imH;

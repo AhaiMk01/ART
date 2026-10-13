@@ -144,6 +144,7 @@ private:
 class Inspector: public Gtk::VBox {
 public:
     Inspector(FileCatalog *filecatalog);
+    ~Inspector() override;
 
     void mouseMove(art::engine::Coord2D pos, int transform);
     void switchImage(const Glib::ustring &fullPath);
@@ -165,7 +166,7 @@ public:
     void setDisplayMode(DisplayMode m);
     void setZoomFit(bool yes);
 
-    bool handleShortcutKey(GdkEventKey *event);
+    void bindShortcuts();
 
     static void popover(const ThumbBrowserEntryBase *entry);
 

@@ -79,6 +79,7 @@ protected:
 
 public:
     ToolBar();
+    ~ToolBar() override;
 
     void setTool(ToolMode tool);
     ToolMode getTool() { return current == TMPerspective ? TMHand : current; }
@@ -95,7 +96,8 @@ public:
     void startEditMode();
     void stopEditMode();
 
-    bool handleShortcutKey(GdkEventKey *event);
+private:
+    void bindShortcuts();
 };
 
 

@@ -289,6 +289,7 @@ public:
                                      eRTNav nextPrevious);
 
     bool handleShortcutKey(GdkEventKey *event);
+    void bindShortcuts();
 
     bool CheckSidePanelsVisibility();
     void toggleSidePanels();

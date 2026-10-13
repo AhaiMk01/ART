@@ -2,6 +2,7 @@
  *  This file is part of RawTherapee.
  */
 #include "gradient.h"
+#include "shortcutsmanager.h"
 #include "../engine/rt_math.h"
 #include "eventmapper.h"
 #include "rtimage.h"
@@ -369,7 +370,7 @@ bool Gradient::button1Pressed(int modifierKey)
 
     EditDataProvider *provider = getEditProvider();
 
-    if (!(modifierKey & GDK_CONTROL_MASK)) {
+    if (!(modifierKey & ShortcutsManager::primaryMask())) {
         // button press is valid (no modifier key)
         PolarCoord pCoord;
         int imW, imH;

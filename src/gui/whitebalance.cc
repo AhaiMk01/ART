@@ -743,8 +743,8 @@ void WhiteBalance::fillMethods()
 
 void WhiteBalance::registerShortcuts(ToolShortcutManager *mgr)
 {
-    mgr->addShortcut(GDK_KEY_t, this, temp);
-    mgr->addShortcut(GDK_KEY_i, this, green);
+    mgr->addShortcut("tool.whitebalance.temperature", this, temp);
+    mgr->addShortcut("tool.whitebalance.tint", this, green);
 }
 
 

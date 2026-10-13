@@ -92,6 +92,7 @@ public:
     void rightClicked(ThumbBrowserEntryBase *entry) override;
     void doubleClicked(ThumbBrowserEntryBase *entry) override;
     bool keyPressed(GdkEventKey *event) override;
+    void bindShortcuts();
     void buttonPressed(LWButton *button, int actionCode,
                        void *actionData, int bstate) override;
     void redrawNeeded(LWButton *button) override;

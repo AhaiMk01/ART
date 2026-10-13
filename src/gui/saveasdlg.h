@@ -33,6 +33,7 @@ namespace art { namespace gui {
 class SaveAsDialog: public Gtk::Dialog, public FormatChangeListener {
 public:
     SaveAsDialog(const Glib::ustring &initialDir, Gtk::Window *parent);
+    ~SaveAsDialog() override;
 
     Glib::ustring getFileName();
     Glib::ustring getDirectory();

@@ -22,6 +22,7 @@
 #include "../utils/multilangmgr.h"
 #include "options.h"
 #include "rtwindow.h"
+#include "shortcutsmanager.h"
 #include "toolpanel.h"
 
 #include <map>
@@ -33,40 +34,7 @@ using namespace utils;
 
 extern Options options;
 
-ToolShortcutManager::ToolShortcutManager(RTWindow *parent)
-    : parent_(parent), cur_key_(0), cur_tool_(nullptr), cur_adjuster_(nullptr)
-{
-}
-
-void ToolShortcutManager::reset(bool clear)
-{
-    cur_key_ = 0;
-    cur_tool_ = nullptr;
-    cur_adjuster_ = nullptr;
-    if (conn_.connected()) {
-        conn_.disconnect();
-    }
-    if (clear) {
-        action_map_.clear();
-    }
-}
-
-void ToolShortcutManager::addShortcut(guint keyval, FoldableToolPanel *tool,
-                                      Adjuster *adjuster)
-{
-    action_map_[keyval] = std::make_pair(tool, adjuster);
-}
-
 namespace {
-
-bool has_modifiers(GdkEventKey *event)
-{
-#if defined(__APPLE__)
-    return event->state & (GDK_CONTROL_MASK | GDK_MOD1_MASK | GDK_MOD2_MASK);
-#else
-    return event->state & (GDK_CONTROL_MASK | GDK_MOD1_MASK);
-#endif
-}
 
 enum {
     DIRECTION_ZERO = 0,
@@ -77,78 +45,113 @@ enum {
 
 } // namespace
 
+
+ToolShortcutManager::ToolShortcutManager(RTWindow *parent)
+    : parent_(parent), cur_tool_(nullptr), cur_adjuster_(nullptr)
+{
+    auto sm = ShortcutsManager::getInstance();
+    sm->bind(this, "tool.help", [this](GdkEventKey *) {
+        showHelp();
+        return true;
+    });
+    // +/-/reset while a key is held (the dispatch is only asked then)
+    const auto value = [this, sm](const char *id, int direction) {
+        sm->bind(this, id, [this, direction](GdkEventKey *) {
+            doit(direction);
+            return true;
+        });
+    };
+    value("tool.value_up", DIRECTION_UP);
+    value("tool.value_down", DIRECTION_DOWN);
+    value("tool.value_zero", DIRECTION_ZERO);
+    value("tool.value_initial", DIRECTION_INITIAL);
+}
+
+ToolShortcutManager::~ToolShortcutManager()
+{
+    ShortcutsManager::getInstance()->unbindOwner(this);
+    if (conn_.connected()) {
+        conn_.disconnect();
+    }
+}
+
+void ToolShortcutManager::reset(bool clear)
+{
+    cur_action_.clear();
+    cur_tool_ = nullptr;
+    cur_adjuster_ = nullptr;
+    if (conn_.connected()) {
+        conn_.disconnect();
+    }
+    if (clear) {
+        action_map_.clear();
+    }
+}
+
+void ToolShortcutManager::addShortcut(const std::string &action_id,
+                                      FoldableToolPanel *tool,
+                                      Adjuster *adjuster)
+{
+    action_map_[action_id] = std::make_pair(tool, adjuster);
+
+    // pressing the key arms the adjuster (and key repeat keeps it so)
+    ShortcutsManager::getInstance()->bind(
+        this, action_id, [this, action_id](GdkEventKey *) {
+            auto it = action_map_.find(action_id);
+            if (it == action_map_.end()) {
+                return false; // removed by reset(true)
+            }
+            if (cur_action_ != action_id) {
+                cur_action_ = action_id;
+                cur_tool_ = it->second.first;
+                cur_adjuster_ = it->second.second;
+            }
+            return true;
+        });
+}
+
+namespace {
+
+bool has_modifiers(GdkEventKey *event)
+{
+    return event->state &
+           (ShortcutsManager::getInstance()->primaryMask() |
+            GDK_CONTROL_MASK | GDK_MOD1_MASK);
+}
+
+} // namespace
+
 bool ToolShortcutManager::keyPressed(GdkEventKey *event)
 {
-    auto keyval = getKeyval(event);
-    if (keyval == GDK_KEY_F1 && !has_modifiers(event)) {
-        showHelp();
+    auto sm = ShortcutsManager::getInstance();
+
+    if (shouldHandleScroll() &&
+        sm->dispatch(event, ShortcutPhase::After, {{"tool-value", this}})) {
         return true;
     }
 
-    if (shouldHandleScroll()) {
-        switch (keyval) {
-        case GDK_KEY_plus:
-        case GDK_KEY_equal:
-        case GDK_KEY_KP_Add:
-            doit(DIRECTION_UP);
-            return true;
-        case GDK_KEY_asterisk:
-        case GDK_KEY_KP_Multiply:
-        case GDK_KEY_0:
-            doit(DIRECTION_ZERO);
-            return true;
-        case GDK_KEY_slash:
-        case GDK_KEY_KP_Divide:
-            doit(DIRECTION_INITIAL);
-            return true;
-        case GDK_KEY_minus:
-        case GDK_KEY_KP_Subtract:
-            doit(DIRECTION_DOWN);
-            return true;
-        default:
-            break;
-        }
+    if (sm->dispatch(event, ShortcutPhase::After, {{"tool", this}})) {
+        return true;
     }
 
+    // any other key (without Ctrl/Alt/Cmd) lets go of the adjuster
     if (has_modifiers(event)) {
         return false;
     }
-
-    if (cur_key_ == keyval) {
-        return true;
-    }
-
-    auto it = action_map_.find(keyval);
-    if (it != action_map_.end()) {
-        cur_key_ = keyval;
-        cur_tool_ = it->second.first;
-        cur_adjuster_ = it->second.second;
-        return true;
-    } else {
-        return keyReleased(event);
-    }
+    return keyReleased(event);
 }
 
 bool ToolShortcutManager::keyReleased(GdkEventKey *event)
 {
-    if (shouldHandleScroll()) {
-        switch (getKeyval(event)) {
-        case GDK_KEY_plus:
-        case GDK_KEY_equal:
-        case GDK_KEY_KP_Add:
-        case GDK_KEY_asterisk:
-        case GDK_KEY_KP_Multiply:
-        case GDK_KEY_slash:
-        case GDK_KEY_KP_Divide:
-        case GDK_KEY_minus:
-        case GDK_KEY_KP_Subtract:
-            return true;
-        default:
-            break;
-        }
+    // the release of +/-/reset keys while an adjuster is held is not ours to
+    // act on, but must not let go of it
+    if (shouldHandleScroll() &&
+        ShortcutsManager::getInstance()->matches(event, ShortcutPhase::After,
+                                                 "tool-value")) {
+        return true;
     }
 
-    cur_key_ = 0;
+    cur_action_.clear();
     cur_tool_ = nullptr;
     cur_adjuster_ = nullptr;
 
@@ -172,7 +175,8 @@ bool ToolShortcutManager::scrollPressed(GdkEventScroll *event)
 
 bool ToolShortcutManager::shouldHandleScroll() const
 {
-    return (cur_key_ != 0 && cur_tool_ != nullptr && cur_adjuster_ != nullptr);
+    return (!cur_action_.empty() && cur_tool_ != nullptr &&
+            cur_adjuster_ != nullptr);
 }
 
 void ToolShortcutManager::doit(int direction, int speed)
@@ -209,9 +213,12 @@ void ToolShortcutManager::showHelp()
     Glib::ustring msg = M("TOOL_SHORTCUT_HELP_HEADER");
     std::map<Glib::ustring, std::vector<Glib::ustring>> helpmap;
     for (auto &p : action_map_) {
+        auto key = ShortcutsManager::getInstance()->label(p.first);
+        if (key.empty()) {
+            continue; // disabled
+        }
         auto header = p.second.first->getUILabel();
-        auto value = Glib::ustring(1, char(p.first)) + ": " +
-                     p.second.second->getLabel();
+        auto value = key + ": " + p.second.second->getLabel();
         helpmap[header].push_back(value);
     }
 

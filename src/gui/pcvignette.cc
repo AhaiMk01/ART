@@ -2,6 +2,7 @@
  *  This file is part of RawTherapee.
  */
 #include "pcvignette.h"
+#include "shortcutsmanager.h"
 #include "eventmapper.h"
 
 namespace art { namespace gui {
@@ -272,7 +273,7 @@ bool PCVignette::button1Pressed(int modifierKey)
 
     // EditDataProvider *provider = getEditProvider();
 
-    if (!(modifierKey & GDK_CONTROL_MASK)) {
+    if (!(modifierKey & ShortcutsManager::primaryMask())) {
         // button press is valid (no modifier key)
         int im_x, im_y;
         int imW, imH;

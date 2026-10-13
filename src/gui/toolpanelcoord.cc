@@ -27,6 +27,7 @@
 #include "../engine/refreshmap.h"
 #include "../utils/multilangmgr.h"
 #include "options.h"
+#include "shortcutsmanager.h"
 
 namespace art { namespace gui {
 using namespace utils;
@@ -60,6 +61,7 @@ ToolPanelCoordinator::ToolPanelCoordinator(bool batch)
     : ipc(nullptr), favoritePanelSW(nullptr), hasChanged(false),
       editDataProvider(nullptr)
 {
+    bindShortcuts();
 
     favoritePanel = Gtk::manage(new ToolVBox());
     exposurePanel = Gtk::manage(new ToolVBox());
@@ -394,6 +396,7 @@ void ToolPanelCoordinator::addfavoritePanel(Gtk::Box *where,
 
 ToolPanelCoordinator::~ToolPanelCoordinator()
 {
+    ShortcutsManager::getInstance()->unbindOwner(this);
     idle_register.destroy();
 
     closeImage();
@@ -1067,66 +1070,30 @@ void ToolPanelCoordinator::foldAllButOne(Gtk::Box *parent,
     }
 }
 
-bool ToolPanelCoordinator::handleShortcutKey(GdkEventKey *event)
+void ToolPanelCoordinator::bindShortcuts()
 {
-
-    // bool ctrl = event->state & GDK_CONTROL_MASK;  temporarily removed because
-    // unused bool shift = event->state & GDK_SHIFT_MASK;   temporarily removed
-    // because unused
-    bool alt = event->state & GDK_MOD1_MASK;
-
-    if (alt) {
-        switch (getKeyval(event)) {
-        case GDK_KEY_u:
-            if (favoritePanelSW) {
+    auto sm = ShortcutsManager::getInstance();
+    const auto tab = [this, sm](const char *id, Gtk::ScrolledWindow *const *sw) {
+        sm->bind(this, id, [this, sw](GdkEventKey *) {
+            if (*sw) {
                 toolPanelNotebook->set_current_page(
-                    toolPanelNotebook->page_num(*favoritePanelSW));
+                    toolPanelNotebook->page_num(**sw));
             }
             return true;
-
-        case GDK_KEY_e:
-            toolPanelNotebook->set_current_page(
-                toolPanelNotebook->page_num(*exposurePanelSW));
-            return true;
-
-        case GDK_KEY_d:
-            toolPanelNotebook->set_current_page(
-                toolPanelNotebook->page_num(*detailsPanelSW));
-            return true;
-
-        case GDK_KEY_c:
-            toolPanelNotebook->set_current_page(
-                toolPanelNotebook->page_num(*colorPanelSW));
-            return true;
-
-        case GDK_KEY_t:
-            toolPanelNotebook->set_current_page(
-                toolPanelNotebook->page_num(*transformPanelSW));
-            return true;
-
-        case GDK_KEY_r:
-            toolPanelNotebook->set_current_page(
-                toolPanelNotebook->page_num(*rawPanelSW));
-            return true;
-
-        case GDK_KEY_f:
-            toolPanelNotebook->set_current_page(
-                toolPanelNotebook->page_num(*effectsPanelSW));
-            return true;
-
-        case GDK_KEY_x:
-            toolPanelNotebook->set_current_page(
-                toolPanelNotebook->page_num(*localPanelSW));
-            return true;
-
-        case GDK_KEY_m:
-            toolPanelNotebook->set_current_page(
-                toolPanelNotebook->page_num(*metadata));
-            return true;
-        }
-    }
-
-    return false;
+        });
+    };
+    tab("toolpanel.tab_favorites", &favoritePanelSW);
+    tab("toolpanel.tab_exposure", &exposurePanelSW);
+    tab("toolpanel.tab_details", &detailsPanelSW);
+    tab("toolpanel.tab_color", &colorPanelSW);
+    tab("toolpanel.tab_transform", &transformPanelSW);
+    tab("toolpanel.tab_raw", &rawPanelSW);
+    tab("toolpanel.tab_effects", &effectsPanelSW);
+    tab("toolpanel.tab_local", &localPanelSW);
+    sm->bind(this, "toolpanel.tab_metadata", [this](GdkEventKey *) {
+        toolPanelNotebook->set_current_page(toolPanelNotebook->page_num(*metadata));
+        return true;
+    });
 }
 
 void ToolPanelCoordinator::updateVScrollbars(bool hide)

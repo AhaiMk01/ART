@@ -181,11 +181,11 @@ void ToneEqualizer::toolReset(bool to_initial)
 
 void ToneEqualizer::registerShortcuts(ToolShortcutManager *mgr)
 {
-    mgr->addShortcut(GDK_KEY_1, this, bands[0]);
-    mgr->addShortcut(GDK_KEY_2, this, bands[1]);
-    mgr->addShortcut(GDK_KEY_3, this, bands[2]);
-    mgr->addShortcut(GDK_KEY_4, this, bands[3]);
-    mgr->addShortcut(GDK_KEY_5, this, bands[4]);
+    mgr->addShortcut("tool.toneequalizer.band.1", this, bands[0]);
+    mgr->addShortcut("tool.toneequalizer.band.2", this, bands[1]);
+    mgr->addShortcut("tool.toneequalizer.band.3", this, bands[2]);
+    mgr->addShortcut("tool.toneequalizer.band.4", this, bands[3]);
+    mgr->addShortcut("tool.toneequalizer.band.5", this, bands[4]);
 }
 
 

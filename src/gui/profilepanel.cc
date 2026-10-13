@@ -17,6 +17,7 @@
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "profilepanel.h"
+#include "shortcutsmanager.h"
 #include "clipboard.h"
 #include "../utils/multilangmgr.h"
 #include "options.h"
@@ -394,7 +395,7 @@ void ProfilePanel::save_clicked(GdkEventButton *event)
             // }
 
             if (toSave) {
-                if (event->state & Gdk::CONTROL_MASK) {
+                if (event->state & ShortcutsManager::primaryMask()) {
                     // opening the partial paste dialog window
                     if (!partialProfileDlg) {
                         partialProfileDlg =
@@ -533,7 +534,7 @@ void ProfilePanel::load_clicked(GdkEventButton *event)
     if (result == Gtk::RESPONSE_OK) {
         Glib::ustring fname = dialog.get_filename();
 
-        if (event->state & Gdk::CONTROL_MASK) {
+        if (event->state & ShortcutsManager::primaryMask()) {
             // opening the partial paste dialog window
             if (!partialProfileDlg) {
                 partialProfileDlg =
@@ -560,7 +561,7 @@ void ProfilePanel::load_clicked(GdkEventButton *event)
 
         if (!err) {
             auto pl = dynamic_cast<art::engine::ProgressListener *>(parent);
-            if (event->state & Gdk::CONTROL_MASK) {
+            if (event->state & ShortcutsManager::primaryMask()) {
                 if (!partialProfileDlg) {
                     partialProfileDlg =
                         new PartialPasteDlg(Glib::ustring(), parent);
@@ -599,7 +600,7 @@ void ProfilePanel::paste_clicked(GdkEventButton *event)
         return;
     }
 
-    if (event->state & Gdk::CONTROL_MASK) {
+    if (event->state & ShortcutsManager::primaryMask()) {
         if (!partialProfileDlg) {
             partialProfileDlg = new PartialPasteDlg(Glib::ustring(), parent);
         }
@@ -627,7 +628,7 @@ void ProfilePanel::paste_clicked(GdkEventButton *event)
 
     changeconn.block(prevState);
 
-    if ((event->state & Gdk::CONTROL_MASK) && partialProfileDlg) {
+    if ((event->state & ShortcutsManager::primaryMask()) && partialProfileDlg) {
         auto pe = partialProfileDlg->getParamsEdited();
         custom = new PEditedPartialProfile(pp, pe);
     } else {

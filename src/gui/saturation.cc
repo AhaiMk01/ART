@@ -119,8 +119,8 @@ void Saturation::toolReset(bool to_initial)
 
 void Saturation::registerShortcuts(ToolShortcutManager *mgr)
 {
-    mgr->addShortcut(GDK_KEY_s, this, saturation);
-    mgr->addShortcut(GDK_KEY_v, this, vibrance);
+    mgr->addShortcut("tool.saturation.saturation", this, saturation);
+    mgr->addShortcut("tool.saturation.vibrance", this, vibrance);
 }
 
 

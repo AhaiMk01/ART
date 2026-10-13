@@ -163,6 +163,9 @@ set(NONCLISOURCEFILES
     filecatalog_rename.cc
     focusmask.cc
     shortcutmanager.cc
+    shortcutsmanager.cc
+    shortcuttable.cc
+    shortcutdefs.cc
     session.cc
     thumbimgcache.cc
     clutparamspanel.cc
@@ -348,6 +351,21 @@ if(APPLE)
     target_link_libraries(art PRIVATE "-framework ApplicationServices -framework Foundation")
     target_link_libraries(art-cli PRIVATE "-framework Foundation")
 endif()
+
+# Unit tests of the shortcut table (pure logic: needs GDK's keyval helpers but
+# no display); run with `ctest -R shortcuts`
+add_executable(art-shortcuts-test EXCLUDE_FROM_ALL
+    test_shortcuts.cc
+    shortcuttable.cc
+    shortcutdefs.cc
+    ../engine/cJSON.c)
+target_link_libraries(art-shortcuts-test PRIVATE art_utils ${GTK_LIBRARIES} ${GLIB2_LIBRARIES} ${GLIBMM_LIBRARIES})
+if(APPLE)
+    target_link_libraries(art-shortcuts-test PRIVATE "-framework Foundation")
+endif()
+target_compile_definitions(art-shortcuts-test PRIVATE
+    ART_LANGUAGES_DIR="${PROJECT_SOURCE_DIR}/data/languages")
+add_test(NAME shortcuts COMMAND art-shortcuts-test)
 
 # Install executables
 if(APPLE AND NOT APPLE_NEW_BUNDLE)

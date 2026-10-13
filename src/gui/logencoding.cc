@@ -267,11 +267,11 @@ void LogEncoding::toolReset(bool to_initial)
 
 void LogEncoding::registerShortcuts(ToolShortcutManager *mgr)
 {
-    mgr->addShortcut(GDK_KEY_g, this, gain);
-    mgr->addShortcut(GDK_KEY_b, this, targetGray);
-    mgr->addShortcut(GDK_KEY_w, this, whiteEv);
-    mgr->addShortcut(GDK_KEY_d, this, blackEv);
-    mgr->addShortcut(GDK_KEY_k, this, highlightCompression);
+    mgr->addShortcut("tool.logencoding.gain", this, gain);
+    mgr->addShortcut("tool.logencoding.target_gray", this, targetGray);
+    mgr->addShortcut("tool.logencoding.white_ev", this, whiteEv);
+    mgr->addShortcut("tool.logencoding.black_ev", this, blackEv);
+    mgr->addShortcut("tool.logencoding.highlight_compression", this, highlightCompression);
 }
 
 

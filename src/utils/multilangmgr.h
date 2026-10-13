@@ -23,6 +23,7 @@
 #include <string>
 #include <vector>
 
+#include <functional>
 #include <glibmm/ustring.h>
 
 namespace art { namespace utils {
@@ -35,11 +36,24 @@ public:
     void load(const Glib::ustring &language,
               const std::vector<Glib::ustring> &fnames);
     Glib::ustring getStr(const std::string &key) const;
+
+    /// Strings may contain "%shortcut(action.id)%", which is replaced by what
+    /// the provider returns for the id: the key currently bound to that
+    /// action, so that tooltips follow the OS conventions and the user's
+    /// customisation. Without a provider the text is left as it is.
+    using ShortcutLabeler = std::function<Glib::ustring(const std::string &)>;
+    void setShortcutLabeler(ShortcutLabeler f) { shortcut_labeler_ = std::move(f); }
+
+    /// "%primary%" in a string becomes this: the name of the OS-convention
+    /// modifier ("Ctrl", or Cmd on macOS), for "%primary%-click" and the like.
+    void setPrimaryModifierName(const Glib::ustring &name) { primary_name_ = name; }
     static bool isOSLanguageDetectSupported();
     static Glib::ustring getOSUserLanguage();
 
 private:
     std::map<std::string, Glib::ustring> translations;
+    ShortcutLabeler shortcut_labeler_;
+    Glib::ustring primary_name_;
 };
 
 extern MultiLangMgr langMgr;

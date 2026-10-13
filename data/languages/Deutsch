@@ -137,7 +137,7 @@ FILEBROWSER_APPLYPROFILE;Profil anwenden
 FILEBROWSER_APPLYPROFILE_PARTIAL;Profil selektiv anwenden
 FILEBROWSER_AUTODARKFRAME;Automatisches Dunkelbild
 FILEBROWSER_AUTOFLATFIELD;Automatisches Weißbild
-FILEBROWSER_BROWSEPATHBUTTONHINT;Ansicht aktualisieren.\nTaste: <b>F5</b>
+FILEBROWSER_BROWSEPATHBUTTONHINT;Ansicht aktualisieren.\nTaste: <b>%shortcut(filecatalog.refresh)%</b>
 FILEBROWSER_BROWSEPATHHINT;Einen Pfad eingeben:\nTaste:\n<b>Strg + o</b>  Setzt den Cursor in das Eingabefeld\n<b>Enter</b> / <b>Strg + Enter</b>  Öffnet den Pfad\n<b>Esc</b>  Anderungen verwerfen\n<b>Shift + Esc</b>  Eingabefeld verlassen\n\nSchnellnavigation:\n<b>~</b>  'Home'-Verzeichnis des Benutzers\n<b>!</b>  Bilder-Verzeichnis des Benutzers
 FILEBROWSER_BROWSEPATH_RECURSIVE_TOOLTIP;Bilder in Unterverzeichnissen rekursiv suchen.
 FILEBROWSER_CACHE;Festplatten-Cache
@@ -223,22 +223,22 @@ FILEBROWSER_SHOWCOLORLABEL2HINT;Nur gelb markierte Bilder anzeigen.\nTaste: <b>A
 FILEBROWSER_SHOWCOLORLABEL3HINT;Nur grün markierte Bilder anzeigen.\nTaste: <b>Alt + 3</b>
 FILEBROWSER_SHOWCOLORLABEL4HINT;Nur blau markierte Bilder anzeigen.\nTaste: <b>Alt + 4</b>
 FILEBROWSER_SHOWCOLORLABEL5HINT;Nur violett markierte Bilder anzeigen.\nTaste: <b>Alt + 5</b>
-FILEBROWSER_SHOWDIRHINT;Alle Filter zurücksetzen.\nTaste: <b>d</b>
-FILEBROWSER_SHOWEDITEDHINT;Nur bearbeitete Bilder anzeigen.\nTaste: <b>7</b>
-FILEBROWSER_SHOWEDITEDNOTHINT;Nur unbearbeitete Bilder anzeigen.\nTaste: <b>6</b>
+FILEBROWSER_SHOWDIRHINT;Alle Filter zurücksetzen.\nTaste: <b>%shortcut(filecatalog.filter_clear)%</b>
+FILEBROWSER_SHOWEDITEDHINT;Nur bearbeitete Bilder anzeigen.\nTaste: <b>%shortcut(filecatalog.filter_edited)%</b>
+FILEBROWSER_SHOWEDITEDNOTHINT;Nur unbearbeitete Bilder anzeigen.\nTaste: <b>%shortcut(filecatalog.filter_not_edited)%</b>
 FILEBROWSER_SHOWEXIFINFO;Bildinformationen ein-/ausblenden.\n\nTaste: <b>i</b>
 FILEBROWSER_SHOWNOTTRASHHINT;Nur Bilder außerhalb des Papierkorbs anzeigen.
 FILEBROWSER_SHOWORIGINALHINT;Zeige nur das Originalbild.\n\nWenn mehrere Bilder mit gleichem Namen, aber unterschiedlichen Dateiendungen vorhanden sind, wird jenes als Original betrachtet, dessen Endung in der Liste <i>Einstellungen > Dateiverwaltung > Dateitypen anzeigen</i> am weitesten oben steht.
-FILEBROWSER_SHOWRANK1HINT;Nur mit 1 Stern bewertete Bilder anzeigen.\nTaste: <b>1</b>
-FILEBROWSER_SHOWRANK2HINT;Nur mit 2 Sternen bewertete Bilder anzeigen.\nTaste: <b>2</b>
-FILEBROWSER_SHOWRANK3HINT;Nur mit 3 Sternen bewertete Bilder anzeigen.\nTaste: <b>3</b>
-FILEBROWSER_SHOWRANK4HINT;Nur mit 4 Sternen bewertete Bilder anzeigen.\nTaste: <b>4</b>
-FILEBROWSER_SHOWRANK5HINT;Nur mit 5 Sternen bewertete Bilder anzeigen.\nTaste: <b>5</b>
+FILEBROWSER_SHOWRANK1HINT;Nur mit 1 Stern bewertete Bilder anzeigen.\nTaste: <b>%shortcut(filecatalog.filter_rank.1)%</b>
+FILEBROWSER_SHOWRANK2HINT;Nur mit 2 Sternen bewertete Bilder anzeigen.\nTaste: <b>%shortcut(filecatalog.filter_rank.2)%</b>
+FILEBROWSER_SHOWRANK3HINT;Nur mit 3 Sternen bewertete Bilder anzeigen.\nTaste: <b>%shortcut(filecatalog.filter_rank.3)%</b>
+FILEBROWSER_SHOWRANK4HINT;Nur mit 4 Sternen bewertete Bilder anzeigen.\nTaste: <b>%shortcut(filecatalog.filter_rank.4)%</b>
+FILEBROWSER_SHOWRANK5HINT;Nur mit 5 Sternen bewertete Bilder anzeigen.\nTaste: <b>%shortcut(filecatalog.filter_rank.5)%</b>
 FILEBROWSER_SHOWRECENTLYSAVEDHINT;Nur gespeicherte Bilder anzeigen.\nTaste: <b>Alt + 7</b>
 FILEBROWSER_SHOWRECENTLYSAVEDNOTHINT;Nur nicht gespeicherte Bilder anzeigen.\nTaste: <b>Alt</b> + <b>6</b>
 FILEBROWSER_SHOWTRASHHINT;Inhalt des Papierkorbs anzeigen.\nTaste: <b>Strg + t</b>
 FILEBROWSER_SHOWUNCOLORHINT;Nur unmarkierte Bilder anzeigen.\nTaste: <b>Alt + 0</b>
-FILEBROWSER_SHOWUNRANKHINT;Nur unbewertete Bilder anzeigen.\nTaste: <b>0</b>
+FILEBROWSER_SHOWUNRANKHINT;Nur unbewertete Bilder anzeigen.\nTaste: <b>%shortcut(filecatalog.filter_unranked)%</b>
 FILEBROWSER_SORT_DATE;Aufnahmedatum (älteste oben)
 FILEBROWSER_SORT_DATE_REV;Aufnahmedatum (neueste oben)
 FILEBROWSER_SORT_FILENAME;Dateiname (A-Z)
@@ -797,16 +797,16 @@ ICCPROFCREATOR_SLOPE;Steigung
 ICCPROFCREATOR_TRC_PRESET;Farbtonkennlinie:
 INSPECTOR_ENABLE_CMS;Farbmanagement aktivieren.
 INSPECTOR_FOCUS_MASK;Fokusmaske.\nTaste: <b>Shift + f</b>
-INSPECTOR_HISTOGRAM;Histogramm.\nTaste: <b>h</b>
+INSPECTOR_HISTOGRAM;Histogramm.\nTaste: <b>%shortcut(inspector.toggle_histogram)%</b>
 INSPECTOR_INFO;Bildinformationen ein-/ausblenden.\nTaste: <b>Shift + i</b>
-INSPECTOR_PREVIEW;Eingebettetes Vorschaubild verwenden.\nTaste: <b>j</b>
-INSPECTOR_RAW_CLIP;Clipping-Anzeige.\nTaste: <b>w</b>
-INSPECTOR_RAW_FILM;Schnelle RAW-Vorschau mit filmähnlicher Tonkurve.\nTaste: <b>f</b>
-INSPECTOR_RAW_LINEAR;Schnelle RAW-Vorschau mit linearer Tonkurve.\nTaste: <b>r</b>
-INSPECTOR_RAW_SHADOW;Schnelle RAW-Vorschau mit einer Anhebung der Schatten.\nTaste: <b>s</b>
-INSPECTOR_SPLIT;Geteilte Ansicht.\nTaste: <b>y</b>
-INSPECTOR_ZOOM_11;Zoom 100%.\nTaste: <b>z</b>
-INSPECTOR_ZOOM_FIT;An Fenster anpassen.\nTaste: <b>x</b>
+INSPECTOR_PREVIEW;Eingebettetes Vorschaubild verwenden.\nTaste: <b>%shortcut(inspector.mode_jpeg)%</b>
+INSPECTOR_RAW_CLIP;Clipping-Anzeige.\nTaste: <b>%shortcut(inspector.mode_raw_clip_warning)%</b>
+INSPECTOR_RAW_FILM;Schnelle RAW-Vorschau mit filmähnlicher Tonkurve.\nTaste: <b>%shortcut(inspector.mode_raw_film_curve)%</b>
+INSPECTOR_RAW_LINEAR;Schnelle RAW-Vorschau mit linearer Tonkurve.\nTaste: <b>%shortcut(inspector.mode_raw_linear)%</b>
+INSPECTOR_RAW_SHADOW;Schnelle RAW-Vorschau mit einer Anhebung der Schatten.\nTaste: <b>%shortcut(inspector.mode_raw_shadow_boost)%</b>
+INSPECTOR_SPLIT;Geteilte Ansicht.\nTaste: <b>%shortcut(inspector.toggle_split)%</b>
+INSPECTOR_ZOOM_11;Zoom 100%.\nTaste: <b>%shortcut(inspector.zoom_100)%</b>
+INSPECTOR_ZOOM_FIT;An Fenster anpassen.\nTaste: <b>%shortcut(inspector.zoom_fit)%</b>
 IPTCPANEL_CATEGORY;Kategorie
 IPTCPANEL_CATEGORYHINT;Beschreibt das Thema des Bildes nach Meinung des Anbieters.
 IPTCPANEL_CITY;Stadt
@@ -853,15 +853,15 @@ LABMASKS_AREA_MASK_EMPTY_WARNING;Achtung: Die aktuelle Kombination von Flächen 
 LINKED_MASK_NOT_FOUND_WARNING;Warnung: Verknüpfte Maske "%1->%2" nicht gefunden
 MAIN_BUTTON_FULLSCREEN;Vollbild\nTaste: <b>F11</b>
 MAIN_BUTTON_ICCPROFCREATOR;ICC-Profil erstellen.
-MAIN_BUTTON_NAVNEXT_TOOLTIP;Navigiert zum nächsten Bild in der\nDateiverwaltung oder Filmstreifen, bezogen\nauf das ausgewählte Miniaturbild.\nTaste: <b>F4</b>\n\nNavigiert zum nächsten Bild in der\nDateiverwaltung oder Filmstreifen, bezogen\nauf das im Editor geöffnete Bild.\nTaste: <b>Shift + F4</b>
-MAIN_BUTTON_NAVPREV_TOOLTIP;Navigiert zum vorherigen Bild in der\nDateiverwaltung oder Filmstreifen, bezogen\nauf das ausgewählte Miniaturbild.\nTaste: <b>F3</b>\n\nNavigiert zum vorherigen Miniaturbild in der\nDateiverwaltung oder Filmstreifen, bezogen\nauf das im Editor geöffnete Bild.\nTaste: <b>Shift + F3</b>
-MAIN_BUTTON_NAVSYNC_TOOLTIP;Wählt das Miniaturbild des aktuell geöffneten\Bildes in der Dateiverwaltung und im Filmstreifen aus.\nEs werden alle aktiven Filter gelöscht.\nTaste: <b>x</b>\n\nWie oben, jedoch ohne dass aktiver Filter gelöscht werden. Das\nMiniaturbild des geöffneten Bildes wird nicht angezeigt,\nwenn es herausgefiltert wurde.\nTaste: <b>y</b>
+MAIN_BUTTON_NAVNEXT_TOOLTIP;Navigiert zum nächsten Bild in der\nDateiverwaltung oder Filmstreifen, bezogen\nauf das ausgewählte Miniaturbild.\nTaste: <b>%shortcut(filebrowser.open_next)%</b>\n\nNavigiert zum nächsten Bild in der\nDateiverwaltung oder Filmstreifen, bezogen\nauf das im Editor geöffnete Bild.\nTaste: <b>Shift + F4</b>
+MAIN_BUTTON_NAVPREV_TOOLTIP;Navigiert zum vorherigen Bild in der\nDateiverwaltung oder Filmstreifen, bezogen\nauf das ausgewählte Miniaturbild.\nTaste: <b>%shortcut(filebrowser.open_previous)%</b>\n\nNavigiert zum vorherigen Miniaturbild in der\nDateiverwaltung oder Filmstreifen, bezogen\nauf das im Editor geöffnete Bild.\nTaste: <b>Shift + F3</b>
+MAIN_BUTTON_NAVSYNC_TOOLTIP;Wählt das Miniaturbild des aktuell geöffneten\Bildes in der Dateiverwaltung und im Filmstreifen aus.\nEs werden alle aktiven Filter gelöscht.\nTaste: <b>%shortcut(editor.sync_file_browser_clear_filters)%</b>\n\nWie oben, jedoch ohne dass aktiver Filter gelöscht werden. Das\nMiniaturbild des geöffneten Bildes wird nicht angezeigt,\nwenn es herausgefiltert wurde.\nTaste: <b>%shortcut(editor.sync_file_browser)%</b>
 MAIN_BUTTON_PREFERENCES;Einstellungen
 MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;Bild zur Warteschlange hinzufügen (<i>Strg + Linksklick</i> für Schnell-Export).\nTaste: <b>Strg + b</b>  (<b>Strg + Shift + b</b> für Schnell-Export)
 MAIN_BUTTON_SAVE_TOOLTIP;Bild speichern (<i>Strg + Linksklick</i> für Schnell-Export).\nTaste: <b>Strg + s</b>  (<b>Strg + Shift + s</b> für Schnell-Export)
 MAIN_BUTTON_SENDTOEDITOR;Bild im externen Editor öffnen.
 MAIN_BUTTON_SENDTOEDITOR_TOOLTIP;Bild im externen Editor öffnen.\nTaste: <b>Strg + e</b> (<b>Strg + Shift + e</b> für Schnell-Export)
-MAIN_BUTTON_SHOWHIDESIDEPANELS_TOOLTIP;Alle seitlichen Bedienfelder ein-/ausblenden.\nTaste: <b>m</b>
+MAIN_BUTTON_SHOWHIDESIDEPANELS_TOOLTIP;Alle seitlichen Bedienfelder ein-/ausblenden.\nTaste: <b>%shortcut(editor.maximize_preview)%</b>
 MAIN_BUTTON_UNFULLSCREEN;Vollbild beenden.\nTaste: <b>F11</b>
 MAIN_FRAME_EDITOR;Editor
 MAIN_FRAME_EDITOR_TOOLTIP;Editor\nTaste: <b>Strg + F4</b>
@@ -915,16 +915,16 @@ MAIN_TAB_RAW;RAW
 MAIN_TAB_RAW_TOOLTIP;Taste: <b>Alt + r</b>
 MAIN_TAB_TRANSFORM;Transformieren
 MAIN_TAB_TRANSFORM_TOOLTIP;Taste: <b>Alt + t</b>
-MAIN_TOOLTIP_BACKCOLOR0;Hintergrundfarbe der Vorschau basierend auf dem <b>Oberflächendesign</b>.\nTaste: <b>9</b>
-MAIN_TOOLTIP_BACKCOLOR1;Hintergrundfarbe der Vorschau: <b>Schwarz</b\nFarbe umschalten, Taste: <b>9</b>
-MAIN_TOOLTIP_BACKCOLOR2;Hintergrundfarbe der Vorschau: <b>Weiß</b>\nFarbe umschalten, Taste: <b>9</b>
-MAIN_TOOLTIP_BACKCOLOR3;Hintergrundfarbe der Vorschau: <b>Mittleres Grau</b>\nFarbe umschalten, Taste: <b>9</b>
+MAIN_TOOLTIP_BACKCOLOR0;Hintergrundfarbe der Vorschau basierend auf dem <b>Oberflächendesign</b>.\nTaste: <b>%shortcut(editor.toggle_preview_background)%</b>
+MAIN_TOOLTIP_BACKCOLOR1;Hintergrundfarbe der Vorschau: <b>Schwarz</b\nFarbe umschalten, Taste: <b>%shortcut(editor.toggle_preview_background)%</b>
+MAIN_TOOLTIP_BACKCOLOR2;Hintergrundfarbe der Vorschau: <b>Weiß</b>\nFarbe umschalten, Taste: <b>%shortcut(editor.toggle_preview_background)%</b>
+MAIN_TOOLTIP_BACKCOLOR3;Hintergrundfarbe der Vorschau: <b>Mittleres Grau</b>\nFarbe umschalten, Taste: <b>%shortcut(editor.toggle_preview_background)%</b>
 MAIN_TOOLTIP_BEFOREAFTERLOCK;<b>Vorher-Ansicht:</b> Sperren / Entsperren\n\n<b>Gesperrt</b>: Friert die Vorher-Ansicht ein,\nsodass sich die Gesamtwirkung mehrerer\nBearbeitungsschritte beurteilen lässt.\n\n<b>Entsperrt</b>: Die Vorher-Ansicht hinkt dem\naktuellen Bild immer einen Bearbeitungs-\nschritt hinterher.
 MAIN_TOOLTIP_FALSECOLORS;Belichtungsanzeige unter Verwendung von Falschfarben.\nTaste: <b>Shift + e</b>\n\nLegende (IRE-Bereich):\n%1
 MAIN_TOOLTIP_GRIDOVERLAY;Gitter einblenden
-MAIN_TOOLTIP_HIDEHP;Linkes Bedienfeld ein-/ausblenden.\nTaste: <b>l</b>
-MAIN_TOOLTIP_INDCLIPPEDH;Anzeige zu heller Bereiche ein-/ausschalten.\nTaste: <b>&gt;</b>
-MAIN_TOOLTIP_INDCLIPPEDS;Anzeige zu dunkler Bereiche ein-/ausschalten.\nTaste: <b>&lt;</b>
+MAIN_TOOLTIP_HIDEHP;Linkes Bedienfeld ein-/ausblenden.\nTaste: <b>%shortcut(editor.toggle_history_panel)%</b>
+MAIN_TOOLTIP_INDCLIPPEDH;Anzeige zu heller Bereiche ein-/ausschalten.\nTaste: <b>%shortcut(editor.toggle_highlight_clipping)%</b>
+MAIN_TOOLTIP_INDCLIPPEDS;Anzeige zu dunkler Bereiche ein-/ausschalten.\nTaste: <b>%shortcut(editor.toggle_shadow_clipping)%</b>
 MAIN_TOOLTIP_PREVIEWB;Vorschau Blau-Kanal\nTaste: <b>Shift + b</b>
 MAIN_TOOLTIP_PREVIEWFOCUSMASK;Vorschau Fokusmaske\nTaste: <b>Shift + f</b>\n\nPräziser bei Bildern mit geringer Tiefenschärfe,\nniedrigem Rauschen und bei hoher Vergrößerung. Herauszoomen zu etwa 10 - 30%, um die Genauigkeit bei verrauschten Bildern zu erhöhen.
 MAIN_TOOLTIP_PREVIEWG;Vorschau Grün-Kanal\nTaste: <b>Shift + g</b>
@@ -932,7 +932,7 @@ MAIN_TOOLTIP_PREVIEWL;Vorschau Helligkeit\nTaste: <b>Shift + v</b>\n\n0.299·R +
 MAIN_TOOLTIP_PREVIEWR;Vorschau Rot-Kanal\nTaste: <b>Shift + r</b>
 MAIN_TOOLTIP_PREVIEWSHARPMASK;Schärfungs-Kontroll-Maske ein-/ausschalten.\n\nFunktioniert nur bei aktivierter Schärfung\nund ist nur bei Zoomstufen >= 100% akkurat.\nTaste: <b>Shift + o</b>
 MAIN_TOOLTIP_QINFO;Bildinformationen ein-/ausblenden.\nTaste: <b>Shift + i</b>
-MAIN_TOOLTIP_SHOWHIDELP1;Linkes Bedienfeld ein-/ausblenden.\nTaste: <b>l</b>
+MAIN_TOOLTIP_SHOWHIDELP1;Linkes Bedienfeld ein-/ausblenden.\nTaste: <b>%shortcut(editor.toggle_history_panel)%</b>
 MAIN_TOOLTIP_SHOWHIDERP1;Rechtes Bedienfeld ein-/ausblenden.\nTaste: <b>Strg + l</b>
 MAIN_TOOLTIP_SHOWHIDETP1;Filmstreifen ein-/ausblenden.\nTaste: <b>Shift + l</b>
 MAIN_TOOLTIP_THRESHOLD;Schwellenwert
@@ -1376,7 +1376,7 @@ THRESHOLDSELECTOR_TL;Oben-Links
 THRESHOLDSELECTOR_TR;Oben-Rechts
 TOOLBAR_TOOLTIP_COLORPICKER;<b>Farbwähler</b>\n\nWenn eingeschaltet:\n- Mit der linken Maustaste können Sie einen Farbwähler setzen.\n- Zum Verschieben, linke Maustaste gedrückt halten.\n- Zum Entfernen, rechte Maustaste\n- Strg + Shift + Rechtsklick entfernt alle Farbwähler.\n- Rechtsklick in einen freien Bereich schaltet auf das Hand-Werkzeug zurück.
 TOOLBAR_TOOLTIP_CROP;<b>Ausschnitt wählen.</b>\nTaste: <b>Shift + c</b>\n\nLinke Maustaste gedrückt halten, um den Ausschnitt zu verschieben. Zum Ändern der Größe mit dem Mauszeiger die Ränder bewegen.
-TOOLBAR_TOOLTIP_HAND;Hand-Werkzeug\nTaste: <b>h</b>
+TOOLBAR_TOOLTIP_HAND;Hand-Werkzeug\nTaste: <b>%shortcut(toolbar.hand)%</b>
 TOOLBAR_TOOLTIP_PERSPECTIVE;<b>Perspektivkorrektur</b>\nTaste: <b>Shift + p</b>\n\nMit dem Editieren der Kontrolllinien können perspektivische Verzerrungen korrigiert werden. Ein erneuter Klick auf diesen Button wendet die Korrektur an.
 TOOLBAR_TOOLTIP_STRAIGHTEN;<b>Ausrichten/Drehen</b>\nTaste: <b>Shift + s</b>\n\nRichtet das Bild entlang einer Leitlinie aus.
 TOOLBAR_TOOLTIP_WB;Weißabgleich manuell setzen.\nTaste: <b>Shift + w</b>

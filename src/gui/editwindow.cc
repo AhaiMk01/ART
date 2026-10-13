@@ -22,6 +22,7 @@
 #include "preferences.h"
 #include "rtimage.h"
 #include "rtwindow.h"
+#include "shortcutsmanager.h"
 #include "../utils/threadutils.h"
 #include "../utils/version.h"
 #include <gtk/gtk.h>
@@ -80,6 +81,19 @@ EditWindow::EditWindow(RTWindow *p):
         sigc::mem_fun(*this, &EditWindow::keyReleased));
     signal_scroll_event().connect(
         sigc::mem_fun(*this, &EditWindow::scrollPressed), false);
+
+    // the window lives until exit, so there is no need to unbind
+    auto sm = ShortcutsManager::getInstance();
+    sm->bind(this, "window.fullscreen", [this](GdkEventKey *) {
+        toggleFullscreen();
+        return true;
+    });
+    sm->bind(this, "window.close_tab", [this](GdkEventKey *) {
+        EditorPanel *ep = static_cast<EditorPanel *>(
+            mainNB->get_nth_page(mainNB->get_current_page()));
+        remEditorPanel(ep);
+        return true;
+    }, [this]() { return mainNB->get_n_pages() > 0; });
 
     Gtk::VBox *mainBox = Gtk::manage(new Gtk::VBox());
     mainBox->pack_start(*mainNB);
@@ -266,29 +280,19 @@ void EditWindow::toFront()
 
 bool EditWindow::keyPressed(GdkEventKey *event)
 {
-    bool ctrl = event->state & GDK_CONTROL_MASK;
-    auto keyval = getKeyval(event);
-
-    if (keyval == GDK_KEY_F11) {
-        toggleFullscreen();
+    if (ShortcutsManager::getInstance()->dispatch(
+            event, ShortcutPhase::After, {{"window", this}})) {
         return true;
-    } else {
-        if (mainNB->get_n_pages() >
-            0) { // pass the handling for the editor panels, if there are any
-            if (keyval == GDK_KEY_w && ctrl) { // remove editor panel
-                EditorPanel *ep = static_cast<EditorPanel *>(
-                    mainNB->get_nth_page(mainNB->get_current_page()));
-                remEditorPanel(ep);
-                return true;
-            } else if (mainNB->get_n_pages() > 0) {
-                EditorPanel *ep = static_cast<EditorPanel *>(
-                    mainNB->get_nth_page(mainNB->get_current_page()));
-                return ep->handleShortcutKey(event);
-            }
-        }
-
-        return false;
     }
+
+    // pass the handling for the editor panels, if there are any
+    if (mainNB->get_n_pages() > 0) {
+        EditorPanel *ep = static_cast<EditorPanel *>(
+            mainNB->get_nth_page(mainNB->get_current_page()));
+        return ep->handleShortcutKey(event);
+    }
+
+    return false;
 }
 
 bool EditWindow::keyPressedBefore(GdkEventKey *event)

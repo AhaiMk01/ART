@@ -245,9 +245,9 @@ void LabCurve::toolReset(bool to_initial)
 
 void LabCurve::registerShortcuts(ToolShortcutManager *mgr)
 {
-    mgr->addShortcut(GDK_KEY_i, this, brightness);
-    mgr->addShortcut(GDK_KEY_j, this, contrast);
-    mgr->addShortcut(GDK_KEY_n, this, chromaticity);
+    mgr->addShortcut("tool.labcurve.brightness", this, brightness);
+    mgr->addShortcut("tool.labcurve.contrast", this, contrast);
+    mgr->addShortcut("tool.labcurve.chromaticity", this, chromaticity);
 }
 
 

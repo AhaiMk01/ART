@@ -19,6 +19,7 @@
  */
 #include "toolbar.h"
 #include "guiutils.h"
+#include "shortcutsmanager.h"
 #include "../utils/multilangmgr.h"
 
 namespace art { namespace gui {
@@ -30,6 +31,7 @@ ToolBar::ToolBar()
 {
 
     editingMode = false;
+    bindShortcuts();
 
     handimg.reset(new RTImage("arrow-pointer.svg"));
     editinghandimg.reset(new RTImage("crosshair-adjust.svg"));
@@ -490,46 +492,38 @@ void ToolBar::persp_pressed()
     }
 }
 
-bool ToolBar::handleShortcutKey(GdkEventKey *event)
+void ToolBar::bindShortcuts()
 {
-
-    bool ctrl = event->state & GDK_CONTROL_MASK;
-    // bool shift = event->state & GDK_SHIFT_MASK;
-    bool alt = event->state & GDK_MOD1_MASK;
-
-    if (!ctrl && !alt) {
-        switch (getKeyval(event)) {
-        // case GDK_KEY_w:
-        case GDK_KEY_W:
-            if (wbTool) {
-                wb_pressed();
-                return true;
-            }
-
-            return false;
-
-        // case GDK_KEY_c:
-        case GDK_KEY_C:
-            crop_pressed();
-            return true;
-
-        // case GDK_KEY_s:
-        case GDK_KEY_S:
-            stra_pressed();
-            return true;
-
-        case GDK_KEY_h:
-        case GDK_KEY_H:
-            hand_pressed();
-            return true;
-
-        case GDK_KEY_P:
-            perspTool->set_active(!perspTool->get_active());
+    auto sm = ShortcutsManager::getInstance();
+    sm->bind(this, "toolbar.white_balance_picker", [this](GdkEventKey *) {
+        if (wbTool) {
+            wb_pressed();
             return true;
         }
-    }
+        return false;
+    });
+    sm->bind(this, "toolbar.crop", [this](GdkEventKey *) {
+        crop_pressed();
+        return true;
+    });
+    sm->bind(this, "toolbar.straighten", [this](GdkEventKey *) {
+        stra_pressed();
+        return true;
+    });
+    sm->bind(this, "toolbar.hand", [this](GdkEventKey *) {
+        hand_pressed();
+        return true;
+    });
+    sm->bind(this, "toolbar.perspective", [this](GdkEventKey *) {
+        perspTool->set_active(!perspTool->get_active());
+        return true;
+    });
+}
 
-    return false;
+
+ToolBar::~ToolBar()
+{
+    ShortcutsManager::getInstance()->unbindOwner(this);
 }
 
 

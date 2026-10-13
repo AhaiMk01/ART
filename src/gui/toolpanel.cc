@@ -17,6 +17,7 @@
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "toolpanel.h"
+#include "shortcutsmanager.h"
 #include "guiutils.h"
 #include "toolpanelcoord.h"
 
@@ -203,7 +204,7 @@ void FoldableToolPanel::enabledChanged()
 bool FoldableToolPanel::on_reset_change(GdkEventButton *event)
 {
     if (event->button == 1) {
-        bool to_initial = event->state & GDK_CONTROL_MASK;
+        bool to_initial = event->state & ShortcutsManager::primaryMask();
         toolReset(to_initial);
         if (listener && (!exp->getUseEnabled() || getEnabled()) &&
             EvToolReset.get_action()) {

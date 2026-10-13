@@ -17,6 +17,7 @@
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "mydiagonalcurve.h"
+#include "shortcutsmanager.h"
 #include "../engine/curves.h"
 #include <cstring>
 #include <gdkmm/types.h>
@@ -622,7 +623,7 @@ bool MyDiagonalCurve::handleEvents(GdkEvent *event)
                     new_type = CSMove2D; // Shown when dragging a node.
 
                     if (distanceX > minDistanceX) {
-                        if (mod_type & GDK_CONTROL_MASK) {
+                        if (mod_type & ShortcutsManager::primaryMask()) {
                             clampedY = point.getVal01(clampedX);
                         }
 
@@ -1466,7 +1467,7 @@ void MyDiagonalCurve::getCursorPosition(Gdk::EventType evType, bool isHint,
     // update deltaX/Y if the user drags a point
     if (grab_point != -1) {
         // set the dragging factor
-        int control_key = mod_type & GDK_CONTROL_MASK;
+        int control_key = mod_type & ShortcutsManager::primaryMask();
         int shift_key = mod_type & GDK_SHIFT_MASK;
 
         // the increment get smaller if modifier key are used, and "snap to" may

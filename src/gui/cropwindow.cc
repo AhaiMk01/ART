@@ -17,6 +17,7 @@
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "cropwindow.h"
+#include "shortcutsmanager.h"
 
 #include <iomanip>
 
@@ -352,7 +353,7 @@ void CropWindow::scroll(int state, GdkScrollDirection direction, int x, int y,
                 (direction == GDK_SCROLL_SMOOTH && scrollAccum < 0.0);
     scrollAccum = 0.0;
 
-    if ((state & GDK_CONTROL_MASK) && onArea(ColorPicker, x, y)) {
+    if ((state & ShortcutsManager::primaryMask()) && onArea(ColorPicker, x, y)) {
         // resizing a color picker
         if (isUp) {
             hoveredPicker->incSize();
@@ -437,10 +438,10 @@ void CropWindow::buttonPress(int button, int type, int bstate, int x, int y,
 
                     const bool crop_mode = iarea->getToolMode() == TMCropSelect;
                     const bool crop_resize_allowed =
-                        (crop_mode ? true : (bstate & GDK_CONTROL_MASK)) &&
+                        (crop_mode ? true : (bstate & ShortcutsManager::primaryMask())) &&
                         !(bstate & GDK_SHIFT_MASK);
                     const bool crop_move_allowed =
-                        crop_mode ? (!(bstate & GDK_CONTROL_MASK) &&
+                        crop_mode ? (!(bstate & ShortcutsManager::primaryMask()) &&
                                      !(bstate & GDK_SHIFT_MASK))
                                   : (bstate & GDK_SHIFT_MASK);
 
@@ -453,16 +454,16 @@ void CropWindow::buttonPress(int button, int type, int bstate, int x, int y,
                             press_x + 1, press_y + 1);
                     } else if (iarea->getToolMode() == TMColorPicker) {
                         if (hoveredPicker) {
-                            if ((bstate & GDK_CONTROL_MASK) &&
+                            if ((bstate & ShortcutsManager::primaryMask()) &&
                                 !(bstate & GDK_SHIFT_MASK)) {
                                 hoveredPicker->decSize();
                                 updateHoveredPicker();
                                 needRedraw = true;
-                            } else if (!(bstate & GDK_CONTROL_MASK) &&
+                            } else if (!(bstate & ShortcutsManager::primaryMask()) &&
                                        (bstate & GDK_SHIFT_MASK)) {
                                 hoveredPicker->rollDisplayedValues();
                                 needRedraw = true;
-                            } else if (!(bstate & GDK_CONTROL_MASK) &&
+                            } else if (!(bstate & ShortcutsManager::primaryMask()) &&
                                        !(bstate & GDK_SHIFT_MASK)) {
                                 // Color Picker drag starts
                                 state = SDragPicker;
@@ -492,7 +493,7 @@ void CropWindow::buttonPress(int button, int type, int bstate, int x, int y,
                              cropgl->inImageArea(iarea->posImage.x,
                                                  iarea->posImage.y) &&
                              (editSubscriber->getEditingType() == ET_PIPETTE &&
-                              (bstate & GDK_CONTROL_MASK))) ||
+                              (bstate & ShortcutsManager::primaryMask()))) ||
                             editSubscriber->getEditingType() == ET_OBJECTS) {
                             needRedraw = editSubscriber->button1Pressed(
                                 bstate, pressure);
@@ -638,16 +639,16 @@ void CropWindow::buttonPress(int button, int type, int bstate, int x, int y,
                     }
                 } else if (iarea->getToolMode() == TMColorPicker &&
                            hoveredPicker) {
-                    if ((bstate & GDK_CONTROL_MASK) &&
+                    if ((bstate & ShortcutsManager::primaryMask()) &&
                         !(bstate & GDK_SHIFT_MASK)) {
                         if (hoveredPicker->decSize()) {
                             updateHoveredPicker();
                             needRedraw = true;
                         }
-                    } else if (!(bstate & GDK_CONTROL_MASK) &&
+                    } else if (!(bstate & ShortcutsManager::primaryMask()) &&
                                (bstate & GDK_SHIFT_MASK)) {
                         hoveredPicker->rollDisplayedValues();
-                    } else if (!(bstate & GDK_CONTROL_MASK) &&
+                    } else if (!(bstate & ShortcutsManager::primaryMask()) &&
                                !(bstate & GDK_SHIFT_MASK)) {
                         // Color Picker drag starts
                         state = SDragPicker;
@@ -709,7 +710,7 @@ void CropWindow::buttonPress(int button, int type, int bstate, int x, int y,
         } else if (iarea->getToolMode() == TMColorPicker &&
                    type == GDK_BUTTON_PRESS && state == SNormal) {
             if (hoveredPicker) {
-                if ((bstate & GDK_CONTROL_MASK) && (bstate & GDK_SHIFT_MASK)) {
+                if ((bstate & ShortcutsManager::primaryMask()) && (bstate & GDK_SHIFT_MASK)) {
                     // Deleting all pickers !
                     for (auto colorPicker : colorPickers) {
                         delete colorPicker;
@@ -718,13 +719,13 @@ void CropWindow::buttonPress(int button, int type, int bstate, int x, int y,
                     hoveredPicker = nullptr;
                     state = SDeletePicker;
                     needRedraw = true;
-                } else if ((bstate & GDK_CONTROL_MASK) &&
+                } else if ((bstate & ShortcutsManager::primaryMask()) &&
                            !(bstate & GDK_SHIFT_MASK)) {
                     if (hoveredPicker->incSize()) {
                         updateHoveredPicker();
                         needRedraw = true;
                     }
-                } else if (!(bstate & GDK_CONTROL_MASK) &&
+                } else if (!(bstate & ShortcutsManager::primaryMask()) &&
                            !(bstate & GDK_SHIFT_MASK)) {
                     // Deleting the hovered picker
                     for (std::vector<LockableColorPicker *>::iterator i =
@@ -938,7 +939,7 @@ void CropWindow::buttonRelease(int button, int num, int bstate, int x, int y)
     }
 
     if (state != SDeletePicker && state != SEditDrag3 && state != SEditPick3 &&
-        button == 3 && !(bstate & (GDK_SHIFT_MASK | GDK_CONTROL_MASK))) {
+        button == 3 && !(bstate & (GDK_SHIFT_MASK | ShortcutsManager::primaryMask()))) {
         iarea->pipetteVal[0] = iarea->pipetteVal[1] = iarea->pipetteVal[2] =
             -1.f;
 
@@ -1591,11 +1592,11 @@ void CropWindow::updateCursor(int x, int y, int bstate)
     CursorShape newType = cursor_type;
     const bool crop_mode = iarea->getToolMode() == TMCropSelect;
     const bool crop_resize_allowed =
-        (crop_mode ? true : (bstate & GDK_CONTROL_MASK)) &&
+        (crop_mode ? true : (bstate & ShortcutsManager::primaryMask())) &&
         !(bstate & GDK_SHIFT_MASK) &&
         !(editSubscriber && editSubscriber->getEditingType() == ET_OBJECTS);
     const bool crop_move_allowed =
-        crop_mode ? (!(bstate & GDK_CONTROL_MASK) && !(bstate & GDK_SHIFT_MASK))
+        crop_mode ? (!(bstate & ShortcutsManager::primaryMask()) && !(bstate & GDK_SHIFT_MASK))
                   : (bstate & GDK_SHIFT_MASK);
 
     if (state == SNormal) {

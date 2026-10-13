@@ -17,6 +17,7 @@
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "filepanel.h"
+#include "shortcutsmanager.h"
 
 #include "inspector.h"
 #include "placesbrowser.h"
@@ -29,6 +30,12 @@ using namespace utils;
 
 FilePanel::FilePanel(): parent(nullptr), error(0), pane_pos_(-1)
 {
+    ShortcutsManager::getInstance()->bind(
+        this, "filepanel.toggle_right_notebook", [this](GdkEventKey *) {
+            rightNotebook->set_current_page(
+                (rightNotebook->get_current_page() + 1) % 2);
+            return true;
+        });
 
     // Contains everything except for the batch Tool Panel and tabs (Fast
     // Export, Inspect, etc)
@@ -156,6 +163,8 @@ FilePanel::FilePanel(): parent(nullptr), error(0), pane_pos_(-1)
 
 FilePanel::~FilePanel()
 {
+    ShortcutsManager::getInstance()->unbindOwner(this);
+
     idle_register.destroy();
 
     rightNotebookSwitchConn.disconnect();
@@ -464,28 +473,12 @@ void FilePanel::optionsChanged()
 
 bool FilePanel::handleShortcutKey(GdkEventKey *event)
 {
-
-    // if(tpc->getToolBar() && tpc->getToolBar()->handleShortcutKey(event)) {
-    //     return true;
-    // }
-
-    // if(tpc->handleShortcutKey(event)) {
-    //     return true;
-    // }
-
     if (fileCatalog->handleShortcutKey(event)) {
         return true;
     }
 
-    auto keyval = getKeyval(event);
-    if (event->state & GDK_CONTROL_MASK &&
-        (keyval == GDK_KEY_i || keyval == GDK_KEY_I)) {
-        rightNotebook->set_current_page(
-            (rightNotebook->get_current_page() + 1) % 2);
-        return true;
-    }
-
-    return false;
+    return ShortcutsManager::getInstance()->dispatch(
+        event, ShortcutPhase::After, {{"filepanel", this}});
 }
 
 void FilePanel::loadingThumbs(Glib::ustring str, double rate)

@@ -17,6 +17,7 @@
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "batchqueuepanel.h"
+#include "shortcutsmanager.h"
 #include "options.h"
 // #include "preferences.h"
 #include "../utils/multilangmgr.h"
@@ -47,6 +48,15 @@ static Glib::ustring makeFolderLabel(Glib::ustring path)
 
 BatchQueuePanel::BatchQueuePanel(FileCatalog *aFileCatalog): parent(nullptr)
 {
+    ShortcutsManager::getInstance()->bind(
+        this, "queue.start_stop", [this](GdkEventKey *) {
+            if (qStartStop->get_active()) {
+                stopBatchProc();
+            } else {
+                startBatchProc();
+            }
+            return true;
+        });
 
     batchQueue = Gtk::manage(new BatchQueue(aFileCatalog));
 
@@ -237,7 +247,11 @@ BatchQueuePanel::BatchQueuePanel(FileCatalog *aFileCatalog): parent(nullptr)
     }
 }
 
-BatchQueuePanel::~BatchQueuePanel() { idle_register.destroy(); }
+BatchQueuePanel::~BatchQueuePanel()
+{
+    ShortcutsManager::getInstance()->unbindOwner(this);
+    idle_register.destroy();
+}
 
 void BatchQueuePanel::init(RTWindow *parent)
 {
@@ -437,19 +451,9 @@ void BatchQueuePanel::saveOptions()
 
 bool BatchQueuePanel::handleShortcutKey(GdkEventKey *event)
 {
-    bool ctrl = event->state & GDK_CONTROL_MASK;
-
-    if (ctrl) {
-        switch (getKeyval(event)) {
-        case GDK_KEY_s:
-            if (qStartStop->get_active()) {
-                stopBatchProc();
-            } else {
-                startBatchProc();
-            }
-
-            return true;
-        }
+    if (ShortcutsManager::getInstance()->dispatch(
+            event, ShortcutPhase::After, {{"queuepanel", this}})) {
+        return true;
     }
 
     return batchQueue->keyPressed(event);

@@ -643,7 +643,7 @@ void ToneCurve::showWhitePoint()
 
 void ToneCurve::registerShortcuts(ToolShortcutManager *mgr)
 {
-    mgr->addShortcut(GDK_KEY_c, this, contrast);
+    mgr->addShortcut("tool.tonecurve.contrast", this, contrast);
 }
 
 void ToneCurve::colorForValue(double valX, double valY,

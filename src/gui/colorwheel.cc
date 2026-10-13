@@ -38,6 +38,7 @@
 */
 
 #include "colorwheel.h"
+#include "shortcutsmanager.h"
 #include "../engine/coord.h"
 #include "../engine/iccstore.h"
 #include "guiutils.h"
@@ -299,7 +300,7 @@ bool ColorWheelArea::on_button_press_event(GdkEventButton *event)
             queue_draw();
         } else if (event->type == GDK_BUTTON_PRESS && point_active_) {
             is_dragged_ = true;
-            lock_angle_ = event->state & GDK_CONTROL_MASK;
+            lock_angle_ = event->state & ShortcutsManager::primaryMask();
             lock_radius_ = event->state & GDK_SHIFT_MASK;
         }
         return false;
@@ -497,7 +498,7 @@ ColorWheel::ColorWheel(bool use_scale)
 
 bool ColorWheel::resetPressed(GdkEventButton *event)
 {
-    grid.reset(event->state & GDK_CONTROL_MASK);
+    grid.reset(event->state & ShortcutsManager::primaryMask());
     if (scale) {
         ConnectionBlocker sb(scaleconn);
         scale->set_value(grid.getScale());

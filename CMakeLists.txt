@@ -948,6 +948,7 @@ int main() { return 0; }
     endif()
 endif()
 
+enable_testing()
 add_subdirectory(src/utils)
 add_subdirectory(src/engine)
 add_subdirectory(src/gui)

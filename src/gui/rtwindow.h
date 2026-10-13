@@ -71,6 +71,7 @@ public:
 
     bool keyPressed(GdkEventKey *event);
     bool keyPressedBefore(GdkEventKey *event);
+    void bindShortcuts();
     bool keyReleased(GdkEventKey *event);
     bool scrollPressed(GdkEventScroll *event);
 

@@ -28,6 +28,7 @@
 #include "procparamchangers.h"
 #include "rtimage.h"
 #include "session.h"
+#include "shortcutsmanager.h"
 #include "../utils/threadutils.h"
 #include <glibmm.h>
 #include <map>
@@ -249,10 +250,13 @@ FileBrowser::FileBrowser()
     pmenu = nullptr;
     pmenuColorLabels = nullptr;
     build_menu();
+    bindShortcuts();
 }
 
 FileBrowser::~FileBrowser()
 {
+    ShortcutsManager::getInstance()->unbindOwner(this);
+
     idle_register.destroy();
 
     art::engine::ProfileStore::getInstance()->removeListener(this);
@@ -634,41 +638,24 @@ void FileBrowser::build_menu()
      * *********************/
     pmaccelgroup = Gtk::AccelGroup::create();
     //    pmenu->set_accel_group (pmaccelgroup);
-    selall->add_accelerator("activate", pmaccelgroup, GDK_KEY_a,
-                            Gdk::CONTROL_MASK, Gtk::ACCEL_VISIBLE);
-    trash->add_accelerator("activate", pmaccelgroup, GDK_KEY_Delete,
-                           (Gdk::ModifierType)0, Gtk::ACCEL_VISIBLE);
-    untrash->add_accelerator("activate", pmaccelgroup, GDK_KEY_Delete,
-                             Gdk::SHIFT_MASK, Gtk::ACCEL_VISIBLE);
-    open->add_accelerator("activate", pmaccelgroup, GDK_KEY_Return,
-                          (Gdk::ModifierType)0, Gtk::ACCEL_VISIBLE);
-    qinspect->add_accelerator("activate", pmaccelgroup, GDK_KEY_space,
-                              Gdk::CONTROL_MASK, Gtk::ACCEL_VISIBLE);
-    develop->add_accelerator("activate", pmaccelgroup, GDK_KEY_B,
-                             Gdk::CONTROL_MASK, Gtk::ACCEL_VISIBLE);
-    developfast->add_accelerator("activate", pmaccelgroup, GDK_KEY_B,
-                                 Gdk::CONTROL_MASK | Gdk::SHIFT_MASK,
-                                 Gtk::ACCEL_VISIBLE);
-    copyprof->add_accelerator("activate", pmaccelgroup, GDK_KEY_C,
-                              Gdk::CONTROL_MASK, Gtk::ACCEL_VISIBLE);
-    pasteprof->add_accelerator("activate", pmaccelgroup, GDK_KEY_V,
-                               Gdk::CONTROL_MASK, Gtk::ACCEL_VISIBLE);
-    partpasteprof->add_accelerator("activate", pmaccelgroup, GDK_KEY_V,
-                                   Gdk::CONTROL_MASK | Gdk::SHIFT_MASK,
-                                   Gtk::ACCEL_VISIBLE);
-    copyTo->add_accelerator("activate", pmaccelgroup, GDK_KEY_C,
-                            Gdk::CONTROL_MASK | Gdk::SHIFT_MASK,
-                            Gtk::ACCEL_VISIBLE);
-    // moveTo->add_accelerator ("activate", pmaccelgroup, GDK_KEY_M,
-    // Gdk::CONTROL_MASK | Gdk::SHIFT_MASK, Gtk::ACCEL_VISIBLE);
-    rename->add_accelerator("activate", pmaccelgroup, GDK_KEY_F2,
-                            (Gdk::ModifierType)0, Gtk::ACCEL_VISIBLE);
-    remove->add_accelerator("activate", pmaccelgroup, GDK_KEY_Delete,
-                            Gdk::CONTROL_MASK | Gdk::SHIFT_MASK,
-                            Gtk::ACCEL_VISIBLE);
-    add_to_session_->add_accelerator("activate", pmaccelgroup, GDK_KEY_S,
-                                     Gdk::CONTROL_MASK | Gdk::SHIFT_MASK,
-                                     Gtk::ACCEL_VISIBLE);
+    // (only the hint shown in the menu: the keys are handled by keyPressed)
+    const auto accel = [this](Gtk::MenuItem *item, const char *id) {
+        ShortcutsManager::getInstance()->addAccelerator(*item, pmaccelgroup, id);
+    };
+    accel(selall, "filebrowser.select_all");
+    accel(trash, "filebrowser.trash");
+    accel(untrash, "filebrowser.untrash");
+    accel(open, "filebrowser.open");
+    accel(qinspect, "filebrowser.inspector_popover");
+    accel(develop, "filebrowser.queue");
+    accel(developfast, "filebrowser.queue_fast");
+    accel(copyprof, "filebrowser.copy_profile");
+    accel(pasteprof, "filebrowser.paste_profile");
+    accel(partpasteprof, "filebrowser.paste_profile_partial");
+    accel(copyTo, "filebrowser.copy_to");
+    accel(rename, "filebrowser.rename");
+    accel(remove, "filebrowser.remove");
+    accel(add_to_session_, "filebrowser.add_to_session");
 
     // Bind to event handlers
     open->signal_activate().connect(sigc::bind(
@@ -1429,172 +1416,121 @@ void FileBrowser::partPasteProfile()
     }
 }
 
-bool FileBrowser::keyPressed(GdkEventKey *event)
+void FileBrowser::bindShortcuts()
 {
-    bool ctrl = event->state & GDK_CONTROL_MASK;
-    bool shift = event->state & GDK_SHIFT_MASK;
-    bool alt = event->state & GDK_MOD1_MASK;
-    bool altgr = event->state & (GDK_MOD2_MASK | GDK_MOD5_MASK);
+    auto sm = ShortcutsManager::getInstance();
+    const auto bind = [this, sm](const char *id,
+                                 std::function<bool(GdkEventKey *)> f) {
+        sm->bind(this, id, std::move(f));
+    };
+    const auto run = [bind](const char *id, std::function<void()> f) {
+        bind(id, [f](GdkEventKey *) {
+            f();
+            return true;
+        });
+    };
+    const auto shift = [](GdkEventKey *e) {
+        return bool(e->state & GDK_SHIFT_MASK);
+    };
 
-    const bool in_inspector = inspector && inspector->isActive();
-
-    if (in_inspector && inspector->handleShortcutKey(event)) {
-        return true;
-    }
-
-    auto keyval = getKeyval(event);
-
-    if (keyval == GDK_KEY_space && ctrl) {
+    run("filebrowser.inspector_popover", [this]() {
         const ThumbBrowserEntryBase *sel = nullptr;
         if (!selected.empty()) {
-            sel = selected.size() == 1 ? selected.front() : (anchor ? anchor : (lastClicked ? lastClicked : selected.front()));
+            sel = selected.size() == 1
+                      ? selected.front()
+                      : (anchor ? anchor
+                                : (lastClicked ? lastClicked
+                                               : selected.front()));
         }
         if (sel) {
             Inspector::popover(sel);
         }
-        return true;
-    } else if ((keyval == GDK_KEY_C || keyval == GDK_KEY_c) && ctrl && shift) {
-        menuItemActivated(copyTo);
-        return true;
-    } else if ((keyval == GDK_KEY_M || keyval == GDK_KEY_m) && ctrl && shift) {
-        menuItemActivated(moveTo);
-        return true;
-    } else if ((keyval == GDK_KEY_C || keyval == GDK_KEY_c ||
-                keyval == GDK_KEY_Insert) &&
-               ctrl) {
-        copyProfile();
-        return true;
-    } else if ((keyval == GDK_KEY_V || keyval == GDK_KEY_v) && ctrl && !shift) {
-        pasteProfile();
-        return true;
-    } else if (keyval == GDK_KEY_Insert && shift) {
-        pasteProfile();
-        return true;
-    } else if ((keyval == GDK_KEY_V || keyval == GDK_KEY_v) && ctrl && shift) {
-        partPasteProfile();
-        return true;
-    } else if (keyval == GDK_KEY_Delete && !shift && !ctrl) {
-        menuItemActivated(trash);
-        return true;
-    } else if (keyval == GDK_KEY_Delete && shift && !ctrl) {
-        menuItemActivated(untrash);
-        return true;
-    } else if (keyval == GDK_KEY_Delete && shift && ctrl) {
-        menuItemActivated(remove);
-        return true;
-    } else if ((keyval == GDK_KEY_B || keyval == GDK_KEY_b) && ctrl && !shift) {
-        menuItemActivated(develop);
-        return true;
-    } else if ((keyval == GDK_KEY_B || keyval == GDK_KEY_b) && ctrl && shift) {
-        menuItemActivated(developfast);
-        return true;
-    } else if ((keyval == GDK_KEY_A || keyval == GDK_KEY_a) && ctrl) {
-        menuItemActivated(selall);
-        return true;
-    } else if (keyval == GDK_KEY_F2 && !ctrl && !alt) {
-        menuItemActivated(rename);
-        return true;
-    } else if ((keyval == GDK_KEY_S || keyval == GDK_KEY_s) && ctrl && shift) {
-        menuItemActivated(add_to_session_);
-        return true;
-    } else if (keyval == GDK_KEY_F3 &&
-               !(ctrl || shift ||
-                 alt)) { // open Previous image from FileBrowser perspective
-        FileBrowser::openPrevImage();
-        return true;
-    } else if (keyval == GDK_KEY_F4 &&
-               !(ctrl || shift ||
-                 alt)) { // open Next image from FileBrowser perspective
-        FileBrowser::openNextImage();
-        return true;
-    } else if (keyval == GDK_KEY_Left || keyval == GDK_KEY_BackSpace) {
-        selectPrev(1, shift);
-        return true;
-    } else if (keyval == GDK_KEY_Right || keyval == GDK_KEY_space) {
-        selectNext(1, shift);
-        return true;
-    } else if (keyval == GDK_KEY_Up) {
-        selectPrev(numOfCols, shift);
-        return true;
-    } else if (keyval == GDK_KEY_Down) {
-        selectNext(numOfCols, shift);
-        return true;
-    } else if (keyval == GDK_KEY_Home) {
-        selectFirst(shift);
-        return true;
-    } else if (keyval == GDK_KEY_End) {
-        selectLast(shift);
-        return true;
-    } else if (keyval == GDK_KEY_Return || keyval == GDK_KEY_KP_Enter) {
-        std::vector<FileBrowserEntry *> mselected;
+    });
 
+    // the same actions as the context menu
+    run("filebrowser.copy_to", [this]() { menuItemActivated(copyTo); });
+    run("filebrowser.move_to", [this]() { menuItemActivated(moveTo); });
+    run("filebrowser.copy_profile", [this]() { copyProfile(); });
+    run("filebrowser.paste_profile", [this]() { pasteProfile(); });
+    run("filebrowser.paste_profile_partial",
+        [this]() { partPasteProfile(); });
+    run("filebrowser.trash", [this]() { menuItemActivated(trash); });
+    run("filebrowser.untrash", [this]() { menuItemActivated(untrash); });
+    run("filebrowser.remove", [this]() { menuItemActivated(remove); });
+    run("filebrowser.queue", [this]() { menuItemActivated(develop); });
+    run("filebrowser.queue_fast", [this]() { menuItemActivated(developfast); });
+    run("filebrowser.select_all", [this]() { menuItemActivated(selall); });
+    run("filebrowser.rename", [this]() { menuItemActivated(rename); });
+    run("filebrowser.add_to_session",
+        [this]() { menuItemActivated(add_to_session_); });
+    run("filebrowser.open_previous", [this]() { FileBrowser::openPrevImage(); });
+    run("filebrowser.open_next", [this]() { FileBrowser::openNextImage(); });
+
+    // moving the selection (Shift extends it)
+    bind("filebrowser.select_previous", [=](GdkEventKey *e) {
+        selectPrev(1, shift(e));
+        return true;
+    });
+    bind("filebrowser.select_next", [=](GdkEventKey *e) {
+        selectNext(1, shift(e));
+        return true;
+    });
+    bind("filebrowser.select_row_up", [=](GdkEventKey *e) {
+        selectPrev(numOfCols, shift(e));
+        return true;
+    });
+    bind("filebrowser.select_row_down", [=](GdkEventKey *e) {
+        selectNext(numOfCols, shift(e));
+        return true;
+    });
+    bind("filebrowser.select_first", [=](GdkEventKey *e) {
+        selectFirst(shift(e));
+        return true;
+    });
+    bind("filebrowser.select_last", [=](GdkEventKey *e) {
+        selectLast(shift(e));
+        return true;
+    });
+    run("filebrowser.page_up", [this]() { scrollPage(GDK_SCROLL_UP); });
+    run("filebrowser.page_down", [this]() { scrollPage(GDK_SCROLL_DOWN); });
+    bind("filebrowser.open", [this](GdkEventKey *) {
+        std::vector<FileBrowserEntry *> mselected;
         for (size_t i = 0; i < selected.size(); i++) {
             mselected.push_back(static_cast<FileBrowserEntry *>(selected[i]));
         }
-
         openRequested(mselected);
-    } else if (keyval == GDK_KEY_Page_Up) {
-        scrollPage(GDK_SCROLL_UP);
-        return true;
-    } else if (keyval == GDK_KEY_Page_Down) {
-        scrollPage(GDK_SCROLL_DOWN);
-        return true;
-    } else if ((shift || in_inspector) && !ctrl && !alt && !altgr) { // rank
-        switch (getKeyval(event, false)) {
-        case GDK_KEY_0:
-            requestRanking(0);
-            return true;
+        // it has never consumed the key: the catalog also sees it, and
+        // browses the path if that has the focus
+        return false;
+    });
 
-        case GDK_KEY_1:
-            requestRanking(1);
-            return true;
-
-        case GDK_KEY_2:
-            requestRanking(2);
-            return true;
-
-        case GDK_KEY_3:
-            requestRanking(3);
-            return true;
-
-        case GDK_KEY_4:
-            requestRanking(4);
-            return true;
-
-        case GDK_KEY_5:
-            requestRanking(5);
-            return true;
-        }
-    } else if ((shift || in_inspector) && ctrl && !alt &&
-               !altgr) { // color labels
-        switch (getKeyval(event, false)) {
-        case GDK_KEY_0:
-            requestColorLabel(0);
-            return true;
-
-        case GDK_KEY_1:
-            requestColorLabel(1);
-            return true;
-
-        case GDK_KEY_2:
-            requestColorLabel(2);
-            return true;
-
-        case GDK_KEY_3:
-            requestColorLabel(3);
-            return true;
-
-        case GDK_KEY_4:
-            requestColorLabel(4);
-            return true;
-
-        case GDK_KEY_5:
-            requestColorLabel(5);
-            return true;
-        }
+    for (int i = 0; i <= 5; ++i) {
+        const std::string n = std::to_string(i);
+        run(("filebrowser.set_rank." + n).c_str(),
+            [this, i]() { requestRanking(i); });
+        run(("filebrowser.inspector_set_rank." + n).c_str(),
+            [this, i]() { requestRanking(i); });
+        run(("filebrowser.set_label." + n).c_str(),
+            [this, i]() { requestColorLabel(i); });
+        run(("filebrowser.inspector_set_label." + n).c_str(),
+            [this, i]() { requestColorLabel(i); });
     }
+}
 
-    return false;
+bool FileBrowser::keyPressed(GdkEventKey *event)
+{
+    const bool in_inspector = inspector && inspector->isActive();
+
+    std::vector<ShortcutScope> chain;
+    if (in_inspector) {
+        chain.emplace_back("inspector", inspector);
+    }
+    chain.emplace_back("filebrowser", this);
+    if (in_inspector) {
+        chain.emplace_back("filebrowser-inspector", this);
+    }
+    return ShortcutsManager::getInstance()->dispatch(
+        event, ShortcutPhase::After, chain);
 }
 
 void FileBrowser::saveThumbnailHeight(int height)
@@ -2080,7 +2016,7 @@ void FileBrowser::buttonPressed(LWButton *button, int actionCode,
     } else if (actionCode == 6 && tbl) { // to processing queue
         std::vector<FileBrowserEntry *> tbe;
         tbe.push_back(static_cast<FileBrowserEntry *>(actionData));
-        tbl->developRequested(tbe, bstate & GDK_CONTROL_MASK);
+        tbl->developRequested(tbe, bstate & ShortcutsManager::primaryMask());
     } else if (actionCode == 7) {          // to trash / undelete
         std::vector<FileBrowserEntry *> tbe;
         FileBrowserEntry *entry = static_cast<FileBrowserEntry *>(actionData);

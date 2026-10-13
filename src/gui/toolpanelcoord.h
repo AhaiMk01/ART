@@ -351,7 +351,7 @@ public:
     CropGUIListener *startCropEditing(Thumbnail *thm = nullptr) override;
 
     void updateTPVScrollbar(bool hide);
-    bool handleShortcutKey(GdkEventKey *event);
+    void bindShortcuts();
 
     // ToolBarListener interface
     void toolSelected(ToolMode tool) override;
