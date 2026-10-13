@@ -463,7 +463,9 @@ frame adds its own offset (scene light, printer light). Fit them together
    the slope is not set, take it from a preset for the same film and setup
    and fit only the offsets.
 5. Shrink each frame's offset toward its light group (frames under one kind
-   of light: daylight, one interior; never a roll mean across lights):
+   of light: daylight, one interior; never a roll mean across lights; a
+   frame whose light no other frame shares, such as a lamp-lit room among
+   window-lit ones, is a group of its own and keeps its fitted offset):
    `o_final = mean + lam * (o_fit - mean)`, `lam = tau^2 / (tau^2 + SE^2)`,
    SE from the frame's weights times the robust scale, `tau^2` the spread of
    offsets around their group mean minus the mean SE^2 (R and B pooled),
