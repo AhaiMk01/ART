@@ -639,11 +639,13 @@ spot reads or by whether it agrees with a fit (that is circular).
 Principles:
 
 - Clean frame: before picking, look at the whole frame at readable size
-  for light leaks, haze or flare bands, streaks, heavy scratches and glass
-  in front of the lens (a windscreen). They add light that is not the
-  scene's and changes from frame to frame. A frame contaminated over the
-  areas you would sample gives no rows for the fit; with local damage keep
-  squares well away from it. Report what you saw either way.
+  for contamination, and judge it by kind, not by distance from the squares.
+  Light that spreads (light leaks, haze or flare bands, veiling glare, glass
+  in front of the lens such as a windscreen) fogs the whole frame, also
+  where it looks clean: such a frame does not help set the slopes; at most
+  it gives its own offset, at lower confidence. Local marks (scratches,
+  fibres, dust) only spoil what they cover: keep squares well away from
+  them. Report what you saw either way.
 - Neutral by material: paint (white, grey, black), tyre rubber, dry
   asphalt, deep shadow under an object on such a surface. Not stone,
   concrete (most sidewalks and paths), gravel, brick, roofs, bare metal,
