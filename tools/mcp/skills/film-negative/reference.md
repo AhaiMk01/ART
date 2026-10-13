@@ -638,6 +638,12 @@ spot reads or by whether it agrees with a fit (that is circular).
 
 Principles:
 
+- Clean frame: before picking, look at the whole frame at readable size
+  for light leaks, haze or flare bands, streaks, heavy scratches and glass
+  in front of the lens (a windscreen). They add light that is not the
+  scene's and changes from frame to frame. A frame contaminated over the
+  areas you would sample gives no rows for the fit; with local damage keep
+  squares well away from it. Report what you saw either way.
 - Neutral by material: paint (white, grey, black), tyre rubber, dry
   asphalt, deep shadow under an object on such a surface. Not stone,
   concrete (most sidewalks and paths), gravel, brick, roofs, bare metal,
@@ -649,7 +655,8 @@ Principles:
   shadow is lit by the sky, another light.
 - Measurable: well inside one material, away from edges, text and detail.
   Thin or small objects on a contrasting surround read diluted; dark
-  surfaces at a grazing angle carry sheen. Where neutrals are few, still sample
+  surfaces at a grazing angle and glossy black paint carry sheen or sky
+  reflections (`uncertain`). Where neutrals are few, still sample
   every candidate; only squares beyond doubt are `material`.
 - Independent: several objects, dark, mid and bright, dark and bright in the
   same frame where possible. Squares on one object are one observation.
@@ -660,8 +667,8 @@ Principles:
 
 Steps:
 
-1. Render each frame at about 1600 px; write one sentence on its content and
-   light; list candidate areas.
+1. Render each frame at about 1600 px; write one sentence on its content,
+   light and any contamination (see Clean frame); list candidate areas.
 2. Place squares on every candidate area: ten or more per frame on four or
    more objects across the bands, doubtful ones included (they become
    `uncertain`, not omitted); a missed neutral costs more than a sampled
