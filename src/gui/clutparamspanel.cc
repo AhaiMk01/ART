@@ -48,7 +48,9 @@ public:
 
 } // namespace
 
-CLUTParamsPanel::CLUTParamsPanel(): sig_blocked_(false), presets_combo_(nullptr)
+CLUTParamsPanel::CLUTParamsPanel()
+    : sig_blocked_(false), presets_combo_(nullptr), edit_provider_(nullptr),
+      edit_base_(0)
 {
     set_orientation(Gtk::ORIENTATION_VERTICAL);
 }
@@ -58,8 +60,54 @@ Gtk::SizeRequestMode CLUTParamsPanel::get_request_mode_vfunc() const
     return Gtk::SIZE_REQUEST_HEIGHT_FOR_WIDTH;
 }
 
+void CLUTParamsPanel::setup_pipette(const art::engine::CLUTParamDescriptor &d,
+                                    CurveEditor *ce)
+{
+    if (d.pipette_id >= 0) {
+        ce->setEditID(ctlEditID(edit_base_ + d.pipette_id), BT_IMAGEFLOAT);
+        ce->setEditProvider(edit_provider_);
+    }
+}
+
+void CLUTParamsPanel::unsubscribe_pipettes()
+{
+    // curve editors do not unsubscribe when destroyed: avoid leaving a dangling
+    // subscriber in the edit provider
+    for (size_t i = 0; i < params_.size() && i < widgets_.size(); ++i) {
+        if (params_[i].pipette_id >= 0 && widgets_[i]) {
+            auto ce = static_cast<CurveEditor *>(widgets_[i]);
+            if (ce->isCurrentSubscriber()) {
+                ce->unsubscribe();
+            }
+        }
+    }
+}
+
+CLUTParamsPanel::~CLUTParamsPanel()
+{
+    unsubscribe_pipettes();
+}
+
+void CLUTParamsPanel::setEditProvider(EditDataProvider *provider)
+{
+    edit_provider_ = provider;
+    for (size_t i = 0; i < params_.size() && i < widgets_.size(); ++i) {
+        auto &d = params_[i];
+        if (d.pipette_id >= 0 && widgets_[i]) {
+            setup_pipette(d, static_cast<CurveEditor *>(widgets_[i]));
+        }
+    }
+}
+
+void CLUTParamsPanel::setEditIDBase(unsigned int base)
+{
+    edit_base_ = base;
+    setEditProvider(edit_provider_);
+}
+
 void CLUTParamsPanel::setParams(const art::engine::CLUTParamDescriptorList &params)
 {
+    unsubscribe_pipettes();
     widgets_.clear();
     for (auto c : get_children()) {
         remove(*c);
@@ -238,6 +286,7 @@ void CLUTParamsPanel::setParams(const art::engine::CLUTParamDescriptorList &para
                 static_cast<FlatCurveEditor *>(ce)->setResetCurve(
                     FlatCurveType(d.value_default[0]), d.value_default);
             }
+            setup_pipette(d, ce);
             if (!d.gui_bottom_gradient.empty()) {
                 std::vector<GradientMilestone> ms;
                 for (auto &g : d.gui_bottom_gradient) {

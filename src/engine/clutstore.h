@@ -150,6 +150,14 @@ public:
 
     bool set_num_threads(int num_threads);
 
+    /// true if the script supports pipettes (see @ART-pipette)
+    bool hasPipette() const;
+    /// Compute the pipette values for W pixels: r, g, b are the input pixels
+    /// (in the working profile, 0..65535 range) and are overwritten by the
+    /// positions in the curve curve_id (0..1, -1 for unused channels)
+    bool fillPipette(int thread_id, int curve_id, int W, float *r, float *g,
+                     float *b);
+
     static CLUTParamDescriptorList
     get_param_descriptors(const Glib::ustring &filename);
 
@@ -190,6 +198,7 @@ protected:
     void CTL_init_lut(int dim);
     std::shared_ptr<Ctl::Interpreter> ctl_intp_;
     std::vector<Ctl::FunctionCallPtr> ctl_func_;
+    std::vector<Ctl::FunctionCallPtr> ctl_pipette_func_;
     int ctl_chunk_size_;
     CLUTParamDescriptorList ctl_params_;
     LUT3D ctl_lut_;

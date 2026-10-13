@@ -84,6 +84,7 @@ FilmSimulation::FilmSimulation()
     pack_start(*m_clutComboBox);
 
     lut_params_ = Gtk::manage(new CLUTParamsPanel());
+    lut_params_->setEditIDBase(art::utils::ctlEditBase(false));
     lut_params_->signal_changed().connect(
         sigc::mem_fun(this, &FilmSimulation::onClutParamsChanged));
     pack_start(*lut_params_);
@@ -108,6 +109,11 @@ FilmSimulation::FilmSimulation()
     pack_start(*hb, Gtk::PACK_SHRINK, 0);
     after_tone_curve_->signal_toggled().connect(
         sigc::mem_fun(this, &FilmSimulation::afterToneCurveToggled));
+}
+
+void FilmSimulation::setEditProvider(EditDataProvider *provider)
+{
+    lut_params_->setEditProvider(provider);
 }
 
 void FilmSimulation::onClutSelected()

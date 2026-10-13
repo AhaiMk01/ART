@@ -88,6 +88,7 @@ private:
     void onClutSelected();
     void onClutParamsChanged();
     void enabledChanged() override;
+    void setEditProvider(EditDataProvider *provider) override;
     void updateDisable(bool value);
     void afterToneCurveToggled();
 

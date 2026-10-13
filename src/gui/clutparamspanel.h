@@ -22,6 +22,7 @@
 #include "../engine/clutparams.h"
 #include "adjuster.h"
 #include "curvelistener.h"
+#include "edit.h"
 #include "toolpanel.h"
 #include <gtkmm.h>
 
@@ -33,10 +34,17 @@ class CLUTParamsPanel: public Gtk::VBox,
                        public CurveListener {
 public:
     CLUTParamsPanel();
+    ~CLUTParamsPanel() override;
 
     void setParams(const art::engine::CLUTParamDescriptorList &params);
     void setValue(const art::engine::CLUTParamValueMap &val);
     art::engine::CLUTParamValueMap getValue() const;
+
+    /// Pipette support for the curves that declare it (see @ART-pipette in
+    /// the CTL scripts). base is the payload of the edit IDs (see
+    /// art::utils::ctlEditBase), to which the curve id is added
+    void setEditProvider(EditDataProvider *provider);
+    void setEditIDBase(unsigned int base);
 
     sigc::signal<void> signal_changed() { return sig_changed_; }
 
@@ -50,6 +58,9 @@ public:
 private:
     void emit_signal();
     void apply_preset();
+    void unsubscribe_pipettes();
+    void setup_pipette(const art::engine::CLUTParamDescriptor &d,
+                       CurveEditor *ce);
 
     sigc::signal<void> sig_changed_;
     bool sig_blocked_;
@@ -57,6 +68,8 @@ private:
     std::vector<void *> widgets_;
     sigc::connection presets_conn_;
     MyComboBoxText *presets_combo_;
+    EditDataProvider *edit_provider_;
+    unsigned int edit_base_;
 };
 
 

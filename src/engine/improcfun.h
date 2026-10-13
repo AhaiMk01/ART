@@ -47,6 +47,8 @@ class DenoisePools;
 } // namespace ops
 } // namespace gpu
 
+class CLUTApplication;
+
 class ImProcFunctions;
 
 struct ImProcData {
@@ -164,6 +166,7 @@ public:
     void toneCurve(Imagefloat *img);
     void saturationVibrance(Imagefloat *img);
     void filmSimulation(Imagefloat *img);
+    void fillCTLPipette(CLUTApplication *clut, Imagefloat *img);
     void creativeGradients(Imagefloat *img);
     //----------------------------------------------------------------------
 

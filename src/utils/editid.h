@@ -22,7 +22,7 @@ namespace art { namespace utils {
 
 
 /// @brief List of pipette editing operation
-enum EditUniqueID {
+enum EditUniqueID : unsigned int {
     EUID_None, /// special value (default)
 
     EUID_DehazeStrength,
@@ -58,6 +58,49 @@ enum EditUniqueID {
     EUID_Masks_DE3, // smoothing
     EUID_Masks_DE4  // texture boost
 };
+
+/// IDs come in two namespaces, told apart by the most significant bit. The
+/// built-in IDs above have it clear; IDs defined by CTL scripts have it set.
+/// For a CTL ID, clearing the bit (ctlEditValue) gives a payload laid out as:
+///   bits  0-15: curve id (index in the script's @ART-pipette list)
+///   bits 16-29: region index (ColorCorrection; 0 for Film Simulation)
+///   bit  30   : EUID_CTL_COLORCORRECTION_TAG, set for ColorCorrection
+constexpr unsigned int EUID_CTL_FLAG = 1u << 31;
+constexpr unsigned int EUID_CTL_COLORCORRECTION_TAG = 1u << 30;
+constexpr unsigned int EUID_CTL_CURVE_MASK = 0xffffu;
+constexpr unsigned int EUID_CTL_REGION_SHIFT = 16;
+
+inline bool isCTLEditID(EditUniqueID id)
+{
+    return (static_cast<unsigned int>(id) & EUID_CTL_FLAG) != 0;
+}
+
+inline EditUniqueID ctlEditID(unsigned int value)
+{
+    return static_cast<EditUniqueID>(value | EUID_CTL_FLAG);
+}
+
+inline unsigned int ctlEditValue(EditUniqueID id)
+{
+    return static_cast<unsigned int>(id) & ~EUID_CTL_FLAG;
+}
+
+/// payload base (everything but the curve id) for a tool's curves
+inline unsigned int ctlEditBase(bool colorcorrection, unsigned int region = 0)
+{
+    return (colorcorrection ? EUID_CTL_COLORCORRECTION_TAG : 0u) |
+        (region << EUID_CTL_REGION_SHIFT);
+}
+
+inline unsigned int ctlEditBase(EditUniqueID id)
+{
+    return ctlEditValue(id) & ~EUID_CTL_CURVE_MASK;
+}
+
+inline int ctlEditCurve(EditUniqueID id)
+{
+    return static_cast<int>(ctlEditValue(id) & EUID_CTL_CURVE_MASK);
+}
 
 /// @brief Editing mechanisms
 //  TODO: Look out if it has to be a bitfield to allow both mechanisms at a time

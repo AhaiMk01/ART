@@ -19,6 +19,7 @@
 
 #include "../utils/multilangmgr.h"
 #include "../gui/options.h"
+#include "../utils/editid.h"
 #include "../utils/pathutils.h"
 #include "cJSON.h"
 
@@ -686,6 +687,22 @@ bool fill_from_json(std::unordered_map<std::string, int> &name2pos,
  * // @ART-param: ["param_choice", "A combo box", ["Option A", "Option B"], 1,
  * "Select between option A (value 0) and option B (value 1)"]
  *
+ * Curve parameters can support pipettes (picking a point of the curve from a
+ * pixel of the preview). A script declares which curves do with
+ *
+ *  // @ART-pipette: ["curve_a", "curve_b"]
+ *
+ * (curve_id is the index in this list), and provides a second entry point
+ *
+ *  void ART_fill_pipette(varying float r, varying float g, varying float b,
+ *                        output varying float rout, output varying float gout,
+ *                        output varying float bout, int curve_id,
+ *                        <optional parameters, as for ART_main>)
+ *
+ * which receives the same input as ART_main and writes, in the *_out
+ * variables, the position (in [0, 1]) in the curve curve_id that corresponds
+ * to the pixel (-1 for an unused channel).
+ *
  * void ART_main(varying float r, varying float g, varying float b,
  *               output varying float or, output varying float og, output
  * varying float ob, float param_float, int param_int, bool param_bool, int
@@ -785,6 +802,8 @@ bool get_CTL_params(const Glib::ustring &filename,
     }
 
     std::unordered_map<std::string, int> order;
+    std::vector<std::string> pipette_curves;
+    int pipette_line = 0;
 
     if (Glib::file_test(filename, Glib::FILE_TEST_EXISTS)) {
         auto fn = Glib::filename_from_utf8(filename);
@@ -842,6 +861,31 @@ bool get_CTL_params(const Glib::ustring &filename,
                 if (lut_dim < -1 || v != lut_dim) {
                     return err("invalid lut definition:\n  " + line);
                 }
+            } else if (line.find("@ART-pipette:", s) == s) {
+                line = line.substr(13 + s);
+                cJSON *root = cJSON_Parse(line.c_str());
+                if (!root || !cJSON_IsArray(root)) {
+                    if (root) {
+                        cJSON_Delete(root);
+                    }
+                    return err("invalid pipette definition:\n  " + line);
+                }
+                pipette_curves.clear();
+                pipette_line = cur_line;
+                bool ok = true;
+                cJSON *item = nullptr;
+                cJSON_ArrayForEach(item, root)
+                {
+                    if (cJSON_IsString(item)) {
+                        pipette_curves.push_back(cJSON_GetStringValue(item));
+                    } else {
+                        ok = false;
+                    }
+                }
+                cJSON_Delete(root);
+                if (!ok) {
+                    return err("invalid pipette definition:\n  " + line);
+                }
             } else if (line.find("@ART-preset:", s) == s) {
                 line = line.substr(12 + s);
                 cJSON *root = cJSON_Parse(line.c_str());
@@ -871,12 +915,92 @@ bool get_CTL_params(const Glib::ustring &filename,
         return err(msg);
     }
 
-    const auto lt = [&](const CLUTParamDescriptor &a,
+    if (pipette_curves.size() > art::utils::EUID_CTL_CURVE_MASK + 1) {
+        cur_line = pipette_line;
+        return err("too many curves in the pipette definition");
+    }
+    for (size_t i = 0; i < pipette_curves.size(); ++i) {
+        auto it = std::find_if(out.begin(), out.end(),
+                               [&](const CLUTParamDescriptor &d) {
+                                   return d.name == pipette_curves[i];
+                               });
+        cur_line = pipette_line;
+        if (it == out.end()) {
+            return err("pipette defined for unknown parameter " +
+                       pipette_curves[i]);
+        } else if (it->type != CLUTParamType::PT_CURVE &&
+                   it->type != CLUTParamType::PT_FLATCURVE &&
+                   it->type != CLUTParamType::PT_FLATCURVE_PERIODIC) {
+            return err("pipette defined for non-curve parameter " +
+                       pipette_curves[i]);
+        } else if (it->pipette_id >= 0) {
+            return err("duplicate pipette for parameter " + pipette_curves[i]);
+        }
+        it->pipette_id = int(i);
+    }
+    cur_line = 0;
+
+    const auto lt =[&](const CLUTParamDescriptor &a,
                         const CLUTParamDescriptor &b) -> bool {
         return order[a.name] < order[b.name];
     };
     std::sort(out.begin(), out.end(), lt);
 
+    return true;
+}
+
+/**
+ * Check that the script, if it declares pipettes, also provides a well-formed
+ * ART_fill_pipette. If it does not, the pipettes are disabled (by the caller),
+ * but this is not an error: the script is still usable.
+ */
+bool check_CTL_pipette(const Glib::ustring &filename,
+                       std::shared_ptr<Ctl::Interpreter> intp,
+                       const CLUTParamDescriptorList &params)
+{
+    bool wanted = false;
+    for (auto &p : params) {
+        wanted = wanted || p.pipette_id >= 0;
+    }
+    if (!wanted) {
+        return true;
+    }
+
+    const auto warn = [&](const std::string &msg) -> bool {
+        if (settings->verbose) {
+            std::cout << filename << ": Warning: " << msg
+                      << "; pipettes disabled" << std::endl;
+        }
+        return false;
+    };
+
+    Ctl::FunctionCallPtr f;
+    try {
+        f = intp->newFunctionCall("ART_fill_pipette");
+    } catch (std::exception &) {
+        return warn("@ART-pipette given but no ART_fill_pipette function");
+    }
+    if (f->numInputArgs() < 4 || f->numOutputArgs() != 3) {
+        return warn("wrong number of arguments to ART_fill_pipette");
+    }
+    for (int i = 0; i < 3; ++i) {
+        for (auto a : {f->inputArg(i), f->outputArg(i)}) {
+            if (!a->type().cast<Ctl::FloatType>() || !a->isVarying()) {
+                return warn("bad argument type in ART_fill_pipette");
+            }
+        }
+    }
+    auto id = f->inputArg(3);
+    if (id->isVarying() || id->type()->cDataType() != Ctl::IntTypeEnum ||
+        id->type().cast<Ctl::BoolType>()) {
+        return warn("curve_id of ART_fill_pipette must be a uniform int");
+    }
+    for (size_t i = 4, n = f->numInputArgs(); i < n; ++i) {
+        if (f->inputArg(i)->isVarying()) {
+            return warn("parameter " + f->inputArg(i)->name() +
+                        " of ART_fill_pipette is varying");
+        }
+    }
     return true;
 }
 
@@ -963,6 +1087,12 @@ art::engine::CLUTStore::getCTLLut(const Glib::ustring &filename, int num_threads
                                 lut_dim)) {
                 params.clear();
                 return err("error in parsing CTL parameters");
+            }
+
+            if (!check_CTL_pipette(full_filename, intp, params)) {
+                for (auto &p : params) {
+                    p.pipette_id = -1;
+                }
             }
 
             result.intp = intp;
@@ -1183,6 +1313,18 @@ bool CLUTApplication::CTL_init(int num_threads)
             init_matrices(colorspace);
             ctl_intp_ = intp;
             ctl_func_ = std::move(func);
+            ctl_pipette_func_.clear();
+            bool pipette = false;
+            for (auto &p : ctl_params_) {
+                pipette = pipette || p.pipette_id >= 0;
+            }
+            if (pipette) {
+                // the script was validated by getCTLLut
+                for (size_t i = 0; i < ctl_func_.size(); ++i) {
+                    ctl_pipette_func_.push_back(
+                        intp->newFunctionCall("ART_fill_pipette"));
+                }
+            }
             ok_ = true;
             return true;
         }
@@ -1203,13 +1345,15 @@ bool CLUTApplication::CTL_set_params(const CLUTParamValueMap &values, Quality q)
             }
             auto vv = it != values.end() ? it->second : desc.value_default;
             auto v = vv[0];
-            int arg = -1;
-            for (size_t j = 0, n = ctl_func_[0]->numInputArgs(); j < n; ++j) {
-                if (ctl_func_[0]->inputArg(j)->name() == desc.name) {
-                    arg = j;
-                    break;
+            const auto find_arg = [&](const std::vector<Ctl::FunctionCallPtr> &funcs) {
+                for (size_t j = 0, n = funcs[0]->numInputArgs(); j < n; ++j) {
+                    if (funcs[0]->inputArg(j)->name() == desc.name) {
+                        return int(j);
+                    }
                 }
-            }
+                return -1;
+            };
+            const int arg = find_arg(ctl_func_);
             if (arg < 0) {
                 if (settings->verbose) {
                     std::cout << "Error: no parameter " << desc.name
@@ -1217,45 +1361,66 @@ bool CLUTApplication::CTL_set_params(const CLUTParamValueMap &values, Quality q)
                 }
                 return false;
             }
-            switch (desc.type) {
-            case CLUTParamType::PT_BOOL:
-                for (auto f : ctl_func_) {
-                    *reinterpret_cast<bool *>(f->inputArg(arg)->data()) = v;
-                }
-                break;
-            case CLUTParamType::PT_FLOAT:
-                for (auto f : ctl_func_) {
-                    *reinterpret_cast<float *>(f->inputArg(arg)->data()) = v;
-                }
-                break;
-            case CLUTParamType::PT_CURVE:
-            case CLUTParamType::PT_FLATCURVE:
-            case CLUTParamType::PT_FLATCURVE_PERIODIC: {
-                std::unique_ptr<Curve> curve;
-                if (desc.type == CLUTParamType::PT_CURVE) {
-                    curve.reset(new DiagonalCurve(vv));
-                } else {
-                    curve.reset(new FlatCurve(
-                        vv, desc.type == CLUTParamType::PT_FLATCURVE_PERIODIC));
-                }
-                for (auto f : ctl_func_) {
-                    Ctl::ArrayTypePtr atp =
-                        f->inputArg(arg)->type().cast<Ctl::ArrayType>();
+            std::unique_ptr<Curve> curve;
+            if (desc.type == CLUTParamType::PT_CURVE) {
+                curve.reset(new DiagonalCurve(vv));
+            } else if (desc.type == CLUTParamType::PT_FLATCURVE ||
+                       desc.type == CLUTParamType::PT_FLATCURVE_PERIODIC) {
+                curve.reset(new FlatCurve(
+                    vv, desc.type == CLUTParamType::PT_FLATCURVE_PERIODIC));
+            }
+            const auto set_arg = [&](std::vector<Ctl::FunctionCallPtr> &funcs,
+                                     int arg) {
+                for (auto f : funcs) {
                     auto d = f->inputArg(arg)->data();
-                    size_t n = atp->size();
-                    for (size_t j = 0; j < n; ++j) {
-                        double x = double(j) / double(n - 1);
-                        *(reinterpret_cast<float *>(d) + j) = curve->getVal(x);
+                    switch (desc.type) {
+                    case CLUTParamType::PT_BOOL:
+                        *reinterpret_cast<bool *>(d) = v;
+                        break;
+                    case CLUTParamType::PT_FLOAT:
+                        *reinterpret_cast<float *>(d) = v;
+                        break;
+                    case CLUTParamType::PT_CURVE:
+                    case CLUTParamType::PT_FLATCURVE:
+                    case CLUTParamType::PT_FLATCURVE_PERIODIC: {
+                        Ctl::ArrayTypePtr atp =
+                            f->inputArg(arg)->type().cast<Ctl::ArrayType>();
+                        size_t n = atp->size();
+                        for (size_t j = 0; j < n; ++j) {
+                            double x = double(j) / double(n - 1);
+                            *(reinterpret_cast<float *>(d) + j) =
+                                curve->getVal(x);
+                        }
+                    } break;
+                    case CLUTParamType::PT_INT:
+                    case CLUTParamType::PT_CHOICE:
+                    default:
+                        *reinterpret_cast<int *>(d) = v;
+                        break;
                     }
                 }
-            } break;
-            case CLUTParamType::PT_INT:
-            case CLUTParamType::PT_CHOICE:
-            default:
-                for (auto f : ctl_func_) {
-                    *reinterpret_cast<int *>(f->inputArg(arg)->data()) = v;
+            };
+            set_arg(ctl_func_, arg);
+            if (!ctl_pipette_func_.empty()) {
+                // parameters unknown to ART_fill_pipette are simply not set
+                const int parg = find_arg(ctl_pipette_func_);
+                if (parg >= 0) {
+                    auto ta = ctl_func_[0]->inputArg(arg)->type();
+                    auto tb = ctl_pipette_func_[0]->inputArg(parg)->type();
+                    bool same = ta->cDataType() == tb->cDataType();
+                    if (same && ta->cDataType() == Ctl::ArrayTypeEnum) {
+                        same = ta.cast<Ctl::ArrayType>()->size() ==
+                               tb.cast<Ctl::ArrayType>()->size();
+                    }
+                    if (same) {
+                        set_arg(ctl_pipette_func_, parg);
+                    } else if (settings->verbose) {
+                        std::cout << "Warning: parameter " << desc.name
+                                  << " has different types in ART_main and "
+                                     "ART_fill_pipette in LUT "
+                                  << clut_filename_ << std::endl;
+                    }
                 }
-                break;
             }
         }
         if (settings->verbose) {
@@ -1742,6 +1907,66 @@ inline void CLUTApplication::CTL_apply(int thread_id, int W, float *r, float *g,
 }
 
 #endif // ART_USE_CTL
+
+bool CLUTApplication::hasPipette() const
+{
+#ifdef ART_USE_CTL
+    return ok_ && !ctl_pipette_func_.empty();
+#else
+    return false;
+#endif
+}
+
+bool CLUTApplication::fillPipette(int thread_id, int curve_id, int W, float *r,
+                                  float *g, float *b)
+{
+#ifdef ART_USE_CTL
+    if (!hasPipette() || thread_id < 0 ||
+        size_t(thread_id) >= ctl_pipette_func_.size()) {
+        return false;
+    }
+    try {
+        auto func = ctl_pipette_func_[thread_id];
+        // same input as ART_main, but never through the baked 3D LUT: the
+        // output is not a colour
+        std::vector<float> rgb[3];
+        for (int i = 0; i < 3; ++i) {
+            rgb[i].resize(W);
+        }
+        Vec3<float> v;
+        for (int x = 0; x < W; ++x) {
+            v[0] = r[x] / 65535.f;
+            v[1] = g[x] / 65535.f;
+            v[2] = b[x] / 65535.f;
+            v = dot_product(conv_, v);
+            rgb[0][x] = v[0];
+            rgb[1][x] = v[1];
+            rgb[2][x] = v[2];
+        }
+        *reinterpret_cast<int *>(func->inputArg(3)->data()) = curve_id;
+        float *out[3] = {r, g, b};
+        for (int x = 0; x < W; x += ctl_chunk_size_) {
+            const auto n = (x + ctl_chunk_size_ < W ? ctl_chunk_size_ : W - x);
+            for (int i = 0; i < 3; ++i) {
+                memcpy(func->inputArg(i)->data(), &(rgb[i][x]),
+                       sizeof(float) * n);
+            }
+            func->callFunction(n);
+            for (int i = 0; i < 3; ++i) {
+                memcpy(out[i] + x, func->outputArg(i)->data(),
+                       sizeof(float) * n);
+            }
+        }
+        return true;
+    } catch (std::exception &exc) {
+        if (settings->verbose) {
+            std::cout << "Error in computing the pipette of CTL LUT "
+                      << clut_filename_ << ": " << exc.what() << std::endl;
+        }
+    }
+#endif // ART_USE_CTL
+    return false;
+}
 
 void CLUTApplication::apply(int thread_id, int W, float *r, float *g, float *b)
 {
