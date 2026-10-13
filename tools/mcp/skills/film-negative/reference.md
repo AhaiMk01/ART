@@ -456,8 +456,9 @@ frame adds its own offset (scene light, printer light). Fit them together
    and bootstrap whole frames. The slope is not set when fewer than three
    frames have `material` rows at two levels well apart in D_G, when one
    frame moves it on its own, when it jumps between values as single rows
-   change basis, or when several `uncertain` rows disagree with it in the
-   same direction against `material` rows of their own frames. A narrow
+   change basis, or when `uncertain` rows in three or more frames disagree with it
+   beyond tolerance, all in one direction, against `material` rows of
+   their own frames. A narrow
    interval does not show it is set. A frame whose neutrals split
    by light (seen, and beyond tolerance) gives an offset but no slope. When
    the slope is not set, take it from a preset for the same film and setup
