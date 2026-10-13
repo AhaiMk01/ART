@@ -439,83 +439,48 @@ That fit determines neither physical Dmin nor absolute scene reflectance.
 ### Pooled roll fit (NamiColor)
 
 A roll shares film and digitization, so its channel slopes are common; each
-frame may add its own offset (scene light, per-frame printer light). Fit them
-together instead of from one frame. This mirrors Fuji's roll-pooled grey axis
-(US 6665434 / US 6701007: `Dg = a*Dr + b`, candidates pooled over all frames).
+frame adds its own offset (scene light, printer light). Fit them together
+(as Fuji's roll-pooled grey axis, US 6665434: `Dg = a*Dr + b`).
 
-1. Evidence, by looking: for every frame, find materials that are neutral by
-   what they are (see "Choosing neutral references"), all under the same light
-   in that frame: in sun, sunlit only; shade is lit by the sky and is another
-   illuminant. Size each square to its object (24-32 px for road, concrete and
-   sign backgrounds, 8-16 px for poles, letters and road lines; a spot's own
-   `size` overrides the call's). Check every square with `render_preview`
-   `marks` and `zoom: true`, which shows each square enlarged with its
-   surroundings; drop any that touches an edge, a shadow line or another
-   material. To place spots from a preview, map its pixels with the result's
-   `shown` and `width`/`height`.
-2. Sample before inversion (`sample_spots`, `stage` source); keep `avg` and
-   `sd` (the within-square standard deviation). sd is high on textured
-   pavement as well as on edges, so use it for weights; judge edges by eye.
-3. One observation per material per frame: average repeated squares of one
-   material (they check its uniformity, not its neutrality).
-4. Grade by confidence g: A = standard neutral paint (sign white and black,
-   road markings) 1.0; B = concrete, asphalt, painted metal, white paint on
-   objects, snow 0.5; C = sky, glass, distant haze, unsure 0.25.
-5. Variance of each observation's density: `sd_D = sd / (avg * ln10) /
-   sqrt(min(N, 64))` per channel (N pixels; texture is correlated, hence the
-   cap), `var = (sd_c^2 + k^2 sd_G^2 + 0.008^2) / g` (0.008 D: a floor for the
-   material).
-6. Fit per channel (R and B against G) `D_c = k_c * D_G + o_cf`, shared slope,
-   one offset per frame, `D = -log10(avg/65535)`:
-   - demean within each frame with the weights (this absorbs the offsets);
-   - start from the median of within-frame pair slopes (Theil-Sen; never pair
-     points of two frames);
-   - iterate Tukey bisquare (c 4.685) on residuals studentized by each point's
-     own sd and leverage (`1 - h`, with the frame mean's share in h), scale =
-     1.4826 * median |z|;
-   - then give every frame, also single-observation ones, its offset from the
-     shared slope.
-7. Check the slope before trusting it: leave each frame out and bootstrap
-   whole frames. The slope needs neutrals at two or more tonal levels in the
-   same light. Sunlit neutrals are mostly bright: on the Hawaii roll
-   (FILM03302-03324) the bootstrap interval was R 0.86-1.06, B 0.63-1.00, and
-   every version had magenta shadows. When the interval is that wide, take the
-   slope from frames with dark evidence (overcast, interiors) or from a
-   preset kept for the same film and setup, and fit only the offsets here.
-8. Read the residuals and the down-weighted points (robust weight below about
-   0.3); look at each again. Dark materials disagree most: on FILM06423 two
-   "black" signs differed by 50-80 mD in blue while white sign backgrounds and
-   road paint agreed within about 15 mD. Let a dark material set the shadow
-   slope only when two or more independent dark materials agree.
-9. Shrink each frame's offset toward the roll mean by its evidence:
+1. Evidence: the table from "Choosing neutral references". Fit `material`
+   rows only; read `uncertain` rows against the fit; `C` rows only describe
+   the light.
+2. One observation per object per frame (average its squares).
+   `D = -log10(avg/65535)`, `sd_D = sd / (avg * ln10) / sqrt(min(N, 64))`,
+   `var = sd_c^2 + k^2 sd_G^2 + 0.008^2`.
+3. Fit per channel `D_c = k_c * D_G + o_cf`: one slope, one offset per
+   frame. Demean within frames, start from within-frame Theil-Sen slopes,
+   iterate Tukey bisquare (c 4.685) on studentized residuals; then give every
+   frame its offset from the shared slope.
+4. Trust the slope only when several frames carry it. Leave each frame out
+   and bootstrap whole frames. The slope is not set when fewer than three
+   frames have `material` rows at two levels well apart in D_G, when one
+   frame moves it on its own, when it jumps between values as single rows
+   change basis, or when several `uncertain` rows disagree with it in the
+   same direction against `material` rows of their own frames. A narrow
+   interval does not show it is set. A frame whose neutrals split
+   by light (seen, and beyond tolerance) gives an offset but no slope. When
+   the slope is not set, take it from a preset for the same film and setup
+   and fit only the offsets.
+5. Shrink each frame's offset toward its light group (frames under one kind
+   of light: daylight, one interior; never a roll mean across lights):
    `o_final = mean + lam * (o_fit - mean)`, `lam = tau^2 / (tau^2 + SE^2)`,
-   with SE the frame offset's standard error (`1/sqrt(sum of weights)`,
-   multiplied by the robust scale of step 6, since the assumed variances
-   understate material scatter) and `tau^2` the between-frame variance of the
-   offsets minus the mean SE^2, pooled over R and B (scene light moves both).
-   On the Hawaii roll this matched the user's picks on five of six frames:
-   strong frames kept their correction, a frame with one usable material went
-   back toward the roll mean.
-10. Fold into NamiColor (input gain g = 1, master and black 0), keeping
-    green's `den_G` and `s_G` (exposure and contrast) as chosen,
-    `a = 1 - log10(16)`: `den_c = k_c * den_G`, `gain_c = 1 - den_c`,
-    `shift_c = k_c * (a + s_G) - a - o_final,cf`. The per-frame offsets are the
-    printer lights; no Color Correction is needed.
+   SE from the frame's weights times the robust scale, `tau^2` the spread of
+   offsets around their group mean minus the mean SE^2 (R and B pooled),
+   `mean` weighted by `1/(tau^2 + SE^2)`. Count a frame as weak when one
+   material sets its offset, or only neutrals brighter than the D_G range
+   where the slope was checked (neutral there, mid-tones can be off).
+6. Fold into NamiColor (input gain 1, master and black 0), keeping green's
+   `den_G` and `s_G`, `a = 1 - log10(16)`: `den_c = k_c * den_G`,
+   `gain_c = 1 - den_c`, `shift_c = k_c * (a + s_G) - a - o_final,cf`.
 
-Report each frame's offsets and lam in plain terms (warm late sun, shop
-light) and say how much was applied: removing a real warm or cool light is a
-choice, not a correction. A frame whose light the user wants to keep can
-take only part of its correction (`mean + alpha * lam * (o_fit - mean)`,
-alpha below 1); on the Hawaii roll the user kept the uncorrected warm light
-on one strongly evidenced frame. An automatic white balance (Deep White
-Balance, as in DiVERE) is a cross-check only: where it agrees with the
-neutral fit, confidence rises; where it differs strongly, look at the frame.
-Do not use it as the prior: it pushed every Hawaii frame warmer, one to a
-blue gain of 0.57, and shrinking toward it inherited that.
-
-On FILM06418-06423 the pooled fit's slopes were close to a careful
-single-frame sign fit, yet the rendered roll was clearly better because the
-per-frame offsets replaced hand-set printer lights.
+Report each frame's offset and lam in plain terms (warm late sun, shop
+light). Removing a real warm or cool light is a choice: a frame whose light
+the user wants can take part of its correction (`alpha * lam`, alpha < 1).
+Sunlit neutrals also carry skylight, so a daylight frame corrected to them
+in full can look warm: keep some of the cool, judged on the render and
+reported.
+An automatic white balance is a cross-check, never the prior.
 
 ### Density-specific reduction
 
@@ -647,21 +612,67 @@ print(red, blue, "kept", keep, "dropped", [i for i in range(len(L)) if i not in 
 
 ## Choosing neutral references
 
-Choose by material, not by how grey a spot looks. Find the material by
-looking at the picture at readable size, not from a flat/low-saturation filter.
+Choose by material, found by looking at the picture, never by how grey a
+spot reads or by whether it agrees with a fit (that is circular).
 
-- Candidate materials: matte white paint, sign backgrounds, concrete and
-  uncoloured metal. Inspect their actual finish, weathering, illumination and
-  reflection before treating them as neutral.
-- Black ink on a white sign can constrain relative channel behaviour under
-  common light, but neither material certifies Dmin or diffuse-white reflectance.
-  Black paints and plastics often carry a tint and sit where flare and grain
-  matter most; trust a black only when another black material agrees.
-- Ambiguous materials include natural stone, dyed fabric, glass, foliage and
-  painted machinery. Sky and clouds are illumination-dependent, especially at
-  twilight; apparent brightness or low saturation does not make them references.
-- Use independent materials and reserved frames to validate a fit. Repeated
-  patches on one material check uniformity, not independent colour accuracy.
+Principles:
+
+- Neutral by material: paint (white, grey, black), tyre rubber, dry
+  asphalt, deep shadow on such a surface. Not stone, concrete (most
+  sidewalks and paths), gravel,
+  brick, roofs, bare metal, foliage, fabric or anything coloured; an
+  unlisted material (vinyl, plastic, cardboard) is `uncertain`.
+- One light: surfaces lit by the frame's main light (a subject wholly in
+  shade or indoors: that light). Undersides, back-lit faces and shadows on
+  grass take the colour of what lights them.
+- Measurable: well inside one material, away from edges, text and detail.
+  Thin or small objects on a contrasting surround read diluted; dark
+  surfaces at a grazing angle carry sheen. Where neutrals are few, still sample
+  every candidate; only squares beyond doubt are `material`.
+- Independent: several objects, dark, mid and bright, dark and bright in the
+  same frame where possible. Squares on one object are one observation.
+- Searched: every object, background and ground included, for its darkest
+  and brightest large neutral areas (tyre sidewalls, shadow under a car,
+  large painted panels, sign backgrounds, road). Move a failing square
+  before giving up on it.
+
+Steps:
+
+1. Render each frame at about 1600 px; write one sentence on its content and
+   light; list candidate areas.
+2. Place squares on every candidate area: ten or more per frame on four or
+   more objects across the bands, doubtful ones included (they become
+   `uncertain`, not omitted); a missed neutral costs more than a sampled
+   one. Leave a margin of the same material around each.
+3. Zoom check (`render_preview`, `marks`, `zoom: true`); move squares that
+   touch anything else.
+4. Sample (`sample_spots`, stage source, per-spot `size`); sample again after
+   every move. Same-frame checks, `D = -log10(avg/65535)`:
+   - sd above about twice that of similar squares: move or drop;
+   - a black more than about 0.08 D_G lighter than the frame's largest
+     black: diluted;
+   - per channel, one material within about 15 mD, different materials at
+     similar D_G within about 25 mD.
+5. Record per square: frame, material, `object_id` (one per object; a
+   separately painted part or a tyre is its own), x, y, size, avg, sd, D_G,
+   basis (`material` or `uncertain`) and reason. Sky, clouds and surfaces
+   under another light may be `C` rows, to read the light. Note empty bands.
+   Show the picks: one preview per frame with every square marked by its
+   basis and number (`M1`, `U1`, `C1`), given to the user with the table,
+   and again after step 6 if the basis changed.
+6. After the pooled fit, revise the basis and refit until nothing changes;
+   decide each round from one fit and log each change with its reason.
+   - A disagreement is two rows of a frame beyond the step 4 tolerance in a
+     channel, at the fitted slope, over a D_G gap that channel can compare
+     (half the slope interval times the gap well below the tolerance). Low
+     robust weight only says where to look.
+   - Look at both sides; demote each side with a visible reason (second
+     light, reflection, uncertain material), and apply that reason to every
+     row in the roll that shares it. No visible reason: change nothing.
+   - Promote `uncertain` only when its own doubt is cleared: a closer look
+     for material or light, a larger clean square (replacing the old one)
+     for measurability. Agreement supports but does not clear; lying on the
+     fitted line never counts. A demoted row stays demoted.
 
 ## Power-law: pooled roll exponents
 
