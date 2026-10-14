@@ -73,6 +73,103 @@ int calculate_subsampling(int w, int h, int r)
     return LIM(r / 2, 2, 4);
 }
 
+
+/**
+ * Mean over a (2*rad+1)^2 window that shrinks at the borders (same semantics
+ * as boxblur()), safe for d == s.
+ *
+ * boxblur() updates each output from the previous one in float, so rounding
+ * error random-walks along the whole row/column and any change to the input
+ * perturbs everything after it; the guided filter then divides that noise by
+ * a small variance. Here the running window sums are kept in double and
+ * every output is rounded to float exactly once, so the result depends only
+ * on the input values in its own window.
+ */
+void box_mean(array2D<float> &d, const array2D<float> &s, int rad,
+              bool multithread)
+{
+    const int W = s.width();
+    const int H = s.height();
+
+    if (rad <= 0) {
+        if (&d != &s) {
+#ifdef _OPENMP
+#pragma omp parallel for if (multithread)
+#endif
+            for (int y = 0; y < H; ++y) {
+                for (int x = 0; x < W; ++x) {
+                    d[y][x] = s[y][x];
+                }
+            }
+        }
+        return;
+    }
+
+    array2D<float> tmp(W, H, ARRAY2D_ALIGNED);
+
+    // horizontal
+#ifdef _OPENMP
+#pragma omp parallel for if (multithread)
+#endif
+    for (int y = 0; y < H; ++y) {
+        const float *row = s[y];
+        double acc = 0.0;
+        for (int x = 0; x <= std::min(rad, W - 1); ++x) {
+            acc += row[x];
+        }
+        for (int x = 0; x < W; ++x) {
+            const int lo = std::max(0, x - rad);
+            const int hi = std::min(W - 1, x + rad);
+            tmp[y][x] = float(acc / double(hi - lo + 1));
+            if (x + rad + 1 < W) {
+                acc += row[x + rad + 1];
+            }
+            if (x - rad >= 0) {
+                acc -= row[x - rad];
+            }
+        }
+    }
+
+    // vertical: sweep the rows, keeping one double running sum per column,
+    // a block of columns at a time (the sums stay in cache)
+    constexpr int BLOCK = 64;
+    const int nblocks = (W + BLOCK - 1) / BLOCK;
+#ifdef _OPENMP
+#pragma omp parallel for if (multithread)
+#endif
+    for (int blk = 0; blk < nblocks; ++blk) {
+        const int x0 = blk * BLOCK;
+        const int n = std::min(BLOCK, W - x0);
+        double acc[BLOCK];
+        for (int k = 0; k < n; ++k) {
+            acc[k] = 0.0;
+        }
+        for (int y = 0; y <= std::min(rad, H - 1); ++y) {
+            for (int k = 0; k < n; ++k) {
+                acc[k] += tmp[y][x0 + k];
+            }
+        }
+        for (int y = 0; y < H; ++y) {
+            const int lo = std::max(0, y - rad);
+            const int hi = std::min(H - 1, y + rad);
+            const double inv = 1.0 / double(hi - lo + 1);
+            for (int k = 0; k < n; ++k) {
+                d[y][x0 + k] = float(acc[k] * inv);
+            }
+            if (y + rad + 1 < H) {
+                for (int k = 0; k < n; ++k) {
+                    acc[k] += tmp[y + rad + 1][x0 + k];
+                }
+            }
+            if (y - rad >= 0) {
+                for (int k = 0; k < n; ++k) {
+                    acc[k] -= tmp[y - rad][x0 + k];
+                }
+            }
+        }
+    }
+}
+
 } // namespace
 
 void guidedFilter(const array2D<float> &guide, const array2D<float> &src,
@@ -161,7 +258,7 @@ void guidedFilter(const array2D<float> &guide, const array2D<float> &src,
     const auto f_mean = [multithread](array2D<float> &d, array2D<float> &s,
                                       int rad) -> void {
         rad = LIM(rad, 0, (min(s.width(), s.height()) - 1) / 2 - 1);
-        boxblur(s, d, rad, s.width(), s.height(), multithread);
+        box_mean(d, s, rad, multithread);
     };
 
     array2D<float> I1(w, h, ARRAY2D_ALIGNED);
@@ -169,6 +266,36 @@ void guidedFilter(const array2D<float> &guide, const array2D<float> &src,
 
     f_subsample(I1, I);
     f_subsample(p1, p);
+
+    // var and cov are computed as mean(x*y) - mean(x)*mean(y), which loses
+    // precision when the values are large compared to their local spread
+    // (typically log-encoded highlights). The filter is invariant to adding a
+    // constant to I and to p, so centre both on their global mean first and
+    // add the offset of p back at the end.
+    double sumI = 0.0, sumP = 0.0;
+#ifdef _OPENMP
+#pragma omp parallel for reduction(+ : sumI, sumP) if (multithread)
+#endif
+    for (int y = 0; y < int(h); ++y) {
+        double ri = 0.0, rp = 0.0;
+        for (int x = 0; x < int(w); ++x) {
+            ri += I1[y][x];
+            rp += p1[y][x];
+        }
+        sumI += ri;
+        sumP += rp;
+    }
+    const float offI = float(sumI / double(w * h));
+    const float offP = float(sumP / double(w * h));
+#ifdef _OPENMP
+#pragma omp parallel for if (multithread)
+#endif
+    for (int y = 0; y < int(h); ++y) {
+        for (int x = 0; x < int(w); ++x) {
+            I1[y][x] -= offI;
+            p1[y][x] -= offP;
+        }
+    }
 
     DEBUG_DUMP(I);
     DEBUG_DUMP(p);
@@ -233,8 +360,9 @@ void guidedFilter(const array2D<float> &guide, const array2D<float> &src,
     for (int y = 0; y < Hd; ++y) {
         float ymrs = y * row_scale;
         for (int x = 0; x < Wd; ++x) {
-            q[y][x] = getBilinearValue(meana, x * col_scale, ymrs) * I[y][x] +
-                      getBilinearValue(meanb, x * col_scale, ymrs);
+            q[y][x] = getBilinearValue(meana, x * col_scale, ymrs) *
+                          (I[y][x] - offI) +
+                      getBilinearValue(meanb, x * col_scale, ymrs) + offP;
         }
     }
 }

@@ -146,8 +146,7 @@ void NLMeans(array2D<float> &img, float normcoeff, int strength,
         }
     }
 
-    // process by tiles to avoid numerical accuracy errors in the computation
-    // of the integral image
+    // process by tiles, for cache locality and to parallelize
     const int tile_size = 150;
     const int ntiles_x = int(std::ceil(float(WW) / (tile_size - 2 * border)));
     const int ntiles_y = int(std::ceil(float(HH) / (tile_size - 2 * border)));
@@ -196,28 +195,82 @@ void NLMeans(array2D<float> &img, float normcoeff, int strength,
                 return SQR(src[Y(zy)][X(zx)] - src[Y(zy + ty)][X(zx + tx)]);
             };
 
+            // Squared differences, then their sums over the (2p+1)^2 patch.
+            //
+            // The patch distance used to come from an integral image of the
+            // scores, i.e. as a difference of four large cumulative sums.
+            // Those are accumulated in float, so their rounding error grows
+            // with the size of the tile and is unrelated to the (small)
+            // distance being computed: a one-ulp change in the input moved
+            // dist2, and hence the weights, by far more than the noise it
+            // was meant to measure. Summing each patch directly (separably)
+            // makes dist2 depend only on its own (2p+1)^2 scores, with a
+            // relative error of a few ulps.
+            array2D<float> S(TW, TH, ARRAY2D_ALIGNED);
+            array2D<float> SH(TW, TH, ARRAY2D_ALIGNED);
             array2D<float> St(TW, TH, ARRAY2D_ALIGNED);
             array2D<float> SW(TW, TH, ARRAY2D_ALIGNED | ARRAY2D_CLEAR_DATA);
 
+            // interior of the tile, where dist2 is needed, and the rows /
+            // columns of scores that feed it
+            const int iy0 = border, iy1 = TH - border; // [iy0, iy1)
+            const int ix0 = border, ix1 = TW - border;
+            const int sy0 = iy0 - patch_radius, sy1 = iy1 + patch_radius;
+            const int sx0 = ix0 - patch_radius, sx1 = ix1 + patch_radius;
+
             for (int ty = -search_radius; ty <= search_radius; ++ty) {
                 for (int tx = -search_radius; tx <= search_radius; ++tx) {
-                    // Step 1 — Compute the integral image St
-                    St[0][0] = 0.f;
-                    for (int xx = 1; xx < TW; ++xx) {
-                        St[0][xx] = St[0][xx - 1] + score(tx, ty, xx, 0);
-                    }
-                    for (int yy = 1; yy < TH; ++yy) {
-                        St[yy][0] = St[yy - 1][0] + score(tx, ty, 0, yy);
-                    }
-                    for (int yy = 1; yy < TH; ++yy) {
-                        for (int xx = 1; xx < TW; ++xx) {
-                            // operation grouping tuned for performance
-                            // (empirically)
-                            St[yy][xx] =
-                                (St[yy][xx - 1] + St[yy - 1][xx]) -
-                                (St[yy - 1][xx - 1] - score(tx, ty, xx, yy));
+                    // Step 1 — squared differences, summed over the patch
+                    const bool x_in_range =
+                        start_x + sx0 >= 0 && start_x + sx1 - 1 < WW &&
+                        start_x + sx0 + tx >= 0 &&
+                        start_x + sx1 - 1 + tx < WW;
+                    for (int yy = sy0; yy < sy1; ++yy) {
+                        float *RESTRICT out = S[yy];
+                        if (x_in_range) {
+                            // no clamping needed along this row
+                            const float *RESTRICT ra = src[Y(yy)] + start_x;
+                            const float *RESTRICT rb =
+                                src[Y(yy + ty)] + start_x + tx;
+                            for (int xx = sx0; xx < sx1; ++xx) {
+                                const float d = ra[xx] - rb[xx];
+                                out[xx] = d * d;
+                            }
+                        } else {
+                            for (int xx = sx0; xx < sx1; ++xx) {
+                                out[xx] = score(tx, ty, xx, yy);
+                            }
                         }
                     }
+                    // same summation order for every pixel: -p, ..., +p
+                    for (int yy = sy0; yy < sy1; ++yy) {
+                        float *RESTRICT out = SH[yy];
+                        const float *RESTRICT in = S[yy];
+                        for (int xx = ix0; xx < ix1; ++xx) {
+                            out[xx] = in[xx - patch_radius];
+                        }
+                        for (int k = -patch_radius + 1; k <= patch_radius;
+                             ++k) {
+                            for (int xx = ix0; xx < ix1; ++xx) {
+                                out[xx] += in[xx + k];
+                            }
+                        }
+                    }
+                    for (int yy = iy0; yy < iy1; ++yy) {
+                        float *RESTRICT out = St[yy];
+                        const float *RESTRICT in0 = SH[yy - patch_radius];
+                        for (int xx = ix0; xx < ix1; ++xx) {
+                            out[xx] = in0[xx];
+                        }
+                        for (int k = -patch_radius + 1; k <= patch_radius;
+                             ++k) {
+                            const float *RESTRICT in = SH[yy + k];
+                            for (int xx = ix0; xx < ix1; ++xx) {
+                                out[xx] += in[xx];
+                            }
+                        }
+                    }
+
                     // Step 2 — Compute weight and estimate for patches
                     // V(x), V(y) with y = x + t
                     for (int yy = start_y + border; yy < end_y - border; ++yy) {
@@ -232,16 +285,7 @@ void NLMeans(array2D<float> &img, float normcoeff, int strength,
                             int sty = yy - start_y;
                             int stx = xx - start_x;
 
-                            vfloat dist2 =
-                                LVFU(St[sty + patch_radius]
-                                       [stx + patch_radius]) +
-                                LVFU(St[sty - patch_radius]
-                                       [stx - patch_radius]) -
-                                LVFU(St[sty + patch_radius]
-                                       [stx - patch_radius]) -
-                                LVFU(
-                                    St[sty - patch_radius][stx + patch_radius]);
-                            dist2 = vmaxf(dist2, zerov);
+                            vfloat dist2 = vmaxf(LVFU(St[sty][stx]), zerov);
                             vfloat d = dist2 * LVFU(mask[y][x]);
                             vfloat weight = explut[d];
                             STVFU(SW[y - start_y][x - start_x],
@@ -258,12 +302,7 @@ void NLMeans(array2D<float> &img, float normcoeff, int strength,
                             int sty = yy - start_y;
                             int stx = xx - start_x;
 
-                            float dist2 =
-                                St[sty + patch_radius][stx + patch_radius] +
-                                St[sty - patch_radius][stx - patch_radius] -
-                                St[sty + patch_radius][stx - patch_radius] -
-                                St[sty - patch_radius][stx + patch_radius];
-                            dist2 = std::max(dist2, 0.f);
+                            float dist2 = std::max(St[sty][stx], 0.f);
                             float d = dist2 * mask[y][x];
                             float weight = explut[d];
                             SW[y - start_y][x - start_x] += weight;
