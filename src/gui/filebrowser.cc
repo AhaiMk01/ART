@@ -2016,7 +2016,7 @@ void FileBrowser::buttonPressed(LWButton *button, int actionCode,
     } else if (actionCode == 6 && tbl) { // to processing queue
         std::vector<FileBrowserEntry *> tbe;
         tbe.push_back(static_cast<FileBrowserEntry *>(actionData));
-        tbl->developRequested(tbe, bstate & ShortcutsManager::primaryMask());
+        tbl->developRequested(tbe, bstate & ShortcutsManager::mousePrimaryMask());
     } else if (actionCode == 7) {          // to trash / undelete
         std::vector<FileBrowserEntry *> tbe;
         FileBrowserEntry *entry = static_cast<FileBrowserEntry *>(actionData);

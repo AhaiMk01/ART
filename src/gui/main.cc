@@ -230,7 +230,8 @@ bool init_rt()
         Glib::build_filename(options.user_config_dir, "usercommands"));
     SoundManager::init();
     wb_presets::init(options.ART_base_dir, options.user_config_dir);
-    ShortcutsManager::getInstance()->init(options.user_config_dir);
+    ShortcutsManager::getInstance()->init(options.ART_base_dir,
+                                          options.user_config_dir);
 
     if (!options.rtSettings.verbose) {
         TIFFSetWarningHandler(nullptr); // avoid annoying message boxes

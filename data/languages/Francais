@@ -6,7 +6,7 @@ ABOUT_TAB_CREDITS;Crédits
 ABOUT_TAB_LICENSE;Licence
 ABOUT_TAB_RELEASENOTES;Notes de version
 ABOUT_TAB_SPLASH;Splash
-ADJUSTER_RESET_TO_DEFAULT;<b>Clic</b> - réinitialise à la valeur par défaut.\n<b>%primary%</b>+<b>clic</b> - réinitialise à la dernière valeur sauvegardée.
+ADJUSTER_RESET_TO_DEFAULT;<b>Clic</b> - réinitialise à la valeur par défaut.\n<b>%mouse_primary%</b>+<b>clic</b> - réinitialise à la dernière valeur sauvegardée.
 CTL_SIGMOID;Mappeur de tonalité sigmoïde
 CTL_SIGMOID_BASE_PRIMARIES;Primaires de base
 CTL_SIGMOID_INSET;Attenuation
@@ -60,7 +60,7 @@ DYNPROFILEEDITOR_CUSTOMDATA;Étiquettes personnalisées
 DYNPROFILEEDITOR_CUSTOMDATA_TAGS;Étiquette(s)
 DYNPROFILEEDITOR_CUSTOMDATA_TOOLTIP;Liste des paires <i>key=value</i> d'étiquettes de métadonnées supplémentaires à faire correspondre, une par ligne, où <b>key</b> est le nom d'une étiquette dans la syntaxe d'Exiv2, et <b>value </b> est la valeur à faire correspondre (utilisez le préfixe "re:" pour entrer une expression régulière).
 EDIT_OBJECT_TOOLTIP;Afficher des éléments dans la fenêtre de prévisualisation qui vous permettront d'ajuster cet outil.
-EDIT_PIPETTE_TOOLTIP;Pour ajouter un point d'ajustement de la courbe, maintenez la touche %primary% pressée en cliquant sur l'image avec le bouton gauche.\nPour ajuster le point, pressez la touche %primary% lors du clic-gauche sur la zone correspondante dans l'aperçu, puis relachez %primary% (sauf si vous désirez un contrôle plus fin) et tout en gardant le bouton gauche appuyé, déplacez le curseur vers le haut ou le bas pour ajuster la position du point
+EDIT_PIPETTE_TOOLTIP;Pour ajouter un point d'ajustement de la courbe, maintenez la touche %mouse_primary% pressée en cliquant sur l'image avec le bouton gauche.\nPour ajuster le point, pressez la touche %mouse_primary% lors du clic-gauche sur la zone correspondante dans l'aperçu, puis relachez %mouse_primary% (sauf si vous désirez un contrôle plus fin) et tout en gardant le bouton gauche appuyé, déplacez le curseur vers le haut ou le bas pour ajuster la position du point
 ERROR_MSG_FILE_READ;Erreur de lecture du fichier : %1
 ERROR_MSG_MAXERRORS;... (%1 erreur(s) précédente(s) non montrée(s))
 ERROR_MSG_METADATA_VALUE;Metadata: réglage de l'erreur %1 à %2
@@ -843,8 +843,8 @@ MAIN_BUTTON_NAVNEXT_TOOLTIP;Naviguer à l'image Suivante relativement à l'image
 MAIN_BUTTON_NAVPREV_TOOLTIP;Naviguer à l'image Précédente relativement à l'image ouverte dans l'Éditeur.\nRaccourci : <b>%shortcut(editor.previous_image)%</b>\n\nPour naviguer à l'image précédente relativement à la vignette sélectionnée dans le Navigateur de fichiers ou la Pellicule :\nRaccourci : <b>%shortcut(filebrowser.open_previous)%</b>
 MAIN_BUTTON_NAVSYNC_TOOLTIP;Synchroniser le Navigateur de fichiers avec l'Éditeur pour révéler la vignette de l'image actuellement ouverte, et effacer les filtres dans le Navigateur de fichiers.\nRaccourci : <b>%shortcut(editor.sync_file_browser_clear_filters)%</b>\n\nComme ci-dessus, mais sans effacer les filtres :\nRaccourci : <b>%shortcut(editor.sync_file_browser)%</b>\n(Notez que la vignette ne sera pas visible si elle a été filtrée)
 MAIN_BUTTON_PREFERENCES;Préférences
-MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;Ajouter l'image courante à la file de traitement (%primary%+clic pour Export Rapide).\nRaccourci : <b>%shortcut(editor.queue)%</b> (<b>%shortcut(editor.queue_fast)%</b> pour Export Rapide)
-MAIN_BUTTON_SAVE_TOOLTIP;Enregistrer l'image courante (%primary%+clic pour Export Rapide).\nRaccourci : <b>%shortcut(editor.save)%</b> (<b>%shortcut(editor.save_fast)%</b> pour Export Rapide)
+MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;Ajouter l'image courante à la file de traitement (%mouse_primary%+clic pour Export Rapide).\nRaccourci : <b>%shortcut(editor.queue)%</b> (<b>%shortcut(editor.queue_fast)%</b> pour Export Rapide)
+MAIN_BUTTON_SAVE_TOOLTIP;Enregistrer l'image courante (%mouse_primary%+clic pour Export Rapide).\nRaccourci : <b>%shortcut(editor.save)%</b> (<b>%shortcut(editor.save_fast)%</b> pour Export Rapide)
 MAIN_BUTTON_SENDTOEDITOR;Éditer l'image dans un éditeur externe
 MAIN_BUTTON_SENDTOEDITOR_TOOLTIP;Éditer l'image courante dans l'éditeur externe.\nRaccourci : <b>%shortcut(editor.send_to_external_editor)%</b>
 MAIN_BUTTON_SHOWHIDESIDEPANELS_TOOLTIP;Afficher/Cacher les 2 panneaux latéraux.\nRaccourci : <b>%shortcut(editor.maximize_preview)%</b>
@@ -1346,7 +1346,7 @@ SESSION_LABEL;Session
 SHCSELECTOR_TOOLTIP;Cliquez le bouton droit de la souris\npour réinitialiser la position de ces 3 curseurs
 SOFTPROOF_GAMUTCHECK_TOOLTIP;Visualiser les pixels dont la couleur est hors gamut en fonction du profil de sortie de l'écran.
 SOFTPROOF_GAMUTCHECK_MONITOR_TOOLTIP;Visualiser les pixels dont la couleur est hors gamut en fonction :\n- du profil d'Épreuvage à l'écran s'il y en a un de sélectionné et si "Épreuve numérique" est activé,\n- du profil de sortie l'écran si "Épreuve numérique" est désactivé
-SOFTPROOF_TOOLTIP;L'épreuve numérique simule l'apparence de l'image quand elle est reproduite par une imprimante ou un moniteur spécifique si un profil adapté est sélectionné dans Préférences > Gestions des couleurs.\n(Maintenir <b>%primary%</b> en cliquant pour modifier le profil d'épreuvage à l'écran)
+SOFTPROOF_TOOLTIP;L'épreuve numérique simule l'apparence de l'image quand elle est reproduite par une imprimante ou un moniteur spécifique si un profil adapté est sélectionné dans Préférences > Gestions des couleurs.\n(Maintenir <b>%mouse_primary%</b> en cliquant pour modifier le profil d'épreuvage à l'écran)
 THRESHOLDSELECTOR_B;Bas
 THRESHOLDSELECTOR_BL;Bas-gauche
 THRESHOLDSELECTOR_BR;Bas-droite
@@ -1724,7 +1724,7 @@ TP_LABMASKS_DELTAE_PICK;Choisir
 TP_LABMASKS_DELTAE_CHAN_WEIGHT;Pondération dans le calcul du ΔE
 TP_LABMASKS_DELTAE_TOOLTIP;Sélectionne des régions de couleurs similaires\n(selon la définition de la métrique CIELAB ΔE*)
 TP_LABMASKS_DRAWNMASK;Masque au pinceau
-TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;Basculer en mode tracé avec le pinceau.\n\n<i>Lors de l'utilisation de la souris :</i>\n- Maintenir <b>Alt</b> pour basculer temporairement en "mode effacement";\n- Maintenir <b>Shift</b> pour tracer une ligne droite;\n- Utiliser <b>%primary%+molette</b> pour changer le rayon du pinceau,\n- <b>%primary%+Shift+molette</b> pour changer la dureté du pinceau,\n- et <b>%primary%+click</b> pour commencer de nouveaux tracés sans changer les paramètres \n(de sorte que des tracés multiples sur la même zone s'additionnent).\n\n<i>Lors de l'utilisation d'un outil sensible à la pression :</i>\n- Utiliser le <b>premier bouton</b> pour basculer en "mode effacement";\n- Maintenir <b>Alt</b> pour tracer une ligne droite;\n- Utiliser <b>Alt+premier bouton</b> pour augmenter le rayon du pinceau, et\n- <b>Alt+second bouton</b> pour le diminuer;\n- Utiliser le <b>second bouton</b> pour faire défiler les modes de sensibilité à la pression disponibles : inactif, dureté, rayon (maintenez <b>Shift</b> enfoncé pour inverser la direction);\n- Utiliser <b>%primary%+second bouton</b> pour désactiver l'outil
+TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;Basculer en mode tracé avec le pinceau.\n\n<i>Lors de l'utilisation de la souris :</i>\n- Maintenir <b>Alt</b> pour basculer temporairement en "mode effacement";\n- Maintenir <b>Shift</b> pour tracer une ligne droite;\n- Utiliser <b>%mouse_primary%+molette</b> pour changer le rayon du pinceau,\n- <b>%mouse_primary%+Shift+molette</b> pour changer la dureté du pinceau,\n- et <b>%mouse_primary%+click</b> pour commencer de nouveaux tracés sans changer les paramètres \n(de sorte que des tracés multiples sur la même zone s'additionnent).\n\n<i>Lors de l'utilisation d'un outil sensible à la pression :</i>\n- Utiliser le <b>premier bouton</b> pour basculer en "mode effacement";\n- Maintenir <b>Alt</b> pour tracer une ligne droite;\n- Utiliser <b>Alt+premier bouton</b> pour augmenter le rayon du pinceau, et\n- <b>Alt+second bouton</b> pour le diminuer;\n- Utiliser le <b>second bouton</b> pour faire défiler les modes de sensibilité à la pression disponibles : inactif, dureté, rayon (maintenez <b>Shift</b> enfoncé pour inverser la direction);\n- Utiliser <b>%mouse_primary%+second bouton</b> pour désactiver l'outil
 TP_LABMASKS_DRAWNMASK_PEN_SETTINGS;Paramètres du pinceau
 TP_LABMASKS_DRAWNMASK_RESET_TIP;Effacer tous les tracés
 TP_LABMASKS_DRAWNMASK_UNDO_TIP;Eliminer le dernier groupe de tracés
@@ -1794,7 +1794,7 @@ TP_PERSPECTIVE_AUTO_BOTH_TOOLTIP;Horizontale et verticale
 TP_PERSPECTIVE_AUTO_HORIZONTAL_TOOLTIP;Horizontale
 TP_PERSPECTIVE_AUTO_VERTICAL_TOOLTIP;Verticale
 TP_PERSPECTIVE_CONTROL_LINES;Lignes de contrôle
-TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>%primary%</b>+<b>drag</b>: Tracer une nouvelle ligne\n<b>Right-click</b>: Effacer la ligne
+TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>%mouse_primary%</b>+<b>drag</b>: Tracer une nouvelle ligne\n<b>Right-click</b>: Effacer la ligne
 TP_PERSPECTIVE_CROPFACTOR;Facteur de rognage
 TP_PERSPECTIVE_FLENGTH;Distance focale
 TP_PERSPECTIVE_HORIZONTAL;Horizontale
@@ -1997,7 +1997,7 @@ TP_SOFTLIGHT_LABEL;Lumière douce
 TP_SOFTLIGHT_STRENGTH;Force
 TP_SPOT_COUNTLABEL;%1 point(s)
 TP_SPOT_ENTRYCHANGED;Modification d'un point
-TP_SPOT_HINT;Cliquez sur ce bouton pour pouvoir opérer sur la zone de prévisualisation.\nPour ajouter un spot, pressez %primary% et le bouton gauche de la souris, tirez le cercle (la touche %primary% peut être relâchée) vers la position source, puis relâchez le bouton de la souris.\nPour éditer un spot, placez le curseur au-dessus de la marque blanche situant une zone éditée, faisant apparaître la géométrie d'édition.\nPour déplacer le spot source ou destination, placez le curseur en son centre et tirez le.\nLe cercle intérieur (zone d'effet maximum) et le cercle "d'adoucissement" peuvent être redimmensionné en plaçant le curseur dessus (le cercle devient orange) et en le tirant (le cercle devient rouge).\nQuand les changements sont terminés, un clic droit en dehors de tout spot termine le mode d'édition, ou cliquez à nouveau sur ce bouton
+TP_SPOT_HINT;Cliquez sur ce bouton pour pouvoir opérer sur la zone de prévisualisation.\nPour ajouter un spot, pressez %mouse_primary% et le bouton gauche de la souris, tirez le cercle (la touche %mouse_primary% peut être relâchée) vers la position source, puis relâchez le bouton de la souris.\nPour éditer un spot, placez le curseur au-dessus de la marque blanche situant une zone éditée, faisant apparaître la géométrie d'édition.\nPour déplacer le spot source ou destination, placez le curseur en son centre et tirez le.\nLe cercle intérieur (zone d'effet maximum) et le cercle "d'adoucissement" peuvent être redimmensionné en plaçant le curseur dessus (le cercle devient orange) et en le tirant (le cercle devient rouge).\nQuand les changements sont terminés, un clic droit en dehors de tout spot termine le mode d'édition, ou cliquez à nouveau sur ce bouton
 TP_SPOT_LABEL;Retrait de taches
 TP_SPOT_LIGHTPIPELINE_HINT;Cliquez sur ce bouton pour modifier les taches en prévisualisant une image simplifiée en désactivant les outils consommant beaucoup de ressources (option de performance).\n\nN'a d'effet que lorsque la manipulation à l'écran est active.
 TP_SPOT_CUR_SPOT_LABEL;Tache en cours

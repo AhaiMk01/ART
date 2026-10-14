@@ -35,7 +35,7 @@ ABOUT_TAB_CREDITS;Riconoscimenti
 ABOUT_TAB_LICENSE;Licenza
 ABOUT_TAB_RELEASENOTES;Note di rilascio
 ABOUT_TAB_SPLASH;Logo
-ADJUSTER_RESET_TO_DEFAULT;<b>Clic</b> - reimposta il valore di default.\n<b>%primary%</b>+<b>clic</b> - reimposta l'ultimo valore salvato.
+ADJUSTER_RESET_TO_DEFAULT;<b>Clic</b> - reimposta il valore di default.\n<b>%mouse_primary%</b>+<b>clic</b> - reimposta l'ultimo valore salvato.
 CTL_SIGMOID;Tone mapper sigmoide
 CTL_SIGMOID_BASE_PRIMARIES;Primari base
 CTL_SIGMOID_INSET;Attenuazione
@@ -90,7 +90,7 @@ DYNPROFILEEDITOR_NEW_RULE;Nuova regola profilo dinamico
 DYNPROFILEEDITOR_PROFILE;Profilo di sviluppo
 EDITWINDOW_TITLE;Modifica immagine
 EDIT_OBJECT_TOOLTIP;Mostra un widget sull'immagine che ti permette di configurare questo strumento.
-EDIT_PIPETTE_TOOLTIP;Per aggiungere un punto di regolazione alla curva, tieni premuto il tasto %primary% e fai clic sul punto desiderato nell'anteprima dell'immagine.\nPer sistemare il punto, tieni premuto il tasto %primary% mentre fai clic sulla corrispondente area nell'anteprima, poi lascia il tasto %primary% (a meno che non desideri un controllo fine) e mentre tieni premuto il tasto sinistro del mouse, muovilo in su e in giù per muovere il punto su e giù sulla curva.
+EDIT_PIPETTE_TOOLTIP;Per aggiungere un punto di regolazione alla curva, tieni premuto il tasto %mouse_primary% e fai clic sul punto desiderato nell'anteprima dell'immagine.\nPer sistemare il punto, tieni premuto il tasto %mouse_primary% mentre fai clic sulla corrispondente area nell'anteprima, poi lascia il tasto %mouse_primary% (a meno che non desideri un controllo fine) e mentre tieni premuto il tasto sinistro del mouse, muovilo in su e in giù per muovere il punto su e giù sulla curva.
 ERROR_MSG_FILE_READ;Errore lettura file: %1
 ERROR_MSG_INVALID_LUT_PARAMS;Parametri LUT non validi per: %1
 ERROR_MSG_INVALID_PROFILE;Profilo non valido: %1
@@ -1299,9 +1299,9 @@ PROFILEPANEL_PLASTSAVED;Ultimo salvato
 PROFILEPANEL_SAVEDLGLABEL;Salvo i parametri di sviluppo...
 PROFILEPANEL_SAVEPPASTE;Parametri da salvare
 PROFILEPANEL_TOOLTIPCOPY;Copia il profilo corrente negli appunti.
-PROFILEPANEL_TOOLTIPLOAD;Carica profilo da file.\n<b>%primary%-clic</b> per selezionare i parametri da caricare.
-PROFILEPANEL_TOOLTIPPASTE;Incolla il profilo dagli appunti.\n<b>%primary%-clic</b> per selezionare i parametri da incollare.
-PROFILEPANEL_TOOLTIPSAVE;Salva il profilo corrente.\n<b>%primary%-clic</b> per selezionare i parametri da salvare.
+PROFILEPANEL_TOOLTIPLOAD;Carica profilo da file.\n<b>%mouse_primary%-clic</b> per selezionare i parametri da caricare.
+PROFILEPANEL_TOOLTIPPASTE;Incolla il profilo dagli appunti.\n<b>%mouse_primary%-clic</b> per selezionare i parametri da incollare.
+PROFILEPANEL_TOOLTIPSAVE;Salva il profilo corrente.\n<b>%mouse_primary%-clic</b> per selezionare i parametri da salvare.
 PROGRESSBAR_DENOISING;Riduzione di rumore...
 PROGRESSBAR_FILE_COPY;Sto copiando i file...
 PROGRESSBAR_FILE_DELETE;Sto eliminando i file...
@@ -1388,7 +1388,7 @@ SESSION_LABEL;Sessione
 SHCSELECTOR_TOOLTIP;Clic destro per ripristinare la posizione di questi tre cursori.
 SOFTPROOF_GAMUTCHECK_MONITOR_TOOLTIP;Evidenzia i pixel con colori fuori dal gamut rispetto al profilo del monitor.
 SOFTPROOF_GAMUTCHECK_TOOLTIP;Evidenzia i pixel con colori fuori dal gamut rispetto a:\n- profilo soft-proofing, se impostato e se il soft-proofing è abilitato,\n- profilo di uscita, se il soft-proofing è disabilitato.
-SOFTPROOF_TOOLTIP;Il soft-proofing simula l'apparenza dell'immagine quando viene riprodotta da una specifica stampante o monitor, se un profilo corretto è impostato in Preferenze > Gestione Colore.\n(Premi <b>%primary%</b> + clic per cambiare i profili soft-proofing.)
+SOFTPROOF_TOOLTIP;Il soft-proofing simula l'apparenza dell'immagine quando viene riprodotta da una specifica stampante o monitor, se un profilo corretto è impostato in Preferenze > Gestione Colore.\n(Premi <b>%mouse_primary%</b> + clic per cambiare i profili soft-proofing.)
 THRESHOLDSELECTOR_B;Basso
 THRESHOLDSELECTOR_BL;Basso-Sinistra
 THRESHOLDSELECTOR_BR;Basso-Destra
@@ -1396,7 +1396,7 @@ THRESHOLDSELECTOR_HINT;Tieni premuto <b>Shift</b> per muovere un singolo punto d
 THRESHOLDSELECTOR_T;Alto
 THRESHOLDSELECTOR_TL;Alto-Sinistra
 THRESHOLDSELECTOR_TR;Alto-Destra
-TOOLBAR_TOOLTIP_COLORPICKER;Prelievo colore bloccabile\n\nQuando lo strumento è attivo:\n- Aggiungi un prelievo: <b>clic sx</b>.\n- Sposta un prelievo: <b>clic sx e trascina</b>.\n- Cancella un prelievo: <b>clic dx</b>.\n- Cancella tutti i prelievi: <b>%primary%</b>+<b>Shift</b>+<b>clic dx</b>.\n- Torna allo strumento mano: <b>clic dx</b> fuori dal prelievo.
+TOOLBAR_TOOLTIP_COLORPICKER;Prelievo colore bloccabile\n\nQuando lo strumento è attivo:\n- Aggiungi un prelievo: <b>clic sx</b>.\n- Sposta un prelievo: <b>clic sx e trascina</b>.\n- Cancella un prelievo: <b>clic dx</b>.\n- Cancella tutti i prelievi: <b>%mouse_primary%</b>+<b>Shift</b>+<b>clic dx</b>.\n- Torna allo strumento mano: <b>clic dx</b> fuori dal prelievo.
 TOOLBAR_TOOLTIP_CROP;<b>Ritaglia</b> la selezione.\nScorciatoia: <b>%shortcut(toolbar.crop)%</b>\nSposta l'area di ritaglio tenendo premuto <b>clic sx</b> mentre muovi il mouse
 TOOLBAR_TOOLTIP_HAND;Strumento mano.\nScorciatoia: <b>%shortcut(toolbar.hand)%</b>
 TOOLBAR_TOOLTIP_PERSPECTIVE;<b>Correzione prospettiva</b>.\nScorciatoia: <b>%shortcut(toolbar.perspective)%</b>\n\nModifica le linee di controllo per correggere la distorsione prospettica. Clicca di nuovo sul pulsante per applicare la correzione.
@@ -1773,7 +1773,7 @@ TP_LABMASKS_DRAWNMASK_PEN_SETTINGS;Impostazioni pennello
 TP_LABMASKS_DRAWNMASK_RADIUS;Raggio
 TP_LABMASKS_DRAWNMASK_RESET_TIP;Cancella tutti i tratti
 TP_LABMASKS_DRAWNMASK_SMOOTHNESS;Morbidezza
-TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;Abilita il disegno sull'immagine con il pennello.\n\n<i>Se usi il mouse:</i>\n- Premi <b>Alt</b> per azionare temporaneamente la "modalità gomma";\n- Premi <b>Shift</b> per disegnare una linea dritta;\n- Use <b>%primary%+rotella</b> per cambiare il raggio del pennello;\n- <b>%primary%+Shift+rotella</b> per cambiare la durezza del pennello;\n- <b>%primary%+clic</b> per iniziare un nuovo gruppo di tratti senza cambiare parametri\n(così tratti multipli sulla stessa area si sommano);\n- Usa il <b>terzo pulsante</b> per disattivare il disegno su area.\n\n<i>Quando si usa un dispositivo sensibile al tocco:</i>\n- Usa il <b>primo pulsante</b> per invertire la "modalità gomma";\n- Premi <b>Shift</b> per disegnare una linea dritta;\n- Usa <b>Alt+primo pulsante</b> per aumentare il raggio del pennello, e\n- <b>Alt+secondo pulsante</b> per decrementarlo;\n- Usa il <b>secondo pulsante</b> per cambiare le modalità di sensibilità al tocco disponibili: off, durezza, raggio (premi <b>Shift</b> per invertire la direzione);\n- Usa <b>%primary%+secondo pulsante</b> per disattivare il disegno sull'area.
+TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;Abilita il disegno sull'immagine con il pennello.\n\n<i>Se usi il mouse:</i>\n- Premi <b>Alt</b> per azionare temporaneamente la "modalità gomma";\n- Premi <b>Shift</b> per disegnare una linea dritta;\n- Use <b>%mouse_primary%+rotella</b> per cambiare il raggio del pennello;\n- <b>%mouse_primary%+Shift+rotella</b> per cambiare la durezza del pennello;\n- <b>%mouse_primary%+clic</b> per iniziare un nuovo gruppo di tratti senza cambiare parametri\n(così tratti multipli sulla stessa area si sommano);\n- Usa il <b>terzo pulsante</b> per disattivare il disegno su area.\n\n<i>Quando si usa un dispositivo sensibile al tocco:</i>\n- Usa il <b>primo pulsante</b> per invertire la "modalità gomma";\n- Premi <b>Shift</b> per disegnare una linea dritta;\n- Usa <b>Alt+primo pulsante</b> per aumentare il raggio del pennello, e\n- <b>Alt+secondo pulsante</b> per decrementarlo;\n- Usa il <b>secondo pulsante</b> per cambiare le modalità di sensibilità al tocco disponibili: off, durezza, raggio (premi <b>Shift</b> per invertire la direzione);\n- Usa <b>%mouse_primary%+secondo pulsante</b> per disattivare il disegno sull'area.
 TP_LABMASKS_DRAWNMASK_UNDO_TIP;Rimuovi l'ultimo gruppo di tratti
 TP_LABMASKS_EXTERNALMASK;Maschera esterna
 TP_LABMASKS_EXTERNALMASK_FILENAME;File maschera
@@ -1840,7 +1840,7 @@ TP_PERSPECTIVE_AUTO_BOTH_TOOLTIP;Orizzontale e verticale
 TP_PERSPECTIVE_AUTO_HORIZONTAL_TOOLTIP;Orizzontale
 TP_PERSPECTIVE_AUTO_VERTICAL_TOOLTIP;Verticale
 TP_PERSPECTIVE_CONTROL_LINES;Linee di controllo
-TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>%primary%</b>+<b>trascina</b>: Disegna una nuova linea\n<b>clic col destro</b>: Cancella linea
+TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>%mouse_primary%</b>+<b>trascina</b>: Disegna una nuova linea\n<b>clic col destro</b>: Cancella linea
 TP_PERSPECTIVE_CROPFACTOR;Fattore di crop
 TP_PERSPECTIVE_FLENGTH;Lunghezza focale
 TP_PERSPECTIVE_HORIZONTAL;Orizzontale
@@ -2049,7 +2049,7 @@ TP_SPOT_CUR_SPOT_LABEL;Punto corrente
 TP_SPOT_DETAIL;Protezione del dettaglio
 TP_SPOT_ENTRYCHANGED;Punto cambiato
 TP_SPOT_FEATHER;Sfumatura
-TP_SPOT_HINT;Clicca su questo pulsante per lavorare sull'anteprima.\n\nPer editare un punto, passa con il mouse sul crocino bianco sull'area, facendo comparire la geometria di modifica.\n\nPer aggiungere un punto, premi %primary% + tasto sinistro del mouse, trascina il cerchio (puoi lasciare %primary%) sull'area di origine, quindi lascia il pulsante del mouse.\n\nPer spostare il punto sorgente o destinazione, passa sul suo centro e trascinalo.\n\nIl cerchio più interno (area di effetto massimo) e il cerchio di transizione possono essere ridimensionati passandoci sopra (il cerchio diventa arancione) e trascinandoli (il cerchio diventa rosso).\n\nQuando terminato, clicca col destro fuori qualunque punto per terminare la modalità di modifica, oppure ripremi questo pulsante.
+TP_SPOT_HINT;Clicca su questo pulsante per lavorare sull'anteprima.\n\nPer editare un punto, passa con il mouse sul crocino bianco sull'area, facendo comparire la geometria di modifica.\n\nPer aggiungere un punto, premi %mouse_primary% + tasto sinistro del mouse, trascina il cerchio (puoi lasciare %mouse_primary%) sull'area di origine, quindi lascia il pulsante del mouse.\n\nPer spostare il punto sorgente o destinazione, passa sul suo centro e trascinalo.\n\nIl cerchio più interno (area di effetto massimo) e il cerchio di transizione possono essere ridimensionati passandoci sopra (il cerchio diventa arancione) e trascinandoli (il cerchio diventa rosso).\n\nQuando terminato, clicca col destro fuori qualunque punto per terminare la modalità di modifica, oppure ripremi questo pulsante.
 TP_SPOT_LABEL;Rimozione punti
 TP_SPOT_LIGHTPIPELINE_HINT;Clicca su questo pulsante per modificare i punti su una immagine semplificata ottenuta disabilitando gli strumenti che richiedono più risorse (opzione prestazioni).\n\nHa effetto solo quando è attiva l'anteprima di editing.
 TP_SPOT_OPACITY;Opacità

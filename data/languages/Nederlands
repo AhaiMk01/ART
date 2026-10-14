@@ -57,7 +57,7 @@ ABOUT_TAB_CREDITS;Credits
 ABOUT_TAB_LICENSE;Licentie
 ABOUT_TAB_RELEASENOTES;Uitgave-opmerkingen
 ABOUT_TAB_SPLASH;Welkom
-ADJUSTER_RESET_TO_DEFAULT;<b>Klik</b> - terug naar standaardwaarde.\n<b>%primary%+klik</b> - terug naar laatst opgeslagen waarde.
+ADJUSTER_RESET_TO_DEFAULT;<b>Klik</b> - terug naar standaardwaarde.\n<b>%mouse_primary%+klik</b> - terug naar laatst opgeslagen waarde.
 CTL_SIGMOID;Sigmoid toonmapper
 CTL_SIGMOID_BASE_PRIMARIES;Primaire basiskleuren
 CTL_SIGMOID_INSET;Verzwakking
@@ -108,7 +108,7 @@ DYNPROFILEEDITOR_CUSTOMDATA;Aangepaste tags
 DYNPROFILEEDITOR_CUSTOMDATA_TAGS;Tag(s)
 DYNPROFILEEDITOR_CUSTOMDATA_TOOLTIP;Lijst met <i>sleutel=waarde</i>-paren van extra metadata-tags, een per regel, waar <b>sleutel</b> de naam van een tag is in de syntax van Exiv2, en <b>waarde</b> de waarde is die je zoekt (begin met "re:" om een reguliere expressie in te voeren).
 EDIT_OBJECT_TOOLTIP;Toont een widget in het voorbeeldscherm waarmee de werking van dit gereedschap aangepast kan worden
-EDIT_PIPETTE_TOOLTIP;Voeg een punt aan de curve toe met %primary%+klik op de gewenste plek in het voorbeeld.\nOm dit punt te wijzigen, %primary%+klik op het gewenste gebied in het voorbeeld, laat dan de %primary%-toets los (behalve wanneer fijnmazige controle gewenst is), blijf de linkermuisknop ingedrukt houden en beweeg de muis naar boven of beneden om dit punt te verschuiven op de curve.
+EDIT_PIPETTE_TOOLTIP;Voeg een punt aan de curve toe met %mouse_primary%+klik op de gewenste plek in het voorbeeld.\nOm dit punt te wijzigen, %mouse_primary%+klik op het gewenste gebied in het voorbeeld, laat dan de %mouse_primary%-toets los (behalve wanneer fijnmazige controle gewenst is), blijf de linkermuisknop ingedrukt houden en beweeg de muis naar boven of beneden om dit punt te verschuiven op de curve.
 EDITWINDOW_TITLE;Bewerk afbeelding
 ERROR_MSG_FILE_READ;Fout tijdens lezen bestand: %1
 ERROR_MSG_MAXERRORS;... (%1 vorige fout(en) niet getoond)
@@ -865,8 +865,8 @@ MAIN_BUTTON_NAVNEXT_TOOLTIP;Ga naar de volgende afbeelding relatief tov. de geop
 MAIN_BUTTON_NAVPREV_TOOLTIP;Ga naar de vorige afbeelding relatief tov. de geopende afbeelding in de Editor\nSneltoets: <b>Shift+F3</b> \n\nGa naar de vorige afbeelding relatief tov. de miniatuur geselecteerd in de Bestandsnavigator of de Filmstrook\nSneltoets: <b>%shortcut(filebrowser.open_previous)%</b>
 MAIN_BUTTON_NAVSYNC_TOOLTIP;Synchroniseer de Bestandsnavigator of de Filmstrook met de Fotobewerker om de miniatuur te tonen van de huidig geopende afbeelding, en verwijder eventuele actieve filters.\nSneltoets: <b>%shortcut(editor.sync_file_browser_clear_filters)%</b>\n\nAls voorgaand, maar zonder het verwijderen van actieve filters.\nSneltoets: <b>%shortcut(editor.sync_file_browser)%</b>\n(NB: de miniatuur van de geopende afbeelding zal niet worden getoond indien eruit gefilterd).
 MAIN_BUTTON_PREFERENCES;Voorkeuren
-MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;Plaats huidige foto in verwerkingsrij\nSneltoets: <b>%primary%+b</b> (<b>%primary%+Shift+b</b> voor snelle export)
-MAIN_BUTTON_SAVE_TOOLTIP;Bewaar huidige foto (%primary%+klik voor snelle export)\nSneltoets: <b>%primary%+s</b> (<b>%primary%+Shift+s</b> voor snelle export)
+MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;Plaats huidige foto in verwerkingsrij\nSneltoets: <b>%mouse_primary%+b</b> (<b>%mouse_primary%+Shift+b</b> voor snelle export)
+MAIN_BUTTON_SAVE_TOOLTIP;Bewaar huidige foto (%mouse_primary%+klik voor snelle export)\nSneltoets: <b>%mouse_primary%+s</b> (<b>%mouse_primary%+Shift+s</b> voor snelle export)
 MAIN_BUTTON_SENDTOEDITOR;Stuur foto naar externe fotobewerker
 MAIN_BUTTON_SENDTOEDITOR_TOOLTIP;Stuur huidige foto naar extern fotobewerkingsprogramma\nSneltoets: <b>Ctrl+e</b>
 MAIN_BUTTON_SHOWHIDESIDEPANELS_TOOLTIP;Toon/verberg alle zijpanelen\nSneltoets: <b>%shortcut(editor.maximize_preview)%</b>
@@ -1277,9 +1277,9 @@ PROFILEPANEL_PLASTSAVED;Laatst opgeslagen
 PROFILEPANEL_SAVEDLGLABEL;Bewaar profiel...
 PROFILEPANEL_SAVEPPASTE;Te bewaren parameters
 PROFILEPANEL_TOOLTIPCOPY;Kopieer huidig profiel naar klembord.
-PROFILEPANEL_TOOLTIPLOAD;Laad profiel uit bestand.\n<b>%primary%+klik</b> om de te laden parameters te selecteren.
-PROFILEPANEL_TOOLTIPPASTE; Plak profiel van klembord.\n<b>%primary%+klik</b> om de te plakken parameters te selecteren.
-PROFILEPANEL_TOOLTIPSAVE;Bewaar huidig profiel.\n<b>%primary%+klik</b> om de te bewaren parameters te selecteren.
+PROFILEPANEL_TOOLTIPLOAD;Laad profiel uit bestand.\n<b>%mouse_primary%+klik</b> om de te laden parameters te selecteren.
+PROFILEPANEL_TOOLTIPPASTE; Plak profiel van klembord.\n<b>%mouse_primary%+klik</b> om de te plakken parameters te selecteren.
+PROFILEPANEL_TOOLTIPSAVE;Bewaar huidig profiel.\n<b>%mouse_primary%+klik</b> om de te bewaren parameters te selecteren.
 PROGRESSBAR_DENOISING;Ruisonderdrukking...
 PROGRESSBAR_HLREC;Reconstructie hoge lichten...
 PROGRESSBAR_LOADING;Afbeelding laden...
@@ -1361,7 +1361,7 @@ SESSION_LABEL;Sessie
 SHCSELECTOR_TOOLTIP;Rechtsklik om de drie schuiven terug te zetten naar hun standaardpositie
 SOFTPROOF_GAMUTCHECK_TOOLTIP;Markeer pixels waarvan de kleuren buiten het kleurgamma vallen met:\nhet opgegeven soft-proofing profiel en soft-proofing is ingeschakeld,\n of met het uitvoerprofiel en soft-proofing is uitgeschakeld. 
 SOFTPROOF_GAMUTCHECK_MONITOR_TOOLTIP;Markeer pixels waarvan de kleuren buiten het kleurgamma vallen bij het gekozen monitorprofiel.
-SOFTPROOF_TOOLTIP;Soft-proofing simuleert hoe een foto wordt getoond als deze wordt weergegeven op een beeldscherm of afgedrukt op een specifieke printer, als het overeenkomstige profiel is opgegeven in Voorkeuren > Kleurbeheer.\n(Met <b>%primary% + linksklik</b> kan een ander profiel worden gekozen. 
+SOFTPROOF_TOOLTIP;Soft-proofing simuleert hoe een foto wordt getoond als deze wordt weergegeven op een beeldscherm of afgedrukt op een specifieke printer, als het overeenkomstige profiel is opgegeven in Voorkeuren > Kleurbeheer.\n(Met <b>%mouse_primary% + linksklik</b> kan een ander profiel worden gekozen. 
 THRESHOLDSELECTOR_BL;Onderkant-links
 THRESHOLDSELECTOR_B;Onderkant
 THRESHOLDSELECTOR_BR;Onderkant-rechts
@@ -1370,7 +1370,7 @@ THRESHOLDSELECTOR_T;Bovenkant
 THRESHOLDSELECTOR_TL;Bovenkant-links
 THRESHOLDSELECTOR_TR;Bovenkant-rechts
 TOOL_SHORTCUT_HELP_HEADER;Gereedschapssneltoetsen:\n(druk een zekere toets en pas de schuif aan met +/- of het muiswiel)\n
-TOOLBAR_TOOLTIP_COLORPICKER;Vergrendelbare kleurenkiezer\n\nIndien geactiveerd:\nVoeg kiezer toe: <b>linksklik</b>\nVerplaats kiezer:<b>linksklik en sleep</b>\nVerwijder kiezer: <b>rechtsklik</b>op een kiezer\nVerwijder alle kiezers:<b>%primary%+Shift+rechtsklik</b> op een kiezer\nTerug naar handgereedschap: <b>rechtsklik</b> buiten een kiezer.
+TOOLBAR_TOOLTIP_COLORPICKER;Vergrendelbare kleurenkiezer\n\nIndien geactiveerd:\nVoeg kiezer toe: <b>linksklik</b>\nVerplaats kiezer:<b>linksklik en sleep</b>\nVerwijder kiezer: <b>rechtsklik</b>op een kiezer\nVerwijder alle kiezers:<b>%mouse_primary%+Shift+rechtsklik</b> op een kiezer\nTerug naar handgereedschap: <b>rechtsklik</b> buiten een kiezer.
 TOOLBAR_TOOLTIP_CROP;<b>Snij selectie bij.</b>\nSneltoets: <b>Shift+c</b>\nVerplaats uitsnede met <b>linkermuisklik</b>\nWijzig grootte uitsnede door de randen te verplaatsen.
 TOOLBAR_TOOLTIP_HAND;Handgereedschap.\nSneltoets: <b>%shortcut(toolbar.hand)%</b>
 TOOLBAR_TOOLTIP_PERSPECTIVE;<b>Perspectiefcorrectie</b>.\nSneltoets: <b>Shift+p</b>\n\nBewerk controlelijnen om perspectivische vervorming te corrigeren. Klik opnieuw op deze knop om de correctie toe te passen.
@@ -1739,7 +1739,7 @@ TP_LABMASKS_DRAWNMASK_RADIUS;Straal
 TP_LABMASKS_DRAWNMASK_OPACITY;Opaciteit
 TP_LABMASKS_DRAWNMASK_RESET_TIP;Wis alle penseelstreken
 TP_LABMASKS_DRAWNMASK_SMOOTHNESS;Gladheid
-TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;Schakelt het tekenen met het penseel in of uit.\n\n<i>Bij muisgebruik:</i>\n- Houd de <b>Alt</b>-toets ingedrukt om tijdelijk naar de Gummodus om te schakelen;\n-Houd <b>Shift</b> ingedrukt om een rechte lijn te trekken;\n- Gebruik <b>%primary%+muiswiel</b> om de kwastgrootte te veranderen, \n- <b>%primary%+Shift+muiswiel</b> om de hardheid van de kwast te wijzigen,\n- en <b>%primary%+klik</b> om een nieuwe penseelgroep te starten zonder de parameters te veranderen (zodat meerdere kwaststreken in hetzelfde gebied bij elkaar worden opgeteld);\n- Gebruik de <b>derde knop</b> om het kwastgereedschap uit te schakelen.\n\n<i>Bij gebruik van een drukgevoelig apparaat:</i>\n- Gebruik de <b>eerste knop</b> om naar de Gummodus om te schakelen;\n- Houd <b>Shift</b> ingedrukt om een rechte lijn te trekken;- Gebruik <b>Alt+eerste knop</b> om de kwaststraal te vergroten, en\n- <b>Alt+tweede knop</b> om deze te verkleinen;\n- Gebruik de <b>tweede knop</b> om te wisselen tussen de beschikbare modi voor drukgevoeligheid: uit, hardheid, straal (houd <b>Shift</b> ingedrukt om de richting om te keren);\n- gebruik <b>%primary%+tweede knop</b> om het kwastgereedschap uit te schakelen.
+TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;Schakelt het tekenen met het penseel in of uit.\n\n<i>Bij muisgebruik:</i>\n- Houd de <b>Alt</b>-toets ingedrukt om tijdelijk naar de Gummodus om te schakelen;\n-Houd <b>Shift</b> ingedrukt om een rechte lijn te trekken;\n- Gebruik <b>%mouse_primary%+muiswiel</b> om de kwastgrootte te veranderen, \n- <b>%mouse_primary%+Shift+muiswiel</b> om de hardheid van de kwast te wijzigen,\n- en <b>%mouse_primary%+klik</b> om een nieuwe penseelgroep te starten zonder de parameters te veranderen (zodat meerdere kwaststreken in hetzelfde gebied bij elkaar worden opgeteld);\n- Gebruik de <b>derde knop</b> om het kwastgereedschap uit te schakelen.\n\n<i>Bij gebruik van een drukgevoelig apparaat:</i>\n- Gebruik de <b>eerste knop</b> om naar de Gummodus om te schakelen;\n- Houd <b>Shift</b> ingedrukt om een rechte lijn te trekken;- Gebruik <b>Alt+eerste knop</b> om de kwaststraal te vergroten, en\n- <b>Alt+tweede knop</b> om deze te verkleinen;\n- Gebruik de <b>tweede knop</b> om te wisselen tussen de beschikbare modi voor drukgevoeligheid: uit, hardheid, straal (houd <b>Shift</b> ingedrukt om de richting om te keren);\n- gebruik <b>%mouse_primary%+tweede knop</b> om het kwastgereedschap uit te schakelen.
 TP_LABMASKS_DRAWNMASK_TRANSPARENCY;Transparantie
 TP_LABMASKS_DRAWNMASK_UNDO_TIP;Verwijder laatste groep penseelstreken
 TP_LABMASKS_HUE;T
@@ -1811,7 +1811,7 @@ TP_PERSPECTIVE_AUTO_BOTH_TOOLTIP;Horizontaal en verticaal
 TP_PERSPECTIVE_AUTO_HORIZONTAL_TOOLTIP;Horizontaal
 TP_PERSPECTIVE_AUTO_VERTICAL_TOOLTIP;Verticaal
 TP_PERSPECTIVE_CONTROL_LINES;Controlelijnen
-TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>%primary%</b>+<b>sleep</b>: Teken nieuwe lijn\n<b>Rechtsklik</b>: Verwijder lijn
+TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>%mouse_primary%</b>+<b>sleep</b>: Teken nieuwe lijn\n<b>Rechtsklik</b>: Verwijder lijn
 TP_PERSPECTIVE_CROPFACTOR;Bijsnijfactor
 TP_PERSPECTIVE_FLENGTH;Brandpuntsafstand
 TP_PERSPECTIVE_HORIZONTAL;Horizontaal
@@ -2020,7 +2020,7 @@ TP_SPOT_CUR_SPOT_LABEL;Huidige plek
 TP_SPOT_DETAIL;Detailbescherming
 TP_SPOT_ENTRYCHANGED;Punt veranderd
 TP_SPOT_FEATHER;Verzachten
-TP_SPOT_HINT;Klik op deze knop om te kunnen werken in het voorbeeldvenster.\n\nOm een plek te bewerken schuif je de muis over het witte kruis dat een plek markeert, waarna de geometrie ervan verschijnt.\n\nVoeg een plek toe met %primary%+linkermuisklik, sleep de cirkel (je kunt %primary% loslaten nu) naar een bronbestemming en laat dan de muisknop los.\n\nOm een bron of bestemming te verplaatsen: klik met de muis op het centrum en sleep dit ergens heen.\n\nDe binnenste cirkel (gebied met maximaal effect) en de 'verzachtingscirkel' kunnen worden geschaald door de muis er op te plaatsen (de cirkel wordt oranje) en ze te verslepen (de cirkel wordt rood).\n\nAls je klaar bent met de veranderingen volstaat een rechtsklik met de muis buiten een plek om de Vlekverwijdermodus te verlaten, of klik opnieuw op deze knop. 
+TP_SPOT_HINT;Klik op deze knop om te kunnen werken in het voorbeeldvenster.\n\nOm een plek te bewerken schuif je de muis over het witte kruis dat een plek markeert, waarna de geometrie ervan verschijnt.\n\nVoeg een plek toe met %mouse_primary%+linkermuisklik, sleep de cirkel (je kunt %mouse_primary% loslaten nu) naar een bronbestemming en laat dan de muisknop los.\n\nOm een bron of bestemming te verplaatsen: klik met de muis op het centrum en sleep dit ergens heen.\n\nDe binnenste cirkel (gebied met maximaal effect) en de 'verzachtingscirkel' kunnen worden geschaald door de muis er op te plaatsen (de cirkel wordt oranje) en ze te verslepen (de cirkel wordt rood).\n\nAls je klaar bent met de veranderingen volstaat een rechtsklik met de muis buiten een plek om de Vlekverwijdermodus te verlaten, of klik opnieuw op deze knop. 
 TP_SPOT_LABEL;Vlekken verwijderen
 TP_SPOT_LIGHTPIPELINE_HINT;Klik op deze knop om punten te wijzigen terwijl je een vereenvoudigd voorbeeld ziet; rekenintensieve tools worden zo voor het voorbeeld uitgeschakeld met een snellere beeldopbouw als gevolg.\n\nHeeft alleen effect als de voorbeeldweergave actief is (het potloodicoon links).
 TP_SPOT_OPACITY;Doorzichtigheid

@@ -733,7 +733,7 @@ bool MyFlatCurve::handleEvents(GdkEvent *event)
                     curve.rightTangent.insert(itrt, 0);
                     num++;
 
-                    if (mod_type & ShortcutsManager::primaryMask()) {
+                    if (mod_type & ShortcutsManager::mousePrimaryMask()) {
                         clampedY = point.getVal01(clampedX);
                     }
 
@@ -1830,7 +1830,7 @@ void MyFlatCurve::getCursorPosition(Gdk::EventType evType, bool isHint, int evX,
     // update deltaX/Y if the user drags a point
     if (editedHandle != FCT_EditedHandle_None) {
         // set the dragging factor
-        int control_key = mod_type & ShortcutsManager::primaryMask();
+        int control_key = mod_type & ShortcutsManager::mousePrimaryMask();
         int shift_key = mod_type & GDK_SHIFT_MASK;
 
         // the increment get smaller if modifier key are used, and "snap to" may

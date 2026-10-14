@@ -118,7 +118,7 @@ Adjuster::Adjuster(Glib::ustring vlabel, double vmin, double vmax, double vstep,
 
     const auto on_double_click = [this](GdkEventButton *event) -> bool {
         if (event->button == 1 && event->type == GDK_2BUTTON_PRESS) {
-            resetValue(event->state & ShortcutsManager::primaryMask());
+            resetValue(event->state & ShortcutsManager::mousePrimaryMask());
             return false;
         }
         return true;
@@ -394,7 +394,7 @@ void Adjuster::resetValue(bool toInitial)
 void Adjuster::resetPressed(GdkEventButton *event)
 {
 
-    if ((event != nullptr) && (event->state & ShortcutsManager::primaryMask()) &&
+    if ((event != nullptr) && (event->state & ShortcutsManager::mousePrimaryMask()) &&
         (event->button == 1)) {
         resetValue(true);
     } else {

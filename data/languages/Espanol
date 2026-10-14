@@ -34,7 +34,7 @@ ABOUT_TAB_CREDITS;Créditos
 ABOUT_TAB_LICENSE;Licencia
 ABOUT_TAB_RELEASENOTES;Notas de la versión
 ABOUT_TAB_SPLASH;Splash
-ADJUSTER_RESET_TO_DEFAULT;<b>Clic</b> - restablecer al valor predeterminado.\n<b>%primary%</b>+<b>clic</b> - restablecer al último valor guardado.
+ADJUSTER_RESET_TO_DEFAULT;<b>Clic</b> - restablecer al valor predeterminado.\n<b>%mouse_primary%</b>+<b>clic</b> - restablecer al último valor guardado.
 CTL_SIGMOID;Mapeador de tonos sigmoide
 CTL_SIGMOID_BASE_PRIMARIES;Primarios base
 CTL_SIGMOID_INSET;Atenuación
@@ -86,7 +86,7 @@ DYNPROFILEEDITOR_CUSTOMDATA_TAGS;Etiqueta(s)
 DYNPROFILEEDITOR_CUSTOMDATA_TOOLTIP;Lista de pares <i>clave=valor</i> de etiquetas de metadatos adicionales para hacer coincidir, una por línea, donde <b>clave</b> es el nombre de una etiqueta en la sintaxis de Exiv2 y <b>valor</b> es el valor que debe coincidir (usa el prefijo "re:" para introducir una expresión regular).
 EDITWINDOW_TITLE;Edición de imagen
 EDIT_OBJECT_TOOLTIP;Muestra un widget en la ventana de vista previa que le permitirá ajustar esta herramienta.
-EDIT_PIPETTE_TOOLTIP;Para añadir un punto de ajuste en la curva, mantenga la tecla %primary% pulsada mientras pulsa el botón izquierdo del ratón sobre el punto deseado en la vista previa de la imagen.\nPara ajustar el punto, mantenga la tecla %primary% pulsada mientras pulsa el botón izquierdo del ratón sobre el área correspondiente en la vista previa, entonces suelte la tecla %primary% (a menos que desee un control más preciso) y mientras mantiene pulsado el botón izquierdo del ratón mueva el ratón hacia arriba o hacia abajo para mover ese punto hacia arriba o hacia abajo en la curva.
+EDIT_PIPETTE_TOOLTIP;Para añadir un punto de ajuste en la curva, mantenga la tecla %mouse_primary% pulsada mientras pulsa el botón izquierdo del ratón sobre el punto deseado en la vista previa de la imagen.\nPara ajustar el punto, mantenga la tecla %mouse_primary% pulsada mientras pulsa el botón izquierdo del ratón sobre el área correspondiente en la vista previa, entonces suelte la tecla %mouse_primary% (a menos que desee un control más preciso) y mientras mantiene pulsado el botón izquierdo del ratón mueva el ratón hacia arriba o hacia abajo para mover ese punto hacia arriba o hacia abajo en la curva.
 ERROR_MSG_FILE_READ;Error de lectura del archivo: %1
 ERROR_MSG_MAXERRORS;... (%1 error(es) anterior(es) no mostrado(s))
 ERROR_MSG_METADATA_VALUE;Metadatos: error al establecer %1 a %2
@@ -870,8 +870,8 @@ MAIN_BUTTON_NAVNEXT_TOOLTIP;Navegar a la siguiente imagen relativa a la imagen a
 MAIN_BUTTON_NAVPREV_TOOLTIP;Navegar a la anterior imagen relativa a la imagen abierta en el editor.\nAtajo: <b>Mayús-F3</b>\n\nNavegar a la anterior imagen relativa a la miniatura seleccionada actualmente en el explorador de archivos o la tira de película:\nAtajo: <b>%shortcut(filebrowser.open_previous)%</b>
 MAIN_BUTTON_NAVSYNC_TOOLTIP;Sincronizar el explorador de archivos o la tira de película con el editor para mostrar la miniatura de la imagen abierta actualmente y quitar cualquier filtro activo.\nAtajo: <b>%shortcut(editor.sync_file_browser_clear_filters)%</b>\n\nPara hacer lo dicho anteriormente, pero sin quitar los filtros activos.\nAtajo: <b>%shortcut(editor.sync_file_browser)%</b>\n(Tenga en cuenta que la miniatura de la imagen abierta no se mostrará si los filtros la excluyen).
 MAIN_BUTTON_PREFERENCES;Preferencias
-MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;Añadir la imagen actual a la cola de procesamiento (%primary%-clic para una exportación rápida).\nAtajo: <b>%shortcut(editor.queue)%</b> (<b>%primary%-Mayús-b</b> para una exportación rápida)
-MAIN_BUTTON_SAVE_TOOLTIP;Guarda la imagen actual (%primary%-clic para exportación rápida.)\nAtajo: <b>%shortcut(editor.save)%</b> (<b>%primary%-Mayús-s</b> para exportación rápida)
+MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;Añadir la imagen actual a la cola de procesamiento (%mouse_primary%-clic para una exportación rápida).\nAtajo: <b>%shortcut(editor.queue)%</b> (<b>%mouse_primary%-Mayús-b</b> para una exportación rápida)
+MAIN_BUTTON_SAVE_TOOLTIP;Guarda la imagen actual (%mouse_primary%-clic para exportación rápida.)\nAtajo: <b>%shortcut(editor.save)%</b> (<b>%mouse_primary%-Mayús-s</b> para exportación rápida)
 MAIN_BUTTON_SENDTOEDITOR;Editar la imagen en un editor externo
 MAIN_BUTTON_SENDTOEDITOR_TOOLTIP;Edita la imagen actual en un editor externo.\nAtajo: <b>%shortcut(editor.send_to_external_editor)%</b> (<b>Ctrl-Mayús-e</b> para exportación rápida)
 MAIN_BUTTON_SHOWHIDESIDEPANELS_TOOLTIP;Muestra/Oculta todos los paneles laterales.\nAtajo: <b>%shortcut(editor.maximize_preview)%</b>
@@ -1288,9 +1288,9 @@ PROFILEPANEL_PLASTSAVED;Último guardado
 PROFILEPANEL_SAVEDLGLABEL;Guardar parámetros de procesamiento...
 PROFILEPANEL_SAVEPPASTE;Parámetros a guardar
 PROFILEPANEL_TOOLTIPCOPY;Copiar parámetros de procesamiento al portapapeles.
-PROFILEPANEL_TOOLTIPLOAD;Cargar perfil de un archivo.\n<b>%primary%-clic</b> para seleccionar los parámetros a cargar.
-PROFILEPANEL_TOOLTIPPASTE;Pegar perfil del portapapeles.\n<b>%primary%-clic</b> para seleccionar los parámetros a pegar.
-PROFILEPANEL_TOOLTIPSAVE;Guardar perfil actual.\n<b>%primary%-clic</b> para seleccionar los parámetros a guardar.
+PROFILEPANEL_TOOLTIPLOAD;Cargar perfil de un archivo.\n<b>%mouse_primary%-clic</b> para seleccionar los parámetros a cargar.
+PROFILEPANEL_TOOLTIPPASTE;Pegar perfil del portapapeles.\n<b>%mouse_primary%-clic</b> para seleccionar los parámetros a pegar.
+PROFILEPANEL_TOOLTIPSAVE;Guardar perfil actual.\n<b>%mouse_primary%-clic</b> para seleccionar los parámetros a guardar.
 PROGRESSBAR_DENOISING;Reducción de ruido...
 PROGRESSBAR_HLREC;Recuperación de altas luces...
 PROGRESSBAR_LOADING;Cargando imagen...
@@ -1372,7 +1372,7 @@ SESSION_LABEL;Sesión
 SHCSELECTOR_TOOLTIP;Haga clic con el botón derecho del ratón para restablecer la posición de esos 3 controles deslizantes.
 SOFTPROOF_GAMUTCHECK_MONITOR_TOOLTIP;Resaltar los píxeles con colores fuera de rango con respecto al perfil del monitor.
 SOFTPROOF_GAMUTCHECK_TOOLTIP;Resaltar los píxeles con colores fuera de rango con respecto a:\n- el perfil de prueba en pantalla, si se ha establecido uno y la prueba en pantalla está activada,\n- el perfil de salida, si la prueba en pantalla está desactivada.
-SOFTPROOF_TOOLTIP;La prueba en pantalla simula la apariencia de la imagen cuando la reproduce una impresora o monitor específico, si se ha establecido un perfil adecuado en Preferencias > Gestión de color.\n(Mantenga pulsada la tecla <b>%primary%</b> mientras hace clic para cambiar el perfil de prueba en pantalla).
+SOFTPROOF_TOOLTIP;La prueba en pantalla simula la apariencia de la imagen cuando la reproduce una impresora o monitor específico, si se ha establecido un perfil adecuado en Preferencias > Gestión de color.\n(Mantenga pulsada la tecla <b>%mouse_primary%</b> mientras hace clic para cambiar el perfil de prueba en pantalla).
 THRESHOLDSELECTOR_B;Inferior
 THRESHOLDSELECTOR_BL;Inferior izquierdo
 THRESHOLDSELECTOR_BR;Inferior derecho
@@ -1381,7 +1381,7 @@ THRESHOLDSELECTOR_T;Superior
 THRESHOLDSELECTOR_TL;Superior izquierdo
 THRESHOLDSELECTOR_TR;Superior derecho
 TOOL_SHORTCUT_HELP_HEADER;Atajos de herramienta:\n(mantenga pulsada la tecla indicada y ajuste el control deslizante mediante +/- o la rueda del ratón)\n
-TOOLBAR_TOOLTIP_COLORPICKER;Selector de color bloqueable\n\nCuando la herramienta está activa:\n- Añadir un selector: <b>clic con el botón izquierdo del ratón</b>.\n- Arrastrar un selector: <b>clic con el botón izquierdo del ratón y arrastrar</b>.\n- Eliminar un selector: <b>clic con el botón derecho del ratón</b>.\n- Eliminar todos los selectores: <b>%primary%</b>+<b>Mayús</b>+<b>clic con el botón derecho del ratón</b>.\n- Volver a la herramienta mano: <b>clic con el botón derecho del ratón</b> fuera de cualquier selector.
+TOOLBAR_TOOLTIP_COLORPICKER;Selector de color bloqueable\n\nCuando la herramienta está activa:\n- Añadir un selector: <b>clic con el botón izquierdo del ratón</b>.\n- Arrastrar un selector: <b>clic con el botón izquierdo del ratón y arrastrar</b>.\n- Eliminar un selector: <b>clic con el botón derecho del ratón</b>.\n- Eliminar todos los selectores: <b>%mouse_primary%</b>+<b>Mayús</b>+<b>clic con el botón derecho del ratón</b>.\n- Volver a la herramienta mano: <b>clic con el botón derecho del ratón</b> fuera de cualquier selector.
 TOOLBAR_TOOLTIP_CROP;Selección de <b>recorte</b>.\nAtajo: <b>Mayús-c</b>\nMueva el recorte <b>arrastrando el ratón</b>\nCambie el tamaño del recorte moviendo los bordes del recorte.
 TOOLBAR_TOOLTIP_HAND;Herramienta mano.\nAtajo: <b>%shortcut(toolbar.hand)%</b>
 TOOLBAR_TOOLTIP_PERSPECTIVE;<b>Corrección de perspectiva</b>.\nAtajo: <b>Mayús-p</b>\n\nEdite las líneas de control para corregir la distorsión de la perspectiva. Haga clic en este botón de nuevo para aplicar la corrección.
@@ -1746,7 +1746,7 @@ TP_LABMASKS_DELTAE_PICK;Escoger
 TP_LABMASKS_DELTAE_CHAN_WEIGHT;Peso en el cálculo ΔE
 TP_LABMASKS_DELTAE_TOOLTIP;Seleccione las regiones de color similar\n(según la métrica CIELAB ΔE*)
 TP_LABMASKS_DRAWNMASK;Máscara de pincel
-TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;Cambie cómo pinta el pincel en el lienzo.\n\n<i>Si se usa el ratón:</i>\n- Mantenga pulsado <b>Alt</b> para activar temporalmente el "Modo borrador";\n- Mantenga pulsado <b>Mayús</b> para dibujar una línea recta;\n- Use <b>%primary%+rueda del ratón</b> para cambiar el radio del pincel,\n- <b>%primary%+Mayús+rueda del ratón</b> para cambiar la dureza del pincel,\n- y <b>%primary%+clic</b> para comenzar un nuevo grupo de trazos sin cambiar los parámetros\n(de modo que se sumen varios trazos en la misma área);\n- Use el <b>tercer botón</b> para desactivar la pintura en el lienzo.\n\n<i>Si se usa un dispositivo sensible a la presión:</i>n- Use el <b>primer botón</b> para cambiar al "Modo borrador";\n- Mantenga pulsado <b>Mayús</b> para dibujar una línea recta;\n- Use <b>Alt+primer botón</b> para aumentar el radio del pincel, y\n- <b>Alt+segundo botón</b> para reducirlo;\n- Use el <b>segundo botón</b> para recorrer los modos de sensibilidad a la presión disponibles: inactivo, dureza, radio (mantenga pulsado <b>Mayús</b> para invertir la dirección);\n- Use <b>%primary%+segundo botón</b> para desactivar la pintura en el lienzo.
+TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;Cambie cómo pinta el pincel en el lienzo.\n\n<i>Si se usa el ratón:</i>\n- Mantenga pulsado <b>Alt</b> para activar temporalmente el "Modo borrador";\n- Mantenga pulsado <b>Mayús</b> para dibujar una línea recta;\n- Use <b>%mouse_primary%+rueda del ratón</b> para cambiar el radio del pincel,\n- <b>%mouse_primary%+Mayús+rueda del ratón</b> para cambiar la dureza del pincel,\n- y <b>%mouse_primary%+clic</b> para comenzar un nuevo grupo de trazos sin cambiar los parámetros\n(de modo que se sumen varios trazos en la misma área);\n- Use el <b>tercer botón</b> para desactivar la pintura en el lienzo.\n\n<i>Si se usa un dispositivo sensible a la presión:</i>n- Use el <b>primer botón</b> para cambiar al "Modo borrador";\n- Mantenga pulsado <b>Mayús</b> para dibujar una línea recta;\n- Use <b>Alt+primer botón</b> para aumentar el radio del pincel, y\n- <b>Alt+segundo botón</b> para reducirlo;\n- Use el <b>segundo botón</b> para recorrer los modos de sensibilidad a la presión disponibles: inactivo, dureza, radio (mantenga pulsado <b>Mayús</b> para invertir la dirección);\n- Use <b>%mouse_primary%+segundo botón</b> para desactivar la pintura en el lienzo.
 TP_LABMASKS_DRAWNMASK_PEN_SETTINGS;Ajustes de pincel
 TP_LABMASKS_DRAWNMASK_RESET_TIP;Borrar todos los trazos
 TP_LABMASKS_DRAWNMASK_UNDO_TIP;Borrar el último grupo de trazos
@@ -1816,7 +1816,7 @@ TP_PERSPECTIVE_AUTO_BOTH_TOOLTIP;Horizontal y vertical
 TP_PERSPECTIVE_AUTO_HORIZONTAL_TOOLTIP;Horizontal
 TP_PERSPECTIVE_AUTO_VERTICAL_TOOLTIP;Vertical
 TP_PERSPECTIVE_CONTROL_LINES;Líneas de control
-TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>%primary%</b>+<b>arrastrar</b>: Dibujar una nueva línea\n<b>Clic derecho del ratón</b>: Borrar línea
+TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>%mouse_primary%</b>+<b>arrastrar</b>: Dibujar una nueva línea\n<b>Clic derecho del ratón</b>: Borrar línea
 TP_PERSPECTIVE_CROPFACTOR;Factor de recorte
 TP_PERSPECTIVE_FLENGTH;Distancia focal
 TP_PERSPECTIVE_HORIZONTAL;Horizontal
@@ -2019,7 +2019,7 @@ TP_SOFTLIGHT_LABEL;Luz tenue
 TP_SOFTLIGHT_STRENGTH;Intensidad
 TP_SPOT_COUNTLABEL;%1 punto(s)
 TP_SPOT_ENTRYCHANGED;Punto cambiado
-TP_SPOT_HINT;Haga clic en este botón para poder operar en el área de vista previa.\n\nPara editar un punto, pase el cursor por la marca blanca que indica un área editada, haciendo aparecer la geometría de edición.\n\nPara añadir un punto, pulse %primary% y el botón izquierdo del ratón, arrastre el círculo (puede soltar la tecla %primary%) a una ubicación de origen, y a continuación suelte el botón del ratón\n\nPara mover el punto de origen o destino, pase el cursor por su centro y arrástrelo.\n\nSe puede cambiar el tamaño del círculo interior (área de efecto máximo) y el círculo de "difuminado" pasando el cursor por encima de ellos (el círculo se vuelve naranja) y arrastrándolos (el círculo se vuelve rojo).\n\nCuando los cambios estén hechos, haga clic con el botón derecho del ratón fuera de cualquier punto para salir del modo de edición de puntos, o haga clic en este botón de nuevo.
+TP_SPOT_HINT;Haga clic en este botón para poder operar en el área de vista previa.\n\nPara editar un punto, pase el cursor por la marca blanca que indica un área editada, haciendo aparecer la geometría de edición.\n\nPara añadir un punto, pulse %mouse_primary% y el botón izquierdo del ratón, arrastre el círculo (puede soltar la tecla %mouse_primary%) a una ubicación de origen, y a continuación suelte el botón del ratón\n\nPara mover el punto de origen o destino, pase el cursor por su centro y arrástrelo.\n\nSe puede cambiar el tamaño del círculo interior (área de efecto máximo) y el círculo de "difuminado" pasando el cursor por encima de ellos (el círculo se vuelve naranja) y arrastrándolos (el círculo se vuelve rojo).\n\nCuando los cambios estén hechos, haga clic con el botón derecho del ratón fuera de cualquier punto para salir del modo de edición de puntos, o haga clic en este botón de nuevo.
 TP_SPOT_LABEL;Eliminación de manchas
 TP_SPOT_LIGHTPIPELINE_HINT;Haga clic en este botón para modificar los puntos mientras obtiene una vista previa de una imagen simplificada al desactivar las herramientas que requieren muchos recursos (opción de rendimiento).\n\nTiene efecto solo cuando la edición en vista previa está activa.
 TP_SPOT_CUR_SPOT_LABEL;Punto actual

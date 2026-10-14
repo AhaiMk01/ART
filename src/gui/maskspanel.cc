@@ -499,7 +499,7 @@ public:
     bool mouseOver(int modifierKey) override
     {
         if (pressure_mode_ == PRESSURE_OFF) {
-            bool ctrl = modifierKey & ShortcutsManager::primaryMask();
+            bool ctrl = modifierKey & ShortcutsManager::mousePrimaryMask();
             bool alt = modifierKey & GDK_MOD1_MASK;
             if ((!ctrl && alt) != prev_erase_) {
                 prev_erase_ = (!ctrl && alt);
@@ -519,7 +519,7 @@ public:
         cur_pressure_ = pressure;
         EditSubscriber::action = ES_ACTION_DRAGGING;
         undo_stack_.push_back(mask_->strokes.size());
-        bool ctrl = modifierKey & ShortcutsManager::primaryMask();
+        bool ctrl = modifierKey & ShortcutsManager::mousePrimaryMask();
         bool shift = modifierKey & GDK_SHIFT_MASK;
         bool alt = modifierKey & GDK_MOD1_MASK;
         bool dragging = shift && !mask_->strokes.empty();
@@ -557,7 +557,7 @@ public:
     bool button2Pressed(int modifierKey, double pressure) override
     {
         cur_pressure_ = pressure;
-        bool ctrl = modifierKey & ShortcutsManager::primaryMask();
+        bool ctrl = modifierKey & ShortcutsManager::mousePrimaryMask();
         bool alt = modifierKey & GDK_MOD1_MASK;
         if (std::isnan(pressure)) {
             update_pressure(PRESSURE_OFF);
@@ -575,7 +575,7 @@ public:
     bool button3Pressed(int modifierKey, double pressure) override
     {
         cur_pressure_ = pressure;
-        bool ctrl = modifierKey & ShortcutsManager::primaryMask();
+        bool ctrl = modifierKey & ShortcutsManager::mousePrimaryMask();
         bool alt = modifierKey & GDK_MOD1_MASK;
         bool shift = modifierKey & GDK_SHIFT_MASK;
         if (!std::isnan(pressure) && !ctrl) {
@@ -612,7 +612,7 @@ public:
                     (direction == GDK_SCROLL_SMOOTH && delta < 0.0);
         int incr = isUp ? 1 : -1;
 
-        bool ctrl = bstate & ShortcutsManager::primaryMask();
+        bool ctrl = bstate & ShortcutsManager::mousePrimaryMask();
         bool shift = bstate & GDK_SHIFT_MASK;
 
         if (update_brush(ctrl, shift, incr)) {
@@ -2393,7 +2393,7 @@ bool MasksPanel::scroll(int modifierKey, GdkScrollDirection direction,
     if (provider) {
         bool is_rectangle = getGeometryType() == Shape::Type::RECTANGLE;
         bool shift = modifierKey & GDK_SHIFT_MASK;
-        bool ctrl = modifierKey & ShortcutsManager::primaryMask();
+        bool ctrl = modifierKey & ShortcutsManager::mousePrimaryMask();
         bool alt = modifierKey & GDK_MOD1_MASK;
 
         int imW, imH;

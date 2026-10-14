@@ -370,7 +370,7 @@ bool Gradient::button1Pressed(int modifierKey)
 
     EditDataProvider *provider = getEditProvider();
 
-    if (!(modifierKey & ShortcutsManager::primaryMask())) {
+    if (!(modifierKey & ShortcutsManager::mousePrimaryMask())) {
         // button press is valid (no modifier key)
         PolarCoord pCoord;
         int imW, imH;

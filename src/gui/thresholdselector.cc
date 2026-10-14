@@ -643,7 +643,7 @@ bool ThresholdSelector::on_motion_notify_event(GdkEventMotion *event)
         double dX = ((event->x - tmpX) * dRange) / iw;
 
         // slow motion if CTRL is pressed
-        if (event->state & ShortcutsManager::primaryMask()) {
+        if (event->state & ShortcutsManager::mousePrimaryMask()) {
             dX *= 0.05;
         }
 

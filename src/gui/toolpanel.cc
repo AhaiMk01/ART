@@ -204,7 +204,7 @@ void FoldableToolPanel::enabledChanged()
 bool FoldableToolPanel::on_reset_change(GdkEventButton *event)
 {
     if (event->button == 1) {
-        bool to_initial = event->state & ShortcutsManager::primaryMask();
+        bool to_initial = event->state & ShortcutsManager::mousePrimaryMask();
         toolReset(to_initial);
         if (listener && (!exp->getUseEnabled() || getEnabled()) &&
             EvToolReset.get_action()) {

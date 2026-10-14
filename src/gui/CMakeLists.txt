@@ -364,7 +364,8 @@ if(APPLE)
     target_link_libraries(art-shortcuts-test PRIVATE "-framework Foundation")
 endif()
 target_compile_definitions(art-shortcuts-test PRIVATE
-    ART_LANGUAGES_DIR="${PROJECT_SOURCE_DIR}/data/languages")
+    ART_LANGUAGES_DIR="${PROJECT_SOURCE_DIR}/data/languages"
+    ART_DATA_DIR="${PROJECT_SOURCE_DIR}/data")
 add_test(NAME shortcuts COMMAND art-shortcuts-test)
 
 # Install executables

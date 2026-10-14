@@ -190,7 +190,7 @@ void ThresholdAdjuster::resetPressed(GdkEventButton *event)
 
     afterReset = true;
 
-    if ((event != nullptr) && (event->state & ShortcutsManager::primaryMask()) &&
+    if ((event != nullptr) && (event->state & ShortcutsManager::mousePrimaryMask()) &&
         (event->button == 1))
     // CTRL pressed : resetting to current default value
     {

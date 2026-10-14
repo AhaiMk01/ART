@@ -8,7 +8,7 @@ ABOUT_TAB_CREDITS;Szerzők
 ABOUT_TAB_LICENSE;Licenc
 ABOUT_TAB_RELEASENOTES;Kiadási megjegyzések
 ABOUT_TAB_SPLASH;Splash
-ADJUSTER_RESET_TO_DEFAULT;<b>Kattintás</b> - visszaállítja az alapértelmezett értékre.\n<b>%primary%</b>+<b>kattintás</b> - visszaállítja az utoljára mentett értékre.
+ADJUSTER_RESET_TO_DEFAULT;<b>Kattintás</b> - visszaállítja az alapértelmezett értékre.\n<b>%mouse_primary%</b>+<b>kattintás</b> - visszaállítja az utoljára mentett értékre.
 CTL_SIGMOID;Szigmoid tónusleképező
 CTL_SIGMOID_BASE_PRIMARIES;Alap elsődlegesek
 CTL_SIGMOID_INSET;Csillapítás
@@ -63,7 +63,7 @@ DYNPROFILEEDITOR_CUSTOMDATA_TAGS;Címkék
 DYNPROFILEEDITOR_CUSTOMDATA_TOOLTIP;Az egyeztetendő további metaadatcímkék soronként egy <i>kulcs=érték</i> párjainak listája, ahol a <b>kulcs</b> egy címke neve az Exiv2 szintaxisa szerint, az <b>érték</b> pedig az egyeztetni kívánt érték (használja a "re:" előtagot a reguláris kifejezés megadásához).
 EDITWINDOW_TITLE;Képszerkesztés
 EDIT_OBJECT_TOOLTIP;Megjelenít egy widgetet az előnézeti ablakban, amely lehetővé teszi az eszköz beállítását.
-EDIT_PIPETTE_TOOLTIP;Ha vezérlőpontot szeretne hozzáadni a görbéhez, tartsa lenyomva a %primary% billentyűt, és a bal egérgombbal kattintson a kívánt pontra a kép előnézetén.\nA pont beállításához tartsa lenyomva a %primary% billentyűt, és a bal egérgombbal kattintson a megfelelő területre a kép előnézetén, majd engedje el a %primary% billentyűt. (kivéve, ha finom vezérlést szeretne), és miközben továbbra is lenyomva tartja a bal egérgombot, mozgassa az egeret felfelé vagy lefelé, hogy az adott pontot felfelé vagy lefelé mozgassa a görbén.
+EDIT_PIPETTE_TOOLTIP;Ha vezérlőpontot szeretne hozzáadni a görbéhez, tartsa lenyomva a %mouse_primary% billentyűt, és a bal egérgombbal kattintson a kívánt pontra a kép előnézetén.\nA pont beállításához tartsa lenyomva a %mouse_primary% billentyűt, és a bal egérgombbal kattintson a megfelelő területre a kép előnézetén, majd engedje el a %mouse_primary% billentyűt. (kivéve, ha finom vezérlést szeretne), és miközben továbbra is lenyomva tartja a bal egérgombot, mozgassa az egeret felfelé vagy lefelé, hogy az adott pontot felfelé vagy lefelé mozgassa a görbén.
 ERROR_MSG_FILE_READ;Hiba a fájl olvasásakor: %1
 ERROR_MSG_MAXERRORS;... (%1 előző hibák nem láthatók)
 ERROR_MSG_METADATA_VALUE;Metaadat: hiba a %1 -nek %2 -re történő állításakor
@@ -830,8 +830,8 @@ MAIN_BUTTON_NAVNEXT_TOOLTIP;Navigáljon a szerkesztőben megnyitott képhez kép
 MAIN_BUTTON_NAVPREV_TOOLTIP;Navigáljon az előző képre a szerkesztőben megnyitott képhez képest.\nGyorsbillentyű: <b>%shortcut(editor.previous_image)%</b>\n\nA Fájlböngészőben vagy a Filmszalagban jelenleg kiválasztott bélyegképhez viszonyított előző képhez való navigálás:\nGyorsbillentyű: <b>%shortcut(filebrowser.open_previous)%</b>
 MAIN_BUTTON_NAVSYNC_TOOLTIP;Szinkronizálja a fájlböngészőt vagy a filmszalagot a szerkesztővel, hogy megjelenítse az éppen megnyitott kép bélyegképét, és törölje az összes aktív szűrőt.\nGyorsbillentyű: <b>%shortcut(editor.sync_file_browser_clear_filters)%</b>\n\nUgyanaz, de az aktív szűrők törlése nélkül:\nGyorsbillentyű: <b>%shortcut(editor.sync_file_browser)%</b>\n(Vegye figyelembe, hogy a megnyitott kép bélyegképe nem jelenik meg, ha kiszűri).
 MAIN_BUTTON_PREFERENCES;Beállítások
-MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;Az aktuális kép elhelyezése a feldolgozási sorba (%primary%-kattintás a gyors exportáláshoz).\nGyorsbillentyű: <b>%shortcut(editor.queue)%</b> (<b>%shortcut(editor.queue_fast)%</b> gyors exportáláshoz)
-MAIN_BUTTON_SAVE_TOOLTIP;Aktuális kép mentése (%primary%-kattintás a gyors exportáláshoz).\nGyorsbillentyű: <b>%shortcut(editor.save)%</b> (<b>%shortcut(editor.save_fast)%</b> gyors exportáláshoz)
+MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;Az aktuális kép elhelyezése a feldolgozási sorba (%mouse_primary%-kattintás a gyors exportáláshoz).\nGyorsbillentyű: <b>%shortcut(editor.queue)%</b> (<b>%shortcut(editor.queue_fast)%</b> gyors exportáláshoz)
+MAIN_BUTTON_SAVE_TOOLTIP;Aktuális kép mentése (%mouse_primary%-kattintás a gyors exportáláshoz).\nGyorsbillentyű: <b>%shortcut(editor.save)%</b> (<b>%shortcut(editor.save_fast)%</b> gyors exportáláshoz)
 MAIN_BUTTON_SENDTOEDITOR;Kép szerkesztése külső szerkesztőben
 MAIN_BUTTON_SENDTOEDITOR_TOOLTIP;Az aktuális kép szerkesztése külső szerkesztőben.\nGyorsbillentyű: <b>%shortcut(editor.send_to_external_editor)%</b> (<b>%shortcut(editor.send_to_external_editor_alt)%</b> a gyors exportáláshoz)
 MAIN_BUTTON_SHOWHIDESIDEPANELS_TOOLTIP;Minden oldalsó panel megjelenítése/elrejtése.\nGyorsbillentyű: <b>%shortcut(editor.maximize_preview)%</b>
@@ -1250,9 +1250,9 @@ PROFILEPANEL_PLASTSAVED;Utoljára mentett
 PROFILEPANEL_SAVEDLGLABEL;Feldolgozási paraméterek mentése...
 PROFILEPANEL_SAVEPPASTE;Mentendő paraméterek
 PROFILEPANEL_TOOLTIPCOPY;Aktuális feldolgozási profil másolása a vágólapra.\n<b>Ctrl-click</b> a másolandó paraméterek kiválasztásához.
-PROFILEPANEL_TOOLTIPLOAD;Profil betöltése fájlból.\n<b>%primary%-click</b> a betöltendő paraméterek kiválasztásához.
-PROFILEPANEL_TOOLTIPPASTE;Profil beillesztése a vágólapról.\n<b>%primary%-click</b> a beillesztendő paraméterek kiválasztásához.
-PROFILEPANEL_TOOLTIPSAVE;Aktuális profil mentése.\n<b>%primary%-click</b> a mentendő paraméterek kiválasztásához.
+PROFILEPANEL_TOOLTIPLOAD;Profil betöltése fájlból.\n<b>%mouse_primary%-click</b> a betöltendő paraméterek kiválasztásához.
+PROFILEPANEL_TOOLTIPPASTE;Profil beillesztése a vágólapról.\n<b>%mouse_primary%-click</b> a beillesztendő paraméterek kiválasztásához.
+PROFILEPANEL_TOOLTIPSAVE;Aktuális profil mentése.\n<b>%mouse_primary%-click</b> a mentendő paraméterek kiválasztásához.
 PROGRESSBAR_DENOISING;Zajcsökkentés...
 PROGRESSBAR_HLREC;Csúcsfény rekonstrukció...
 PROGRESSBAR_LOADING;Kép betöltése...
@@ -1336,7 +1336,7 @@ SESSION_LABEL;Munkamenet
 SHCSELECTOR_TOOLTIP;Kattintson a jobb egérgombbal a 3 csúszka pozíciójának visszaállításához.
 SOFTPROOF_GAMUTCHECK_MONITOR_TOOLTIP;Emelje ki a tartományon (gamuton) kívüli képpontokat a monitorprofilhoz képest.
 SOFTPROOF_GAMUTCHECK_TOOLTIP;Emelje ki a gamuton kívüli színekkel rendelkező pixeleket a következők tekintetében:\n- a Soft-proofing profilt használja, ha az be van állítva és a Soft-proofing engedélyezve van,\n- a kimeneti profilt használja, ha a Soft-proofing le van tiltva.
-SOFTPROOF_TOOLTIP;A Soft-proofing szimulálja a kép megjelenését egy adott nyomtatón vagy monitoron, ha megfelelő profil van beállítva a Beállítások > Színkezelés menüpontban.\n(A <b>%primary%</b> nyomva tartása mellett kattintson a Soft-proofing profil módosításához.)
+SOFTPROOF_TOOLTIP;A Soft-proofing szimulálja a kép megjelenését egy adott nyomtatón vagy monitoron, ha megfelelő profil van beállítva a Beállítások > Színkezelés menüpontban.\n(A <b>%mouse_primary%</b> nyomva tartása mellett kattintson a Soft-proofing profil módosításához.)
 THRESHOLDSELECTOR_B;Alsó
 THRESHOLDSELECTOR_BL;Bal alsó
 THRESHOLDSELECTOR_BR;Jobb alsó
@@ -1345,7 +1345,7 @@ THRESHOLDSELECTOR_T;Felső
 THRESHOLDSELECTOR_TL;Bal felső
 THRESHOLDSELECTOR_TR;Jobb felső
 TOOL_SHORTCUT_HELP_HEADER;Az eszköz gyorsbillentyűi:\n(tartsa lenyomva az adott billentyűt, és állítsa be a csúszkát a +/- gombbal vagy a görgővel)\n
-TOOLBAR_TOOLTIP_COLORPICKER;Zárolható színválasztó\n\nHa az eszköz aktív:\n- Kiválasztó hozzáadása: <b>bal gombbal</b>.\n- Kiválasztó húzása: <b>bal kattintás és húzás</b>. \n- Kiválasztó törlése: <b>jobb gombbal</b>.\n- Az összes kiválasztó törlése: <b>%primary%</b>+<b>Shift</b>+<b>jobb gombbal kattintva</b>.\n- Visszatérés a kéz eszközhöz: <b>kattintson a jobb gombbal</b> bármely választón kívül.
+TOOLBAR_TOOLTIP_COLORPICKER;Zárolható színválasztó\n\nHa az eszköz aktív:\n- Kiválasztó hozzáadása: <b>bal gombbal</b>.\n- Kiválasztó húzása: <b>bal kattintás és húzás</b>. \n- Kiválasztó törlése: <b>jobb gombbal</b>.\n- Az összes kiválasztó törlése: <b>%mouse_primary%</b>+<b>Shift</b>+<b>jobb gombbal kattintva</b>.\n- Visszatérés a kéz eszközhöz: <b>kattintson a jobb gombbal</b> bármely választón kívül.
 TOOLBAR_TOOLTIP_CROP;<b>Kivágás</b> kijelölés.\nGyorsbillentyű: <b>%shortcut(toolbar.crop)%</b>\nMozgassa a kivágást az <b>egér húzásával</b>\nÁtméretezze a kivágást a kivágási szegélyek mozgatásával.
 TOOLBAR_TOOLTIP_HAND;Kéz eszköz.\nGyorsbillentyű: <b>%shortcut(toolbar.hand)%</b>
 TOOLBAR_TOOLTIP_PERSPECTIVE;<b>Perspektívakorrekció</b>.\nGyorsbillentyű: <b>%shortcut(toolbar.perspective)%</b>\n\nSzerkessze a vezérlővonalakat a perspektivikus torzítás javításához. Kattintson ismét erre a gombra a javítás alkalmazásához.
@@ -1715,7 +1715,7 @@ TP_LABMASKS_DELTAE_PICK;Kiválaszt
 TP_LABMASKS_DELTAE_CHAN_WEIGHT;Súly a ΔE számításban
 TP_LABMASKS_DELTAE_TOOLTIP;Válasszon ki hasonló színű régiókat\n(a CIELAB ΔE* mérőszáma szerint)
 TP_LABMASKS_DRAWNMASK;Ecsetmaszk
-TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;Vászonra festést válthat az ecsettel.\n\n<i>Egér használatakor:</i>\n- Tartsa lenyomva az <b>Alt</b> billentyűt a „Ragyó mód” ideiglenes váltásához;\n- Tartsa lenyomva a <b> gombot. b>Shift</b> egy egyenes vonal rajzolásához;\n- A <b>%primary%+görgő</b> használatával módosíthatja az ecset sugarát,\n- <b>%primary%+Shift+görgő</b> az ecset keménységének módosításához,\n- és <b>%primary%+kattintás</b> új vonáscsoport indításához a paraméterek megváltoztatása nélkül\n(így ugyanazon a területen több vonás összeadódik);\n- Használja a <b>harmadik gomb</b> a vászonra festés kikapcsolásához.\n\n<i>Nyomásérzékeny eszköz használata esetén:</i>\n- Használja az <b>első gombot</b> a "radír mód" váltásához;\n- Tartsa lenyomva a <b>Shift</b> billentyűt egyenes vonal rajzolásához;\n- Az <b>Alt+első gomb</b> használatával növelheti az ecset sugarát, és\n- <b>Alt+másodperc gomb</b> a csökkentéséhez;\n- A <b>második gomb</b> segítségével válthat a rendelkezésre álló nyomásérzékenységi módok között: ki, keménység, sugár (tartsa lenyomva a <b>Shift< billentyűt /b> az irány megfordításához);\n- A <b>%primary%+második gomb</b> használatával kapcsolja ki a vászonra festést.
+TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;Vászonra festést válthat az ecsettel.\n\n<i>Egér használatakor:</i>\n- Tartsa lenyomva az <b>Alt</b> billentyűt a „Ragyó mód” ideiglenes váltásához;\n- Tartsa lenyomva a <b> gombot. b>Shift</b> egy egyenes vonal rajzolásához;\n- A <b>%mouse_primary%+görgő</b> használatával módosíthatja az ecset sugarát,\n- <b>%mouse_primary%+Shift+görgő</b> az ecset keménységének módosításához,\n- és <b>%mouse_primary%+kattintás</b> új vonáscsoport indításához a paraméterek megváltoztatása nélkül\n(így ugyanazon a területen több vonás összeadódik);\n- Használja a <b>harmadik gomb</b> a vászonra festés kikapcsolásához.\n\n<i>Nyomásérzékeny eszköz használata esetén:</i>\n- Használja az <b>első gombot</b> a "radír mód" váltásához;\n- Tartsa lenyomva a <b>Shift</b> billentyűt egyenes vonal rajzolásához;\n- Az <b>Alt+első gomb</b> használatával növelheti az ecset sugarát, és\n- <b>Alt+másodperc gomb</b> a csökkentéséhez;\n- A <b>második gomb</b> segítségével válthat a rendelkezésre álló nyomásérzékenységi módok között: ki, keménység, sugár (tartsa lenyomva a <b>Shift< billentyűt /b> az irány megfordításához);\n- A <b>%mouse_primary%+második gomb</b> használatával kapcsolja ki a vászonra festést.
 TP_LABMASKS_DRAWNMASK_PEN_SETTINGS;Ecset beállításai
 TP_LABMASKS_DRAWNMASK_RESET_TIP;Törölje az összes ecsetvonást
 TP_LABMASKS_DRAWNMASK_UNDO_TIP;Távolítsa el az utolsó vonáscsoportot
@@ -1781,7 +1781,7 @@ TP_PERSPECTIVE_AUTO_BOTH_TOOLTIP;Vízszintes és függőleges
 TP_PERSPECTIVE_AUTO_HORIZONTAL_TOOLTIP;Vízszintes
 TP_PERSPECTIVE_AUTO_VERTICAL_TOOLTIP;Függőleges
 TP_PERSPECTIVE_CONTROL_LINES;Vezérlővonalak
-TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>%primary%</b>+<b>húzás</b>: Új vonal rajzolása\n<b>Jobb gombbal</b>: Sor törlése
+TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>%mouse_primary%</b>+<b>húzás</b>: Új vonal rajzolása\n<b>Jobb gombbal</b>: Sor törlése
 TP_PERSPECTIVE_CROPFACTOR;Vágási tényező
 TP_PERSPECTIVE_FLENGTH;Fókusztávolság
 TP_PERSPECTIVE_HORIZONTAL;Vízszintes
@@ -1983,7 +1983,7 @@ TP_SOFTLIGHT_LABEL;Lágy fény
 TP_SOFTLIGHT_STRENGTH;Erősség
 TP_SPOT_COUNTLABEL;%1 folt
 TP_SPOT_ENTRYCHANGED;Folt megváltozott
-TP_SPOT_HINT;Kattintson erre a gombra az előnézeti terület kezeléséhez.\n\nEgy folt szerkesztéséhez vigye az egérmutatót a szerkesztett terület fehér jelére, így megjelenik a szerkesztési geometria.\n\nFolt hozzáadásához nyomja meg a %primary%-t és a bal egérgombot gombot, húzza a kört (a %primary% billentyű felengedhető) a forrás helyére, majd engedje fel az egérgombot.\n\nA forrás vagy a célhely mozgatásához vigye az egérmutatót a közepére, majd húzza el.\n\nA belső kör (maximális hatás területe) és a "tollazat" köre átméretezhető úgy, hogy rámutat (a kör narancssárgává válik), majd húzza (a kör vörös lesz) az egérrel.\n\nHa a módosítások készen vannak, kattintson a jobb gombbal bármelyik folton kívüli területre a Folt szerkesztési mód befejezéséhez, vagy kattintson újra erre a gombra.
+TP_SPOT_HINT;Kattintson erre a gombra az előnézeti terület kezeléséhez.\n\nEgy folt szerkesztéséhez vigye az egérmutatót a szerkesztett terület fehér jelére, így megjelenik a szerkesztési geometria.\n\nFolt hozzáadásához nyomja meg a %mouse_primary%-t és a bal egérgombot gombot, húzza a kört (a %mouse_primary% billentyű felengedhető) a forrás helyére, majd engedje fel az egérgombot.\n\nA forrás vagy a célhely mozgatásához vigye az egérmutatót a közepére, majd húzza el.\n\nA belső kör (maximális hatás területe) és a "tollazat" köre átméretezhető úgy, hogy rámutat (a kör narancssárgává válik), majd húzza (a kör vörös lesz) az egérrel.\n\nHa a módosítások készen vannak, kattintson a jobb gombbal bármelyik folton kívüli területre a Folt szerkesztési mód befejezéséhez, vagy kattintson újra erre a gombra.
 TP_SPOT_LABEL;Folt eltávolítása
 TP_SPOT_LIGHTPIPELINE_HINT;Kattintson erre a gombra a foltok módosításához, miközben egy egyszerűsített kép előnézetét tekinti meg a sok erőforrást igénylő eszközök letiltásával (teljesítmény opció).\n\nCsak akkor van hatása, ha az előnézeti szerkesztés aktív.
 TP_SPOT_CUR_SPOT_LABEL;Aktuális folt

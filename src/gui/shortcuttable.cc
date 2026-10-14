@@ -245,12 +245,12 @@ std::string formatShortcutKey(const ShortcutKey &key,
 }
 
 
-std::string primaryModifierName(const ModifierMasks &masks)
+std::string modifierName(const ModifierMasks &masks, unsigned mod)
 {
     ShortcutKey plain;
     plain.keyval = GDK_KEY_a;
     ShortcutKey with = plain;
-    with.mods = sm::Primary;
+    with.mods = mod;
     // GTK has no label for a modifier alone: take it from a key
     const std::string full = formatShortcutKey(with, masks, true);
     const std::string key = formatShortcutKey(plain, masks, true);
@@ -372,11 +372,19 @@ bool ShortcutTable::isCustomized(const std::string &id) const
 }
 
 
-void ShortcutTable::applyOverrides(const std::string &json_text)
+void ShortcutTable::applyOverrides(const std::string &json_text, bool reset)
 {
+    if (reset) {
+        for (auto &e : entries_) {
+            e.keys = e.defaults;
+            e.custom = false;
+        }
+        mouse_modifier_ = shortcut_mod::Primary;
+    }
+    // what this layer has to be compared with, to undo what clashes
+    std::vector<std::vector<ShortcutKey>> base;
     for (auto &e : entries_) {
-        e.keys = e.defaults;
-        e.custom = false;
+        base.push_back(e.keys);
     }
 
     std::vector<char> buf(json_text.begin(), json_text.end());
@@ -403,6 +411,19 @@ void ShortcutTable::applyOverrides(const std::string &json_text)
     if (cJSON *v = cJSON_GetObjectItemCaseSensitive(root, "version")) {
         if (!cJSON_IsNumber(v) || v->valueint != 1) {
             warn("shortcuts: unsupported \"version\"; trying anyway");
+        }
+    }
+    if (cJSON *m = cJSON_GetObjectItemCaseSensitive(root,
+                                                    "mouse_primary_modifier")) {
+        const std::string v = cJSON_IsString(m) ? lower(trim(m->valuestring))
+                                                : "";
+        if (v == "primary") {
+            mouse_modifier_ = shortcut_mod::Primary;
+        } else if (v == "ctrl" || v == "control") {
+            mouse_modifier_ = shortcut_mod::Ctrl;
+        } else {
+            warn("shortcuts: \"mouse_primary_modifier\" must be \"Primary\" or "
+                 "\"Ctrl\"; ignored");
         }
     }
     cJSON *bindings = cJSON_GetObjectItemCaseSensitive(root, "bindings");
@@ -467,17 +488,22 @@ void ShortcutTable::applyOverrides(const std::string &json_text)
     }
     cJSON_Delete(root);
 
-    resolveConflicts();
+    resolveConflicts(base);
 }
 
 
-void ShortcutTable::resolveConflicts()
+void ShortcutTable::resolveConflicts(
+    const std::vector<std::vector<ShortcutKey>> &base)
 {
-    // A customised action that now shares a key with another action of the
-    // same context goes back to its defaults. Two actions swapping keys are
-    // fine, since the check is done on the final state; reverting one may
-    // clear or create another clash, hence the loop (each pass strictly
-    // reduces the number of customised actions, so it ends).
+    // An action changed by the layer that was just applied, and that now
+    // shares a key with another action of the same context, goes back to the
+    // keys it had before the layer. Two actions swapping keys are fine, since
+    // the check is done on the final state; reverting one may clear or create
+    // another clash, hence the loop (each pass strictly reduces the number of
+    // changed actions, so it ends).
+    const auto changed_by_layer = [&](size_t i) {
+        return entries_[i].keys != base[i];
+    };
     while (true) {
         bool changed = false;
         for (size_t i = 0; i < entries_.size() && !changed; ++i) {
@@ -486,7 +512,7 @@ void ShortcutTable::resolveConflicts()
                 auto &b = entries_[j];
                 if (a.action.context != b.action.context ||
                     a.action.phase != b.action.phase ||
-                    !(a.custom || b.custom)) {
+                    !(changed_by_layer(i) || changed_by_layer(j))) {
                     continue;
                 }
                 for (auto &k : a.keys) {
@@ -494,15 +520,19 @@ void ShortcutTable::resolveConflicts()
                         b.keys.end()) {
                         continue;
                     }
-                    // revert the customised one (prefer b: the later one)
-                    Entry &victim = b.custom ? b : a;
-                    Entry &other = b.custom ? a : b;
+                    // revert the changed one (prefer b: the later one)
+                    const size_t v = changed_by_layer(j) ? j : i;
+                    Entry &victim = entries_[v];
+                    Entry &other = v == j ? a : b;
                     warn("shortcuts: " + victim.action.id + " and " +
                          other.action.id + " would both use " +
-                         formatShortcutKey(k, masks_) +
-                         "; " + victim.action.id + " keeps its default");
-                    victim.keys = victim.defaults;
-                    victim.custom = false;
+                         formatShortcutKey(k, masks_) + "; " +
+                         victim.action.id + " keeps its " +
+                         (base[v] == victim.defaults ? "default"
+                                                     : "previous") +
+                         " keys");
+                    victim.keys = base[v];
+                    victim.custom = victim.keys != victim.defaults;
                     changed = true;
                     break;
                 }
@@ -515,7 +545,7 @@ void ShortcutTable::resolveConflicts()
 }
 
 
-bool ShortcutTable::loadFile(const std::string &path)
+bool ShortcutTable::loadFile(const std::string &path, bool reset)
 {
     FILE *f = fopen(path.c_str(), "rb");
     if (!f) {
@@ -536,7 +566,7 @@ bool ShortcutTable::loadFile(const std::string &path)
     if (trim(text).empty()) {
         return true; // an empty file customises nothing
     }
-    applyOverrides(text);
+    applyOverrides(text, reset);
     return true;
 }
 
@@ -619,13 +649,19 @@ namespace {
 const char *const FILE_HEADER = R"(// ART keyboard shortcuts: reference of all the actions and their default keys.
 //
 // This file is generated and overwritten each time ART starts: do NOT edit it.
-// To change a shortcut, create a file called shortcuts.json in this same
-// folder, copy into it the entries you want to change, and restart ART.
+// It lists the built-in defaults. To change a shortcut, create a file called
+// shortcuts.json in this same folder, copy into it the entries you want to
+// change, and restart ART.
+//
+// ART also installs a shortcuts.json of its own in its data folder (for now
+// with the Ctrl-based keys of the older versions of ART), which is applied on
+// top of these defaults; yours is applied after it and overrides it.
 //
 // STRUCTURE
 //
 //   {
 //     "version": 1,
+//     "mouse_primary_modifier": "Primary",       optional, see below
 //     "bindings": {
 //       "editor.undo": ["Primary+Z"],            replaces the default keys
 //       "editor.redo": ["Primary+Shift+Z", "Primary+Y"],   more than one key
@@ -644,6 +680,16 @@ const char *const FILE_HEADER = R"(// ART keyboard shortcuts: reference of all t
 //   action, unreadable key) is reported on the standard error and the entry is
 //   ignored; ART always starts. Run ART with the environment variable
 //   ART_SHORTCUTS_DEBUG=1 to also see which action each key press triggers.
+//
+// MOUSE MODIFIER
+//
+//   "mouse_primary_modifier": "Primary" or "Ctrl"
+//
+// The mouse actions that use the usual command key (Ctrl-click to reset a
+// slider, Ctrl-click for a fast export, Ctrl-scroll in the masks, ...) use the
+// key that is chosen here: "Primary" (the default) is Ctrl on Linux and Windows
+// and Cmd on macOS, "Ctrl" is always the physical Control key. The two differ
+// only on macOS. Tooltips follow the choice.
 //
 // KEY SYNTAX
 //
@@ -671,7 +717,15 @@ const char *const FILE_HEADER = R"(// ART keyboard shortcuts: reference of all t
 std::string ShortcutTable::dumpJson(bool defaults_only, bool header) const
 {
     std::string res = header ? std::string(FILE_HEADER) + "\n" : "";
-    res += "{\n  \"version\": 1,\n  \"bindings\": {\n";
+    res += "{\n  \"version\": 1,\n\n";
+    res += "  // the modifier of the mouse actions (Ctrl-click ...): \"Primary\" or "
+           "\"Ctrl\"\n";
+    res += std::string("  \"mouse_primary_modifier\": \"") +
+           (!defaults_only && mouse_modifier_ == shortcut_mod::Ctrl
+                ? "Ctrl"
+                : "Primary") +
+           "\",\n\n";
+    res += "  \"bindings\": {\n";
     std::string ctx;
     for (size_t i = 0; i < entries_.size(); ++i) {
         auto &e = entries_[i];

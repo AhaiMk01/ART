@@ -993,8 +993,8 @@ void ThumbBrowserBase::buttonPressed(int x, int y, int button,
             doubleClicked(selected[0]);
         } else if (button == 1 && type == GDK_BUTTON_PRESS) {
             if (fileDescr && (state & GDK_SHIFT_MASK))
-                selectRange(fileDescr, state & ShortcutsManager::primaryMask());
-            else if (fileDescr && (state & ShortcutsManager::primaryMask()))
+                selectRange(fileDescr, state & ShortcutsManager::mousePrimaryMask());
+            else if (fileDescr && (state & ShortcutsManager::mousePrimaryMask()))
                 selectSet(fileDescr);
             else
                 selectSingle(fileDescr);

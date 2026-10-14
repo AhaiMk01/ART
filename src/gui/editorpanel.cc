@@ -206,7 +206,7 @@ private:
     bool softProofPressed(GdkEventButton *event)
     {
         bool active = softProof.get_active();
-        bool show_dialog = (event->state & ShortcutsManager::primaryMask());
+        bool show_dialog = (event->state & ShortcutsManager::mousePrimaryMask());
         if (active && !show_dialog) {
             return false;
         } else {
@@ -2053,7 +2053,7 @@ BatchQueueEntry *EditorPanel::createBatchQueueEntry(
 
 void EditorPanel::saveAsPressed(GdkEventButton *event)
 {
-    do_save_image(event->state & ShortcutsManager::primaryMask());
+    do_save_image(event->state & ShortcutsManager::mousePrimaryMask());
 }
 
 void EditorPanel::do_save_image(bool fast_export)
@@ -2187,7 +2187,7 @@ void EditorPanel::do_save_image(bool fast_export)
 
 void EditorPanel::queueImgPressed(GdkEventButton *event)
 {
-    do_queue_image(event->state & ShortcutsManager::primaryMask());
+    do_queue_image(event->state & ShortcutsManager::mousePrimaryMask());
 }
 
 void EditorPanel::do_queue_image(bool fast_export)
@@ -2202,7 +2202,7 @@ void EditorPanel::do_queue_image(bool fast_export)
 
 void EditorPanel::sendToGimpPressed(GdkEventButton *event)
 {
-    do_send_to_gimp(event->state & ShortcutsManager::primaryMask());
+    do_send_to_gimp(event->state & ShortcutsManager::mousePrimaryMask());
 }
 
 void EditorPanel::do_send_to_gimp(bool fast_export)

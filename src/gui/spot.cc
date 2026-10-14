@@ -658,7 +658,7 @@ bool Spot::button1Pressed(int modifierKey)
     EditDataProvider *editProvider = getEditProvider();
 
     if (editProvider) {
-        if (lastObject == -1 && (modifierKey & ShortcutsManager::primaryMask())) {
+        if (lastObject == -1 && (modifierKey & ShortcutsManager::mousePrimaryMask())) {
             draggedSide = DraggedSide::SOURCE;
             addNewEntry();
             EditSubscriber::action = ES_ACTION_DRAGGING;
@@ -719,7 +719,7 @@ bool Spot::button3Pressed(int modifierKey)
         return false;
     }
 
-    if ((modifierKey & ShortcutsManager::primaryMask()) &&
+    if ((modifierKey & ShortcutsManager::mousePrimaryMask()) &&
         (EditSubscriber::mouseOverGeometry.at(lastObject) == &targetMODisc ||
          lastObject >= STATIC_MO_OBJ_NBR)) {
         lastObject = SOURCE_DISC;

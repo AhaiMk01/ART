@@ -28,7 +28,7 @@ ABOUT_TAB_CREDITS;크레디트
 ABOUT_TAB_LICENSE;저작권
 ABOUT_TAB_RELEASENOTES;릴리스 노트
 ABOUT_TAB_SPLASH;Splash
-ADJUSTER_RESET_TO_DEFAULT;<b>클릭</b> - 초기 설정 값으로 리셋함\n<b>%primary%</b>+<b>클릭</b> - 마지막에 보존한 값으로 리셋함
+ADJUSTER_RESET_TO_DEFAULT;<b>클릭</b> - 초기 설정 값으로 리셋함\n<b>%mouse_primary%</b>+<b>클릭</b> - 마지막에 보존한 값으로 리셋함
 CTL_SIGMOID;시그모이드 톤 매퍼
 CTL_SIGMOID_BASE_PRIMARIES;기본 원색
 CTL_SIGMOID_INSET;순색도 감쇠 (Attenuation)
@@ -80,7 +80,7 @@ DYNPROFILEEDITOR_CUSTOMDATA_TAGS;태그
 DYNPROFILEEDITOR_CUSTOMDATA_TOOLTIP;일치시킬 추가 메타데이터 태그의 <i>키=값</i> 쌍 목록 (한 줄에 하나씩, <b>키</b>는 Exiv2 구문의 태그 이름이고 <b>값</b>은 일치시킬 값입니다 (정규 표현식을 입력하려면 "re:" 접두어를  사용함).
 EDITWINDOW_TITLE;화상편집
 EDIT_OBJECT_TOOLTIP;이 기능 사용시 편의로 미리보기화면에 가이드를 표시함.
-EDIT_PIPETTE_TOOLTIP;곡선상에 조정점을 추가할 때에는, %primary% 키를 누르면서, 미리보기 화상상에 있는 목표점을 왼쪽 클릭합니다.\n추가된 그 점을 조정하려면, %primary% 키를 누르면서 미리보기상의 그 점에 상당하는 부분을 왼쪽 클릭합니다. 그리고 %primary% 키를 놓고 (미묘한 조정을 할 때는 그대로) 왼쪽 버튼을 누르면서 마우스를 화면상에서 위아래로 이동하면, 그에 따라 톤 곡선이 조정됩니다.
+EDIT_PIPETTE_TOOLTIP;곡선상에 조정점을 추가할 때에는, %mouse_primary% 키를 누르면서, 미리보기 화상상에 있는 목표점을 왼쪽 클릭합니다.\n추가된 그 점을 조정하려면, %mouse_primary% 키를 누르면서 미리보기상의 그 점에 상당하는 부분을 왼쪽 클릭합니다. 그리고 %mouse_primary% 키를 놓고 (미묘한 조정을 할 때는 그대로) 왼쪽 버튼을 누르면서 마우스를 화면상에서 위아래로 이동하면, 그에 따라 톤 곡선이 조정됩니다.
 ERROR_MSG_FILE_READ;파일 불러오기 착오: %1
 ERROR_MSG_MAXERRORS;... (%1 이전의 착오는 표시되지 않습니다.)
 ERROR_MSG_METADATA_VALUE;메타데이터: 착오 setting %1 to %2
@@ -862,8 +862,8 @@ MAIN_BUTTON_NAVNEXT_TOOLTIP;편집소프트로 열고 있는 화상의 다음 �
 MAIN_BUTTON_NAVPREV_TOOLTIP;편집소프트로 열고 있는 화상에 앞 화상에 이동합니다.\n단축키: <b>%shortcut(editor.previous_image)%</b>\n\n파일 브라우저로 선택한 썸네일에 앞 화상에 이동하려면\n단축키: <b>%shortcut(filebrowser.open_previous)%</b>
 MAIN_BUTTON_NAVSYNC_TOOLTIP;현재 열고 있는 화상의 썸네일을 명시하고 편집소프트와 파일 브라우저를 동기시켜 파일 브라우저에서의 필터를 해제합니다. \n단축키: <b>%shortcut(editor.sync_file_browser_clear_filters)%</b>\n\n위와 같지만, 파일 브라우저에서의 필터를 해제 않습니다.\n단축키: <b>%shortcut(editor.sync_file_browser)%</b>\n(필터로 제외되면, 열려도 파일 썸네일이 표시되지 않습니까 조심하세요.).
 MAIN_BUTTON_PREFERENCES;환경 설정
-MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;현재 화상을 큐처리에 추가 (%primary%-click으로 즉시 출력)\n단축키: <b>%primary%-s</b> (<b>%shortcut(editor.queue_fast)%</b>로 즉시 출력)
-MAIN_BUTTON_SAVE_TOOLTIP;현재 화상을 보존 (%primary%-click으로 즉시 출력)\n단축키: <b>%shortcut(editor.save)%</b> (<b>%shortcut(editor.save_fast)%</b>으로 즉시 출력)
+MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;현재 화상을 큐처리에 추가 (%mouse_primary%-click으로 즉시 출력)\n단축키: <b>%mouse_primary%-s</b> (<b>%shortcut(editor.queue_fast)%</b>로 즉시 출력)
+MAIN_BUTTON_SAVE_TOOLTIP;현재 화상을 보존 (%mouse_primary%-click으로 즉시 출력)\n단축키: <b>%shortcut(editor.save)%</b> (<b>%shortcut(editor.save_fast)%</b>으로 즉시 출력)
 MAIN_BUTTON_SENDTOEDITOR;외부 편집소프트로 화상을 편집함
 MAIN_BUTTON_SENDTOEDITOR_TOOLTIP;현재 화상을 외부 편집소프트로 편집함.\n단축키: <b>%shortcut(editor.send_to_external_editor)%</b> (<b>%shortcut(editor.send_to_external_editor_alt)%</b> 으로 즉시 출력)
 MAIN_BUTTON_SHOWHIDESIDEPANELS_TOOLTIP;표시비/표시 모두 패널\n단축키: <b>%shortcut(editor.maximize_preview)%</b>
@@ -1369,7 +1369,7 @@ SESSION_LABEL;세션
 SHCSELECTOR_TOOLTIP;이 세개 슬라이더 위치를 리셋하려면 \n마우스의 오른쪽버튼을 클릭함
 SOFTPROOF_GAMUTCHECK_MONITOR_TOOLTIP;모니터 프로파일에 대하는 색공간외 픽셀을 하이라이트로 표시합니다.
 SOFTPROOF_GAMUTCHECK_TOOLTIP;소프트 프루핑이 유효일 때 소프트 프루핑프로파일 색역외 색깔의  픽셀을\n소프트 프루핑이 무효일 때 출력 프로파일 색역외 색깔의  픽셀을 하이라이트로 표시합니다.
-SOFTPROOF_TOOLTIP;출력 사진 미리 보기는 특정의 인쇠기나 모니터 출력 이미지를 모방합니다.\n단, 환경 설정>색관리에서 적절한 프로파일을 설정할 필요가 있습니다.\n(출력 사진 미리 보기 프로파일을변경하려려면  <b>%primary%</b> 을 누루면서 크릭하세요)
+SOFTPROOF_TOOLTIP;출력 사진 미리 보기는 특정의 인쇠기나 모니터 출력 이미지를 모방합니다.\n단, 환경 설정>색관리에서 적절한 프로파일을 설정할 필요가 있습니다.\n(출력 사진 미리 보기 프로파일을변경하려려면  <b>%mouse_primary%</b> 을 누루면서 크릭하세요)
 THRESHOLDSELECTOR_B;아래
 THRESHOLDSELECTOR_BL;하래-왼쪽
 THRESHOLDSELECTOR_BR;하래-오른쪽
@@ -1749,7 +1749,7 @@ TP_LABMASKS_DELTAE_PICK;찾기
 TP_LABMASKS_DELTAE_CHAN_WEIGHT;delta E (색차) 를  가중 계산함.
 TP_LABMASKS_DELTAE_TOOLTIP;유사색 영역을 선택함\n(CIELAB delta E 척도에 준거)
 TP_LABMASKS_DRAWNMASK;브러시 마스크
-TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;화면상 브러시 묘화의 On/Off\n\n<i>마우스 사용시:</i>\n- <b>Alt 키를</b>계속 누르면 일시적으로  "지우개 방식"으로  됩니다.\n- 직선은 <b>Shift 키</b>를 누르면서 그립니다.\n- <b>%primary%+마우스 휠</b>로 브러시의 굵기를 변경할 수 있습니다.\n- <b>%primary%+Shift+마우스 휠</b>로 브러시의 경도 (hardness) 를 변경할 수 있습니다.\n- <b>%primary%+클릭</b>으로 매개 변수를 변경하지 않고 새로 선묘 그릅을 시작합니다.\n(그리고 같은 영역에 복수의 선묘를 추가할 수 있습니다)\n- <b>제3 버튼</b>을 누르고 화면에서의 그리기를 정지합니다.\n\n<i>감압 디바이스를 사용하는 경우:</i>\n- <b>제1버튼</b>으로  "지우개 방식" On/Off를 조작합니다.\n- <b>Shift 키</b>를 누르면서 직선을 그립니다.\n- <b>Alt+제1버튼</b>으로 브러시의 굵기를 굵게 합니다. 그리고\n- <b>Alt+제2 버튼</b>으로 가늘게 합니다.\n- <b>제 2 버튼</b>으로 감압 감도 모드를 전환합니다.: 오프, 경도 (hardness), 굵기 (<b>Shift</b>를 누르면 역순이 됩니다)\n- <b>%primary%+제2 버튼</b>으로 화면상의 그리기를 정지합니다.
+TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;화면상 브러시 묘화의 On/Off\n\n<i>마우스 사용시:</i>\n- <b>Alt 키를</b>계속 누르면 일시적으로  "지우개 방식"으로  됩니다.\n- 직선은 <b>Shift 키</b>를 누르면서 그립니다.\n- <b>%mouse_primary%+마우스 휠</b>로 브러시의 굵기를 변경할 수 있습니다.\n- <b>%mouse_primary%+Shift+마우스 휠</b>로 브러시의 경도 (hardness) 를 변경할 수 있습니다.\n- <b>%mouse_primary%+클릭</b>으로 매개 변수를 변경하지 않고 새로 선묘 그릅을 시작합니다.\n(그리고 같은 영역에 복수의 선묘를 추가할 수 있습니다)\n- <b>제3 버튼</b>을 누르고 화면에서의 그리기를 정지합니다.\n\n<i>감압 디바이스를 사용하는 경우:</i>\n- <b>제1버튼</b>으로  "지우개 방식" On/Off를 조작합니다.\n- <b>Shift 키</b>를 누르면서 직선을 그립니다.\n- <b>Alt+제1버튼</b>으로 브러시의 굵기를 굵게 합니다. 그리고\n- <b>Alt+제2 버튼</b>으로 가늘게 합니다.\n- <b>제 2 버튼</b>으로 감압 감도 모드를 전환합니다.: 오프, 경도 (hardness), 굵기 (<b>Shift</b>를 누르면 역순이 됩니다)\n- <b>%mouse_primary%+제2 버튼</b>으로 화면상의 그리기를 정지합니다.
 TP_LABMASKS_DRAWNMASK_PEN_SETTINGS;브러시 설정
 TP_LABMASKS_DRAWNMASK_RESET_TIP;모둔궤적을 제거
 TP_LABMASKS_DRAWNMASK_UNDO_TIP;마지막 궤적을 제거
@@ -1819,7 +1819,7 @@ TP_PERSPECTIVE_AUTO_BOTH_TOOLTIP;수평 및 수직
 TP_PERSPECTIVE_AUTO_HORIZONTAL_TOOLTIP;수평
 TP_PERSPECTIVE_AUTO_VERTICAL_TOOLTIP;수직
 TP_PERSPECTIVE_CONTROL_LINES;컨트롤선
-TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>%primary%</b>+<b>드래그</b>: 새로운 선의 그리기\n<b>오른쪽 버튼으로 클릭</b>: 선의 삭제
+TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>%mouse_primary%</b>+<b>드래그</b>: 새로운 선의 그리기\n<b>오른쪽 버튼으로 클릭</b>: 선의 삭제
 TP_PERSPECTIVE_CROPFACTOR;크롭 팩터 (35mm 환산배율)
 TP_PERSPECTIVE_FLENGTH;초점거리
 TP_PERSPECTIVE_HORIZONTAL;수평

@@ -7,7 +7,7 @@ ABOUT_TAB_CREDITS;Credits
 ABOUT_TAB_LICENSE;License
 ABOUT_TAB_RELEASENOTES;Release Notes
 ABOUT_TAB_SPLASH;Splash
-ADJUSTER_RESET_TO_DEFAULT;<b>Click</b> - reset to default value.\n<b>%primary%</b>+<b>click</b> - reset to last saved value.
+ADJUSTER_RESET_TO_DEFAULT;<b>Click</b> - reset to default value.\n<b>%mouse_primary%</b>+<b>click</b> - reset to last saved value.
 CTL_SIGMOID;Sigmoid tone mapper
 CTL_SIGMOID_BASE_PRIMARIES;Base primaries
 CTL_SIGMOID_INSET;Attenuation
@@ -59,7 +59,7 @@ DYNPROFILEEDITOR_CUSTOMDATA_TAGS;Tag(s)
 DYNPROFILEEDITOR_CUSTOMDATA_TOOLTIP;List of <i>key=value</i> pairs of additional metadata tags to match, one per line, where <b>key</b> is the name of a tag in the syntax of Exiv2, and <b>value</b> is the value to match (use the "re:" prefix to enter a regular expression).
 EDITWINDOW_TITLE;Image Edit
 EDIT_OBJECT_TOOLTIP;Displays a widget on the preview window which lets you adjust this tool.
-EDIT_PIPETTE_TOOLTIP;To add an adjustment point to the curve, hold the %primary% key while left-clicking the desired spot in the image preview.\nTo adjust the point, hold the %primary% key while left-clicking the corresponding area in the preview, then let go of %primary% (unless you desire fine control) and while still holding the left mouse button move the mouse up or down to move that point up or down in the curve.
+EDIT_PIPETTE_TOOLTIP;To add an adjustment point to the curve, hold the %mouse_primary% key while left-clicking the desired spot in the image preview.\nTo adjust the point, hold the %mouse_primary% key while left-clicking the corresponding area in the preview, then let go of %mouse_primary% (unless you desire fine control) and while still holding the left mouse button move the mouse up or down to move that point up or down in the curve.
 ERROR_MSG_FILE_READ;Error reading file: %1
 ERROR_MSG_MAXERRORS;... (%1 previous error(s) not shown)
 ERROR_MSG_METADATA_VALUE;Metadata: error setting %1 to %2
@@ -841,8 +841,8 @@ MAIN_BUTTON_NAVNEXT_TOOLTIP;Navigate to the next image relative to image opened 
 MAIN_BUTTON_NAVPREV_TOOLTIP;Navigate to the previous image relative to image opened in the Editor.\nShortcut: <b>%shortcut(editor.previous_image)%</b>\n\nTo navigate to the previous image relative to the currently selected thumbnail in the File Browser or Filmstrip:\nShortcut: <b>%shortcut(filebrowser.open_previous)%</b>
 MAIN_BUTTON_NAVSYNC_TOOLTIP;Synchronize the File Browser or Filmstrip with the Editor to reveal the thumbnail of the currently opened image, and clear any active filters.\nShortcut: <b>%shortcut(editor.sync_file_browser_clear_filters)%</b>\n\nAs above, but without clearing active filters:\nShortcut: <b>%shortcut(editor.sync_file_browser)%</b>\n(Note that the thumbnail of the opened image will not be shown if filtered out).
 MAIN_BUTTON_PREFERENCES;Preferences
-MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;Put current image to processing queue (%primary%-click for fast export).\nShortcut: <b>%shortcut(editor.queue)%</b> (<b>%shortcut(editor.queue_fast)%</b> for fast export)
-MAIN_BUTTON_SAVE_TOOLTIP;Save current image (%primary%-click for fast export.)\nShortcut: <b>%shortcut(editor.save)%</b> (<b>%shortcut(editor.save_fast)%</b> for fast export)
+MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;Put current image to processing queue (%mouse_primary%-click for fast export).\nShortcut: <b>%shortcut(editor.queue)%</b> (<b>%shortcut(editor.queue_fast)%</b> for fast export)
+MAIN_BUTTON_SAVE_TOOLTIP;Save current image (%mouse_primary%-click for fast export.)\nShortcut: <b>%shortcut(editor.save)%</b> (<b>%shortcut(editor.save_fast)%</b> for fast export)
 MAIN_BUTTON_SENDTOEDITOR;Edit image in external editor
 MAIN_BUTTON_SENDTOEDITOR_TOOLTIP;Edit current image in external editor.\nShortcut: <b>%shortcut(editor.send_to_external_editor)%</b> (<b>%shortcut(editor.send_to_external_editor_alt)%</b> for fast export)
 MAIN_BUTTON_SHOWHIDESIDEPANELS_TOOLTIP;Show/hide all side panels.\nShortcut: <b>%shortcut(editor.maximize_preview)%</b>
@@ -1262,9 +1262,9 @@ PROFILEPANEL_PLASTSAVED;Last Saved
 PROFILEPANEL_SAVEDLGLABEL;Save Processing Parameters...
 PROFILEPANEL_SAVEPPASTE;Parameters to save
 PROFILEPANEL_TOOLTIPCOPY;Copy current processing profile to clipboard.
-PROFILEPANEL_TOOLTIPLOAD;Load a profile from file.\n<b>%primary%-click</b> to select the parameters to load.
-PROFILEPANEL_TOOLTIPPASTE;Paste profile from clipboard.\n<b>%primary%-click</b> to select the parameters to paste.
-PROFILEPANEL_TOOLTIPSAVE;Save current profile.\n<b>%primary%-click</b> to select the parameters to save.
+PROFILEPANEL_TOOLTIPLOAD;Load a profile from file.\n<b>%mouse_primary%-click</b> to select the parameters to load.
+PROFILEPANEL_TOOLTIPPASTE;Paste profile from clipboard.\n<b>%mouse_primary%-click</b> to select the parameters to paste.
+PROFILEPANEL_TOOLTIPSAVE;Save current profile.\n<b>%mouse_primary%-click</b> to select the parameters to save.
 PROGRESSBAR_DENOISING;Noise reduction...
 PROGRESSBAR_HLREC;Highlight reconstruction...
 PROGRESSBAR_LOADING;Loading image...
@@ -1348,7 +1348,7 @@ SESSION_LABEL;Session
 SHCSELECTOR_TOOLTIP;Click right mouse button to reset the position of those 3 sliders.
 SOFTPROOF_GAMUTCHECK_MONITOR_TOOLTIP;Highlight pixels with out-of-gamut colors with respect to the monitor profile.
 SOFTPROOF_GAMUTCHECK_TOOLTIP;Highlight pixels with out-of-gamut colors with respect to:\n- the soft-proofing profile, if one is set and soft-proofing is enabled,\n- the output profile, if soft-proofing is disabled.
-SOFTPROOF_TOOLTIP;Soft-proofing simulates the appearance of the image when reproduced by a specific printer or monitor, if a proper profile is set in Preferences > Color Management.\n(Hold <b>%primary%</b> while clicking to change the soft-proofing profile.)
+SOFTPROOF_TOOLTIP;Soft-proofing simulates the appearance of the image when reproduced by a specific printer or monitor, if a proper profile is set in Preferences > Color Management.\n(Hold <b>%mouse_primary%</b> while clicking to change the soft-proofing profile.)
 THRESHOLDSELECTOR_B;Bottom
 THRESHOLDSELECTOR_BL;Bottom-left
 THRESHOLDSELECTOR_BR;Bottom-right
@@ -1357,7 +1357,7 @@ THRESHOLDSELECTOR_T;Top
 THRESHOLDSELECTOR_TL;Top-left
 THRESHOLDSELECTOR_TR;Top-right
 TOOL_SHORTCUT_HELP_HEADER;Tool shortcuts:\n(hold the given key and adjust the slider with +/- or the scrollwheel)\n
-TOOLBAR_TOOLTIP_COLORPICKER;Lockable Color Picker\n\nWhen the tool is active:\n- Add a picker: <b>left-click</b>.\n- Drag a picker: <b>left-click and drag</b>.\n- Delete a picker: <b>right-click</b>.\n- Delete all pickers: <b>%primary%</b>+<b>Shift</b>+<b>right-click</b>.\n- Revert to hand tool: <b>right-click</b> outside any picker.
+TOOLBAR_TOOLTIP_COLORPICKER;Lockable Color Picker\n\nWhen the tool is active:\n- Add a picker: <b>left-click</b>.\n- Drag a picker: <b>left-click and drag</b>.\n- Delete a picker: <b>right-click</b>.\n- Delete all pickers: <b>%mouse_primary%</b>+<b>Shift</b>+<b>right-click</b>.\n- Revert to hand tool: <b>right-click</b> outside any picker.
 TOOLBAR_TOOLTIP_CROP;<b>Crop</b> selection.\nShortcut: <b>%shortcut(toolbar.crop)%</b>\nMove the crop using <b>mouse drag</b>\nResize the crop by moving the crop borders.
 TOOLBAR_TOOLTIP_HAND;Hand tool.\nShortcut: <b>%shortcut(toolbar.hand)%</b>
 TOOLBAR_TOOLTIP_PERSPECTIVE;<b>Perspective Correction</b>.\nShortcut: <b>%shortcut(toolbar.perspective)%</b>\n\nEdit control lines to correct perspective distortion. Click this button again to apply the correction.
@@ -1728,7 +1728,7 @@ TP_LABMASKS_DELTAE_PICK;Pick
 TP_LABMASKS_DELTAE_CHAN_WEIGHT;Weight in the ΔE computation
 TP_LABMASKS_DELTAE_TOOLTIP;Select regions of similar colour\n(according to the CIELAB ΔE* metric)
 TP_LABMASKS_DRAWNMASK;Brush Mask
-TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;Toggle on-canvas painting with the brush.\n\n<i>When using a mouse:</i>\n- Hold <b>Alt</b> to temporarily toggle "Eraser mode";\n- Hold <b>Shift</b> to draw a straight line;\n- Use <b>%primary%+scroll wheel</b> to change the brush radius,\n- <b>%primary%+Shift+scroll wheel</b> to change the brush hardness,\n- and <b>%primary%+click</b> to begin a new strokes group without changing parameters\n(so that multiple strokes on the same area will add up);\n- Use the <b>third button</b> to turn off on-canvas painting.\n\n<i>When using a pressure-sensitive device:</i>\n- Use the <b>first button</b> to toggle "Eraser mode";\n- Hold <b>Shift</b> to draw a straight line;\n- Use <b>Alt+first button</b> to increase the brush radius, and\n- <b>Alt+second button</b> to decrease it;\n- Use the <b>second button</b> to cycle through the available pressure sensitivity modes: off, hardness, radius (hold <b>Shift</b> to reverse the direction);\n- Use <b>%primary%+second button</b> to turn off on-canvas painting.
+TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;Toggle on-canvas painting with the brush.\n\n<i>When using a mouse:</i>\n- Hold <b>Alt</b> to temporarily toggle "Eraser mode";\n- Hold <b>Shift</b> to draw a straight line;\n- Use <b>%mouse_primary%+scroll wheel</b> to change the brush radius,\n- <b>%mouse_primary%+Shift+scroll wheel</b> to change the brush hardness,\n- and <b>%mouse_primary%+click</b> to begin a new strokes group without changing parameters\n(so that multiple strokes on the same area will add up);\n- Use the <b>third button</b> to turn off on-canvas painting.\n\n<i>When using a pressure-sensitive device:</i>\n- Use the <b>first button</b> to toggle "Eraser mode";\n- Hold <b>Shift</b> to draw a straight line;\n- Use <b>Alt+first button</b> to increase the brush radius, and\n- <b>Alt+second button</b> to decrease it;\n- Use the <b>second button</b> to cycle through the available pressure sensitivity modes: off, hardness, radius (hold <b>Shift</b> to reverse the direction);\n- Use <b>%mouse_primary%+second button</b> to turn off on-canvas painting.
 TP_LABMASKS_DRAWNMASK_PEN_SETTINGS;Brush settings
 TP_LABMASKS_DRAWNMASK_RESET_TIP;Clear all strokes
 TP_LABMASKS_DRAWNMASK_UNDO_TIP;Remove the last group of strokes
@@ -1798,7 +1798,7 @@ TP_PERSPECTIVE_AUTO_BOTH_TOOLTIP;Horizontal and vertical
 TP_PERSPECTIVE_AUTO_HORIZONTAL_TOOLTIP;Horizontal
 TP_PERSPECTIVE_AUTO_VERTICAL_TOOLTIP;Vertical
 TP_PERSPECTIVE_CONTROL_LINES;Control lines
-TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>%primary%</b>+<b>drag</b>: Draw new line\n<b>Right-click</b>: Delete line
+TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>%mouse_primary%</b>+<b>drag</b>: Draw new line\n<b>Right-click</b>: Delete line
 TP_PERSPECTIVE_CROPFACTOR;Crop factor
 TP_PERSPECTIVE_FLENGTH;Focal length
 TP_PERSPECTIVE_HORIZONTAL;Horizontal
@@ -2001,7 +2001,7 @@ TP_SOFTLIGHT_LABEL;Soft Light
 TP_SOFTLIGHT_STRENGTH;Strength
 TP_SPOT_COUNTLABEL;%1 point(s)
 TP_SPOT_ENTRYCHANGED;Point changed
-TP_SPOT_HINT;Click on this button to be able to operate on the preview area.\n\nTo edit a spot, hover the white mark locating an edited aera, making the editing geometry appear.\n\nTo add a spot, press %primary% and left mouse button, drag the circle (%primary% key can be released) to a source location, then release the mouse button.\n\nTo move the source or destination spot, hover its center then drag it.\n\nThe inner circle (maximum effect area) and the "feather" circle can be resized by hovering them (the circle becomes orange) and dragging it (the circle becomes red).\n\nWhen the changes are done, right click outside any spot to end the Spot editing mode, or click on this button again.
+TP_SPOT_HINT;Click on this button to be able to operate on the preview area.\n\nTo edit a spot, hover the white mark locating an edited aera, making the editing geometry appear.\n\nTo add a spot, press %mouse_primary% and left mouse button, drag the circle (%mouse_primary% key can be released) to a source location, then release the mouse button.\n\nTo move the source or destination spot, hover its center then drag it.\n\nThe inner circle (maximum effect area) and the "feather" circle can be resized by hovering them (the circle becomes orange) and dragging it (the circle becomes red).\n\nWhen the changes are done, right click outside any spot to end the Spot editing mode, or click on this button again.
 TP_SPOT_LABEL;Spot Removal
 TP_SPOT_LIGHTPIPELINE_HINT;Click on this button to modify the spots while previewing a simplified image by disabling the tools requiring lots of ressources (performance option).\n\nHas effect only when the on preview editing is active.
 TP_SPOT_CUR_SPOT_LABEL;Current Spot

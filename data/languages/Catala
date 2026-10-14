@@ -31,7 +31,7 @@ ABOUT_TAB_CREDITS;Crèdits
 ABOUT_TAB_LICENSE;Llicència
 ABOUT_TAB_RELEASENOTES;Notes de la versió
 ABOUT_TAB_SPLASH;Splash
-ADJUSTER_RESET_TO_DEFAULT;<b>Clic</b> - restableix al valor predeterminat.\n<b>%primary%</b>+<b>clic</b> - restableix a l'últim valor desat.
+ADJUSTER_RESET_TO_DEFAULT;<b>Clic</b> - restableix al valor predeterminat.\n<b>%mouse_primary%</b>+<b>clic</b> - restableix a l'últim valor desat.
 CTL_SIGMOID;Mapejador de tons sigmoide
 CTL_SIGMOID_BASE_PRIMARIES;Primaris base
 CTL_SIGMOID_INSET;Atenuació
@@ -83,7 +83,7 @@ DYNPROFILEEDITOR_CUSTOMDATA_TAGS;Etiqueta(es)
 DYNPROFILEEDITOR_CUSTOMDATA_TOOLTIP;Llista de parells <i>clau=valor</i> d'etiquetes de metadades addicionals per fer coincidir, una per línia, on <b>clau</b> és el nom d'una etiqueta en la sintaxi d'Exiv2 i <b>valor</b> és el valor a fer coincidir (utilitzeu el prefix "re:" per introduir una expressió regular).
 EDITWINDOW_TITLE;Edició d'imatge
 EDIT_OBJECT_TOOLTIP;Mostra un giny a la finestra de vista prèvia que us permetrà ajustar aquesta eina.
-EDIT_PIPETTE_TOOLTIP;Per afegir un punt d'ajust a la corba, mantingueu la tecla %primary% pressionada mentre premeu el botó esquerre del ratolí sobre el punt desitjat a la vista prèvia de la imatge.\nPer ajustar el punt, mantingueu la tecla %primary% pressionada mentre premeu el botó esquerre del ratolí sobre l'àrea corresponent a la vista prèvia, llavors deixeu anar la tecla %primary% (a menys que desitgeu un control més precís) i mentre manteniu premut el botó esquerre del ratolí moveu el ratolí cap amunt o cap avall per moure aquest punt cap amunt o cap avall a la corba.
+EDIT_PIPETTE_TOOLTIP;Per afegir un punt d'ajust a la corba, mantingueu la tecla %mouse_primary% pressionada mentre premeu el botó esquerre del ratolí sobre el punt desitjat a la vista prèvia de la imatge.\nPer ajustar el punt, mantingueu la tecla %mouse_primary% pressionada mentre premeu el botó esquerre del ratolí sobre l'àrea corresponent a la vista prèvia, llavors deixeu anar la tecla %mouse_primary% (a menys que desitgeu un control més precís) i mentre manteniu premut el botó esquerre del ratolí moveu el ratolí cap amunt o cap avall per moure aquest punt cap amunt o cap avall a la corba.
 ERROR_MSG_FILE_READ;Error de lectura del fitxer: %1
 ERROR_MSG_MAXERRORS;... (%1 error(s) anterior(s) no mostrat(s))
 ERROR_MSG_METADATA_VALUE;Metadades: error en establir %1 a %2
@@ -867,8 +867,8 @@ MAIN_BUTTON_NAVNEXT_TOOLTIP;Navega a la següent imatge relativa a la imatge obe
 MAIN_BUTTON_NAVPREV_TOOLTIP;Navega a l'anterior imatge relativa a la imatge oberta a l'editor.\nDrecera: <b>Majús-F3</b>\n\nNavega a l'anterior imatge relativa a la miniatura seleccionada actualment a l'explorador de fitxers o la tira de pel·lícula:\nDrecera: <b>%shortcut(filebrowser.open_previous)%</b>
 MAIN_BUTTON_NAVSYNC_TOOLTIP;Sincronitza l'explorador de fitxers o la tira de pel·lícula amb l'editor per mostrar la miniatura de la imatge oberta actualment i treure qualsevol filtre actiu.\nDrecera: <b>%shortcut(editor.sync_file_browser_clear_filters)%</b>\n\nPer fer el que s'ha dit anteriorment, però sense treure els filtres actius.\nDrecera: <b>%shortcut(editor.sync_file_browser)%</b>\n(Tingueu en compte que la miniatura de la imatge oberta no es mostrarà si els filtres l'exclouen).
 MAIN_BUTTON_PREFERENCES;Preferències
-MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;Afegeix la imatge actual a la cua de processament (%primary%-clic per a una exportació ràpida).\nDrecera: <b>%shortcut(editor.queue)%</b> (<b>%primary%-Majús-b</b> per a una exportació ràpida)
-MAIN_BUTTON_SAVE_TOOLTIP;Desa la imatge actual (%primary%-clic per a exportació ràpida.)\nDrecera: <b>%shortcut(editor.save)%</b> (<b>%primary%-Majús-s</b> per a exportació ràpida)
+MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;Afegeix la imatge actual a la cua de processament (%mouse_primary%-clic per a una exportació ràpida).\nDrecera: <b>%shortcut(editor.queue)%</b> (<b>%mouse_primary%-Majús-b</b> per a una exportació ràpida)
+MAIN_BUTTON_SAVE_TOOLTIP;Desa la imatge actual (%mouse_primary%-clic per a exportació ràpida.)\nDrecera: <b>%shortcut(editor.save)%</b> (<b>%mouse_primary%-Majús-s</b> per a exportació ràpida)
 MAIN_BUTTON_SENDTOEDITOR;Edita la imatge en un editor extern
 MAIN_BUTTON_SENDTOEDITOR_TOOLTIP;Edita la imatge actual en un editor extern.\nDrecera: <b>%shortcut(editor.send_to_external_editor)%</b> (<b>Ctrl-Majús-e</b> per a exportació ràpida)
 MAIN_BUTTON_SHOWHIDESIDEPANELS_TOOLTIP;Mostra/Oculta tots els panells laterals.\nDrecera: <b>%shortcut(editor.maximize_preview)%</b>
@@ -1285,9 +1285,9 @@ PROFILEPANEL_PLASTSAVED;Últim desat
 PROFILEPANEL_SAVEDLGLABEL;Desa els paràmetres de processament...
 PROFILEPANEL_SAVEPPASTE;Paràmetres a desar
 PROFILEPANEL_TOOLTIPCOPY;Copia els paràmetres de processament al porta-retalls.
-PROFILEPANEL_TOOLTIPLOAD;Carrega el perfil d'un fitxer.\n<b>%primary%-clic</b> per seleccionar els paràmetres a carregar.
-PROFILEPANEL_TOOLTIPPASTE;Enganxa el perfil del porta-retalls.\n<b>%primary%-clic</b> per seleccionar els paràmetres a enganxar.
-PROFILEPANEL_TOOLTIPSAVE;Desa el perfil actual.\n<b>%primary%-clic</b> per seleccionar els paràmetres a desar.
+PROFILEPANEL_TOOLTIPLOAD;Carrega el perfil d'un fitxer.\n<b>%mouse_primary%-clic</b> per seleccionar els paràmetres a carregar.
+PROFILEPANEL_TOOLTIPPASTE;Enganxa el perfil del porta-retalls.\n<b>%mouse_primary%-clic</b> per seleccionar els paràmetres a enganxar.
+PROFILEPANEL_TOOLTIPSAVE;Desa el perfil actual.\n<b>%mouse_primary%-clic</b> per seleccionar els paràmetres a desar.
 PROGRESSBAR_DENOISING;Reducció de soroll...
 PROGRESSBAR_HLREC;Recuperació d'altes llums...
 PROGRESSBAR_LOADING;Carregant imatge...
@@ -1369,7 +1369,7 @@ SESSION_LABEL;Sessió
 SHCSELECTOR_TOOLTIP;Cliqueu amb el botó dret del ratolí per restablir la posició d'aquests 3 controls lliscants.
 SOFTPROOF_GAMUTCHECK_MONITOR_TOOLTIP;Ressalta els píxels amb colors fora de rang pel que fa al perfil del monitor.
 SOFTPROOF_GAMUTCHECK_TOOLTIP;Ressalta els píxels amb colors fora de rang pel que fa a:\n- el perfil de prova en pantalla, si està establert i la prova en pantalla està activada,\n- el perfil de sortida, si la prova en pantalla està desactivada.
-SOFTPROOF_TOOLTIP;La prova en pantalla simula l'aparença de la imatge quan la reprodueix una impressora o monitor específic, si s'ha establert un perfil adequat a Preferències > Gestió de color.\n(Manteniu premuda la tecla <b>%primary%</b> mentre feu clic per canviar el perfil de la prova en pantalla.)
+SOFTPROOF_TOOLTIP;La prova en pantalla simula l'aparença de la imatge quan la reprodueix una impressora o monitor específic, si s'ha establert un perfil adequat a Preferències > Gestió de color.\n(Manteniu premuda la tecla <b>%mouse_primary%</b> mentre feu clic per canviar el perfil de la prova en pantalla.)
 THRESHOLDSELECTOR_B;Inferior
 THRESHOLDSELECTOR_BL;Inferior esquerre
 THRESHOLDSELECTOR_BR;Inferior dret
@@ -1378,7 +1378,7 @@ THRESHOLDSELECTOR_T;Superior
 THRESHOLDSELECTOR_TL;Superior esquerre
 THRESHOLDSELECTOR_TR;Superior dret
 TOOL_SHORTCUT_HELP_HEADER;Dreceres d'eina:\n(manteniu premuda la tecla indicada i ajusteu el control lliscant mitjançant +/- o la roda del ratolí)\n
-TOOLBAR_TOOLTIP_COLORPICKER;Selector de color bloquejablee\n\nQuan l'eina està activa:\n- Afegeix un selector: <b>clic amb el botó esquerre del ratolí</b>.\n- Arrossega un selector: <b>clic amb el botó esquerre del ratolí i arrossegar</b>.\n- Elimina un selector: <b>clic amb el botó dret de ratolí</b>.\n- Elimina tots els selectors: <b>%primary%</b>+<b>Majús</b>+<b>clic amb el botó dret del ratolí</b>.\n- Torna a l'eina mà: <b>clic amb el botó dret del ratolí</b> fora de qualsevol selector.
+TOOLBAR_TOOLTIP_COLORPICKER;Selector de color bloquejablee\n\nQuan l'eina està activa:\n- Afegeix un selector: <b>clic amb el botó esquerre del ratolí</b>.\n- Arrossega un selector: <b>clic amb el botó esquerre del ratolí i arrossegar</b>.\n- Elimina un selector: <b>clic amb el botó dret de ratolí</b>.\n- Elimina tots els selectors: <b>%mouse_primary%</b>+<b>Majús</b>+<b>clic amb el botó dret del ratolí</b>.\n- Torna a l'eina mà: <b>clic amb el botó dret del ratolí</b> fora de qualsevol selector.
 TOOLBAR_TOOLTIP_CROP;Selecció de <b>retallada</b>.\nDrecera: <b>Majús-c</b>\nMoveu la retallada <b>arrossegant el ratolí</b>\nCanvieu la mida de la retallada movent les vores de la retallada.
 TOOLBAR_TOOLTIP_HAND;Eina mà.\nDrecera: <b>%shortcut(toolbar.hand)%</b>
 TOOLBAR_TOOLTIP_PERSPECTIVE;<b>Correcció de perspectiva</b>.\nDrecera: <b>Majús-p</b>\n\nEditeu les línies de control per corregir la distorsió de la perspectiva. Cliqueu aquest botó de nou per aplicar la correcció.
@@ -1743,7 +1743,7 @@ TP_LABMASKS_DELTAE_PICK;Tria
 TP_LABMASKS_DELTAE_CHAN_WEIGHT;Pes en el càlcul ΔE
 TP_LABMASKS_DELTAE_TOOLTIP;Seleccioneu les regions de color similar\n(segons la mètrica CIELAB ΔE*)
 TP_LABMASKS_DRAWNMASK;Màscara de pinzell
-TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;Canvieu com pinta el pinzell en el llenç.\n\n<i>Si s'utilitza el ratolí:</i>\n- Premeu <b>Alt</b> per activar temporalment el "Mode esborrador";\n- Premeu <b>Majús</b> per traçar una línia recta;\n- Utilitzeu <b>%primary%+roda del ratolí</b> per canviar el radi del pinzell,\n- <b>%primary%+Majús+roda del ratolí</b> per canviar la duresa del pinzell,\n- i <b>%primary%+clic</b> per començar un nou grup de traços sense canviar els paràmetres\n(de manera que se sumin diversos traços a la mateixa àrea);\n- Utilitzeu el <b>tercer botó</b> per desactivar la pintura en el llenç.\n\n<i>Si es fa servir un dispositiu sensible a la pressió:</i>n- Utilitzeu el <b>primer botó</b> per canviar al "Mode esborrador";\n- Premeu <b>Majús</b> per traçar una línia recta;\n- Utilitzeu <b>Alt+primer botó</b> per augmentar el radi del pinzell, i\n- <b>Alt+segon botó</b> per reduir-lo;\n- Utilitzeu el <b>segon botó</b> per recórrer els modes de sensibilitat a la pressió disponibles: inactiu, duresa, radi (premeu <b>Majús</b> per invertir la direcció);\n- Utilitzeu <b>%primary%+segon botó</b> per desactivar la pintura en el llenç.
+TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;Canvieu com pinta el pinzell en el llenç.\n\n<i>Si s'utilitza el ratolí:</i>\n- Premeu <b>Alt</b> per activar temporalment el "Mode esborrador";\n- Premeu <b>Majús</b> per traçar una línia recta;\n- Utilitzeu <b>%mouse_primary%+roda del ratolí</b> per canviar el radi del pinzell,\n- <b>%mouse_primary%+Majús+roda del ratolí</b> per canviar la duresa del pinzell,\n- i <b>%mouse_primary%+clic</b> per començar un nou grup de traços sense canviar els paràmetres\n(de manera que se sumin diversos traços a la mateixa àrea);\n- Utilitzeu el <b>tercer botó</b> per desactivar la pintura en el llenç.\n\n<i>Si es fa servir un dispositiu sensible a la pressió:</i>n- Utilitzeu el <b>primer botó</b> per canviar al "Mode esborrador";\n- Premeu <b>Majús</b> per traçar una línia recta;\n- Utilitzeu <b>Alt+primer botó</b> per augmentar el radi del pinzell, i\n- <b>Alt+segon botó</b> per reduir-lo;\n- Utilitzeu el <b>segon botó</b> per recórrer els modes de sensibilitat a la pressió disponibles: inactiu, duresa, radi (premeu <b>Majús</b> per invertir la direcció);\n- Utilitzeu <b>%mouse_primary%+segon botó</b> per desactivar la pintura en el llenç.
 TP_LABMASKS_DRAWNMASK_PEN_SETTINGS;Configuració de pinzell
 TP_LABMASKS_DRAWNMASK_RESET_TIP;Esborra tots els traços
 TP_LABMASKS_DRAWNMASK_UNDO_TIP;Esborra l'últim grup de traços
@@ -1813,7 +1813,7 @@ TP_PERSPECTIVE_AUTO_BOTH_TOOLTIP;Horitzontal i vertical
 TP_PERSPECTIVE_AUTO_HORIZONTAL_TOOLTIP;Horitzontal
 TP_PERSPECTIVE_AUTO_VERTICAL_TOOLTIP;Vertical
 TP_PERSPECTIVE_CONTROL_LINES;Línies de control
-TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>%primary%</b>+<b>arrossegar</b>: Dibuixa una nova línia\n<b>Clic dret del ratolí</b>: Esborra línia
+TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>%mouse_primary%</b>+<b>arrossegar</b>: Dibuixa una nova línia\n<b>Clic dret del ratolí</b>: Esborra línia
 TP_PERSPECTIVE_CROPFACTOR;Factor de retallada
 TP_PERSPECTIVE_FLENGTH;Distància focal
 TP_PERSPECTIVE_HORIZONTAL;Horitzontal
@@ -2016,7 +2016,7 @@ TP_SOFTLIGHT_LABEL;Llum tènue
 TP_SOFTLIGHT_STRENGTH;Intensitat
 TP_SPOT_COUNTLABEL;%1 punt(s)
 TP_SPOT_ENTRYCHANGED;Punt canviat
-TP_SPOT_HINT;Cliqueu aquest botó per poder operar a l'àrea de vista prèvia.\n\nPer editar un punt, passeu el cursor per la marca blanca que indica una àrea editada, fent aparèixer la geometria d'edició.\n\nPer afegir un punt, premeu %primary% i el botó esquerre del ratolí, arrossegueu el cercle (podeu deixar anar la tecla %primary%) a una ubicació d'origen, i tot seguit deixeu anar el botó del ratolí\n\nPer moure el punt d'origen o destí, passeu el cursor pel seu centre i arrossegueu-lo.\n\nEs pot canviar la mida del cercle interior (àrea d'efecte màxim) i el cercle de "difuminat" passant el cursor per sobre d'ells (el cercle es torna taronja) i arrossegant-los (el cercle es torna vermell).\n\nQuan els canvis estiguin fets, cliqueu amb el botó dret del ratolí fora de qualsevol punt per sortir del mode d'edició de punts, o cliqueu aquest botó de nou.
+TP_SPOT_HINT;Cliqueu aquest botó per poder operar a l'àrea de vista prèvia.\n\nPer editar un punt, passeu el cursor per la marca blanca que indica una àrea editada, fent aparèixer la geometria d'edició.\n\nPer afegir un punt, premeu %mouse_primary% i el botó esquerre del ratolí, arrossegueu el cercle (podeu deixar anar la tecla %mouse_primary%) a una ubicació d'origen, i tot seguit deixeu anar el botó del ratolí\n\nPer moure el punt d'origen o destí, passeu el cursor pel seu centre i arrossegueu-lo.\n\nEs pot canviar la mida del cercle interior (àrea d'efecte màxim) i el cercle de "difuminat" passant el cursor per sobre d'ells (el cercle es torna taronja) i arrossegant-los (el cercle es torna vermell).\n\nQuan els canvis estiguin fets, cliqueu amb el botó dret del ratolí fora de qualsevol punt per sortir del mode d'edició de punts, o cliqueu aquest botó de nou.
 TP_SPOT_LABEL;Eliminació de taques
 TP_SPOT_LIGHTPIPELINE_HINT;Feu clic en aquest botó per modificar els punts mentre previsualitzeu una imatge simplificada desactivant les eines que requereixen molts recursos (opció de rendiment).\n\nNomés té efecte quan l'edició de previsualització està activa.
 TP_SPOT_CUR_SPOT_LABEL;Punt actual

@@ -285,6 +285,134 @@ void testOverrides()
     }
 }
 
+void testLayers()
+{
+    auto lin = ModifierMasks::linux_like();
+    // system layer, then the user's on top
+    {
+        ShortcutTable t = small(lin);
+        t.applyOverrides(R"({"bindings": {"a.save": ["F9"], "a.zoom": []}})",
+                         false);
+        CHECK(t.warnings().empty());
+        CHECK(t.keys("a.save")[0] == key(lin, "F9"));
+        t.applyOverrides(R"({"bindings": {"a.undo": ["F8"]}})", false);
+        // the first layer is still there, the second one added to it
+        CHECK(t.keys("a.save")[0] == key(lin, "F9"));
+        CHECK(t.keys("a.zoom").empty());
+        CHECK(t.keys("a.undo")[0] == key(lin, "F8"));
+        // and it can override the first
+        t.applyOverrides(R"({"bindings": {"a.save": ["F7"]}})", false);
+        CHECK(t.keys("a.save")[0] == key(lin, "F7"));
+        CHECK(t.keys("a.zoom").empty());
+        CHECK(t.warnings().empty());
+        // a reset forgets the layers
+        t.applyOverrides("{}");
+        CHECK(t.keys("a.save")[0] == key(lin, "Primary+s"));
+        CHECK(t.keys("a.zoom").size() == 2);
+    }
+    // a clash with what an earlier layer did: back to what it had before
+    {
+        ShortcutTable t = small(lin);
+        t.applyOverrides(R"({"bindings": {"a.save": ["F9"]}})", false);
+        t.applyOverrides(R"({"bindings": {"a.undo": ["F9"]}})", false);
+        CHECK(t.warnings().size() == 1);
+        CHECK(t.keys("a.save")[0] == key(lin, "F9")); // the older layer wins
+        CHECK(t.keys("a.undo")[0] == key(lin, "Primary+z"));
+        CHECK(t.conflicts().empty());
+    }
+    // an action that is changed back to its default keys is not customised
+    {
+        ShortcutTable t = small(lin);
+        t.applyOverrides(R"({"bindings": {"a.save": ["F9"]}})", false);
+        CHECK(t.isCustomized("a.save"));
+        t.applyOverrides(R"({"bindings": {"a.save": ["Primary+s"]}})", false);
+        CHECK(!t.isCustomized("a.save"));
+    }
+    // a missing file leaves the layers below as they are
+    {
+        ShortcutTable t = small(lin);
+        t.applyOverrides(R"({"bindings": {"a.save": ["F9"]}})", false);
+        CHECK(!t.loadFile("/nonexistent/shortcuts.json", false));
+        CHECK(t.keys("a.save")[0] == key(lin, "F9"));
+    }
+}
+
+void testMouseModifier()
+{
+    auto lin = ModifierMasks::linux_like();
+    auto mac = ModifierMasks::mac_like();
+
+    // by default Primary
+    ShortcutTable t = small(mac);
+    CHECK(t.mouseModifier() == sm::Primary);
+    CHECK(t.mousePrimaryMask() == mac.primary);
+    CHECK(t.mousePrimaryMask() == GDK_MOD2_MASK);
+    CHECK(t.mouseModifierName() == modifierName(mac, sm::Primary));
+
+    t.applyOverrides(R"({"mouse_primary_modifier": "Ctrl"})");
+    CHECK(t.warnings().empty());
+    CHECK(t.mouseModifier() == sm::Ctrl);
+    CHECK(t.mousePrimaryMask() == GDK_CONTROL_MASK);
+    CHECK(t.mouseModifierName() == modifierName(mac, sm::Ctrl));
+    // the keys are not affected
+    CHECK(t.keys("a.save")[0] == key(mac, "Primary+s"));
+
+    // not case sensitive; "control" is accepted too
+    t.applyOverrides(R"({"mouse_primary_modifier": "primary"})");
+    CHECK(t.mouseModifier() == sm::Primary);
+    t.applyOverrides(R"({"mouse_primary_modifier": " Control "})");
+    CHECK(t.mouseModifier() == sm::Ctrl);
+
+    // a reset puts it back, a layer without it leaves it as it is
+    t.applyOverrides("{}");
+    CHECK(t.mouseModifier() == sm::Primary);
+    t.applyOverrides(R"({"mouse_primary_modifier": "Ctrl"})");
+    t.applyOverrides(R"({"bindings": {"a.undo": ["F8"]}})", false);
+    CHECK(t.mouseModifier() == sm::Ctrl);
+    // and a later layer overrides it
+    t.applyOverrides(R"({"mouse_primary_modifier": "Primary"})", false);
+    CHECK(t.mouseModifier() == sm::Primary);
+    CHECK(t.warnings().empty());
+
+    // anything else: a warning, and it stays as it was
+    for (auto bad_value : {"\"Alt\"", "\"Cmd\"", "5", "null", "[]", "\"\""}) {
+        t.applyOverrides(R"({"mouse_primary_modifier": "Ctrl"})");
+        t.clearWarnings();
+        t.applyOverrides(std::string("{\"mouse_primary_modifier\": ") +
+                             bad_value + "}",
+                         false);
+        CHECK(t.warnings().size() == 1);
+        CHECK(t.mouseModifier() == sm::Ctrl);
+    }
+    // an invalid value does not stop the bindings of the same file
+    t.clearWarnings();
+    t.applyOverrides(R"({"mouse_primary_modifier": "Alt",
+                          "bindings": {"a.undo": ["F8"]}})");
+    CHECK(t.warnings().size() == 1);
+    CHECK(t.keys("a.undo")[0] == key(mac, "F8"));
+
+    // where Primary is Ctrl it makes no difference
+    ShortcutTable l = small(lin);
+    l.applyOverrides(R"({"mouse_primary_modifier": "Ctrl"})");
+    CHECK(l.mousePrimaryMask() == GDK_CONTROL_MASK);
+    CHECK(l.mousePrimaryMask() == lin.primary);
+
+    // the dump (which the reference file is made of) has it, and loads back
+    ShortcutTable d = small(mac);
+    CHECK(d.dumpJson(true).find("\"mouse_primary_modifier\": \"Primary\"") !=
+          std::string::npos);
+    d.applyOverrides(R"({"mouse_primary_modifier": "Ctrl"})");
+    CHECK(d.dumpJson().find("\"mouse_primary_modifier\": \"Ctrl\"") !=
+          std::string::npos);
+    CHECK(d.dumpJson(true).find("\"mouse_primary_modifier\": \"Primary\"") !=
+          std::string::npos);
+    ShortcutTable e = small(mac);
+    e.applyOverrides(d.dumpJson());
+    CHECK(e.warnings().empty());
+    CHECK(e.mouseModifier() == sm::Ctrl);
+    CHECK(e.dumpJson(true, true).find("MOUSE MODIFIER") != std::string::npos);
+}
+
 void testLookup()
 {
     auto lin = ModifierMasks::linux_like();
@@ -405,13 +533,20 @@ void testDisplay()
     CHECK((mods & GDK_CONTROL_MASK) && !(mods & GDK_META_MASK));
     shortcutToAccelerator(key(lin, "Primary+s"), lin, kv, mods);
     CHECK(mods == GDK_CONTROL_MASK);
-    // the modifier alone, for "%primary%-click"
+    // the modifier alone, for "%mouse_primary%-click"
     for (auto m : {lin, mac}) {
-        const std::string n = primaryModifierName(m);
-        CHECK(!n.empty());
-        CHECK(n.back() != '+');
-        CHECK(d(m, "Primary+s").compare(0, n.size(), n) == 0);
+        for (auto mod : {sm::Primary, sm::Ctrl}) {
+            const std::string n = modifierName(m, mod);
+            CHECK(!n.empty());
+            CHECK(n.back() != '+');
+            ShortcutKey k = key(m, "s");
+            k.mods = mod;
+            CHECK(formatShortcutKey(k, m, true).compare(0, n.size(), n) == 0);
+        }
     }
+    // where Primary is not Ctrl they are not the same modifier
+    CHECK(modifierName(mac, sm::Primary) != modifierName(mac, sm::Ctrl));
+    CHECK(modifierName(lin, sm::Primary) == modifierName(lin, sm::Ctrl));
     // the spelling used in shortcuts.json is not affected
     CHECK(formatShortcutKey(key(lin, "plus"), lin) == "plus");
     CHECK(formatShortcutKey(key(lin, "Primary+Return"), lin) ==
@@ -433,7 +568,7 @@ void testDisplay()
     }
 }
 
-// "%shortcut(id)%" and "%primary%" in translated strings
+// "%shortcut(id)%" and "%mouse_primary%" in translated strings
 void testPlaceholders()
 {
     using art::utils::langMgr;
@@ -448,7 +583,7 @@ void testPlaceholders()
         fputs("PLAIN;no placeholders here\n"
               "ONE;Save: <b>%shortcut(a.save)%</b>.\n"
               "TWO;%shortcut(a.undo)% and %shortcut(a.save)%, then %shortcut(a.zoom)%\n"
-              "PRIM;<b>%primary%</b>-click, %primary%+drag\n"
+              "PRIM;<b>%mouse_primary%</b>-click, %mouse_primary%+drag\n"
               "BAD;%shortcut(no.such)% %shortcut(a.undo\n"
               "DISABLED;[%shortcut(a.off)%]\n",
               f);
@@ -471,11 +606,11 @@ void testPlaceholders()
         auto l = t.label(id);
         return l.empty() ? Glib::ustring("-") : Glib::Markup::escape_text(l);
     });
-    langMgr.setPrimaryModifierName(primaryModifierName(t.masks()));
+    langMgr.setMousePrimaryModifierName(t.mouseModifierName());
 
     const std::string save = gtkLabel(ModifierMasks::linux_like(), "Primary+s");
     const std::string undo = gtkLabel(ModifierMasks::linux_like(), "Primary+z");
-    const std::string prim = primaryModifierName(ModifierMasks::linux_like());
+    const std::string prim = ShortcutTable(ModifierMasks::linux_like()).mouseModifierName();
     CHECK(langMgr.getStr("PLAIN") == "no placeholders here");
     CHECK(langMgr.getStr("ONE") == "Save: <b>" + save + "</b>.");
     CHECK(langMgr.getStr("TWO") == undo + " and " + save + ", then &lt;");
@@ -486,9 +621,74 @@ void testPlaceholders()
 
     // leave the global as it was
     langMgr.setShortcutLabeler(nullptr);
-    langMgr.setPrimaryModifierName("");
+    langMgr.setMousePrimaryModifierName("");
     g_remove(path.c_str());
 }
+
+#ifdef ART_DATA_DIR
+// the shortcuts.json installed with ART: the legacy keys (Ctrl everywhere)
+void testInstalledFile()
+{
+    const std::string path = std::string(ART_DATA_DIR) + "/shortcuts.json";
+    for (auto m : {ModifierMasks::linux_like(), ModifierMasks::mac_like()}) {
+        ShortcutTable defaults(m);
+        defineDefaultShortcuts(defaults);
+        ShortcutTable t(m);
+        defineDefaultShortcuts(t);
+        CHECK(t.loadFile(path, false));
+        for (auto &w : t.warnings()) {
+            std::cerr << path << ": " << w << std::endl;
+        }
+        CHECK(t.warnings().empty());
+        CHECK(t.conflicts().empty());
+
+        for (auto &id : t.ids()) {
+            // what the legacy keys of this action are: the defaults with the
+            // Ctrl key instead of Primary (the quit key was always Cmd+Q on a
+            // Mac, Ctrl+Q elsewhere)
+            std::vector<ShortcutKey> expected = defaults.keys(id);
+            if (id != "window.quit") {
+                for (auto &k : expected) {
+                    if (k.mods & sm::Primary) {
+                        k.mods = (k.mods & ~sm::Primary) | sm::Ctrl;
+                    }
+                }
+            }
+            // where Ctrl is Primary the file changes nothing
+            if (m.primaryIsCtrl()) {
+                expected = defaults.keys(id);
+            }
+            if (t.keys(id) != expected) {
+                std::cerr << "shortcuts.json: " << id
+                          << " is not the legacy version of its default"
+                          << std::endl;
+            }
+            CHECK(t.keys(id) == expected);
+        }
+        // legacy: the mouse actions use the physical Ctrl key
+        CHECK(t.mouseModifier() == sm::Ctrl);
+        CHECK(t.mousePrimaryMask() == GDK_CONTROL_MASK);
+        CHECK(defaults.mouseModifier() == sm::Primary);
+        // the user's file goes on top of it
+        t.applyOverrides(R"({"bindings": {"editor.undo": ["Primary+Alt+z"]}})",
+                         false);
+        CHECK(t.mouseModifier() == sm::Ctrl); // not touched by the user's file
+        {
+            ShortcutTable u(m);
+            defineDefaultShortcuts(u);
+            u.loadFile(path, false);
+            u.applyOverrides(R"({"mouse_primary_modifier": "Primary"})",
+                             false);
+            CHECK(u.mouseModifier() == sm::Primary);
+        }
+        CHECK(t.keys("editor.undo").size() == 1);
+        CHECK(t.keys("editor.undo")[0] == key(m, "Primary+Alt+z"));
+        // the rest of the file is still there ("Ctrl" is Primary on Linux)
+        CHECK(t.keys("editor.save").size() == 1);
+        CHECK(t.keys("editor.save")[0] == key(m, "Ctrl+s"));
+    }
+}
+#endif
 
 #ifdef ART_LANGUAGES_DIR
 // every "%shortcut(action.id)%" in the translations must name a real action
@@ -508,6 +708,8 @@ void testLanguageStrings()
         gchar *contents = nullptr;
         if (g_file_get_contents(path, &contents, nullptr, nullptr)) {
             std::string text(contents);
+            // the old name of "%mouse_primary%" would be shown as it is
+            CHECK(text.find("%primary%") == std::string::npos);
             const std::string open_tag = "%shortcut(";
             for (size_t p = text.find(open_tag); p != std::string::npos;
                  p = text.find(open_tag, p + 1)) {
@@ -542,10 +744,15 @@ int main()
     testNormalize();
     testCandidates();
     testOverrides();
+    testLayers();
+    testMouseModifier();
     testLookup();
     testDefaults();
     testDisplay();
     testPlaceholders();
+#ifdef ART_DATA_DIR
+    testInstalledFile();
+#endif
 #ifdef ART_LANGUAGES_DIR
     testLanguageStrings();
 #endif

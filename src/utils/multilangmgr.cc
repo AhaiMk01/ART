@@ -219,7 +219,7 @@ Glib::ustring MultiLangMgr::getStr(const std::string &key) const
     const auto iterator = translations.find(key);
 
     if (iterator != translations.end()) {
-        if (!shortcut_labeler_ && primary_name_.empty()) {
+        if (!shortcut_labeler_ && mouse_primary_name_.empty()) {
             return iterator->second;
         }
         Glib::ustring res = iterator->second;
@@ -239,12 +239,12 @@ Glib::ustring MultiLangMgr::getStr(const std::string &key) const
                 pos += label.size();
             }
         }
-        if (!primary_name_.empty()) {
-            static const std::string tag = "%primary%";
+        if (!mouse_primary_name_.empty()) {
+            static const std::string tag = "%mouse_primary%";
             std::string::size_type pos = 0;
             while ((pos = res.find(tag, pos)) != Glib::ustring::npos) {
-                res.replace(pos, tag.size(), primary_name_);
-                pos += primary_name_.size();
+                res.replace(pos, tag.size(), mouse_primary_name_);
+                pos += mouse_primary_name_.size();
             }
         }
         return res;

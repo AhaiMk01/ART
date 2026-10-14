@@ -26,7 +26,7 @@ ABOUT_TAB_CREDITS;クレジット
 ABOUT_TAB_LICENSE;ライセンス
 ABOUT_TAB_RELEASENOTES;リリースノート
 ABOUT_TAB_SPLASH;スプラッシュ
-ADJUSTER_RESET_TO_DEFAULT;<b>クリック</b> - デフォルト値にリセット\n<b>%primary%</b>+<b>クリック</b> - 最後に保存した値にリセット
+ADJUSTER_RESET_TO_DEFAULT;<b>クリック</b> - デフォルト値にリセット\n<b>%mouse_primary%</b>+<b>クリック</b> - 最後に保存した値にリセット
 CTL_SIGMOID;シグモイド・トーンマッパー
 CTL_SIGMOID_BASE_PRIMARIES;基本原色
 CTL_SIGMOID_INSET;純色度の減衰
@@ -860,8 +860,8 @@ MAIN_BUTTON_NAVNEXT_TOOLTIP;エディタで開いている画像の次の画像�
 MAIN_BUTTON_NAVPREV_TOOLTIP;エディタで開いている画像の前の画像に移動します\nショートカット: <b>%shortcut(editor.previous_image)%</b>\n\nファイルブラウザで選択したサムネイルの前の画像に移動するには\nショートカット: <b>%shortcut(filebrowser.open_previous)%</b>
 MAIN_BUTTON_NAVSYNC_TOOLTIP;現在開いている画像のサムネイルを明示しエディタとファイルブラウザを同期させ ファイルブラウザでのフィルタをクリアします \nショートカット: <b>%shortcut(editor.sync_file_browser_clear_filters)%</b>\n\n上記と同じですが ファイルブラウザでのフィルタをクリアしません\nショートカット: <b>%shortcut(editor.sync_file_browser)%</b>\n(開かれていても フィルターで除外されたファイルのサムネイルは 表示されませんので注意してください).
 MAIN_BUTTON_PREFERENCES;環境設定
-MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;現在の画像をキュー処理に追加 (%primary%-clickで即時出力)\nショートカット: <b>%primary%-s</b> (<b>%shortcut(editor.queue_fast)%</b>で即時出力)
-MAIN_BUTTON_SAVE_TOOLTIP;現在の画像を保存 (%primary%-clickで即時出力)\nショートカット: <b>%shortcut(editor.save)%</b> (<b>%shortcut(editor.save_fast)%</b>で即時出力)
+MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;現在の画像をキュー処理に追加 (%mouse_primary%-clickで即時出力)\nショートカット: <b>%mouse_primary%-s</b> (<b>%shortcut(editor.queue_fast)%</b>で即時出力)
+MAIN_BUTTON_SAVE_TOOLTIP;現在の画像を保存 (%mouse_primary%-clickで即時出力)\nショートカット: <b>%shortcut(editor.save)%</b> (<b>%shortcut(editor.save_fast)%</b>で即時出力)
 MAIN_BUTTON_SENDTOEDITOR;外部エディタで画像を編集
 MAIN_BUTTON_SENDTOEDITOR_TOOLTIP;現在の画像を外部エディタで編集\nショートカット: <b>%shortcut(editor.send_to_external_editor)%</b> (<b>%shortcut(editor.send_to_external_editor_alt)%</b> で即時出力)
 MAIN_BUTTON_SHOWHIDESIDEPANELS_TOOLTIP;表示/非表示 すべてのパネル\nショートカット: <b>%shortcut(editor.maximize_preview)%</b>
@@ -1367,7 +1367,7 @@ SESSION_LABEL;セッション
 SHCSELECTOR_TOOLTIP;この3つのスライダーの位置をリセットするには\nマウスの右ボタンをクリック
 SOFTPROOF_GAMUTCHECK_MONITOR_TOOLTIP;モニタープロファイルに対する色空間外のピクセルをハイライト表示します
 SOFTPROOF_GAMUTCHECK_TOOLTIP;ソフトプルーフが有効な場合 ソフトプルーフプロファイル色域外の色のピクセルを\nソフトプルーフが無効な場合 出力プロファイル色域外の色のピクセルをハイライトで表示します
-SOFTPROOF_TOOLTIP;ソフトプルーフィングは特定のプリンターもしくはモニターでのイメージをシミュレートします. \n但し 環境設定>カラーマネジメントでそれらに合った適切なプロファイルを設定する必要があります.\n(ソフトプルーフィングプロファイルを変更するには <b>%primary%</b> を押しながらクリックしてください)
+SOFTPROOF_TOOLTIP;ソフトプルーフィングは特定のプリンターもしくはモニターでのイメージをシミュレートします. \n但し 環境設定>カラーマネジメントでそれらに合った適切なプロファイルを設定する必要があります.\n(ソフトプルーフィングプロファイルを変更するには <b>%mouse_primary%</b> を押しながらクリックしてください)
 THRESHOLDSELECTOR_B;下
 THRESHOLDSELECTOR_BL;下-左
 THRESHOLDSELECTOR_BR;下-右
@@ -1747,7 +1747,7 @@ TP_LABMASKS_DELTAE_PICK;Pick
 TP_LABMASKS_DELTAE_CHAN_WEIGHT;デルタE (色差) の計算にウエイト付け
 TP_LABMASKS_DELTAE_TOOLTIP;類似色領域を選択\n(CIELABデルタE メトリックに準拠)
 TP_LABMASKS_DRAWNMASK;ブラシマスク
-TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;画面上ブラシ描画のオン/オフ\n\n<i>マウス使用時:</i>\n- <b>Altキーを</b>押したままにすると一時的に "消しゴムモード"になります.\n- 直線は<b>Shiftキー</b>を押しながら描きます\n- <b>%primary%+マウスホイール</b>でブラシの太さを変えられます,\n- <b>%primary%+Shift+マウスホイール</b>でブラシの硬さ (hardness) を変えられます\n- <b>%primary%+クリック</b>でパラメータを変えずに新しいストロークグループを開始します\n(そして同じエリアに複数のストロークが追加できます)\n- <b>第3ボタン</b>を押してキャンバスの描画を停止します\n\n<i>感圧デバイスを使う場合:</i>\n- <b>第1ボタン</b>で "消しゴムモード"のオンオフを行います\n- <b>Shiftキー</b>を押しながら直線を描きます\n- <b>Alt+第1ボタン</b>でブラシの太さを太くします, そして\n- <b>Alt+第2ボタン</b>で細くします\n- <b>第2ボタン</b>で感圧感度モードを切り替えます: オフ, 硬さ (hardness), 太さ (<b>Shift</b>を押すと逆順になります)\n- <b>%primary%+第2ボタン</b>でキャンバス上の描画を停止します
+TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;画面上ブラシ描画のオン/オフ\n\n<i>マウス使用時:</i>\n- <b>Altキーを</b>押したままにすると一時的に "消しゴムモード"になります.\n- 直線は<b>Shiftキー</b>を押しながら描きます\n- <b>%mouse_primary%+マウスホイール</b>でブラシの太さを変えられます,\n- <b>%mouse_primary%+Shift+マウスホイール</b>でブラシの硬さ (hardness) を変えられます\n- <b>%mouse_primary%+クリック</b>でパラメータを変えずに新しいストロークグループを開始します\n(そして同じエリアに複数のストロークが追加できます)\n- <b>第3ボタン</b>を押してキャンバスの描画を停止します\n\n<i>感圧デバイスを使う場合:</i>\n- <b>第1ボタン</b>で "消しゴムモード"のオンオフを行います\n- <b>Shiftキー</b>を押しながら直線を描きます\n- <b>Alt+第1ボタン</b>でブラシの太さを太くします, そして\n- <b>Alt+第2ボタン</b>で細くします\n- <b>第2ボタン</b>で感圧感度モードを切り替えます: オフ, 硬さ (hardness), 太さ (<b>Shift</b>を押すと逆順になります)\n- <b>%mouse_primary%+第2ボタン</b>でキャンバス上の描画を停止します
 TP_LABMASKS_DRAWNMASK_PEN_SETTINGS;ブラシ設定
 TP_LABMASKS_DRAWNMASK_RESET_TIP;すべての軌跡を消去
 TP_LABMASKS_DRAWNMASK_UNDO_TIP;最後の軌跡を消去
@@ -1817,7 +1817,7 @@ TP_PERSPECTIVE_AUTO_BOTH_TOOLTIP;水平および垂直
 TP_PERSPECTIVE_AUTO_HORIZONTAL_TOOLTIP;水平
 TP_PERSPECTIVE_AUTO_VERTICAL_TOOLTIP;垂直
 TP_PERSPECTIVE_CONTROL_LINES;コントロール線
-TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>%primary%</b>+<b>ドラッグ</b>: 新しい線の描画\n<b>右クリック</b>: 線の削除
+TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>%mouse_primary%</b>+<b>ドラッグ</b>: 新しい線の描画\n<b>右クリック</b>: 線の削除
 TP_PERSPECTIVE_CROPFACTOR;35mm換算倍率 (クロップ係数)
 TP_PERSPECTIVE_FLENGTH;焦点距離
 TP_PERSPECTIVE_HORIZONTAL;水平

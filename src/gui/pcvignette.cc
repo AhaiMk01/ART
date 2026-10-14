@@ -273,7 +273,7 @@ bool PCVignette::button1Pressed(int modifierKey)
 
     // EditDataProvider *provider = getEditProvider();
 
-    if (!(modifierKey & ShortcutsManager::primaryMask())) {
+    if (!(modifierKey & ShortcutsManager::mousePrimaryMask())) {
         // button press is valid (no modifier key)
         int im_x, im_y;
         int imW, imH;

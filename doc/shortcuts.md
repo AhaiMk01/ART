@@ -27,6 +27,16 @@ default keys: copy the entries you want to change into `shortcuts.json`.
 
 * Only the actions listed in the file change; the others keep their defaults.
   An action in the file *replaces* all of its default keys.
+* The files are applied in layers, each on top of the previous one: the
+  built-in defaults (`shortcuts_reference.json`), then the `shortcuts.json`
+  that ART installs in its data folder (`data/shortcuts.json` in the sources),
+  then yours. The installed one currently restores the older, Ctrl-based
+  shortcuts: it replaces `Primary` with `Ctrl` everywhere (apart from quit)
+  and sets `"mouse_primary_modifier": "Ctrl"`, which only makes a difference
+  on macOS, where `Primary` is Cmd. Delete it,
+  or its entries, to get the native shortcuts. The rule about clashes applies
+  across the layers: a key of your file that another action of the same
+  context already has (from any layer) is ignored.
 * Comments (`// ...` and `/* ... */`) are allowed.
 * Changes take effect when ART is restarted.
 * Problems are reported on the standard error and never prevent ART from
@@ -34,6 +44,24 @@ default keys: copy the entries you want to change into `shortcuts.json`.
   of the same context already uses is ignored, and the action keeps its
   default. Run ART with the environment variable `ART_SHORTCUTS_DEBUG=1`
   to also see which action each key press triggers.
+
+### Mouse modifier
+
+```json
+{ "version": 1, "mouse_primary_modifier": "Ctrl", "bindings": { } }
+```
+
+`"mouse_primary_modifier"` (optional) is `"Primary"` (the default) or
+`"Ctrl"`. It is the modifier of the mouse actions that used to need the Ctrl
+key: Ctrl-click to reset a slider to its last saved value or to select the
+parameters when loading, pasting or saving a profile, Ctrl-click on the save,
+queue and send-to-editor buttons for a fast export, Ctrl-click and Ctrl-drag in
+the crop, curve, mask, spot and gradient tools, Ctrl-click to extend the
+selection in the thumbnails, and so on. `"Primary"` is Ctrl on Linux and
+Windows and Cmd on macOS; `"Ctrl"` is always the physical Control key (on a
+Mac, Ctrl-click is also what the system turns into a right click).
+The two differ only on macOS. The tooltips follow the setting. Like the keys,
+it is set by the layers in turn, so your file can override the installed one.
 
 ### Key syntax
 
@@ -74,7 +102,11 @@ file browser ones are tried after them.
 * Tooltips and other translated strings can show the key of an action with
   `%shortcut(action.id)%`; it is replaced by the key as GTK displays it in menus
   (`Ctrl+S` on Linux and Windows, `⌘S` on macOS), and follows the user's
-  remapping. The unit test checks that the ids exist.
+  remapping; the unit test checks that the ids exist. `%mouse_primary%` is the
+  modifier of the mouse actions (see above), for "`%mouse_primary%`-click".
+* `data/shortcuts.json` must list every action whose default uses `Primary`,
+  with `Ctrl` instead (the unit test checks it, so a new action fails the test
+  until the file is updated).
 * Tests of the key syntax, the table and the config handling:
   `ninja art-shortcuts-test && ./src/gui/art-shortcuts-test` (or `ctest -R shortcuts`).
 * `ART_SHORTCUTS_DEBUG=1` also prints, a little after startup, the actions

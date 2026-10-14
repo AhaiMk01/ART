@@ -71,7 +71,8 @@ ShortcutsManager *ShortcutsManager::getInstance()
 }
 
 
-void ShortcutsManager::init(const Glib::ustring &user_config_dir)
+void ShortcutsManager::init(const Glib::ustring &system_dir,
+                            const Glib::ustring &user_config_dir)
 {
     table_.reset(new ShortcutTable(ModifierMasks::native()));
     defineDefaultShortcuts(*table_);
@@ -88,11 +89,26 @@ void ShortcutsManager::init(const Glib::ustring &user_config_dir)
         return l.empty() ? Glib::ustring("-") : Glib::Markup::escape_text(l);
     });
 
-    utils::langMgr.setPrimaryModifierName(primaryModifierName(table_->masks()));
+    // two layers on top of the built-in defaults: the shortcuts.json installed
+    // with ART, then the user's one. Problems are reported with the name of
+    // the file they were found in.
+    std::vector<std::string> loaded;
+    for (const auto &dir : {system_dir, user_config_dir}) {
+        if (dir.empty()) {
+            continue;
+        }
+        const std::string file = Glib::build_filename(dir, USER_FILE);
+        if (table_->loadFile(file, false)) {
+            loaded.push_back(file);
+        }
+        for (auto &w : table_->warnings()) {
+            fprintf(stderr, "%s (%s)\n", w.c_str(), file.c_str());
+        }
+        table_->clearWarnings();
+    }
 
-    const std::string user_file =
-        Glib::build_filename(user_config_dir, USER_FILE);
-    const bool have_user_file = table_->loadFile(user_file);
+    // "%mouse_primary%" in the strings: "Ctrl-click" or "Cmd-click"
+    utils::langMgr.setMousePrimaryModifierName(table_->mouseModifierName());
 
     if (!user_config_dir.empty()) {
         // something to copy from: all the actions with their default keys,
@@ -101,16 +117,19 @@ void ShortcutsManager::init(const Glib::ustring &user_config_dir)
                          table_->dumpJson(true, true));
     }
 
-    for (auto &w : table_->warnings()) {
-        fprintf(stderr, "%s (%s)\n", w.c_str(), user_file.c_str());
-    }
     if (debug_) {
         for (auto &c : table_->conflicts()) {
             fprintf(stderr, "shortcuts: conflict: %s\n", c.c_str());
         }
+        std::string from = "defaults only";
+        for (size_t i = 0; i < loaded.size(); ++i) {
+            from = (i ? from + ", " : "customised from ") + loaded[i];
+        }
         fprintf(stderr, "shortcuts: %zu actions, %s\n", table_->ids().size(),
-                have_user_file ? ("customised from " + user_file).c_str()
-                               : "defaults");
+                from.c_str());
+        fprintf(stderr, "shortcuts: mouse modifier: %s (mask 0x%x), save: %s\n",
+                table_->mouseModifierName().c_str(), table_->mousePrimaryMask(),
+                table_->label("editor.save").c_str());
     }
 }
 

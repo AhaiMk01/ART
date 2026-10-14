@@ -1548,7 +1548,7 @@ void FileCatalog::categoryButtonToggled(Gtk::ToggleButton *b, bool isMouseClick)
 {
 
     // was control key pressed
-    bool control_down = modifierKey & ShortcutsManager::primaryMask();
+    bool control_down = modifierKey & ShortcutsManager::mousePrimaryMask();
 
     // was shift key pressed
     bool shift_down = modifierKey & GDK_SHIFT_MASK;
@@ -2529,7 +2529,13 @@ void FileCatalog::bindShortcuts()
     const auto filter = [this, bind](const char *id,
                                      std::function<Gtk::ToggleButton *()> b) {
         bind(id, [this, b](GdkEventKey *e) {
+            // the key variants with Ctrl/Primary add to the filter, whichever
+            // modifier the mouse uses for the same
             modifierKey = e->state;
+            if (e->state & (ShortcutsManager::primaryMask() |
+                            GDK_CONTROL_MASK)) {
+                modifierKey |= ShortcutsManager::mousePrimaryMask();
+            }
             categoryButtonToggled(b(), false);
             return true;
         });

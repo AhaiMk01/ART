@@ -93,9 +93,9 @@ struct ShortcutKey {
 bool parseShortcutKey(const std::string &spec, const ModifierMasks &masks,
                       ShortcutKey &out, std::string *err = nullptr);
 
-/// What GTK shows for the primary modifier alone ("Ctrl", "⌘"), for prose
-/// such as "Ctrl-click".
-std::string primaryModifierName(const ModifierMasks &masks);
+/// What GTK shows for a modifier alone ("Ctrl", "⌘"), for prose such as
+/// "Ctrl-click". `mod` is shortcut_mod::Primary or shortcut_mod::Ctrl.
+std::string modifierName(const ModifierMasks &masks, unsigned mod);
 
 /// The key as a GTK accelerator (key + modifiers), which is how GTK shows
 /// and matches keys in menus. Cmd is spelled META there (not MOD2, with which
@@ -153,13 +153,17 @@ public:
     const std::vector<ShortcutKey> &keys(const std::string &id) const;
     bool isCustomized(const std::string &id) const;
 
-    /// Replace the current bindings with the defaults overlaid with the
-    /// contents of a shortcuts.json. Never throws: every problem becomes an
-    /// entry in warnings() and the offending entry is ignored.
-    void applyOverrides(const std::string &json_text);
+    /// Overlay the contents of a shortcuts.json on the bindings. With `reset`
+    /// (the default) they are first set back to the defaults; without it the
+    /// file is a further layer on top of what was applied before, so that
+    /// e.g. the user's file can override the one installed with ART. Never
+    /// throws: every problem becomes an entry in warnings() and the offending
+    /// entry is ignored (an action that clashes with another keeps the keys
+    /// it had before this layer).
+    void applyOverrides(const std::string &json_text, bool reset = true);
     /// Like applyOverrides, reading the file. A missing file is not an error
     /// (returns false, no warning); an unreadable or invalid one warns.
-    bool loadFile(const std::string &path);
+    bool loadFile(const std::string &path, bool reset = true);
 
     /// Actions of `context`/`phase` that have one of `candidates` among
     /// their keys, in candidate order, then definition order.
@@ -181,6 +185,23 @@ public:
     /// the action is disabled.
     std::string label(const std::string &id) const;
 
+    /// The modifier that the mouse actions ("Ctrl-click" and the like) use:
+    /// shortcut_mod::Primary (the default) or shortcut_mod::Ctrl, as set by
+    /// "mouse_primary_modifier" in shortcuts.json. They differ only where
+    /// Primary is not the Ctrl key, i.e. on macOS.
+    unsigned mouseModifier() const { return mouse_modifier_; }
+    /// Its GDK mask, to test the state of mouse and scroll events
+    guint mousePrimaryMask() const
+    {
+        return mouse_modifier_ == shortcut_mod::Ctrl ? masks_.ctrl
+                                                     : masks_.primary;
+    }
+    /// How it is called in the GUI ("Ctrl", "⌘")
+    std::string mouseModifierName() const
+    {
+        return modifierName(masks_, mouse_modifier_);
+    }
+
     const std::vector<std::string> &warnings() const { return warnings_; }
     void clearWarnings() { warnings_.clear(); }
     const ModifierMasks &masks() const { return masks_; }
@@ -199,13 +220,14 @@ private:
     };
 
     int index(const std::string &id) const;
-    void resolveConflicts();
+    void resolveConflicts(const std::vector<std::vector<ShortcutKey>> &base);
     void warn(const std::string &msg);
 
     ModifierMasks masks_;
     std::vector<Entry> entries_;
     std::map<std::string, int> by_id_;
     std::vector<std::string> warnings_;
+    unsigned mouse_modifier_ = shortcut_mod::Primary;
 };
 
 } } // namespace art::gui

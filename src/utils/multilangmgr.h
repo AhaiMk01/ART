@@ -44,16 +44,20 @@ public:
     using ShortcutLabeler = std::function<Glib::ustring(const std::string &)>;
     void setShortcutLabeler(ShortcutLabeler f) { shortcut_labeler_ = std::move(f); }
 
-    /// "%primary%" in a string becomes this: the name of the OS-convention
-    /// modifier ("Ctrl", or Cmd on macOS), for "%primary%-click" and the like.
-    void setPrimaryModifierName(const Glib::ustring &name) { primary_name_ = name; }
+    /// "%mouse_primary%" in a string becomes this: the name of the modifier of
+    /// the mouse actions ("Ctrl", or Cmd on macOS), for "%mouse_primary%-click"
+    /// and the like.
+    void setMousePrimaryModifierName(const Glib::ustring &name)
+    {
+        mouse_primary_name_ = name;
+    }
     static bool isOSLanguageDetectSupported();
     static Glib::ustring getOSUserLanguage();
 
 private:
     std::map<std::string, Glib::ustring> translations;
     ShortcutLabeler shortcut_labeler_;
-    Glib::ustring primary_name_;
+    Glib::ustring mouse_primary_name_;
 };
 
 extern MultiLangMgr langMgr;

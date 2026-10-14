@@ -395,7 +395,7 @@ void ProfilePanel::save_clicked(GdkEventButton *event)
             // }
 
             if (toSave) {
-                if (event->state & ShortcutsManager::primaryMask()) {
+                if (event->state & ShortcutsManager::mousePrimaryMask()) {
                     // opening the partial paste dialog window
                     if (!partialProfileDlg) {
                         partialProfileDlg =
@@ -534,7 +534,7 @@ void ProfilePanel::load_clicked(GdkEventButton *event)
     if (result == Gtk::RESPONSE_OK) {
         Glib::ustring fname = dialog.get_filename();
 
-        if (event->state & ShortcutsManager::primaryMask()) {
+        if (event->state & ShortcutsManager::mousePrimaryMask()) {
             // opening the partial paste dialog window
             if (!partialProfileDlg) {
                 partialProfileDlg =
@@ -561,7 +561,7 @@ void ProfilePanel::load_clicked(GdkEventButton *event)
 
         if (!err) {
             auto pl = dynamic_cast<art::engine::ProgressListener *>(parent);
-            if (event->state & ShortcutsManager::primaryMask()) {
+            if (event->state & ShortcutsManager::mousePrimaryMask()) {
                 if (!partialProfileDlg) {
                     partialProfileDlg =
                         new PartialPasteDlg(Glib::ustring(), parent);
@@ -600,7 +600,7 @@ void ProfilePanel::paste_clicked(GdkEventButton *event)
         return;
     }
 
-    if (event->state & ShortcutsManager::primaryMask()) {
+    if (event->state & ShortcutsManager::mousePrimaryMask()) {
         if (!partialProfileDlg) {
             partialProfileDlg = new PartialPasteDlg(Glib::ustring(), parent);
         }
@@ -628,7 +628,7 @@ void ProfilePanel::paste_clicked(GdkEventButton *event)
 
     changeconn.block(prevState);
 
-    if ((event->state & ShortcutsManager::primaryMask()) && partialProfileDlg) {
+    if ((event->state & ShortcutsManager::mousePrimaryMask()) && partialProfileDlg) {
         auto pe = partialProfileDlg->getParamsEdited();
         custom = new PEditedPartialProfile(pp, pe);
     } else {

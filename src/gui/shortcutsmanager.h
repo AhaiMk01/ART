@@ -62,11 +62,14 @@ public:
 
     static ShortcutsManager *getInstance();
 
-    /// Define the default actions and overlay `<user_config_dir>/shortcuts.json`
-    /// if there is one. Problems with the file are reported on stderr and
-    /// never prevent startup. Must be called after gtk_init (it asks GDK
-    /// which modifier is the primary one). Calling it again reloads.
-    void init(const Glib::ustring &user_config_dir);
+    /// Define the default actions and overlay on them
+    /// `<system_dir>/shortcuts.json` (installed with ART) and then
+    /// `<user_config_dir>/shortcuts.json`, if there are such files. Problems
+    /// with a file are reported on stderr and never prevent startup. Must be
+    /// called after gtk_init (it asks GDK which modifier is the primary one).
+    /// Calling it again reloads.
+    void init(const Glib::ustring &system_dir,
+              const Glib::ustring &user_config_dir);
 
     /// Attach the code for action `id` of component `owner`. `enabled`, if
     /// given, is asked before every call and replaces inline checks such as
@@ -101,9 +104,18 @@ public:
     Glib::ustring label(const std::string &id) const;
 
     /// The modifier mask(s) of the OS-convention primary modifier (Ctrl, or
-    /// Cmd on macOS), for code that inspects event states itself, e.g. for
-    /// "Ctrl-click": `event->state & ShortcutsManager::primaryMask()`.
+    /// Cmd on macOS), for the keyboard.
     static guint primaryMask() { return getInstance()->table_->masks().primary; }
+
+    /// The mask of the modifier of the mouse actions ("Ctrl-click" and the
+    /// like), for code that inspects the state of mouse and scroll events:
+    /// `event->state & ShortcutsManager::mousePrimaryMask()`. It is the
+    /// primary modifier unless "mouse_primary_modifier" in shortcuts.json says
+    /// otherwise (see ShortcutTable::mousePrimaryMask).
+    static guint mousePrimaryMask()
+    {
+        return getInstance()->table_->mousePrimaryMask();
+    }
 
     /// Show action `id`'s first key as the accelerator hint of a menu item
     /// (for items whose activation is done by dispatch(), not by GTK).

@@ -96,7 +96,7 @@ bool ControlLineManager::button1Pressed(int modifierKey)
             selected_object = object;
             action = ES_ACTION_DRAGGING;
         }
-    } else if (draw_mode && (modifierKey & ShortcutsManager::primaryMask())) { // Add new line.
+    } else if (draw_mode && (modifierKey & ShortcutsManager::mousePrimaryMask())) { // Add new line.
         addLine(dataProvider->posImage, dataProvider->posImage);
         drawing_line = true;
         selected_object = mouseOverGeometry.size() - 1; // Select endpoint.
@@ -271,7 +271,7 @@ bool ControlLineManager::mouseOver(int modifierKey)
     int cur_obj = provider->getObject();
 
     if (cur_obj == 0) { // Canvas
-        if (draw_mode && modifierKey & ShortcutsManager::primaryMask()) {
+        if (draw_mode && modifierKey & ShortcutsManager::mousePrimaryMask()) {
             cursor = CSCrosshair;
         } else {
             cursor = CSArrow;
