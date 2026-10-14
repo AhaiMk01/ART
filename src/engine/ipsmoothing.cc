@@ -872,7 +872,7 @@ void wavelet_smoothing(Imagefloat *rgb,
                     float mag = SQR(coeffs[dir][i] * 65535.f);
                     float sf = mag / (mag +
                                       level_factor * s *
-                                          xexpf(-mag / (9 * level_factor * s)) +
+                                          xexpf(-mag / std::max(9 * level_factor * s, 1e-12f)) +
                                       eps);
                     float f = SQR(sf) / (sf + eps);
                     coeffs[dir][i] *= f;
@@ -1636,7 +1636,7 @@ bool waveletShrink(Context &ctx, Buffer &data, int W, int H, int nlevels,
                 const float m = (mad[d][lvl] * 65535.f) * (mad[d][lvl] * 65535.f);
                 const float levelFactor = m * 5.f / float(lvl + 1);
                 levelFactorS[lvl] = levelFactor * s;
-                nineLevelFactorS[lvl] = 9.f * levelFactor * s;
+                nineLevelFactorS[lvl] = std::max(9.f * levelFactor * s, 1e-12f);  // flat band: mad == 0
             }
             if (!waveletShrinkFusedDispatch(pass, *dirs[d], n, nlevels,
                                            levelFactorS, nineLevelFactorS,

@@ -172,7 +172,7 @@ void heal(Imagefloat *src, Imagefloat *dst, int src_x, int src_y, int dst_x,
             float r = sqrt(SQR(rx) + SQR(ry));
 
             mask[y][x] = (r <= featherRadius);
-            float w = 1.f - pow_F(LIM01(radius - r) / radius, detail_exp);
+            float w = 1.f - pow_F(LIM01(radius - r) / std::max(radius, 1e-3f), detail_exp);
             int sx = src_x + x;
             int dx = dst_x + x;
             diff.r(y, x) = w * (dst->r(dy, dx) - src->r(sy, sx));

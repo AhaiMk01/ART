@@ -313,6 +313,16 @@ private:
         return true;
     }
 
+    // last line of defence against NaN/Inf: report which stage let them in
+    void sanitize(const char *where)
+    {
+        const size_t bad = img->sanitize();
+        if (bad && settings->verbose) {
+            printf("WARNING: replaced %zu NaN samples after %s\n", bad,
+                   where);
+        }
+    }
+
     void stage_denoise()
     {
         procparams::ProcParams &params = job->pparams;
@@ -338,6 +348,8 @@ private:
             }
         }
 
+        sanitize("input");
+
         if (params.denoise.enabled) {
             {
                 ART_PROFILE_SCOPE("denoise");
@@ -350,6 +362,8 @@ private:
     {
         procparams::ProcParams &params = job->pparams;
         ImProcFunctions &ipf = *(ipf_p.get());
+
+        sanitize("denoise");
 
         LUTu hist16(65536);
         {
@@ -454,6 +468,8 @@ private:
             ipf.setScale(1);
             ipf.prsharpening(img);
         }
+
+        sanitize("pipeline");
 
         ART_PROFILE_SCOPE("rgb2out");
         Imagefloat *readyImg = ipf.rgb2out(img, params.icm);

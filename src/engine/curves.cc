@@ -598,7 +598,7 @@ void PerceptualToneCurve::BatchApply(
         // popular curves.
         const float oldLuminance = r * Yr + g * Yg + b * Yb;
         const float newLuminance = ar * Yr + ag * Yg + ab * Yb;
-        const float Lcoef = newLuminance / oldLuminance;
+        const float Lcoef = oldLuminance > 1e-6f ? newLuminance / oldLuminance : 1.f;
         r = LIM<float>(r * Lcoef, 0.f, 65535.f);
         g = LIM<float>(g * Lcoef, 0.f, 65535.f);
         b = LIM<float>(b * Lcoef, 0.f, 65535.f);

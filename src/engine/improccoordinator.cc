@@ -419,6 +419,12 @@ void ImProcCoordinator::updatePreviewImage(int todo, bool panningRelatedChange)
                 imgsrc->convertColorSpace(orig_prev, params.icm, currWB);
             }
 
+            if (size_t bad = orig_prev->sanitize()) {
+                if (settings->verbose) {
+                    printf("WARNING: replaced %zu NaN samples in the "
+                           "input image\n", bad);
+                }
+            }
             ipf.firstAnalysis(orig_prev, params, vhist16);
         }
 

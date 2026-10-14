@@ -330,6 +330,10 @@ void transform_perspective(const ProcParams *params,
             Dx -= sx;
             Dy -= sy;
 
+            if (!(std::fabs(Dx) < 1e7 && std::fabs(Dy) < 1e7)) {
+                Dx = Dy = -1e7; // NaN/Inf/huge: invalid, and (int) would be UB
+            }
+
             // Extract integer and fractions of source screen coordinates
             int xc = Dx;
             Dx -= xc;
@@ -1252,6 +1256,10 @@ void ImProcFunctions::transformGeneral(bool highQuality, Imagefloat *original,
                 // de-center
                 Dx += w2;
                 Dy += h2;
+
+                if (!(std::fabs(Dx) < 1e7 && std::fabs(Dy) < 1e7)) {
+                    Dx = Dy = -1e7; // NaN/Inf/huge: invalid, (int) would be UB
+                }
 
                 // Extract integer and fractions of source screen coordinates
                 int xc = (int)Dx;

@@ -142,7 +142,7 @@ void NLMeans(array2D<float> &img, float normcoeff, int strength,
 #endif
     for (int y = 0; y < H; ++y) {
         for (int x = 0; x < W; ++x) {
-            mask[y][x] = (1.f / (mask[y][x] * h2)) / lutfactor;
+            mask[y][x] = (1.f / std::max(mask[y][x] * h2, 1e-9f)) / lutfactor;
         }
     }
 
@@ -412,7 +412,7 @@ void detail_mask(const array2D<float> &src, array2D<float> &mask, float scaling,
 #endif
         for (int y = 0; y < H / 4; ++y) {
             for (int x = 0; x < W / 4; ++x) {
-                L2[y][x] = xlin2log(L2[y][x] / scaling, 50.f);
+                L2[y][x] = xlin2log(std::max(L2[y][x] / scaling, 0.f), 50.f);
             }
         }
         laplacian(L2, m2, threshold / scaling, ceiling / scaling, factor,

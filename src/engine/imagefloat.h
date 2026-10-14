@@ -94,6 +94,14 @@ public:
     void free() override { delete this; }
 
     void multiply(float factor, bool multithread);
+
+    /**
+     * Replace every NaN sample with 0. Infinities are left alone (they still
+     * compare correctly, so clamping handles them), as is every finite
+     * value. Mode-agnostic. Returns the number of samples changed; the GPU
+     * residency is only invalidated if there was any.
+     */
+    size_t sanitize(bool multithread = true);
     void normalizeFloatTo1(bool multithread = true);
     void normalizeFloatTo65535(bool multithread = true);
     void calcCroppedHistogram(const ProcParams &params, float scale,
