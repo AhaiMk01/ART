@@ -56,11 +56,11 @@ Correct a negative's defects before inversion, a positive's after it. Lens-profi
 
 ## Adapt scenes and finish the positive
 
-Separate shared conversion from scene-specific exposure and illumination. Preserve genuine warm light, cool shadows and low-key scenes rather than forcing every frame to the same histogram or neutral appearance.
+Separate shared conversion from scene-specific exposure and illumination. Do not force every frame to the same histogram; low-key scenes stay low-key. How much scene illumination (tungsten, sodium, dusk) to keep is the user's choice, not the converter's. Without an instruction, apply one stated rule across the roll: either make the frame's own neutrals neutral, or leave the roll's daylight conversion unadjusted so the light shows as the film recorded it. Never pick a partial amount by eye; name the affected frames and the rule in the report.
 
 Assess final presentation separately from the initial inversion. Freeze the supported conversion while comparing display contrast or a requested print response. Judge shadow detail, midtone separation, highlight gradation and colour changes; a stronger curve is not automatically better. Do not mix three things: NamiColor's internal encoding convention (codes 95 and 685, `cineon_reference_white` W), endpoint estimation from this picture (black, gain, shift, FitBase, using `sample_spots` on evidence that excludes rebate, off-film areas, dust, speculars, emitters and unfounded neutrals, never raw minimum or maximum), and aesthetic grading. Without a film base and calibration, make no absolute density claim. Sidecars from before version 1061 with a print LUT, paper target or Cineon export target now render and export the linear positive.
 
-Review the roll for continuity and each frame for its own defects. Use enlarged views where a contact sheet cannot answer the question. Correct visible, actionable problems before delivery; explain actual evidence limits rather than treating unfinished work as uncertainty.
+Review the roll for continuity and each frame for its own defects. Use enlarged views where a contact sheet cannot answer the question. Check every final render for clipped highlights beyond emitters and speculars, and for crushed shadows; recover them with exposure or the curve, or report why they stay. Correct visible, actionable problems before delivery; explain actual evidence limits rather than treating unfinished work as uncertainty.
 
 ## Verify and hand off
 
