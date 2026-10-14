@@ -17,6 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include <cstring>
 #include <cmath>
 #include <cstdlib>
 
@@ -121,6 +122,19 @@ void rcd_demosaic_cpu(int W, int H, const unsigned int cfarray[2][2],
 
                 const int tileRows = std::min(rowEnd - rowStart, tileSize);
                 const int tilecols = std::min(colEnd - colStart, tileSize);
+
+                // These per-thread scratch buffers are reused from tile to
+                // tile, and near the image edges (partial tiles) the
+                // algorithm reads elements that this tile never writes. Which
+                // tile a thread processed before depends on the dynamic
+                // schedule, so without this the stale values -- and hence
+                // the output -- differ from run to run.
+                for (int c = 0; c < 3; ++c) {
+                    std::memset(rgb[c], 0,
+                                (size_t)tileSize * tileSize * sizeof(float));
+                }
+                std::memset(VH_Dir, 0,
+                            (size_t)tileSize * tileSize * sizeof(float));
 
                 for (int row = rowStart; row < rowEnd; row++) {
                     const int c0 = fc(cfarray, row, colStart);
