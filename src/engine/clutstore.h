@@ -36,10 +36,7 @@ namespace OCIO = OCIO_NAMESPACE;
 #include "extclut.h"
 #endif // ART_USE_OCIO
 
-#ifdef ART_USE_CTL
-#include "LUT3D.h"
-#include <CtlSimdInterpreter.h>
-#endif
+#include "ctl.h"
 
 namespace art { namespace engine {
 
@@ -118,19 +115,6 @@ private:
     mutable Cache<Glib::ustring, OCIOCacheEntry> ocio_cache_;
 #endif // ART_USE_OCIO
 
-#ifdef ART_USE_CTL
-    struct CTLCacheEntry {
-        std::shared_ptr<Ctl::Interpreter> intp;
-        std::string md5;
-        CLUTParamDescriptorList params;
-        Glib::ustring colorspace;
-        int lut_dim;
-    };
-    mutable Cache<std::string, CTLCacheEntry> ctl_cache_;
-    LUTf ctl_shaper_lut_;
-    LUTf ctl_shaper_lut_inv_;
-#endif // ART_USE_CTL
-
     mutable art::utils::MyMutex mutex_;
 };
 
@@ -194,15 +178,7 @@ protected:
 #ifdef ART_USE_CTL
     bool CTL_init(int num_threads);
     void CTL_apply(int thread_id, int W, float *r, float *g, float *b);
-    bool CTL_set_params(const CLUTParamValueMap &values, Quality q);
-    void CTL_init_lut(int dim);
-    std::shared_ptr<Ctl::Interpreter> ctl_intp_;
-    std::vector<Ctl::FunctionCallPtr> ctl_func_;
-    std::vector<Ctl::FunctionCallPtr> ctl_pipette_func_;
-    int ctl_chunk_size_;
-    CLUTParamDescriptorList ctl_params_;
-    LUT3D ctl_lut_;
-    int ctl_lut_dim_;
+    CTLApplication ctl_;
 #endif // ART_USE_CTL
 
 #if defined ART_USE_OCIO || defined ART_USE_CTL

@@ -62,7 +62,7 @@ void LUT3D::init(int dim, initializer &f, bool input_is_01)
     }
 }
 
-bool LUT3D::operator()(float &r, float &g, float &b)
+bool LUT3D::operator()(float &r, float &g, float &b) const
 {
     if (!input_is_01_) {
         r /= 65535.f;
@@ -116,7 +116,7 @@ inline vfloat interp_corners(const float *lut, float w0, int c0, float w1,
 
 #endif // ART_SIMD
 
-inline void LUT3D::apply_tetra(float &r, float &g, float &b)
+inline void LUT3D::apply_tetra(float &r, float &g, float &b) const
 {
     const float dimMinusOne = dim_minus_one_;
     const float m_step = dimMinusOne;

@@ -219,6 +219,12 @@ if(OCIO_FOUND)
         )
 endif()
 
+if(CTL_FOUND)
+    set(RTENGINESOURCEFILES ${RTENGINESOURCEFILES}
+        ctl.cc
+        )
+endif()
+
 if(VULKAN_FOUND)
     set(RTENGINE_GPU_SOURCES
         gpu/vk_api.cc
