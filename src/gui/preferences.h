@@ -23,6 +23,7 @@
 #include "dynamicprofilepanel.h"
 #include "options.h"
 #include "rtwindow.h"
+#include "shortcutseditor.h"
 #include <gtkmm.h>
 #include <vector>
 
@@ -272,6 +273,8 @@ class Preferences: public Gtk::Dialog, public art::engine::ProfileStoreListener 
     Gtk::Widget *getColorManPanel();
     Gtk::Widget *getPerformancePanel();
     Gtk::Widget *getSoundsPanel();
+
+    ShortcutsEditor *shortcutsEditor_;
 
 public:
     explicit Preferences(RTWindow *rtwindow);

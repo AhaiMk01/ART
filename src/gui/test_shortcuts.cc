@@ -738,6 +738,116 @@ void testLanguageStrings()
 
 } // namespace
 
+void testEditing()
+{
+    auto lin = ModifierMasks::linux_like();
+
+    // what is recorded for a key press
+    CHECK(shortcutFromEvent(lin, GDK_KEY_z, GDK_KEY_z, GDK_CONTROL_MASK) ==
+          key(lin, "Primary+z"));
+    CHECK(shortcutFromEvent(lin, GDK_KEY_z, GDK_KEY_Z, GDK_SHIFT_MASK) ==
+          key(lin, "Shift+z"));
+    CHECK(shortcutFromEvent(lin, GDK_KEY_equal, GDK_KEY_plus,
+                            GDK_SHIFT_MASK) == key(lin, "plus"));
+    CHECK(shortcutFromEvent(lin, GDK_KEY_comma, GDK_KEY_less,
+                            GDK_SHIFT_MASK) == key(lin, "less"));
+    CHECK(shortcutFromEvent(lin, GDK_KEY_1, GDK_KEY_exclam, GDK_SHIFT_MASK) ==
+          key(lin, "Shift+1"));
+    CHECK(shortcutFromEvent(lin, GDK_KEY_F3, GDK_KEY_F3, GDK_SHIFT_MASK) ==
+          key(lin, "Shift+F3"));
+    CHECK(shortcutFromEvent(lin, GDK_KEY_Up, GDK_KEY_Up,
+                            GDK_SHIFT_MASK | GDK_CONTROL_MASK) ==
+          key(lin, "Primary+Shift+Up"));
+
+    // conflicts: same context and phase only, never with itself
+    {
+        ShortcutTable t = small(lin);
+        CHECK(t.findConflict("a.undo", key(lin, "Primary+s")) == "a.save");
+        CHECK(t.findConflict("a.save", key(lin, "Primary+s")).empty());
+        CHECK(t.findConflict("b.save", key(lin, "Primary+z")).empty());
+        CHECK(t.findConflict("a.undo", key(lin, "F2")).empty()); // other phase
+        CHECK(t.findConflict("nope", key(lin, "F2")).empty());
+    }
+
+    // setKeys
+    {
+        ShortcutTable t = small(lin);
+        t.setKeys("a.save", {key(lin, "F9"), key(lin, "F9")});
+        CHECK(t.keys("a.save").size() == 1 && t.isCustomized("a.save"));
+        t.setKeys("a.save", {key(lin, "Primary+s")});
+        CHECK(!t.isCustomized("a.save"));
+        t.setKeys("a.save", {});
+        CHECK(t.keys("a.save").empty() && t.isCustomized("a.save"));
+    }
+
+    // the user's file is exactly the difference from the baseline, and
+    // applying it on the baseline gives back the edited table
+    {
+        ShortcutTable base = small(lin);
+        base.applyOverrides(R"({"bindings": {"a.redo": ["F7"]}})", false);
+        ShortcutTable t = base;
+        CHECK(t.dumpOverrides(base).find("\"a.") == std::string::npos);
+
+        t.setKeys("a.save", {key(lin, "F9")});
+        t.setKeys("a.zoom", {});                        // disabled
+        t.setKeys("a.undo", {key(lin, "Primary+s")});   // swap with save...
+        t.setKeys("b.save", {key(lin, "Primary+Alt+s"), key(lin, "plus")});
+        t.setKeys("a.redo", base.keys("a.redo"));       // unchanged
+        const std::string json = t.dumpOverrides(base);
+        CHECK(json.find("a.redo") == std::string::npos);
+
+        ShortcutTable again = base;
+        again.applyOverrides(json, false);
+        for (auto &w : again.warnings()) {
+            std::cerr << "unexpected warning: " << w << std::endl;
+        }
+        CHECK(again.warnings().empty());
+        for (auto &id : t.ids()) {
+            CHECK(again.keys(id) == t.keys(id));
+        }
+        CHECK(again.keys("a.zoom").empty());
+    }
+
+    // the mouse modifier is part of the layer too
+    {
+        ShortcutTable base = small(lin);
+        ShortcutTable t = base;
+        CHECK(t.dumpOverrides(base).find("mouse_primary_modifier") ==
+              std::string::npos);
+        t.applyOverrides(R"({"mouse_primary_modifier": "Ctrl"})", false);
+        const std::string json = t.dumpOverrides(base);
+        CHECK(json.find("\"mouse_primary_modifier\": \"Ctrl\"") !=
+              std::string::npos);
+        ShortcutTable again = base;
+        again.applyOverrides(json, false);
+        CHECK(again.mouseModifier() == shortcut_mod::Ctrl);
+        // set directly, as the editor does, and back
+        ShortcutTable u = base;
+        u.setMouseModifier(shortcut_mod::Ctrl);
+        CHECK(u.dumpOverrides(base) == json);
+        u.setMouseModifier(shortcut_mod::Primary);
+        CHECK(u.dumpOverrides(base).find("mouse_primary_modifier") ==
+              std::string::npos);
+    }
+
+    // the real table, on a Mac-like layout: edit, dump, reload
+    {
+        auto mac = ModifierMasks::mac_like();
+        ShortcutTable base(mac);
+        defineDefaultShortcuts(base);
+        ShortcutTable t = base;
+        t.setKeys("editor.zoom_fit", {key(mac, "Primary+Alt+f")});
+        t.setKeys("editor.undo", {});
+        const std::string json = t.dumpOverrides(base);
+        ShortcutTable again = base;
+        again.applyOverrides(json, false);
+        CHECK(again.warnings().empty());
+        for (auto &id : t.ids()) {
+            CHECK(again.keys(id) == t.keys(id));
+        }
+    }
+}
+
 int main()
 {
     testParse();
@@ -747,6 +857,7 @@ int main()
     testLayers();
     testMouseModifier();
     testLookup();
+    testEditing();
     testDefaults();
     testDisplay();
     testPlaceholders();

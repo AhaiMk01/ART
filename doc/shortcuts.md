@@ -6,6 +6,33 @@ All keyboard shortcuts of the ART GUI are defined in one place
 
 ## Customising
 
+### The Preferences tab
+
+The **Shortcuts** tab of the Preferences shows all the actions as a tree, with
+the same hierarchy as the ids in `shortcuts.json` (`editor` → `zoom_fit`, ...).
+Select an action, then:
+
+* **Change...** (or double-click) records a key press that replaces all of its
+  keys; **Add key...** records an additional one; **Disable** removes all of
+  them; **Reset** goes back to the standard keys; **Reset all** does that for
+  every action. Customised actions are shown in bold.
+* The search box above the tree filters it by action name, id or key (a
+  matching group is shown with everything in it).
+* On macOS, the "Modifier of the mouse actions" choice below the tree sets
+  `mouse_primary_modifier` (Cmd or Ctrl); it is not shown elsewhere, where the
+  two are the same key. **Reset all** restores it too.
+* If another action of the same context already uses the key, you are asked
+  whether to take it away from that one.
+* Nothing is written until you press OK, and the new keys are used from the
+  next start of ART.
+
+Saving **rewrites** your `shortcuts.json`: it will contain only the actions
+that differ from the standard keys (the built-in defaults with the installed
+`shortcuts.json` on top, see below), and comments are not kept. The first time
+this replaces an existing file, the old one is saved as `shortcuts.json.bak`.
+
+### Editing the file
+
 Create `shortcuts.json` in the ART configuration folder (the one that
 contains the `options` file, `~/.config/ART` by default). On startup ART
 also writes `shortcuts_reference.json` there, listing every action with its

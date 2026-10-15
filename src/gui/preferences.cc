@@ -123,6 +123,8 @@ Preferences::Preferences(RTWindow *rtwindow)
     nb->append_page(*getDynamicProfilePanel(),
                     M("PREFERENCES_TAB_DYNAMICPROFILE"));
     nb->append_page(*getFileBrowserPanel(), M("PREFERENCES_TAB_BROWSER"));
+    shortcutsEditor_ = Gtk::manage(new ShortcutsEditor());
+    nb->append_page(*shortcutsEditor_, M("PREFERENCES_TAB_SHORTCUTS"));
     nb->append_page(*getColorManPanel(), M("PREFERENCES_TAB_COLORMGR"));
     nb->append_page(*getPerformancePanel(), M("PREFERENCES_TAB_PERFORMANCE"));
     // Sounds only on Windows and Linux
@@ -2793,6 +2795,16 @@ void Preferences::okPressed()
     }
 
     dynProfilePanel->save();
+
+    std::string shortcuts_err;
+    if (!shortcutsEditor_->save(shortcuts_err)) {
+        Gtk::MessageDialog msgd(
+            getToplevelWindow(this),
+            Glib::ustring::compose(M("PREFERENCES_SHORTCUTS_SAVEERROR"),
+                                   shortcuts_err),
+            true, Gtk::MESSAGE_WARNING, Gtk::BUTTONS_CLOSE, true);
+        msgd.run();
+    }
     hide();
 }
 

@@ -92,6 +92,8 @@ void ShortcutsManager::init(const Glib::ustring &system_dir,
     // two layers on top of the built-in defaults: the shortcuts.json installed
     // with ART, then the user's one. Problems are reported with the name of
     // the file they were found in.
+    system_dir_ = system_dir;
+    user_dir_ = user_config_dir;
     std::vector<std::string> loaded;
     for (const auto &dir : {system_dir, user_config_dir}) {
         if (dir.empty()) {
@@ -131,6 +133,48 @@ void ShortcutsManager::init(const Glib::ustring &system_dir,
                 table_->mouseModifierName().c_str(), table_->mousePrimaryMask(),
                 table_->label("editor.save").c_str());
     }
+}
+
+
+ShortcutTable ShortcutsManager::baselineTable() const
+{
+    ShortcutTable t(table_->masks());
+    defineDefaultShortcuts(t);
+    if (!system_dir_.empty()) {
+        t.loadFile(Glib::build_filename(system_dir_, USER_FILE), false);
+    }
+    return t;
+}
+
+
+bool ShortcutsManager::saveUserFile(const ShortcutTable &edited,
+                                    std::string &err) const
+{
+    if (user_dir_.empty()) {
+        err = "no configuration folder";
+        return false;
+    }
+    const std::string text = edited.dumpOverrides(baselineTable());
+    const std::string path = Glib::build_filename(user_dir_, USER_FILE);
+    const std::string backup = path + ".bak";
+
+    if (Glib::file_test(path, Glib::FILE_TEST_IS_REGULAR) &&
+        !Glib::file_test(backup, Glib::FILE_TEST_EXISTS)) {
+        try {
+            Glib::file_set_contents(backup, Glib::file_get_contents(path));
+        } catch (Glib::Error &e) {
+            err = "cannot back up " + path + ": " + e.what();
+            return false;
+        }
+    }
+    try {
+        // atomic: a crash must not leave half a file
+        Glib::file_set_contents(path, text);
+    } catch (Glib::Error &e) {
+        err = "cannot write " + path + ": " + e.what();
+        return false;
+    }
+    return true;
 }
 
 

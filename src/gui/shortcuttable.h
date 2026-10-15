@@ -123,6 +123,14 @@ std::vector<ShortcutKey> shortcutCandidates(const ModifierMasks &masks,
                                             guint base_keyval,
                                             guint typed_keyval, guint state);
 
+/// The key to record for a key press in a "press the new shortcut" prompt:
+/// the first of shortcutCandidates(), except that a symbol typed with Shift
+/// ("plus" from Shift+equal, "less" from Shift+comma) is recorded as the
+/// symbol itself, as the built-in defaults spell it. Digits and function keys
+/// keep their explicit Shift ("Shift+1", "Shift+F3").
+ShortcutKey shortcutFromEvent(const ModifierMasks &masks, guint base_keyval,
+                              guint typed_keyval, guint state);
+
 
 struct ShortcutAction {
     std::string id;      // stable dotted name; the key used in shortcuts.json
@@ -152,6 +160,13 @@ public:
     const ShortcutAction *find(const std::string &id) const;
     const std::vector<ShortcutKey> &keys(const std::string &id) const;
     bool isCustomized(const std::string &id) const;
+
+    /// Replace the keys of an action (for an editor; the duplicates are
+    /// dropped). Does not check for clashes: see findConflict().
+    void setKeys(const std::string &id, const std::vector<ShortcutKey> &keys);
+    /// The id of another action of the same context and phase as `id` that
+    /// already has `key`, "" if there is none.
+    std::string findConflict(const std::string &id, const ShortcutKey &key) const;
 
     /// Overlay the contents of a shortcuts.json on the bindings. With `reset`
     /// (the default) they are first set back to the defaults; without it the
@@ -190,6 +205,12 @@ public:
     /// "mouse_primary_modifier" in shortcuts.json. They differ only where
     /// Primary is not the Ctrl key, i.e. on macOS.
     unsigned mouseModifier() const { return mouse_modifier_; }
+    /// `mod` is shortcut_mod::Primary or shortcut_mod::Ctrl (for an editor)
+    void setMouseModifier(unsigned mod)
+    {
+        mouse_modifier_ = mod == shortcut_mod::Ctrl ? shortcut_mod::Ctrl
+                                                    : shortcut_mod::Primary;
+    }
     /// Its GDK mask, to test the state of mouse and scroll events
     guint mousePrimaryMask() const
     {
@@ -210,6 +231,12 @@ public:
     /// shortcuts.json that can be edited to customise them. With `header` it
     /// starts with a comment explaining the structure and the key syntax.
     std::string dumpJson(bool defaults_only = false, bool header = false) const;
+
+    /// A shortcuts.json for the user's layer: only what differs from
+    /// `baseline` (a table with the same actions, with the built-in defaults
+    /// and the installed layer applied). Applying it on top of that baseline
+    /// gives back this table. A disabled action is written as [].
+    std::string dumpOverrides(const ShortcutTable &baseline) const;
 
 private:
     struct Entry {

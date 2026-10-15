@@ -133,6 +133,18 @@ public:
 
     const ShortcutTable &table() const { return *table_; }
 
+    /// A table as it was before the user's shortcuts.json: the built-in
+    /// defaults with the installed shortcuts.json on top. What an action goes
+    /// back to when its customisation is removed.
+    ShortcutTable baselineTable() const;
+
+    /// Write the user's shortcuts.json so that, on the next start, the keys
+    /// are those of `edited` (a modified copy of table()). Only what differs
+    /// from baselineTable() is written. An existing file is kept once as
+    /// shortcuts.json.bak. Does not change the running table: the new keys
+    /// are used from the next start. Returns false and sets `err` on failure.
+    bool saveUserFile(const ShortcutTable &edited, std::string &err) const;
+
 private:
     ShortcutsManager();
     std::vector<ShortcutKey> candidates(GdkEventKey *event) const;
@@ -143,6 +155,8 @@ private:
     };
 
     std::unique_ptr<ShortcutTable> table_;
+    std::string system_dir_;
+    std::string user_dir_;
     std::map<std::pair<const void *, std::string>, Binding> bindings_;
     bool debug_;
 };

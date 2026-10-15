@@ -290,6 +290,22 @@ std::vector<ShortcutKey> shortcutCandidates(const ModifierMasks &masks,
 }
 
 
+ShortcutKey shortcutFromEvent(const ModifierMasks &masks, guint base_keyval,
+                              guint typed_keyval, guint state)
+{
+    const auto cands =
+        shortcutCandidates(masks, base_keyval, typed_keyval, state);
+    // the second candidate is only there for a Shift-typed non-letter; it is
+    // a different symbol from the base key for "plus" or "less", but just the
+    // same key without Shift for Shift+F3 or Shift+Up
+    if (cands.size() > 1 && cands[1].keyval != cands[0].keyval &&
+        !(cands[0].keyval >= GDK_KEY_0 && cands[0].keyval <= GDK_KEY_9)) {
+        return cands[1];
+    }
+    return cands[0];
+}
+
+
 ShortcutTable::ShortcutTable(const ModifierMasks &masks): masks_(masks) {}
 
 
@@ -369,6 +385,43 @@ bool ShortcutTable::isCustomized(const std::string &id) const
 {
     int i = index(id);
     return i >= 0 && entries_[i].custom;
+}
+
+
+void ShortcutTable::setKeys(const std::string &id,
+                            const std::vector<ShortcutKey> &keys)
+{
+    int i = index(id);
+    if (i < 0) {
+        return;
+    }
+    auto &e = entries_[i];
+    e.keys.clear();
+    for (auto &k : keys) {
+        if (std::find(e.keys.begin(), e.keys.end(), k) == e.keys.end()) {
+            e.keys.push_back(k);
+        }
+    }
+    e.custom = e.keys != e.defaults;
+}
+
+
+std::string ShortcutTable::findConflict(const std::string &id,
+                                        const ShortcutKey &key) const
+{
+    int i = index(id);
+    if (i < 0) {
+        return "";
+    }
+    for (size_t j = 0; j < entries_.size(); ++j) {
+        auto &o = entries_[j];
+        if (int(j) != i && o.action.context == entries_[i].action.context &&
+            o.action.phase == entries_[i].action.phase &&
+            std::find(o.keys.begin(), o.keys.end(), key) != o.keys.end()) {
+            return o.action.id;
+        }
+    }
+    return "";
 }
 
 
@@ -743,6 +796,58 @@ std::string ShortcutTable::dumpJson(bool defaults_only, bool header) const
         res += i + 1 < entries_.size() ? ",\n" : "\n";
     }
     res += "  }\n}\n";
+    return res;
+}
+
+
+namespace {
+
+const char *const OVERRIDES_HEADER =
+    R"(// ART keyboard shortcuts, written by the shortcuts editor of the Preferences.
+//
+// Only the actions whose keys differ from the standard ones are listed; an
+// action listed here replaces all of its standard keys, and [] disables it.
+// The file can be edited by hand: the syntax, and all the actions with their
+// standard keys, are described in shortcuts_reference.json in this folder.
+// Note that saving from the Preferences rewrites this file (comments are not
+// kept; the previous version is saved once as shortcuts.json.bak).
+)";
+
+} // namespace
+
+
+std::string ShortcutTable::dumpOverrides(const ShortcutTable &baseline) const
+{
+    std::string res = std::string(OVERRIDES_HEADER) + "\n{\n  \"version\": 1";
+    if (mouse_modifier_ != baseline.mouse_modifier_) {
+        res += std::string(",\n\n  \"mouse_primary_modifier\": \"") +
+               (mouse_modifier_ == sm::Ctrl ? "Ctrl" : "Primary") + "\"";
+    }
+    res += ",\n\n  \"bindings\": {";
+    std::string ctx;
+    bool first = true;
+    for (auto &e : entries_) {
+        if (e.keys == baseline.keys(e.action.id)) {
+            continue;
+        }
+        if (!first) {
+            res += ",";
+        }
+        if (e.action.context != ctx) {
+            ctx = e.action.context;
+            res += std::string(first ? "\n" : "\n\n") + "    // " + ctx + "\n";
+        } else {
+            res += "\n";
+        }
+        first = false;
+        res += "    \"" + e.action.id + "\": [";
+        for (size_t j = 0; j < e.keys.size(); ++j) {
+            res += (j ? ", \"" : "\"") +
+                   formatShortcutKey(e.keys[j], masks_) + "\"";
+        }
+        res += "]";
+    }
+    res += first ? "}\n}\n" : "\n  }\n}\n";
     return res;
 }
 

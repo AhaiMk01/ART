@@ -1194,6 +1194,20 @@ PREFERENCES_SELECTLANG;Select language
 PREFERENCES_SERIALIZE_TIFF_READ;TIFF Read Settings
 PREFERENCES_SERIALIZE_TIFF_READ_LABEL;Serialize reading of TIFF files
 PREFERENCES_SERIALIZE_TIFF_READ_TOOLTIP;Enabling this option when working with folders containing uncompressed TIFF files can increase performance of thumbnail generation.
+PREFERENCES_SHORTCUTS_ACTION;Action
+PREFERENCES_SHORTCUTS_ADD;Add key...
+PREFERENCES_SHORTCUTS_CHANGE;Change...
+PREFERENCES_SHORTCUTS_CONFLICT;<b>%1</b> is already used by <b>%2</b>.\n\nAssign it here and remove it from there?
+PREFERENCES_SHORTCUTS_ESC;(Esc to cancel)
+PREFERENCES_SHORTCUTS_KEYS;Shortcut
+PREFERENCES_SHORTCUTS_MOUSEMOD;Modifier of the mouse actions (Ctrl-click...)
+PREFERENCES_SHORTCUTS_MOUSEMOD_TIP;The key used with the mouse for resetting sliders, fast export, extending selections, drawing in the tools... On macOS the older versions of ART used Ctrl; the system convention is Cmd (and Ctrl-click is a right click).
+PREFERENCES_SHORTCUTS_PRESS;Press the new shortcut
+PREFERENCES_SHORTCUTS_REASSIGN;Reassign
+PREFERENCES_SHORTCUTS_RESETALL;Reset all
+PREFERENCES_SHORTCUTS_SEARCH;Search actions and keys
+PREFERENCES_SHORTCUTS_RESTART;Changes to the shortcuts take effect the next time ART is started. Customised shortcuts are shown in bold.
+PREFERENCES_SHORTCUTS_SAVEERROR;The shortcuts could not be saved:\n%1
 PREFERENCES_SHOWBASICEXIF;Show basic Exif info
 PREFERENCES_SHOWDATETIME;Show date and time
 PREFERENCES_SHOWEXPOSURECOMPENSATION;Append exposure compensation
@@ -1219,6 +1233,7 @@ PREFERENCES_TAB_FASTEXPORT;Fast Export
 PREFERENCES_TAB_GENERAL;General
 PREFERENCES_TAB_IMPROC;Image Processing
 PREFERENCES_TAB_PERFORMANCE;Performance
+PREFERENCES_TAB_SHORTCUTS;Keyboard Shortcuts
 PREFERENCES_TAB_SOUND;Sounds
 PREFERENCES_THUMBNAIL_DELAY_UPDATE;Delay update of thumbnail images while opening directories
 PREFERENCES_THUMBNAIL_LAZY_CACHING;Lazy caching of thumbnail images

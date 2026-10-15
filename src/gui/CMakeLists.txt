@@ -164,6 +164,7 @@ set(NONCLISOURCEFILES
     focusmask.cc
     shortcutmanager.cc
     shortcutsmanager.cc
+    shortcutseditor.cc
     shortcuttable.cc
     shortcutdefs.cc
     session.cc
