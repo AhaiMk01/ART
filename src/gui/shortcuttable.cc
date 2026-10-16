@@ -468,8 +468,8 @@ bool ShortcutTable::contextsOverlap(const std::string &a, const std::string &b)
 {
     // the chains of contexts that the windows ask, see the dispatch() calls
     static const std::vector<std::vector<std::string>> groups = {
-        {"window", "mainwindow", "editor", "editor-scroll", "toolbar",
-         "toolpanel", "tool"},
+        {"window", "mainwindow", "editor", "editor-scroll", "editor-before",
+         "toolbar", "toolpanel", "tool"},
         {"window", "mainwindow", "filecatalog-session", "filecatalog",
          "filebrowser", "filebrowser-inspector", "inspector", "filepanel"},
         {"window", "mainwindow", "queuepanel", "queue"}};

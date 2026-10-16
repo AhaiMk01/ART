@@ -38,6 +38,7 @@ namespace art { namespace gui {
  *   mainwindow        quit, switching main tabs (RTWindow only)
  *   editor            EditorPanel
  *   editor-scroll     EditorPanel, before the focus widget
+ *   editor-before     EditorPanel, before the focus widget (masks)
  *   toolbar           the tool buttons next to the preview
  *   toolpanel         the tool notebook tabs
  *   tool              held-key adjuster shortcuts + F1 help
@@ -49,7 +50,7 @@ namespace art { namespace gui {
  *   filebrowser-inspector  FileBrowser, while the inspector is active
  *   inspector, inspector-popover
  *   queuepanel, queue BatchQueuePanel, BatchQueue
- *   maskspanel, drawnmask
+ *   drawnmask
  *   saveas
  */
 void defineDefaultShortcuts(ShortcutTable &t)
@@ -303,11 +304,16 @@ void defineDefaultShortcuts(ShortcutTable &t)
     add("queue.select_row_down", "queue", {"Down", "Shift+Down"});
 
     // ---- masks and dialogs
-    // these two panels see the key before the focused widget does
+    // the drawn mask panel sees the key before the focused widget does
     add("drawnmask.undo", "drawnmask", {"Primary+z"}, Phase::Before);
     add("drawnmask.reset", "drawnmask", {"Primary+Shift+z"}, Phase::Before);
-    add("masks.toggle_show", "maskspanel", {"Primary+m"}, Phase::Before);
-    add("masks.toggle_selected_enabled", "maskspanel", {"Primary+x"},
+    // the mask panel that the user last worked on, when the local editing tab
+    // is the active one and wherever the focus is in the editor (the editor
+    // keeps track of it). Ctrl+X is asked before the focused widget: the
+    // masks list would pass it to its search box, which cuts. A text field
+    // that has the focus keeps its keys.
+    add("masks.toggle_show", "editor", {"Primary+m"});
+    add("masks.toggle_selected_enabled", "editor-before", {"Primary+x"},
         Phase::Before);
     add("saveas.ok", "saveas", {"Primary+Return", "Primary+KP_Enter"});
 }

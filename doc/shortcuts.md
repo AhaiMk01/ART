@@ -226,6 +226,15 @@ default).
 | `editor.add_snapshot` | `Alt+S` |
 | `editor.previous_image` | `Shift+F3` |
 | `editor.next_image` | `Shift+F4` |
+| `masks.toggle_show` | `Ctrl+M` |
+
+`masks.toggle_show` shows (or hides) the mask of the region that you last worked on
+in any tool (the last region selected, or whose mask was shown), and
+`masks.toggle_selected_enabled` enables or disables that region. Both work
+wherever the focus is in the editor, but only while the Local editing tab of
+the tool panel is shown. `masks.toggle_selected_enabled` is asked before the
+focused widget (the list of regions would pass Ctrl+X to its search box, which
+treats it as "cut"), except while a text field has the focus.
 
 ### `editor-scroll` – The editor: moving the image with the keyboard
 
@@ -235,6 +244,12 @@ default).
 | `editor.scroll_down` | `Ctrl+Down`, `Ctrl+KP_Down` |
 | `editor.scroll_left` | `Ctrl+Left`, `Ctrl+KP_Left` |
 | `editor.scroll_right` | `Ctrl+Right`, `Ctrl+KP_Right` |
+
+### `editor-before` – The editor: masks, asked before the focused widget
+
+| Action | Default keys |
+|---|---|
+| `masks.toggle_selected_enabled` | `Ctrl+X` |
 
 ### `toolbar` – The tool buttons next to the preview
 
@@ -463,13 +478,6 @@ default).
 |---|---|
 | `drawnmask.undo` | `Ctrl+Z` |
 | `drawnmask.reset` | `Ctrl+Shift+Z` |
-
-### `maskspanel` – The masks list
-
-| Action | Default keys |
-|---|---|
-| `masks.toggle_show` | `Ctrl+M` |
-| `masks.toggle_selected_enabled` | `Ctrl+X` |
 
 ### `saveas` – The "Save as" dialog
 

@@ -221,6 +221,8 @@ private:
 public:
     CoarsePanel *coarse;
     Gtk::Notebook *toolPanelNotebook;
+    /// Whether the "local editing" tab of the tool panel is the shown one
+    bool localEditingTabActive() const;
 
     ToolPanelCoordinator(bool batch = false);
     ~ToolPanelCoordinator() override;

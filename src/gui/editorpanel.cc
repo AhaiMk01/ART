@@ -18,6 +18,7 @@
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "editorpanel.h"
+#include "maskspanel.h"
 
 #include <iostream>
 
@@ -1749,6 +1750,25 @@ void EditorPanel::bindShortcuts()
     run("editor.zoom_fit",
         [this]() { iareapanel->imageArea->zoomPanel->zoomFitClicked(); });
 
+    // the masks of the tools of the local editing tab: those of the region
+    // that was last worked on, in whichever tool
+    const auto local_tab = [this]() { return tpc->localEditingTabActive(); };
+    bind("masks.toggle_show",
+         [this]() { return MasksPanel::toggleShowLastActive(*this); },
+         local_tab);
+    // (asked before the focused widget: not while a text field has the focus,
+    // where Ctrl+X is "cut")
+    bind("masks.toggle_selected_enabled",
+         [this]() {
+             return MasksPanel::toggleSelectedEnabledLastActive(*this);
+         },
+         [this, local_tab]() {
+             auto top = dynamic_cast<Gtk::Window *>(get_toplevel());
+             Gtk::Widget *f = top ? top->get_focus() : nullptr;
+             return local_tab() && !dynamic_cast<Gtk::Editable *>(f) &&
+                    !dynamic_cast<Gtk::TextView *>(f);
+         });
+
     // previews
     run("editor.toggle_red_preview",
         [this]() { iareapanel->imageArea->previewModePanel->toggleR(); });
@@ -1877,7 +1897,8 @@ bool EditorPanel::handleShortcutKey(GdkEventKey *event)
 bool EditorPanel::keyPressedBefore(GdkEventKey *event)
 {
     return ShortcutsManager::getInstance()->dispatch(
-        event, ShortcutPhase::Before, {{"editor-scroll", this}});
+        event, ShortcutPhase::Before,
+        {{"editor-scroll", this}, {"editor-before", this}});
 }
 
 bool EditorPanel::keyReleased(GdkEventKey *event)

@@ -127,6 +127,16 @@ public:
                   int &show_mask_idx);
     int getSelected();
 
+    /// What the "show mask" shortcut does in the editor `editor`: toggle the
+    /// display of the mask of the region that the user last worked on (the
+    /// last one selected, or shown, in any of the mask panels of the tools of
+    /// that editor), and switch off the mask shown by another panel. False if
+    /// there is no such panel.
+    static bool toggleShowLastActive(Gtk::Widget &editor);
+    /// Likewise for "enable/disable the selected region" (the checkbox of
+    /// its row in the list)
+    static bool toggleSelectedEnabledLastActive(Gtk::Widget &editor);
+
     void adjusterChanged(Adjuster *a, double newval) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
     void curveChanged(CurveEditor *ce) override;
@@ -197,6 +207,11 @@ private:
     void onMaskInvertedChanged();
     void onAreaMaskToggleChanged();
     void onShowMaskChanged();
+    // this panel is where the user is working: see toggleShowLastActive()
+    void markActive();
+    bool usable() const;
+    void toggleSelectedEnabled();
+    static MasksPanel *lastActive(Gtk::Widget &editor);
     void onAreaShapeSelectionChanged();
     void onAreaShapeResetPressed();
     void onAreaShapeAddPressed();
@@ -318,6 +333,7 @@ private:
     Adjuster *lightnessMaskDetail;
     Adjuster *maskBlur;
     Gtk::CheckButton *showMask;
+    unsigned long last_used_ = 0; // 0: never, else the later the more recent
     sigc::connection selectionConn;
     Gtk::CheckButton *maskInverted;
     MyExpander *areaMask;

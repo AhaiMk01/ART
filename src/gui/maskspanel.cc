@@ -19,6 +19,7 @@
  */
 
 #include "maskspanel.h"
+#include <algorithm>
 #include "../engine/iccstore.h"
 #include "eventmapper.h"
 #include "shortcutsmanager.h"
@@ -983,10 +984,98 @@ bool on_release_event_ignore(GdkEventButton *event) { return true; }
 
 } // namespace
 
+namespace {
+
+// all the mask panels (those of the tools of every open editor)
+std::vector<MasksPanel *> &allMasksPanels()
+{
+    static std::vector<MasksPanel *> panels;
+    return panels;
+}
+
+unsigned long &masksActivationCounter()
+{
+    static unsigned long counter = 0;
+    return counter;
+}
+
+} // namespace
+
+
+void MasksPanel::markActive() { last_used_ = ++masksActivationCounter(); }
+
+
+// a panel that can show a mask: its tool is on (otherwise it has no listener
+// to tell) and it has a region selected
+bool MasksPanel::usable() const
+{
+    return cp_->listener() && selected_ < masks_.size();
+}
+
+
+MasksPanel *MasksPanel::lastActive(Gtk::Widget &editor)
+{
+    MasksPanel *res = nullptr;
+    for (auto p : allMasksPanels()) {
+        if (p->last_used_ && p->usable() && p->is_ancestor(editor) &&
+            (!res || p->last_used_ > res->last_used_)) {
+            res = p;
+        }
+    }
+    return res;
+}
+
+
+bool MasksPanel::toggleShowLastActive(Gtk::Widget &editor)
+{
+    MasksPanel *target = lastActive(editor);
+    if (!target) {
+        return false;
+    }
+    const bool on = !target->showMask->get_active();
+    if (on) {
+        // only one mask is shown at a time
+        for (auto p : allMasksPanels()) {
+            if (p != target && p->is_ancestor(editor) &&
+                p->showMask->get_active()) {
+                p->showMask->set_active(false);
+            }
+        }
+    }
+    target->showMask->set_active(on);
+    return true;
+}
+
+
+bool MasksPanel::toggleSelectedEnabledLastActive(Gtk::Widget &editor)
+{
+    if (MasksPanel *target = lastActive(editor)) {
+        target->toggleSelectedEnabled();
+        return true;
+    }
+    return false;
+}
+
+
+void MasksPanel::toggleSelectedEnabled()
+{
+    if (selected_ < masks_.size()) {
+        listEdited = true;
+        auto it = list_model_->children().begin();
+        for (size_t i = 0; i < selected_; ++i) {
+            ++it;
+        }
+        onListEnabledToggled(Gtk::TreePath(it).to_string());
+        maskShow(selected_, true);
+    }
+}
+
+
 MasksPanel::MasksPanel(MasksContentProvider *cp)
     : Gtk::VBox(), cp_(cp), masks_(), selected_(0), area_shape_index_(0),
       listEdited(false), adl_(nullptr), deltaE_provider_(nullptr)
 {
+    allMasksPanels().push_back(this);
     Gtk::Container *child = cp_->getContainer();
     MasksContentProvider::Events events;
     cp_->getEvents(events);
@@ -1050,6 +1139,14 @@ MasksPanel::MasksPanel(MasksContentProvider *cp)
         list_enabled_column_.set_widget(*img);
     }
     list = Gtk::manage(new Gtk::TreeView());
+    // clicking the list (even on the region that is selected already) is
+    // working with this panel
+    list->signal_button_press_event().connect(
+        [this](GdkEventButton *) {
+            markActive();
+            return false;
+        },
+        false);
     list->set_model(list_model_);
     list->set_size_request(-1, 150);
     list->set_can_focus(false);
@@ -1649,32 +1746,19 @@ MasksPanel::MasksPanel(MasksContentProvider *cp)
 
     add_events(Gdk::KEY_PRESS_MASK);
     auto sm = ShortcutsManager::getInstance();
-    sm->bind(this, "masks.toggle_show", [this](GdkEventKey *) {
-        showMask->set_active(!showMask->get_active());
-        return true;
-    });
-    sm->bind(this, "masks.toggle_selected_enabled", [this](GdkEventKey *) {
-        if (selected_ < masks_.size()) {
-            listEdited = true;
-            auto it = list_model_->children().begin();
-            for (size_t i = 0; i < selected_; ++i) {
-                ++it;
-            }
-            onListEnabledToggled(Gtk::TreePath(it).to_string());
-            maskShow(selected_, true);
-        }
-        return true;
-    });
+    // typing in this panel is working with it
     signal_key_press_event().connect(
-        [this](GdkEventKey *evt) -> bool {
-            return ShortcutsManager::getInstance()->dispatch(
-                evt, ShortcutPhase::Before, {{"maskspanel", this}});
+        [this](GdkEventKey *) -> bool {
+            markActive();
+            return false;
         },
         false);
 }
 
 MasksPanel::~MasksPanel()
 {
+    auto &all = allMasksPanels();
+    all.erase(std::remove(all.begin(), all.end(), this), all.end());
     ShortcutsManager::getInstance()->unbindOwner(this);
     delete areaMaskToggle;
 }
@@ -1707,6 +1791,7 @@ void MasksPanel::onSelectionChanged()
     auto s = list->get_selection()->get_selected_rows();
     if (!s.empty()) {
         int idx = s[0][0];
+        markActive();
         // update the selected values
         maskGet(selected_);
         cp_->selectionChanging(selected_);
@@ -1932,6 +2017,9 @@ void MasksPanel::onResetPressed()
 
 void MasksPanel::onShowMaskChanged()
 {
+    if (showMask->get_active()) {
+        markActive();
+    }
     auto l = getListener();
     if (l) {
         l->panelChanged(EvShowMask, showMask->get_active()
@@ -2567,6 +2655,7 @@ void MasksPanel::setMasks(const std::vector<art::engine::procparams::Mask> &mask
         selected_ = selected_idx;
         if (show_mask) {
             showMask->set_active(true);
+            markActive(); // its mask is on display: this is the one to toggle
         }
     }
     static_cast<DrawnMaskPanel *>(drawnMask)->setTargetMask(nullptr);
