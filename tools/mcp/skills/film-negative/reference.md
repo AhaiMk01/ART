@@ -450,6 +450,12 @@ A roll shares film and digitization, so its channel slopes are common; each
 frame adds its own offset (scene light, printer light). Fit them together
 (as Fuji's roll-pooled grey axis, US 6665434: `Dg = a*Dr + b`).
 
+`scripts/pooled_fit.py` (run with `uv run`; input format in its docstring)
+does steps 2 to 7 and prints the slope checks, the D_G range the slope was
+checked over, each frame's shrinkage and how far its offset lies from the
+rest of its light group. Use it rather than writing a fit; the judgement
+(picks, basis, light groups, what a deviation means) stays yours.
+
 1. Evidence: the table from "Choosing neutral references". Fit `material`
    rows only; read `uncertain` rows against the fit; `C` rows only describe
    the light.
@@ -488,12 +494,20 @@ frame adds its own offset (scene light, printer light). Fit them together
    `o_final = mean + lam * (o_fit - mean)`, `lam = tau^2 / (tau^2 + SE^2)`,
    SE from the frame's weights times the robust scale, `tau^2` the spread of
    offsets around their group mean minus the mean SE^2 (R and B pooled),
-   `mean` weighted by `1/(tau^2 + SE^2)`. Count a frame as weak when one
+   `mean` weighted by `1/(tau^2 + SE^2)`. Groups follow the scene's
+   light, never a capture setting (shutter, session, frame order): the
+   capture difference is removed by exposure normalization, which predicts
+   no colour. Split off a capture subset only on evidence independent of
+   scene content (unexposed film, one reference seen in both subsets), not
+   because a few of its frames' offsets differ; that difference is part of
+   the spread `tau` measures. A frame without neutrals takes the mean of
+   its light group over the whole roll. Count a frame as weak when one
    material sets its offset, or only neutrals brighter than the D_G range
    where the slope was checked (neutral there, mid-tones can be off).
-7. Fold into NamiColor (input gain 1, master and black 0), keeping green's
-   `den_G` and `s_G`, `a = 1 - log10(16)`: `den_c = k_c * den_G`,
-   `gain_c = 1 - den_c`, `shift_c = k_c * (a + s_G) - a - o_final,cf`.
+7. Fold into NamiColor (input gain `g`, master and black 0), keeping
+   green's `den_G` and `s_G`, `a = 1 - g * log10(16)`: `den_c = k_c * den_G`,
+   `gain_c = 1 - den_c`, `shift_c = k_c * (a + s_G) - a - g * o_final,cf`,
+   plus `g * log10(s)` on every channel for the frame's capture exposure.
 
 Report each frame's offset and lam in plain terms (warm late sun, shop
 light). Removing a real warm or cool light is a choice: a frame whose light
@@ -650,7 +664,13 @@ Principles:
   asphalt, deep shadow under an object on such a surface. Not stone,
   concrete (most sidewalks and paths), gravel, brick, roofs, bare metal,
   foliage, fabric or anything coloured; an unlisted material (vinyl,
-  plastic, cardboard, plaster or whitewash walls) is `uncertain`.
+  plastic, cardboard, plaster or whitewash walls) is `uncertain`. White
+  means white: cream, ivory, beige and pastel paint are coloured, and
+  building facades often are. On an uncorrected render they look alike,
+  so a paint's whiteness is a claim to check. When one or a few frames'
+  offsets stand apart from the rest of their light, first suspect that
+  their white is off-white; it is `uncertain` unless a sure neutral in the
+  same frame agrees.
 - One light: surfaces lit by the frame's main light (a subject wholly in
   shade or indoors: that light). Undersides, back-lit faces and shadows on
   grass take the colour of what lights them; in a sunlit frame a cast

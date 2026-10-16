@@ -11,6 +11,7 @@ art-mcp-live = "art_mcp.live.server:main"
 
 [dependency-groups]
 dev = [
+    "numpy>=1.24",
     "pytest>=8",
     "ruff>=0.16",
 ]
