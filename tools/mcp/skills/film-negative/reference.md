@@ -494,9 +494,12 @@ rest of its light group. Use it rather than writing a fit; the judgement
    `o_final = mean + lam * (o_fit - mean)`, `lam = tau^2 / (tau^2 + SE^2)`,
    SE from the frame's weights times the robust scale, `tau^2` the spread of
    offsets around their group mean minus the mean SE^2 (R and B pooled),
-   `mean` weighted by `1/(tau^2 + SE^2)`. Groups follow the scene's
-   light, never a capture setting (shutter, session, frame order): the
-   capture difference is removed by exposure normalization, which predicts
+   `mean` weighted by `1/(tau^2 + SE^2)`. Groups follow the frame's main
+   light (sun, overcast sky, one interior), not where a few of its
+   neutrals happen to sit: a sunlit or overcast frame with neutrals in
+   shade is still a daylight frame, and a skylight-shade group's mean
+   warms any frame lit otherwise. Never group by a capture setting
+   (shutter, session, frame order): the capture difference is removed by exposure normalization, which predicts
    no colour. Split off a capture subset only on evidence independent of
    scene content (unexposed film, one reference seen in both subsets), not
    because a few of its frames' offsets differ; that difference is part of
@@ -667,10 +670,11 @@ Principles:
   plastic, cardboard, plaster or whitewash walls) is `uncertain`. White
   means white: cream, ivory, beige and pastel paint are coloured, and
   building facades often are. On an uncorrected render they look alike,
-  so a paint's whiteness is a claim to check. When one or a few frames'
-  offsets stand apart from the rest of their light, first suspect that
-  their white is off-white; it is `uncertain` unless a sure neutral in the
-  same frame agrees.
+  so a paint's whiteness is a claim to check, not a reason to doubt every
+  white. Demote a white on evidence: its frame's offset stands apart from
+  the rest of its light, or it reads tinted beside a sure neutral in the
+  same frame. Without such evidence it stays `material`; demoting good
+  whites leaves the frame to a borrowed offset.
 - One light: surfaces lit by the frame's main light (a subject wholly in
   shade or indoors: that light). Undersides, back-lit faces and shadows on
   grass take the colour of what lights them; in a sunlit frame a cast
