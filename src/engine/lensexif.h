@@ -62,6 +62,8 @@ private:
     std::unique_ptr<CorrectionData> data_;
     std::vector<float> knots_;
     std::vector<float> dist_;
+    std::vector<float> dist_knots_;
+    bool dist_r2_;
     std::vector<float> vig_;
     std::array<std::vector<float>, 3> ca_;
     bool is_dng_;
