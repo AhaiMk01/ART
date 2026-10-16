@@ -166,6 +166,7 @@ set(NONCLISOURCEFILES
     shortcutsmanager.cc
     shortcutseditor.cc
     shortcuttable.cc
+    systemshortcuts.cc
     shortcutdefs.cc
     session.cc
     thumbimgcache.cc
@@ -349,7 +350,7 @@ if(HAS_MIMALLOC)
 endif()
 
 if(APPLE)
-    target_link_libraries(art PRIVATE "-framework ApplicationServices -framework Foundation")
+    target_link_libraries(art PRIVATE "-framework ApplicationServices -framework Carbon -framework Foundation")
     target_link_libraries(art-cli PRIVATE "-framework Foundation")
 endif()
 
@@ -358,11 +359,12 @@ endif()
 add_executable(art-shortcuts-test EXCLUDE_FROM_ALL
     test_shortcuts.cc
     shortcuttable.cc
+    systemshortcuts.cc
     shortcutdefs.cc
     ../engine/cJSON.c)
 target_link_libraries(art-shortcuts-test PRIVATE art_utils ${GTK_LIBRARIES} ${GLIB2_LIBRARIES} ${GLIBMM_LIBRARIES})
 if(APPLE)
-    target_link_libraries(art-shortcuts-test PRIVATE "-framework Foundation")
+    target_link_libraries(art-shortcuts-test PRIVATE "-framework Carbon -framework Foundation")
 endif()
 target_compile_definitions(art-shortcuts-test PRIVATE
     ART_LANGUAGES_DIR="${PROJECT_SOURCE_DIR}/data/languages"

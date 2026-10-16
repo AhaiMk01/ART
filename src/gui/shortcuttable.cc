@@ -69,7 +69,8 @@ ModifierMasks ModifierMasks::linux_like()
 ModifierMasks ModifierMasks::mac_like()
 {
     ModifierMasks m;
-    m.primary = GDK_MOD2_MASK;
+    m.os_key = GDK_MOD2_MASK;
+    m.os_key_name = "Cmd";
     return m;
 }
 
@@ -84,17 +85,23 @@ ModifierMasks ModifierMasks::native()
 #else
     m.altgr = GDK_MOD5_MASK;
 #endif
+#if defined(__APPLE__)
+    // Cmd is what the system calls the primary accelerator
+    m.os_key = GDK_MOD2_MASK;
+    m.os_key_name = "Cmd";
     if (GdkKeymap *km = gdk_keymap_get_default()) {
         guint p = gdk_keymap_get_modifier_mask(
             km, GDK_MODIFIER_INTENT_PRIMARY_ACCELERATOR);
         // virtual modifiers (e.g. META) come along with the real one: keep
         // only the bits that gdk reports in a key event's state
-        p &= GDK_CONTROL_MASK | GDK_MOD1_MASK | GDK_MOD2_MASK | GDK_META_MASK |
-             GDK_SUPER_MASK;
+        p &= GDK_MOD2_MASK | GDK_META_MASK | GDK_SUPER_MASK;
         if (p) {
-            m.primary = p;
+            m.os_key = p;
         }
     }
+#endif
+    // Primary is Ctrl, as it has always been in ART, unless the user chooses
+    // the OS key (see ShortcutTable::setPrimaryIsOsKey)
     return m;
 }
 
@@ -118,6 +125,11 @@ unsigned ModifierMasks::normalize(guint state) const
     }
     if (state & shift) {
         res |= sm::Shift;
+    }
+    // the OS key when it is not the primary one: Cmd+Z must not be taken for
+    // the plain "z"
+    if (primary != os_key && (state & os_key)) {
+        res |= sm::Other;
     }
     return res;
 }
@@ -406,6 +418,33 @@ void ShortcutTable::setKeys(const std::string &id,
 }
 
 
+void ShortcutTable::setPrimaryIsOsKey(bool os)
+{
+    if (os == primaryIsOsKey()) {
+        return;
+    }
+    masks_ = masks_.withPrimary(os);
+    if (!os) {
+        // a Ctrl that was kept apart from Primary is Primary again
+        for (auto &e : entries_) {
+            for (auto &k : e.keys) {
+                if (k.mods & sm::Ctrl) {
+                    k.mods = (k.mods & ~sm::Ctrl) | sm::Primary;
+                }
+            }
+            std::vector<ShortcutKey> uniq;
+            for (auto &k : e.keys) {
+                if (std::find(uniq.begin(), uniq.end(), k) == uniq.end()) {
+                    uniq.push_back(k);
+                }
+            }
+            e.keys = uniq;
+            e.custom = e.keys != e.defaults;
+        }
+    }
+}
+
+
 std::string ShortcutTable::findConflict(const std::string &id,
                                         const ShortcutKey &key) const
 {
@@ -425,6 +464,48 @@ std::string ShortcutTable::findConflict(const std::string &id,
 }
 
 
+bool ShortcutTable::contextsOverlap(const std::string &a, const std::string &b)
+{
+    // the chains of contexts that the windows ask, see the dispatch() calls
+    static const std::vector<std::vector<std::string>> groups = {
+        {"window", "mainwindow", "editor", "editor-scroll", "toolbar",
+         "toolpanel", "tool"},
+        {"window", "mainwindow", "filecatalog-session", "filecatalog",
+         "filebrowser", "filebrowser-inspector", "inspector", "filepanel"},
+        {"window", "mainwindow", "queuepanel", "queue"}};
+    if (a == b) {
+        return false;
+    }
+    for (auto &g : groups) {
+        if (std::find(g.begin(), g.end(), a) != g.end() &&
+            std::find(g.begin(), g.end(), b) != g.end()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+std::vector<std::string> ShortcutTable::findOverlaps(const std::string &id,
+                                                     const ShortcutKey &key) const
+{
+    std::vector<std::string> res;
+    int i = index(id);
+    if (i < 0) {
+        return res;
+    }
+    for (size_t j = 0; j < entries_.size(); ++j) {
+        auto &o = entries_[j];
+        if (int(j) != i &&
+            contextsOverlap(o.action.context, entries_[i].action.context) &&
+            std::find(o.keys.begin(), o.keys.end(), key) != o.keys.end()) {
+            res.push_back(o.action.id);
+        }
+    }
+    return res;
+}
+
+
 void ShortcutTable::applyOverrides(const std::string &json_text, bool reset)
 {
     if (reset) {
@@ -432,7 +513,8 @@ void ShortcutTable::applyOverrides(const std::string &json_text, bool reset)
             e.keys = e.defaults;
             e.custom = false;
         }
-        mouse_modifier_ = shortcut_mod::Primary;
+        masks_ = masks_.withPrimary(false);
+        mouse_os_key_ = false;
     }
     // what this layer has to be compared with, to undo what clashes
     std::vector<std::vector<ShortcutKey>> base;
@@ -466,17 +548,41 @@ void ShortcutTable::applyOverrides(const std::string &json_text, bool reset)
             warn("shortcuts: unsupported \"version\"; trying anyway");
         }
     }
-    if (cJSON *m = cJSON_GetObjectItemCaseSensitive(root,
-                                                    "mouse_primary_modifier")) {
+    // "Ctrl" or the OS key, by any of its names; nullopt-like: -1 unknown
+    const auto modifier_value = [](cJSON *m) {
         const std::string v = cJSON_IsString(m) ? lower(trim(m->valuestring))
                                                 : "";
-        if (v == "primary") {
-            mouse_modifier_ = shortcut_mod::Primary;
-        } else if (v == "ctrl" || v == "control") {
-            mouse_modifier_ = shortcut_mod::Ctrl;
+        if (v == "ctrl" || v == "control") {
+            return 0;
+        }
+        if (v == "cmd" || v == "command" || v == "super" || v == "win" ||
+            v == "windows" || v == "meta" || v == "os") {
+            return 1;
+        }
+        return -1;
+    };
+    // Primary first: the keys below are read with it (a "Ctrl+" key means
+    // the physical Control key only when Primary is something else)
+    if (cJSON *m =
+            cJSON_GetObjectItemCaseSensitive(root, "primary_modifier")) {
+        const int v = modifier_value(m);
+        if (v < 0) {
+            warn(std::string("shortcuts: \"primary_modifier\" must be "
+                             "\"Ctrl\" or \"") + masks_.os_key_name +
+                 "\"; ignored");
         } else {
-            warn("shortcuts: \"mouse_primary_modifier\" must be \"Primary\" or "
-                 "\"Ctrl\"; ignored");
+            setPrimaryIsOsKey(v == 1);
+        }
+    }
+    if (cJSON *m = cJSON_GetObjectItemCaseSensitive(root,
+                                                    "mouse_primary_modifier")) {
+        const int v = modifier_value(m);
+        if (v < 0) {
+            warn(std::string("shortcuts: \"mouse_primary_modifier\" must be "
+                             "\"Ctrl\" or \"") + masks_.os_key_name +
+                 "\"; ignored");
+        } else {
+            mouse_os_key_ = v == 1;
         }
     }
     cJSON *bindings = cJSON_GetObjectItemCaseSensitive(root, "bindings");
@@ -706,15 +812,15 @@ const char *const FILE_HEADER = R"(// ART keyboard shortcuts: reference of all t
 // shortcuts.json in this same folder, copy into it the entries you want to
 // change, and restart ART.
 //
-// ART also installs a shortcuts.json of its own in its data folder (for now
-// with the Ctrl-based keys of the older versions of ART), which is applied on
-// top of these defaults; yours is applied after it and overrides it.
+// A shortcuts.json installed in ART's data folder (if there is one) is applied
+// on top of these defaults; yours is applied after it and overrides it.
 //
 // STRUCTURE
 //
 //   {
 //     "version": 1,
-//     "mouse_primary_modifier": "Primary",       optional, see below
+//     "primary_modifier": "Ctrl",                optional, see below
+//     "mouse_primary_modifier": "Ctrl",          optional, see below
 //     "bindings": {
 //       "editor.undo": ["Primary+Z"],            replaces the default keys
 //       "editor.redo": ["Primary+Shift+Z", "Primary+Y"],   more than one key
@@ -734,15 +840,19 @@ const char *const FILE_HEADER = R"(// ART keyboard shortcuts: reference of all t
 //   ignored; ART always starts. Run ART with the environment variable
 //   ART_SHORTCUTS_DEBUG=1 to also see which action each key press triggers.
 //
-// MOUSE MODIFIER
+// PRIMARY AND MOUSE MODIFIERS
 //
-//   "mouse_primary_modifier": "Primary" or "Ctrl"
+//   "primary_modifier": "Ctrl" or the OS key ("Cmd" on macOS, "Super" for the
+//                       Windows key on the other systems)
+//   "mouse_primary_modifier": the same two values
 //
-// The mouse actions that use the usual command key (Ctrl-click to reset a
-// slider, Ctrl-click for a fast export, Ctrl-scroll in the masks, ...) use the
-// key that is chosen here: "Primary" (the default) is Ctrl on Linux and Windows
-// and Cmd on macOS, "Ctrl" is always the physical Control key. The two differ
-// only on macOS. Tooltips follow the choice.
+// "primary_modifier" is the key that "Primary" stands for in the shortcuts
+// below (and that all the defaults use): Ctrl, as it has always been in ART,
+// unless you choose the OS key. "mouse_primary_modifier" is the key that the
+// mouse actions use (Ctrl-click to reset a slider, Ctrl-click for a fast
+// export, Ctrl-scroll in the masks, ...); it is chosen separately because on
+// macOS Ctrl-click is a right click. Both default to Ctrl. Tooltips follow the
+// choice.
 //
 // KEY SYNTAX
 //
@@ -752,10 +862,10 @@ const char *const FILE_HEADER = R"(// ART keyboard shortcuts: reference of all t
 //   Return, space, Left, Up, Page_Down, KP_Add, bracketleft, ... Symbols that
 //   are hard to type are spelled out: plus, minus, equal, less, greater, comma,
 //   period, slash, asterisk, underscore.
-// * Primary is the usual command key of the system: Ctrl on Linux and Windows,
-//   Cmd on macOS. Use it (as all the defaults do) and the same file works on
-//   every system. Ctrl means the physical Control key: the same as Primary on
-//   Linux and Windows, a different key on macOS.
+// * Primary is the key set by "primary_modifier": Ctrl unless you changed it.
+//   Use it (as all the defaults do) and the file keeps working if you change
+//   that setting. Ctrl means the physical Control key: the same as Primary
+//   while Primary is Ctrl, a different key otherwise.
 // * Alt is Option on macOS. Modifier names are not case sensitive, and the
 //   modifiers must match exactly ("Primary+S" does not fire for
 //   "Primary+Shift+S"). Caps Lock is ignored.
@@ -771,12 +881,15 @@ std::string ShortcutTable::dumpJson(bool defaults_only, bool header) const
 {
     std::string res = header ? std::string(FILE_HEADER) + "\n" : "";
     res += "{\n  \"version\": 1,\n\n";
-    res += "  // the modifier of the mouse actions (Ctrl-click ...): \"Primary\" or "
-           "\"Ctrl\"\n";
+    res += std::string("  // the \"Primary\" modifier of the shortcuts: \"Ctrl\" or \"") +
+           masks_.os_key_name + "\"\n";
+    res += std::string("  \"primary_modifier\": \"") +
+           (!defaults_only && primaryIsOsKey() ? masks_.os_key_name : "Ctrl") +
+           "\",\n\n";
+    res += std::string("  // the modifier of the mouse actions (Ctrl-click ...): "
+                       "\"Ctrl\" or \"") + masks_.os_key_name + "\"\n";
     res += std::string("  \"mouse_primary_modifier\": \"") +
-           (!defaults_only && mouse_modifier_ == shortcut_mod::Ctrl
-                ? "Ctrl"
-                : "Primary") +
+           (!defaults_only && mouse_os_key_ ? masks_.os_key_name : "Ctrl") +
            "\",\n\n";
     res += "  \"bindings\": {\n";
     std::string ctx;
@@ -819,9 +932,13 @@ const char *const OVERRIDES_HEADER =
 std::string ShortcutTable::dumpOverrides(const ShortcutTable &baseline) const
 {
     std::string res = std::string(OVERRIDES_HEADER) + "\n{\n  \"version\": 1";
-    if (mouse_modifier_ != baseline.mouse_modifier_) {
+    if (primaryIsOsKey() != baseline.primaryIsOsKey()) {
+        res += std::string(",\n\n  \"primary_modifier\": \"") +
+               (primaryIsOsKey() ? masks_.os_key_name : "Ctrl") + "\"";
+    }
+    if (mouse_os_key_ != baseline.mouse_os_key_) {
         res += std::string(",\n\n  \"mouse_primary_modifier\": \"") +
-               (mouse_modifier_ == sm::Ctrl ? "Ctrl" : "Primary") + "\"";
+               (mouse_os_key_ ? masks_.os_key_name : "Ctrl") + "\"";
     }
     res += ",\n\n  \"bindings\": {";
     std::string ctx;

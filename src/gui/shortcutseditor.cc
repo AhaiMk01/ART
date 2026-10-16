@@ -19,9 +19,11 @@
 #include "shortcutseditor.h"
 #include "guiutils.h"
 #include "shortcutsmanager.h"
+#include "systemshortcuts.h"
 #include "../utils/multilangmgr.h"
 
 #include <algorithm>
+#include <initializer_list>
 
 namespace art { namespace gui {
 
@@ -118,29 +120,36 @@ ShortcutsEditor::ShortcutsEditor():
     buttons->pack_end(*reset_all, Gtk::PACK_SHRINK);
     pack_start(*buttons, Gtk::PACK_SHRINK);
 
-    // Primary and Ctrl are different keys only where Primary is not Ctrl
-    const auto &masks = work_.masks();
-    if (!masks.primaryIsCtrl()) {
-        auto *mm = Gtk::manage(new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL, 8));
-        auto *ml = Gtk::manage(new Gtk::Label(
-            M("PREFERENCES_SHORTCUTS_MOUSEMOD") + ":"));
-        mouse_primary_.set_label(modifierName(masks, shortcut_mod::Primary));
-        mouse_ctrl_.set_label(modifierName(masks, shortcut_mod::Ctrl));
-        mouse_ctrl_.join_group(mouse_primary_);
-        (work_.mouseModifier() == shortcut_mod::Ctrl ? mouse_ctrl_
-                                                     : mouse_primary_)
-            .set_active(true);
-        ml->set_tooltip_text(M("PREFERENCES_SHORTCUTS_MOUSEMOD_TIP"));
-        mouse_primary_.set_tooltip_text(
-            M("PREFERENCES_SHORTCUTS_MOUSEMOD_TIP"));
-        mouse_ctrl_.set_tooltip_text(M("PREFERENCES_SHORTCUTS_MOUSEMOD_TIP"));
-        mm->pack_start(*ml, Gtk::PACK_SHRINK);
-        mm->pack_start(mouse_primary_, Gtk::PACK_SHRINK);
-        mm->pack_start(mouse_ctrl_, Gtk::PACK_SHRINK);
-        pack_start(*mm, Gtk::PACK_SHRINK);
-        // a change toggles both buttons: the state of one says it all
-        mouse_mod_conn_ = mouse_ctrl_.signal_toggled().connect(
-            sigc::mem_fun(*this, &ShortcutsEditor::mouseModifierChanged));
+    // which modifier "Primary" is, and which one the mouse actions use
+    {
+        const auto row = [&](const char *label, const char *tip,
+                             Gtk::RadioButton &ctrl, Gtk::RadioButton &os,
+                             bool is_os, sigc::connection &conn,
+                             void (ShortcutsEditor::*changed)()) {
+            auto *box = Gtk::manage(new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL, 8));
+            auto *l = Gtk::manage(new Gtk::Label(M(label) + ":"));
+            ctrl.set_label(work_.osKeyOrCtrlName(false));
+            os.set_label(work_.osKeyOrCtrlName(true));
+            os.join_group(ctrl);
+            (is_os ? os : ctrl).set_active(true);
+            for (Gtk::Widget *w : std::initializer_list<Gtk::Widget *>{
+                     l, &ctrl, &os}) {
+                w->set_tooltip_text(M(tip));
+            }
+            box->pack_start(*l, Gtk::PACK_SHRINK);
+            box->pack_start(ctrl, Gtk::PACK_SHRINK);
+            box->pack_start(os, Gtk::PACK_SHRINK);
+            pack_start(*box, Gtk::PACK_SHRINK);
+            // a change toggles both buttons: the state of one says it all
+            conn = os.signal_toggled().connect(
+                sigc::mem_fun(*this, changed));
+        };
+        row("PREFERENCES_SHORTCUTS_PRIMARY", "PREFERENCES_SHORTCUTS_PRIMARY_TIP",
+            primary_ctrl_, primary_os_, work_.primaryIsOsKey(), primary_conn_,
+            &ShortcutsEditor::primaryModifierChanged);
+        row("PREFERENCES_SHORTCUTS_MOUSEMOD", "PREFERENCES_SHORTCUTS_MOUSEMOD_TIP",
+            mouse_ctrl_, mouse_os_, work_.mouseIsOsKey(), mouse_conn_,
+            &ShortcutsEditor::mouseModifierChanged);
     }
 
     auto *note = Gtk::manage(new Gtk::Label(M("PREFERENCES_SHORTCUTS_RESTART")));
@@ -245,10 +254,104 @@ void ShortcutsEditor::searchChanged()
 }
 
 
+// After Primary became the OS key (Cmd): some of the shortcuts that use it may
+// be taken by the system (Cmd+F2, Cmd+, ...). Ask what to do with each of
+// them. Returns false if the user wants to give up the change.
+bool ShortcutsEditor::resolveSystemClashes()
+{
+    for (auto &id : work_.ids()) {
+        for (const auto &key : work_.keys(id)) {
+            if (!(key.mods & shortcut_mod::Primary)) {
+                continue; // not affected by the change
+            }
+            while (isSystemShortcut(key, work_.masks())) {
+                Glib::ustring text = Glib::ustring::compose(
+                    M("PREFERENCES_SHORTCUTS_SYSCLASH"),
+                    Glib::Markup::escape_text(
+                        formatShortcutKey(key, work_.masks(), true)),
+                    Glib::Markup::escape_text(displayName(id)));
+                Glib::ustring question;
+                const auto sep = text.find("\n\n");
+                if (sep != Glib::ustring::npos) {
+                    question = text.substr(sep + 2);
+                    text = text.substr(0, sep);
+                }
+                Gtk::MessageDialog msg(getToplevelWindow(this), text, true,
+                                       Gtk::MESSAGE_QUESTION,
+                                       Gtk::BUTTONS_NONE, true);
+                msg.set_secondary_text(question);
+                msg.add_button(M("PREFERENCES_SHORTCUTS_BACKTOCTRL"),
+                               Gtk::RESPONSE_CANCEL);
+                msg.add_button(M("GENERAL_DISABLE"), Gtk::RESPONSE_REJECT);
+                msg.add_button(M("PREFERENCES_SHORTCUTS_CHOOSE"),
+                               Gtk::RESPONSE_APPLY);
+                msg.add_button(M("PREFERENCES_SHORTCUTS_KEEP"),
+                               Gtk::RESPONSE_ACCEPT);
+                const int resp = msg.run();
+                msg.hide();
+                if (resp == Gtk::RESPONSE_ACCEPT) {
+                    break;
+                }
+                auto without = work_.keys(id);
+                without.erase(std::remove(without.begin(), without.end(), key),
+                              without.end());
+                if (resp == Gtk::RESPONSE_REJECT) {
+                    work_.setKeys(id, without);
+                    break;
+                }
+                if (resp == Gtk::RESPONSE_APPLY) {
+                    ShortcutKey nk;
+                    if (recordKey(nk)) {
+                        const auto before = work_.keys(id);
+                        work_.setKeys(id, without);
+                        if (assign(id, nk, true)) {
+                            break;
+                        }
+                        work_.setKeys(id, before); // gave up: ask again
+                    }
+                    continue;
+                }
+                return false; // go back to Ctrl
+            }
+        }
+    }
+    return true;
+}
+
+
+void ShortcutsEditor::primaryModifierChanged()
+{
+    const bool os = primary_os_.get_active();
+    if (os) {
+        const ShortcutTable saved = work_;
+        work_.setPrimaryIsOsKey(true);
+        if (!resolveSystemClashes()) {
+            work_ = saved;
+            syncModifierButtons();
+        }
+    } else {
+        work_.setPrimaryIsOsKey(false);
+    }
+    refresh(); // the keys are shown with it
+    selectionChanged();
+}
+
+
 void ShortcutsEditor::mouseModifierChanged()
 {
-    work_.setMouseModifier(mouse_ctrl_.get_active() ? shortcut_mod::Ctrl
-                               : shortcut_mod::Primary);
+    work_.setMouseIsOsKey(mouse_os_.get_active());
+}
+
+
+// after the buttons were set from a table (reset all)
+void ShortcutsEditor::syncModifierButtons()
+{
+    primary_conn_.block();
+    mouse_conn_.block();
+    (work_.primaryIsOsKey() ? primary_os_ : primary_ctrl_).set_active(true);
+    (work_.mouseIsOsKey() ? mouse_os_ : mouse_ctrl_).set_active(true);
+    primary_conn_.unblock();
+    mouse_conn_.unblock();
 }
 
 
@@ -377,6 +480,11 @@ bool ShortcutsEditor::recordKey(ShortcutKey &out)
                 dlg.response(Gtk::RESPONSE_CANCEL);
                 return true;
             }
+            // a modifier that cannot be part of a shortcut (the OS key while
+            // it is not the Primary one): wait for another key
+            if (masks.normalize(ev->state) & shortcut_mod::Other) {
+                return true;
+            }
             out = shortcutFromEvent(masks, getKeyval(ev, false), ev->keyval,
                                     ev->state);
             got = out.valid();
@@ -390,30 +498,85 @@ bool ShortcutsEditor::recordKey(ShortcutKey &out)
 }
 
 
-void ShortcutsEditor::assign(const std::string &id, const ShortcutKey &key,
+bool ShortcutsEditor::assign(const std::string &id, const ShortcutKey &key,
                              bool add)
 {
-    const std::string other = work_.findConflict(id, key);
-    if (!other.empty()) {
-        Gtk::MessageDialog msg(
-            getToplevelWindow(this),
-            Glib::ustring::compose(M("PREFERENCES_SHORTCUTS_CONFLICT"),
-                                   formatShortcutKey(key, work_.masks(), true),
-                                   displayName(other)),
-            false, Gtk::MESSAGE_QUESTION, Gtk::BUTTONS_NONE, true);
-        msg.add_button(M("GENERAL_CANCEL"), Gtk::RESPONSE_CANCEL);
-        msg.add_button(M("PREFERENCES_SHORTCUTS_REASSIGN"), Gtk::RESPONSE_OK);
-        if (msg.run() != Gtk::RESPONSE_OK) {
-            return;
+    // the actions that would clash for sure (same context and phase) and the
+    // ones of another context that can be reached by the same key press
+    std::vector<std::string> others;
+    const std::string same = work_.findConflict(id, key);
+    if (!same.empty()) {
+        others.push_back(same);
+    }
+    const bool hard = !others.empty();
+    for (auto &o : work_.findOverlaps(id, key)) {
+        others.push_back(o);
+    }
+
+    // macOS may take the key before ART sees it
+    const bool system = isSystemShortcut(key, work_.masks());
+    const Glib::ustring keyname = Glib::Markup::escape_text(
+        formatShortcutKey(key, work_.masks(), true));
+
+    if (!others.empty() || system) {
+        Glib::ustring names;
+        for (auto &o : others) {
+            names += (names.empty() ? "" : ", ") +
+                     Glib::Markup::escape_text(displayName(o));
         }
-        // the other action loses the key (and is disabled if it was its last)
-        auto keys = work_.keys(other);
-        keys.erase(std::remove(keys.begin(), keys.end(), key), keys.end());
-        work_.setKeys(other, keys);
+        // the strings are Pango markup: the first paragraph is the statement
+        // (shown in bold by the dialog), the rest the question
+        Glib::ustring text = Glib::ustring::compose(
+            M(others.empty() ? "PREFERENCES_SHORTCUTS_SYSTEM"
+                             : hard ? "PREFERENCES_SHORTCUTS_CONFLICT"
+                                    : "PREFERENCES_SHORTCUTS_OVERLAP"),
+            keyname, names);
+        Glib::ustring question;
+        const auto sep = text.find("\n\n");
+        if (sep != Glib::ustring::npos) {
+            question = text.substr(sep + 2);
+            text = text.substr(0, sep);
+        }
+        if (system && !others.empty()) {
+            question += "\n\n" + Glib::ustring::compose(
+                                    M("PREFERENCES_SHORTCUTS_SYSTEMNOTE"),
+                                    keyname);
+        }
+        Gtk::MessageDialog msg(getToplevelWindow(this), text, true,
+                               Gtk::MESSAGE_QUESTION, Gtk::BUTTONS_NONE, true);
+        if (!question.empty()) {
+            msg.set_secondary_text(question);
+        }
+        msg.add_button(M("GENERAL_CANCEL"), Gtk::RESPONSE_CANCEL);
+        if (!hard) {
+            msg.add_button(M(others.empty()
+                                 ? "PREFERENCES_SHORTCUTS_ASSIGNANYWAY"
+                                 : "PREFERENCES_SHORTCUTS_KEEPBOTH"),
+                           Gtk::RESPONSE_ACCEPT);
+        }
+        if (!others.empty()) {
+            msg.add_button(M("PREFERENCES_SHORTCUTS_REASSIGN"),
+                           Gtk::RESPONSE_OK);
+        }
+        const int resp = msg.run();
+        if (resp != Gtk::RESPONSE_OK && resp != Gtk::RESPONSE_ACCEPT) {
+            return false;
+        }
+        if (resp == Gtk::RESPONSE_OK) {
+            // the other actions lose the key (and are disabled if it was
+            // their last)
+            for (auto &other : others) {
+                auto keys = work_.keys(other);
+                keys.erase(std::remove(keys.begin(), keys.end(), key),
+                           keys.end());
+                work_.setKeys(other, keys);
+            }
+        }
     }
     auto keys = add ? work_.keys(id) : std::vector<ShortcutKey>();
     keys.push_back(key);
     work_.setKeys(id, keys);
+    return true;
 }
 
 
@@ -464,15 +627,12 @@ void ShortcutsEditor::resetPressed()
 
 void ShortcutsEditor::resetAllPressed()
 {
+    work_.setPrimaryIsOsKey(base_.primaryIsOsKey());
+    work_.setMouseIsOsKey(base_.mouseIsOsKey());
     for (auto &id : work_.ids()) {
         work_.setKeys(id, base_.keys(id));
     }
-    work_.setMouseModifier(base_.mouseModifier());
-    mouse_mod_conn_.block();
-    (base_.mouseModifier() == shortcut_mod::Ctrl ? mouse_ctrl_
-                                                 : mouse_primary_)
-        .set_active(true);
-    mouse_mod_conn_.unblock();
+    syncModifierButtons();
     refresh();
     selectionChanged();
 }

@@ -66,7 +66,7 @@ public:
     /// `<system_dir>/shortcuts.json` (installed with ART) and then
     /// `<user_config_dir>/shortcuts.json`, if there are such files. Problems
     /// with a file are reported on stderr and never prevent startup. Must be
-    /// called after gtk_init (it asks GDK which modifier is the primary one).
+    /// called after gtk_init (it asks GDK which modifier is the OS key).
     /// Calling it again reloads.
     void init(const Glib::ustring &system_dir,
               const Glib::ustring &user_config_dir);
@@ -103,15 +103,15 @@ public:
     /// For tooltips and menu hints.
     Glib::ustring label(const std::string &id) const;
 
-    /// The modifier mask(s) of the OS-convention primary modifier (Ctrl, or
-    /// Cmd on macOS), for the keyboard.
+    /// The modifier mask(s) of the Primary modifier (Ctrl, unless the user
+    /// chose the OS key), for the keyboard.
     static guint primaryMask() { return getInstance()->table_->masks().primary; }
 
     /// The mask of the modifier of the mouse actions ("Ctrl-click" and the
     /// like), for code that inspects the state of mouse and scroll events:
-    /// `event->state & ShortcutsManager::mousePrimaryMask()`. It is the
-    /// primary modifier unless "mouse_primary_modifier" in shortcuts.json says
-    /// otherwise (see ShortcutTable::mousePrimaryMask).
+    /// `event->state & ShortcutsManager::mousePrimaryMask()`. It is Ctrl
+    /// unless "mouse_primary_modifier" in shortcuts.json says otherwise (see
+    /// ShortcutTable::mousePrimaryMask).
     static guint mousePrimaryMask()
     {
         return getInstance()->table_->mousePrimaryMask();

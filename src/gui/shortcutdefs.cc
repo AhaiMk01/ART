@@ -24,7 +24,8 @@ namespace art { namespace gui {
  * Every keyboard shortcut of the GUI, with the keys it has by default.
  *
  * Key specs are "[Primary+][Ctrl+][Alt+][Shift+]<GDK key name>" (see
- * parseShortcutKey). "Primary" is Ctrl on Linux/Windows and Cmd on macOS.
+ * parseShortcutKey). "Primary" is Ctrl, unless the user chose the OS key
+ * (Cmd on macOS, the Windows key elsewhere) in the shortcuts editor.
  * Symbols that need Shift on some layouts ("plus", "less", "underscore",
  * ...) are written as the symbol itself and match however the layout types
  * them; letters and digits use an explicit Shift.

@@ -66,7 +66,9 @@ private:
     bool rowVisible(const Gtk::TreeModel::const_iterator &row) const;
     bool rowMatches(const Gtk::TreeModel::const_iterator &row) const;
     void searchChanged();
+    void primaryModifierChanged();
     void mouseModifierChanged();
+    void syncModifierButtons();
     Gtk::TreeIter node(const std::string &path);
     void refresh();
     void refreshRow(const Gtk::TreeIter &row);
@@ -81,7 +83,8 @@ private:
     void resetAllPressed();
 
     bool recordKey(ShortcutKey &out);
-    void assign(const std::string &id, const ShortcutKey &key, bool add);
+    bool assign(const std::string &id, const ShortcutKey &key, bool add);
+    bool resolveSystemClashes();
     Glib::ustring displayKeys(const std::string &id) const;
     static Glib::ustring displayName(const std::string &id);
 
@@ -95,9 +98,15 @@ private:
     Glib::RefPtr<Gtk::TreeModelFilter> filter_;
     Glib::ustring query_; // lower case
     Gtk::SearchEntry search_;
-    Gtk::RadioButton mouse_primary_; // the other one is in its group
+    // the choice of the Primary modifier and of the one of the mouse actions:
+    // Ctrl or the OS key; the second button of each is in the group of the
+    // first
+    Gtk::RadioButton primary_ctrl_;
+    Gtk::RadioButton primary_os_;
     Gtk::RadioButton mouse_ctrl_;
-    sigc::connection mouse_mod_conn_;
+    Gtk::RadioButton mouse_os_;
+    sigc::connection primary_conn_;
+    sigc::connection mouse_conn_;
     Gtk::TreeView tree_;
     Gtk::Button *change_;
     Gtk::Button *add_;

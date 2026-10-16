@@ -1150,8 +1150,18 @@ void RTWindow::writeToolExpandedStatus(std::vector<int> &tpOpen)
 
 void RTWindow::showPreferences()
 {
+    // the dialog is modal but runs a nested main loop, so Cmd+, (or the
+    // button) can get here again while it is open: bring it to the front
+    // instead of showing a second copy
+    static Preferences *current = nullptr;
+    if (current) {
+        current->present();
+        return;
+    }
     Preferences *pref = new Preferences(this);
+    current = pref;
     pref->run();
+    current = nullptr;
     delete pref;
 
     fpanel->optionsChanged();

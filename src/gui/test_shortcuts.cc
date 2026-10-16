@@ -21,7 +21,9 @@
 #include "../utils/multilangmgr.h"
 #include "shortcutdefs.h"
 #include "shortcuttable.h"
+#include "systemshortcuts.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <glib/gstdio.h>
@@ -31,6 +33,12 @@
 
 using namespace art::gui;
 namespace sm = art::gui::shortcut_mod;
+
+// a Mac keyboard with Cmd chosen as the Primary modifier (the default is Ctrl)
+static ModifierMasks macCmd()
+{
+    return ModifierMasks::mac_like().withPrimary(true);
+}
 
 namespace {
 
@@ -89,7 +97,7 @@ ShortcutTable small(const ModifierMasks &m)
 
 void testParse()
 {
-    for (auto m : {ModifierMasks::linux_like(), ModifierMasks::mac_like()}) {
+    for (auto m : {ModifierMasks::linux_like(), macCmd()}) {
         ShortcutKey k = key(m, "Primary+Shift+Z");
         CHECK(k.keyval == GDK_KEY_z);
         CHECK(k.mods == (sm::Primary | sm::Shift));
@@ -116,7 +124,7 @@ void testParse()
 
     // Ctrl means Primary where they are the same key, and not on a Mac
     auto lin = ModifierMasks::linux_like();
-    auto mac = ModifierMasks::mac_like();
+    auto mac = macCmd();
     CHECK(key(lin, "Ctrl+s") == key(lin, "Primary+s"));
     CHECK(key(mac, "Ctrl+s") != key(mac, "Primary+s"));
     CHECK(key(mac, "Ctrl+s").mods == sm::Ctrl);
@@ -126,7 +134,7 @@ void testParse()
 void testNormalize()
 {
     auto lin = ModifierMasks::linux_like();
-    auto mac = ModifierMasks::mac_like();
+    auto mac = macCmd();
     const guint lock = GDK_LOCK_MASK | GDK_BUTTON1_MASK;
 
     CHECK(lin.normalize(0) == 0);
@@ -340,49 +348,54 @@ void testLayers()
 void testMouseModifier()
 {
     auto lin = ModifierMasks::linux_like();
-    auto mac = ModifierMasks::mac_like();
+    auto mac = macCmd();
 
-    // by default Primary
+    // by default Ctrl, whatever Primary is
     ShortcutTable t = small(mac);
-    CHECK(t.mouseModifier() == sm::Primary);
-    CHECK(t.mousePrimaryMask() == mac.primary);
-    CHECK(t.mousePrimaryMask() == GDK_MOD2_MASK);
-    CHECK(t.mouseModifierName() == modifierName(mac, sm::Primary));
-
-    t.applyOverrides(R"({"mouse_primary_modifier": "Ctrl"})");
-    CHECK(t.warnings().empty());
-    CHECK(t.mouseModifier() == sm::Ctrl);
+    CHECK(!t.mouseIsOsKey());
     CHECK(t.mousePrimaryMask() == GDK_CONTROL_MASK);
     CHECK(t.mouseModifierName() == modifierName(mac, sm::Ctrl));
+    t.applyOverrides(R"({"mouse_primary_modifier": "Cmd"})");
+    CHECK(t.warnings().empty());
+    CHECK(t.mouseIsOsKey());
+    CHECK(t.mousePrimaryMask() == GDK_MOD2_MASK);
+    CHECK(t.mouseModifierName() == modifierName(mac, sm::Primary));
     // the keys are not affected
     CHECK(t.keys("a.save")[0] == key(mac, "Primary+s"));
+    // and it does not follow Primary
+    t.applyOverrides(R"({"primary_modifier": "Cmd"})");
+    CHECK(t.primaryIsOsKey() && !t.mouseIsOsKey());
 
-    // not case sensitive; "control" is accepted too
-    t.applyOverrides(R"({"mouse_primary_modifier": "primary"})");
-    CHECK(t.mouseModifier() == sm::Primary);
-    t.applyOverrides(R"({"mouse_primary_modifier": " Control "})");
-    CHECK(t.mouseModifier() == sm::Ctrl);
+    // not case sensitive; other names of the keys are accepted too
+    for (auto v : {"\"ctrl\"", "\" Control \""}) {
+        t.applyOverrides(std::string("{\"mouse_primary_modifier\": ") + v + "}");
+        CHECK(!t.mouseIsOsKey());
+    }
+    for (auto v : {"\"cmd\"", "\"Command\"", "\"super\"", "\"Win\"", "\"META\""}) {
+        t.applyOverrides(std::string("{\"mouse_primary_modifier\": ") + v + "}");
+        CHECK(t.mouseIsOsKey());
+    }
 
     // a reset puts it back, a layer without it leaves it as it is
     t.applyOverrides("{}");
-    CHECK(t.mouseModifier() == sm::Primary);
-    t.applyOverrides(R"({"mouse_primary_modifier": "Ctrl"})");
+    CHECK(!t.mouseIsOsKey());
+    t.applyOverrides(R"({"mouse_primary_modifier": "Cmd"})");
     t.applyOverrides(R"({"bindings": {"a.undo": ["F8"]}})", false);
-    CHECK(t.mouseModifier() == sm::Ctrl);
+    CHECK(t.mouseIsOsKey());
     // and a later layer overrides it
-    t.applyOverrides(R"({"mouse_primary_modifier": "Primary"})", false);
-    CHECK(t.mouseModifier() == sm::Primary);
+    t.applyOverrides(R"({"mouse_primary_modifier": "Ctrl"})", false);
+    CHECK(!t.mouseIsOsKey());
     CHECK(t.warnings().empty());
 
     // anything else: a warning, and it stays as it was
-    for (auto bad_value : {"\"Alt\"", "\"Cmd\"", "5", "null", "[]", "\"\""}) {
-        t.applyOverrides(R"({"mouse_primary_modifier": "Ctrl"})");
+    for (auto bad_value : {"\"Alt\"", "\"Primary\"", "5", "null", "[]", "\"\""}) {
+        t.applyOverrides(R"({"mouse_primary_modifier": "Cmd"})");
         t.clearWarnings();
         t.applyOverrides(std::string("{\"mouse_primary_modifier\": ") +
                              bad_value + "}",
                          false);
         CHECK(t.warnings().size() == 1);
-        CHECK(t.mouseModifier() == sm::Ctrl);
+        CHECK(t.mouseIsOsKey());
     }
     // an invalid value does not stop the bindings of the same file
     t.clearWarnings();
@@ -391,26 +404,110 @@ void testMouseModifier()
     CHECK(t.warnings().size() == 1);
     CHECK(t.keys("a.undo")[0] == key(mac, "F8"));
 
-    // where Primary is Ctrl it makes no difference
+    // the OS key of the other platforms is the Windows key
     ShortcutTable l = small(lin);
-    l.applyOverrides(R"({"mouse_primary_modifier": "Ctrl"})");
-    CHECK(l.mousePrimaryMask() == GDK_CONTROL_MASK);
-    CHECK(l.mousePrimaryMask() == lin.primary);
+    l.applyOverrides(R"({"mouse_primary_modifier": "Super"})");
+    CHECK(l.mousePrimaryMask() == GDK_SUPER_MASK);
 
     // the dump (which the reference file is made of) has it, and loads back
     ShortcutTable d = small(mac);
-    CHECK(d.dumpJson(true).find("\"mouse_primary_modifier\": \"Primary\"") !=
+    CHECK(d.dumpJson(true).find("\"mouse_primary_modifier\": \"Ctrl\"") !=
           std::string::npos);
-    d.applyOverrides(R"({"mouse_primary_modifier": "Ctrl"})");
-    CHECK(d.dumpJson().find("\"mouse_primary_modifier\": \"Ctrl\"") !=
+    d.applyOverrides(R"({"mouse_primary_modifier": "Cmd"})");
+    CHECK(d.dumpJson().find("\"mouse_primary_modifier\": \"Cmd\"") !=
           std::string::npos);
-    CHECK(d.dumpJson(true).find("\"mouse_primary_modifier\": \"Primary\"") !=
+    CHECK(d.dumpJson(true).find("\"mouse_primary_modifier\": \"Ctrl\"") !=
           std::string::npos);
     ShortcutTable e = small(mac);
     e.applyOverrides(d.dumpJson());
     CHECK(e.warnings().empty());
-    CHECK(e.mouseModifier() == sm::Ctrl);
-    CHECK(e.dumpJson(true, true).find("MOUSE MODIFIER") != std::string::npos);
+    CHECK(e.mouseIsOsKey());
+    CHECK(e.dumpJson(true, true).find("PRIMARY AND MOUSE MODIFIERS") !=
+          std::string::npos);
+}
+
+// the modifier that "Primary" stands for: Ctrl, or the OS key
+void testPrimaryModifier()
+{
+    for (auto m : {ModifierMasks::linux_like(), ModifierMasks::mac_like()}) {
+        const bool mac = m.os_key == GDK_MOD2_MASK;
+        const char *os = mac ? "Cmd" : "Super";
+
+        // Ctrl by default
+        ShortcutTable t = small(m);
+        CHECK(!t.primaryIsOsKey());
+        CHECK(t.masks().primary == GDK_CONTROL_MASK);
+        CHECK(t.label("a.save") == gtkLabel(m, "Primary+s"));
+        CHECK(t.label("a.save") == gtkLabel(m, "Ctrl+s")); // the real Control key
+        // a key pressed with the OS key is not the bare key (nor a shortcut)
+        CHECK(m.normalize(m.os_key) == sm::Other);
+        CHECK(m.normalize(m.os_key | GDK_CONTROL_MASK) ==
+              (sm::Primary | sm::Other));
+        CHECK(m.normalize(GDK_CONTROL_MASK) == sm::Primary);
+
+        // switched to the OS key by the file
+        t.applyOverrides(std::string("{\"primary_modifier\": \"") + os + "\"}");
+        CHECK(t.warnings().empty());
+        CHECK(t.primaryIsOsKey());
+        CHECK(t.masks().primary == m.os_key);
+        CHECK(t.keys("a.save")[0] == key(t.masks(), "Primary+s"));
+        CHECK(!t.isCustomized("a.save"));
+        CHECK(t.label("a.save") != gtkLabel(m, "Primary+s"));
+        CHECK(t.masks().normalize(m.os_key) == sm::Primary);
+        CHECK(t.masks().normalize(GDK_CONTROL_MASK) == sm::Ctrl);
+        // Ctrl is a key of its own now
+        t.applyOverrides(std::string("{\"primary_modifier\": \"") + os +
+                         "\", \"bindings\": {\"a.undo\": [\"Ctrl+z\"]}}");
+        CHECK(t.keys("a.undo")[0].mods == sm::Ctrl);
+        // ... and is Primary again when Primary goes back to Ctrl: the
+        // table keeps it (that is what the editor's radio button does)
+        t.setPrimaryIsOsKey(false);
+        CHECK(!t.primaryIsOsKey());
+        CHECK(t.keys("a.undo")[0].mods == sm::Primary);
+        CHECK(t.isCustomized("a.undo") == false);
+        t.setPrimaryIsOsKey(true);
+        CHECK(t.masks().primary == m.os_key);
+
+        // a reset puts it back; a layer without it leaves it; wrong values
+        t.applyOverrides("{}");
+        CHECK(!t.primaryIsOsKey());
+        t.applyOverrides(std::string("{\"primary_modifier\": \"") + os + "\"}");
+        t.applyOverrides(R"({"bindings": {"a.undo": ["F8"]}})", false);
+        CHECK(t.primaryIsOsKey());
+        t.clearWarnings();
+        t.applyOverrides(R"({"primary_modifier": "Alt"})", false);
+        CHECK(t.warnings().size() == 1 && t.primaryIsOsKey());
+        t.applyOverrides(R"({"primary_modifier": "ctrl"})", false);
+        CHECK(!t.primaryIsOsKey());
+
+        // dump and layers
+        ShortcutTable base = small(m);
+        ShortcutTable u = base;
+        CHECK(u.dumpOverrides(base).find("primary_modifier") == std::string::npos);
+        u.setPrimaryIsOsKey(true);
+        const std::string json = u.dumpOverrides(base);
+        CHECK(json.find(std::string("\"primary_modifier\": \"") + os + "\"") !=
+              std::string::npos);
+        ShortcutTable again = base;
+        again.applyOverrides(json, false);
+        CHECK(again.primaryIsOsKey());
+        CHECK(again.warnings().empty());
+        CHECK(base.dumpJson(true).find("\"primary_modifier\": \"Ctrl\"") !=
+              std::string::npos);
+        u.setPrimaryIsOsKey(false);
+        CHECK(u.dumpOverrides(base).find("primary_modifier") == std::string::npos);
+    }
+
+    // the defaults are the ones of the released ART: Ctrl (physical) everywhere
+    for (auto m : {ModifierMasks::linux_like(), ModifierMasks::mac_like()}) {
+        ShortcutTable t(m);
+        defineDefaultShortcuts(t);
+        CHECK(t.keys("editor.undo")[0].mods == sm::Primary);
+        CHECK(t.masks().primary == GDK_CONTROL_MASK);
+        CHECK(t.mousePrimaryMask() == GDK_CONTROL_MASK);
+        CHECK(t.label("window.quit") == gtkLabel(m, "Primary+q"));
+        CHECK(t.label("editor.save") == gtkLabel(m, "Ctrl+s"));
+    }
 }
 
 void testLookup()
@@ -447,7 +544,7 @@ void testLookup()
 
 void testDefaults()
 {
-    for (auto m : {ModifierMasks::linux_like(), ModifierMasks::mac_like()}) {
+    for (auto m : {ModifierMasks::linux_like(), macCmd()}) {
         ShortcutTable t(m);
         defineDefaultShortcuts(t);
         for (auto &w : t.warnings()) {
@@ -497,13 +594,13 @@ void testDefaults()
 
     // a file written on Linux means the same on a Mac
     ShortcutTable lin(ModifierMasks::linux_like());
-    ShortcutTable mac(ModifierMasks::mac_like());
+    ShortcutTable mac(macCmd());
     defineDefaultShortcuts(lin);
     defineDefaultShortcuts(mac);
     lin.applyOverrides(lin.dumpJson());
     mac.applyOverrides(lin.dumpJson());
     CHECK(mac.warnings().empty());
-    CHECK(mac.keys("editor.undo")[0] == key(ModifierMasks::mac_like(), "Primary+z"));
+    CHECK(mac.keys("editor.undo")[0] == key(macCmd(), "Primary+z"));
     CHECK(mac.keys("editor.undo")[0].mods == sm::Primary);
 }
 
@@ -511,7 +608,7 @@ void testDefaults()
 void testDisplay()
 {
     auto lin = ModifierMasks::linux_like();
-    auto mac = ModifierMasks::mac_like();
+    auto mac = macCmd();
     auto d = [](const ModifierMasks &m, const char *spec) {
         return formatShortcutKey(key(m, spec), m, true);
     };
@@ -557,7 +654,7 @@ void testDisplay()
     // handy when looking at what the user gets
     if (getenv("SHORTCUTS_TEST_LABELS")) {
 #ifdef __APPLE__
-        ShortcutTable t(ModifierMasks::mac_like());
+        ShortcutTable t(macCmd());
 #else
         ShortcutTable t(ModifierMasks::linux_like());
 #endif
@@ -625,70 +722,6 @@ void testPlaceholders()
     g_remove(path.c_str());
 }
 
-#ifdef ART_DATA_DIR
-// the shortcuts.json installed with ART: the legacy keys (Ctrl everywhere)
-void testInstalledFile()
-{
-    const std::string path = std::string(ART_DATA_DIR) + "/shortcuts.json";
-    for (auto m : {ModifierMasks::linux_like(), ModifierMasks::mac_like()}) {
-        ShortcutTable defaults(m);
-        defineDefaultShortcuts(defaults);
-        ShortcutTable t(m);
-        defineDefaultShortcuts(t);
-        CHECK(t.loadFile(path, false));
-        for (auto &w : t.warnings()) {
-            std::cerr << path << ": " << w << std::endl;
-        }
-        CHECK(t.warnings().empty());
-        CHECK(t.conflicts().empty());
-
-        for (auto &id : t.ids()) {
-            // what the legacy keys of this action are: the defaults with the
-            // Ctrl key instead of Primary (the quit key was always Cmd+Q on a
-            // Mac, Ctrl+Q elsewhere)
-            std::vector<ShortcutKey> expected = defaults.keys(id);
-            if (id != "window.quit") {
-                for (auto &k : expected) {
-                    if (k.mods & sm::Primary) {
-                        k.mods = (k.mods & ~sm::Primary) | sm::Ctrl;
-                    }
-                }
-            }
-            // where Ctrl is Primary the file changes nothing
-            if (m.primaryIsCtrl()) {
-                expected = defaults.keys(id);
-            }
-            if (t.keys(id) != expected) {
-                std::cerr << "shortcuts.json: " << id
-                          << " is not the legacy version of its default"
-                          << std::endl;
-            }
-            CHECK(t.keys(id) == expected);
-        }
-        // legacy: the mouse actions use the physical Ctrl key
-        CHECK(t.mouseModifier() == sm::Ctrl);
-        CHECK(t.mousePrimaryMask() == GDK_CONTROL_MASK);
-        CHECK(defaults.mouseModifier() == sm::Primary);
-        // the user's file goes on top of it
-        t.applyOverrides(R"({"bindings": {"editor.undo": ["Primary+Alt+z"]}})",
-                         false);
-        CHECK(t.mouseModifier() == sm::Ctrl); // not touched by the user's file
-        {
-            ShortcutTable u(m);
-            defineDefaultShortcuts(u);
-            u.loadFile(path, false);
-            u.applyOverrides(R"({"mouse_primary_modifier": "Primary"})",
-                             false);
-            CHECK(u.mouseModifier() == sm::Primary);
-        }
-        CHECK(t.keys("editor.undo").size() == 1);
-        CHECK(t.keys("editor.undo")[0] == key(m, "Primary+Alt+z"));
-        // the rest of the file is still there ("Ctrl" is Primary on Linux)
-        CHECK(t.keys("editor.save").size() == 1);
-        CHECK(t.keys("editor.save")[0] == key(m, "Ctrl+s"));
-    }
-}
-#endif
 
 #ifdef ART_LANGUAGES_DIR
 // every "%shortcut(action.id)%" in the translations must name a real action
@@ -769,6 +802,35 @@ void testEditing()
         CHECK(t.findConflict("nope", key(lin, "F2")).empty());
     }
 
+    // keys that another context of the same tab or the window also uses
+    {
+        ShortcutTable t(lin);
+        defineDefaultShortcuts(t);
+        auto has = [](const std::vector<std::string> &v, const char *id) {
+            return std::find(v.begin(), v.end(), id) != v.end();
+        };
+        // window-level and tab-level actions can hide each other
+        CHECK(has(t.findOverlaps("editor.undo", key(lin, "Primary+w")),
+                  "window.close_tab"));
+        CHECK(has(t.findOverlaps("queue.select_all", key(lin, "Primary+q")),
+                  "window.quit"));
+        // the same context is findConflict()'s business
+        CHECK(!has(t.findOverlaps("filebrowser.trash", key(lin, "Primary+b")),
+                   "filebrowser.queue"));
+        // another tab (or a dialog) is never reached by the same press
+        CHECK(!has(t.findOverlaps("queue.cancel", key(lin, "Primary+z")),
+                   "editor.undo"));
+        CHECK(!has(t.findOverlaps("saveas.ok", key(lin, "F11")),
+                   "window.fullscreen"));
+        // never with itself
+        CHECK(!has(t.findOverlaps("window.close_tab", key(lin, "Primary+w")),
+                   "window.close_tab"));
+        CHECK(ShortcutTable::contextsOverlap("window", "editor"));
+        CHECK(!ShortcutTable::contextsOverlap("editor", "filecatalog"));
+        CHECK(!ShortcutTable::contextsOverlap("tool-value", "editor"));
+        CHECK(!ShortcutTable::contextsOverlap("x", "y"));
+    }
+
     // setKeys
     {
         ShortcutTable t = small(lin);
@@ -814,25 +876,25 @@ void testEditing()
         ShortcutTable t = base;
         CHECK(t.dumpOverrides(base).find("mouse_primary_modifier") ==
               std::string::npos);
-        t.applyOverrides(R"({"mouse_primary_modifier": "Ctrl"})", false);
+        t.applyOverrides(R"({"mouse_primary_modifier": "Super"})", false);
         const std::string json = t.dumpOverrides(base);
-        CHECK(json.find("\"mouse_primary_modifier\": \"Ctrl\"") !=
+        CHECK(json.find("\"mouse_primary_modifier\": \"Super\"") !=
               std::string::npos);
         ShortcutTable again = base;
         again.applyOverrides(json, false);
-        CHECK(again.mouseModifier() == shortcut_mod::Ctrl);
+        CHECK(again.mouseIsOsKey());
         // set directly, as the editor does, and back
         ShortcutTable u = base;
-        u.setMouseModifier(shortcut_mod::Ctrl);
+        u.setMouseIsOsKey(true);
         CHECK(u.dumpOverrides(base) == json);
-        u.setMouseModifier(shortcut_mod::Primary);
+        u.setMouseIsOsKey(false);
         CHECK(u.dumpOverrides(base).find("mouse_primary_modifier") ==
               std::string::npos);
     }
 
     // the real table, on a Mac-like layout: edit, dump, reload
     {
-        auto mac = ModifierMasks::mac_like();
+        auto mac = macCmd();
         ShortcutTable base(mac);
         defineDefaultShortcuts(base);
         ShortcutTable t = base;
@@ -848,6 +910,54 @@ void testEditing()
     }
 }
 
+// the system shortcuts of macOS, with a made-up list and key code table
+void testSystemShortcuts()
+{
+    // virtual key codes of the keys that are used here
+    const auto keyval_of = [](int code) -> guint {
+        switch (code) {
+        case 49: return GDK_KEY_space;
+        case 126: return GDK_KEY_Up;
+        case 20: return GDK_KEY_3;
+        default: return 0;
+        }
+    };
+    // Cmd+Space (Spotlight), Ctrl+Up (Mission Control, with the Fn flag that
+    // the system adds to the arrows), Cmd+Shift+3 (screenshot)
+    const std::vector<SystemHotKey> list = {
+        {49, 0x100}, {126, 0x21000}, {20, 0x300}};
+    auto mac = ModifierMasks::mac_like(); // Primary is Ctrl
+    const auto sys = [&](const ModifierMasks &m, const char *spec) {
+        return matchesSystemHotKey(key(m, spec), m, list, keyval_of);
+    };
+    // Primary is Ctrl here
+    CHECK(sys(mac, "Primary+Up"));
+    CHECK(!sys(mac, "Primary+space"));
+    CHECK(!sys(mac, "Up"));
+    CHECK(!sys(mac, "Primary+Shift+Up"));
+    // and Cmd there
+    auto cmd = macCmd();
+    CHECK(sys(cmd, "Primary+space"));
+    CHECK(!sys(cmd, "Primary+Up"));
+    CHECK(sys(cmd, "Ctrl+Up"));
+    CHECK(sys(cmd, "Primary+Shift+3"));
+    CHECK(!sys(cmd, "Primary+3"));
+    CHECK(!sys(cmd, "Primary+Alt+space"));
+    // a key code that types nothing matches nothing
+    CHECK(!matchesSystemHotKey(key(cmd, "Primary+space"), cmd, {{999, 0x100}},
+                               keyval_of));
+    // the keys of the application menu and the window server
+    CHECK(isReservedByMacOS(key(cmd, "Primary+comma"), cmd));
+    CHECK(isReservedByMacOS(key(cmd, "Primary+Alt+h"), cmd));
+    CHECK(isReservedByMacOS(key(cmd, "Primary+Tab"), cmd));
+    CHECK(!isReservedByMacOS(key(cmd, "Primary+q"), cmd)); // our quit too
+    CHECK(!isReservedByMacOS(key(cmd, "Primary+period"), cmd));
+    CHECK(!isReservedByMacOS(key(mac, "Primary+comma"), mac)); // that is Ctrl
+#ifndef __APPLE__
+    CHECK(enabledSystemHotKeys().empty());
+#endif
+}
+
 int main()
 {
     testParse();
@@ -856,14 +966,13 @@ int main()
     testOverrides();
     testLayers();
     testMouseModifier();
+    testPrimaryModifier();
     testLookup();
     testEditing();
     testDefaults();
     testDisplay();
     testPlaceholders();
-#ifdef ART_DATA_DIR
-    testInstalledFile();
-#endif
+    testSystemShortcuts();
 #ifdef ART_LANGUAGES_DIR
     testLanguageStrings();
 #endif

@@ -18,17 +18,24 @@ Select an action, then:
   every action. Customised actions are shown in bold.
 * The search box above the tree filters it by action name, id or key (a
   matching group is shown with everything in it).
-* On macOS, the "Modifier of the mouse actions" choice below the tree sets
-  `mouse_primary_modifier` (Cmd or Ctrl); it is not shown elsewhere, where the
-  two are the same key. **Reset all** restores it too.
-* If another action of the same context already uses the key, you are asked
-  whether to take it away from that one.
+* Two choices below the tree set the modifiers: the **Primary modifier of the
+  shortcuts** (`primary_modifier`: Ctrl, the default, or the OS key: Cmd on
+  macOS, the Windows key elsewhere) and the **modifier of the mouse actions**
+  (`mouse_primary_modifier`, the same two values). Both are Ctrl by default,
+  as they have always been in ART. **Reset all** restores them too.
+* If the key is already used by another action, you are asked what to do: for
+  an action of the same context you can take the key away from it (or cancel);
+  for one that can be active at the same time (the same tab, or the window
+  shortcuts such as quit and close tab) you can also keep both; and on macOS
+  you are warned if the system itself uses the key (Mission Control, Spotlight,
+  ...), since it may never reach ART.
 * Nothing is written until you press OK, and the new keys are used from the
   next start of ART.
 
 Saving **rewrites** your `shortcuts.json`: it will contain only the actions
-that differ from the standard keys (the built-in defaults with the installed
-`shortcuts.json` on top, see below), and comments are not kept. The first time
+that differ from the standard keys (the built-in defaults, plus the
+`shortcuts.json` installed in ART's data folder if there is one, see below), and
+comments are not kept. The first time
 this replaces an existing file, the old one is saved as `shortcuts.json.bak`.
 
 ### Editing the file
@@ -55,15 +62,12 @@ default keys: copy the entries you want to change into `shortcuts.json`.
 * Only the actions listed in the file change; the others keep their defaults.
   An action in the file *replaces* all of its default keys.
 * The files are applied in layers, each on top of the previous one: the
-  built-in defaults (`shortcuts_reference.json`), then the `shortcuts.json`
-  that ART installs in its data folder (`data/shortcuts.json` in the sources),
-  then yours. The installed one currently restores the older, Ctrl-based
-  shortcuts: it replaces `Primary` with `Ctrl` everywhere (apart from quit)
-  and sets `"mouse_primary_modifier": "Ctrl"`, which only makes a difference
-  on macOS, where `Primary` is Cmd. Delete it,
-  or its entries, to get the native shortcuts. The rule about clashes applies
-  across the layers: a key of your file that another action of the same
-  context already has (from any layer) is ignored.
+  built-in defaults (`shortcuts_reference.json`), then a `shortcuts.json` in
+  ART's data folder, if a distribution installs one, then yours. The built-in
+  defaults are the shortcuts of the released versions of ART, with Ctrl
+  everywhere. The rule about clashes applies across the layers: a key of your
+  file that another action of the same context already has (from any layer) is
+  ignored.
 * Comments (`// ...` and `/* ... */`) are allowed.
 * Changes take effect when ART is restarted.
 * Problems are reported on the standard error and never prevent ART from
@@ -72,23 +76,35 @@ default keys: copy the entries you want to change into `shortcuts.json`.
   default. Run ART with the environment variable `ART_SHORTCUTS_DEBUG=1`
   to also see which action each key press triggers.
 
-### Mouse modifier
+### Primary and mouse modifiers
 
 ```json
-{ "version": 1, "mouse_primary_modifier": "Ctrl", "bindings": { } }
+{ "version": 1, "primary_modifier": "Cmd", "mouse_primary_modifier": "Ctrl",
+  "bindings": { } }
 ```
 
-`"mouse_primary_modifier"` (optional) is `"Primary"` (the default) or
-`"Ctrl"`. It is the modifier of the mouse actions that used to need the Ctrl
-key: Ctrl-click to reset a slider to its last saved value or to select the
-parameters when loading, pasting or saving a profile, Ctrl-click on the save,
-queue and send-to-editor buttons for a fast export, Ctrl-click and Ctrl-drag in
-the crop, curve, mask, spot and gradient tools, Ctrl-click to extend the
-selection in the thumbnails, and so on. `"Primary"` is Ctrl on Linux and
-Windows and Cmd on macOS; `"Ctrl"` is always the physical Control key (on a
-Mac, Ctrl-click is also what the system turns into a right click).
-The two differ only on macOS. The tooltips follow the setting. Like the keys,
-it is set by the layers in turn, so your file can override the installed one.
+Both are optional and default to `"Ctrl"`; the other value is the OS key,
+written `"Cmd"` on macOS and `"Super"` (the Windows key) elsewhere (`"Command"`,
+`"Win"`, `"Meta"` and `"OS"` are accepted as well).
+
+* `"primary_modifier"` is what `Primary` stands for in the keys below. All the
+  defaults use `Primary`, so choosing Cmd turns Ctrl+S into Cmd+S, Ctrl+Z into
+  Cmd+Z, and so on, without touching anything else. Choosing Ctrl again turns
+  a `Ctrl+` key that was kept apart from `Primary` back into `Primary`.
+* `"mouse_primary_modifier"` is the modifier of the mouse actions that need the
+  Ctrl key: Ctrl-click to reset a slider to its last saved value or to select
+  the parameters when loading, pasting or saving a profile, Ctrl-click on the
+  save, queue and send-to-editor buttons for a fast export, Ctrl-click and
+  Ctrl-drag in the crop, curve, mask, spot and gradient tools, Ctrl-click to
+  extend the selection in the thumbnails, and so on. It is a separate setting
+  because on a Mac Ctrl-click is what the system turns into a right click, so
+  you may want Cmd for the mouse but keep Ctrl for the keyboard, or the other
+  way round.
+
+The tooltips follow both settings. Like the keys, they are set by the layers in
+turn, so your file can override an installed one. A key pressed with the OS
+key while it is not the Primary one never triggers a shortcut (Cmd+Z is not the
+plain `z`).
 
 ### Key syntax
 
@@ -98,10 +114,11 @@ it is set by the layers in turn, so your file can override the installed one.
   `Left`, `KP_Add`, `bracketleft`, ... The character `+` itself is written
   `plus` (and `-` is `minus`, `<` is `less`, `,` is `comma`, ...).
   The modifiers are not case sensitive.
-* `Primary` is the usual "command" modifier of the platform: **Ctrl on Linux
-  and Windows, Cmd on macOS**. All the defaults use it, so the same file works on
-  every system. `Ctrl` is the physical Control key: on a Mac it is a different
-  key from `Primary`, elsewhere it means the same.
+* `Primary` is the modifier chosen by `"primary_modifier"`: **Ctrl** unless
+  you changed it to Cmd (macOS) or the Windows key. All the defaults use it, so
+  the same file keeps working if you change that setting. `Ctrl` is the physical
+  Control key: the same as `Primary` while `Primary` is Ctrl, a different key
+  otherwise.
 * Keys that need Shift on some keyboard layouts (`plus`, `less`, `underscore`,
   ...) match however the layout types them. For letters and digits use an
   explicit `Shift+`: `Shift+R` and `Shift+r` are the same thing, and Caps Lock
@@ -131,9 +148,12 @@ file browser ones are tried after them.
   (`Ctrl+S` on Linux and Windows, `⌘S` on macOS), and follows the user's
   remapping; the unit test checks that the ids exist. `%mouse_primary%` is the
   modifier of the mouse actions (see above), for "`%mouse_primary%`-click".
-* `data/shortcuts.json` must list every action whose default uses `Primary`,
-  with `Ctrl` instead (the unit test checks it, so a new action fails the test
-  until the file is updated).
+* The defaults must use `Primary` (never `Ctrl` or a bare OS key), so that
+  they follow the user's choice of the primary modifier; Ctrl is what it is
+  by default, which keeps the shortcuts of the released versions.
+* `systemshortcuts.h` asks macOS for its enabled system shortcuts
+  (`CopySymbolicHotKeys`), which the shortcuts editor uses to warn about keys
+  that may never reach ART; it is empty on the other platforms.
 * Tests of the key syntax, the table and the config handling:
   `ninja art-shortcuts-test && ./src/gui/art-shortcuts-test` (or `ctest -R shortcuts`).
 * `ART_SHORTCUTS_DEBUG=1` also prints, a little after startup, the actions
@@ -141,7 +161,8 @@ file browser ones are tried after them.
 
 ## Actions and default keys
 
-The keys are listed as in `shortcuts.json`; `Ctrl/Cmd` stands for `Primary`.
+The keys are listed as in `shortcuts.json`; `Ctrl` stands for `Primary` (Ctrl by
+default).
 (Generated from `shortcuts_reference.json`.)
 
 
@@ -150,16 +171,16 @@ The keys are listed as in `shortcuts.json`; `Ctrl/Cmd` stands for `Primary`.
 | Action | Default keys |
 |---|---|
 | `window.fullscreen` | `F11` |
-| `window.close_tab` | `Ctrl/Cmd+W` |
+| `window.close_tab` | `Ctrl+W` |
 
 ### `mainwindow` – The main window: quit, switching between the main tabs
 
 | Action | Default keys |
 |---|---|
-| `window.quit` | `Ctrl/Cmd+Q` |
-| `window.show_file_browser` | `Ctrl/Cmd+F2` |
-| `window.show_queue` | `Ctrl/Cmd+F3` |
-| `window.show_editor` | `Ctrl/Cmd+F4` |
+| `window.quit` | `Ctrl+Q` |
+| `window.show_file_browser` | `Ctrl+F2` |
+| `window.show_queue` | `Ctrl+F3` |
+| `window.show_editor` | `Ctrl+F4` |
 
 ### `editor` – The editor
 
@@ -168,7 +189,7 @@ The keys are listed as in `shortcuts.json`; `Ctrl/Cmd` stands for `Primary`.
 | `editor.toggle_top_panel` | `Shift+L` |
 | `editor.toggle_history_panel` | `L` |
 | `editor.toggle_history_and_right_panels` | `Alt+L` |
-| `editor.toggle_right_panel` | `Ctrl/Cmd+L` |
+| `editor.toggle_right_panel` | `Ctrl+L` |
 | `editor.maximize_preview` | `M` |
 | `editor.maximize_preview_fit` | `Shift+M` |
 | `editor.toggle_preview_background` | `9` |
@@ -191,17 +212,17 @@ The keys are listed as in `shortcuts.json`; `Ctrl/Cmd` stands for `Primary`.
 | `editor.toggle_highlight_clipping` | `greater` |
 | `editor.sync_file_browser` | `Y` |
 | `editor.sync_file_browser_clear_filters` | `X` |
-| `editor.save` | `Ctrl/Cmd+S` |
-| `editor.save_fast` | `Ctrl/Cmd+Shift+S` |
-| `editor.queue` | `Ctrl/Cmd+B` |
-| `editor.queue_fast` | `Ctrl/Cmd+Shift+B` |
-| `editor.send_to_external_editor` | `Ctrl/Cmd+E` |
-| `editor.send_to_external_editor_alt` | `Ctrl/Cmd+Shift+E` |
-| `editor.undo` | `Ctrl/Cmd+Z` |
-| `editor.redo` | `Ctrl/Cmd+Shift+Z`, `Ctrl/Cmd+Y` |
-| `editor.previous_snapshot` | `Ctrl/Cmd+comma` |
-| `editor.next_snapshot` | `Ctrl/Cmd+period` |
-| `editor.toggle_grid` | `Ctrl/Cmd+G` |
+| `editor.save` | `Ctrl+S` |
+| `editor.save_fast` | `Ctrl+Shift+S` |
+| `editor.queue` | `Ctrl+B` |
+| `editor.queue_fast` | `Ctrl+Shift+B` |
+| `editor.send_to_external_editor` | `Ctrl+E` |
+| `editor.send_to_external_editor_alt` | `Ctrl+Shift+E` |
+| `editor.undo` | `Ctrl+Z` |
+| `editor.redo` | `Ctrl+Shift+Z`, `Ctrl+Y` |
+| `editor.previous_snapshot` | `Ctrl+comma` |
+| `editor.next_snapshot` | `Ctrl+period` |
+| `editor.toggle_grid` | `Ctrl+G` |
 | `editor.add_snapshot` | `Alt+S` |
 | `editor.previous_image` | `Shift+F3` |
 | `editor.next_image` | `Shift+F4` |
@@ -210,10 +231,10 @@ The keys are listed as in `shortcuts.json`; `Ctrl/Cmd` stands for `Primary`.
 
 | Action | Default keys |
 |---|---|
-| `editor.scroll_up` | `Ctrl/Cmd+Up`, `Ctrl/Cmd+KP_Up` |
-| `editor.scroll_down` | `Ctrl/Cmd+Down`, `Ctrl/Cmd+KP_Down` |
-| `editor.scroll_left` | `Ctrl/Cmd+Left`, `Ctrl/Cmd+KP_Left` |
-| `editor.scroll_right` | `Ctrl/Cmd+Right`, `Ctrl/Cmd+KP_Right` |
+| `editor.scroll_up` | `Ctrl+Up`, `Ctrl+KP_Up` |
+| `editor.scroll_down` | `Ctrl+Down`, `Ctrl+KP_Down` |
+| `editor.scroll_left` | `Ctrl+Left`, `Ctrl+KP_Left` |
+| `editor.scroll_right` | `Ctrl+Right`, `Ctrl+KP_Right` |
 
 ### `toolbar` – The tool buttons next to the preview
 
@@ -279,42 +300,42 @@ The keys are listed as in `shortcuts.json`; `Ctrl/Cmd` stands for `Primary`.
 
 | Action | Default keys |
 |---|---|
-| `filepanel.toggle_right_notebook` | `Ctrl/Cmd+I`, `Ctrl/Cmd+Shift+I` |
+| `filepanel.toggle_right_notebook` | `Ctrl+I`, `Ctrl+Shift+I` |
 
 ### `filecatalog` – The file browser: filters, panels, trash, path and query boxes
 
 | Action | Default keys |
 |---|---|
 | `filecatalog.toggle_left_panel` | `L` |
-| `filecatalog.toggle_right_panel` | `Ctrl/Cmd+L` |
-| `filecatalog.toggle_left_and_right_panels` | `Ctrl/Cmd+Alt+L` |
+| `filecatalog.toggle_right_panel` | `Ctrl+L` |
+| `filecatalog.toggle_left_and_right_panels` | `Ctrl+Alt+L` |
 | `filecatalog.maximize` | `M` |
 | `filecatalog.reset_path` | `Escape` |
-| `filecatalog.filter_unranked` | `0`, `Ctrl/Cmd+0` |
-| `filecatalog.filter_rank.1` | `1`, `Ctrl/Cmd+1` |
-| `filecatalog.filter_rank.2` | `2`, `Ctrl/Cmd+2` |
-| `filecatalog.filter_rank.3` | `3`, `Ctrl/Cmd+3` |
-| `filecatalog.filter_rank.4` | `4`, `Ctrl/Cmd+4` |
-| `filecatalog.filter_rank.5` | `5`, `Ctrl/Cmd+5` |
-| `filecatalog.filter_not_edited` | `6`, `Ctrl/Cmd+6` |
-| `filecatalog.filter_edited` | `7`, `Ctrl/Cmd+7` |
-| `filecatalog.filter_no_label` | `Alt+0`, `Ctrl/Cmd+Alt+0` |
-| `filecatalog.filter_label.1` | `Alt+1`, `Ctrl/Cmd+Alt+1` |
-| `filecatalog.filter_label.2` | `Alt+2`, `Ctrl/Cmd+Alt+2` |
-| `filecatalog.filter_label.3` | `Alt+3`, `Ctrl/Cmd+Alt+3` |
-| `filecatalog.filter_label.4` | `Alt+4`, `Ctrl/Cmd+Alt+4` |
-| `filecatalog.filter_label.5` | `Alt+5`, `Ctrl/Cmd+Alt+5` |
-| `filecatalog.filter_not_recently_saved` | `Alt+6`, `Ctrl/Cmd+Alt+6` |
-| `filecatalog.filter_recently_saved` | `Alt+7`, `Ctrl/Cmd+Alt+7` |
+| `filecatalog.filter_unranked` | `0`, `Ctrl+0` |
+| `filecatalog.filter_rank.1` | `1`, `Ctrl+1` |
+| `filecatalog.filter_rank.2` | `2`, `Ctrl+2` |
+| `filecatalog.filter_rank.3` | `3`, `Ctrl+3` |
+| `filecatalog.filter_rank.4` | `4`, `Ctrl+4` |
+| `filecatalog.filter_rank.5` | `5`, `Ctrl+5` |
+| `filecatalog.filter_not_edited` | `6`, `Ctrl+6` |
+| `filecatalog.filter_edited` | `7`, `Ctrl+7` |
+| `filecatalog.filter_no_label` | `Alt+0`, `Ctrl+Alt+0` |
+| `filecatalog.filter_label.1` | `Alt+1`, `Ctrl+Alt+1` |
+| `filecatalog.filter_label.2` | `Alt+2`, `Ctrl+Alt+2` |
+| `filecatalog.filter_label.3` | `Alt+3`, `Ctrl+Alt+3` |
+| `filecatalog.filter_label.4` | `Alt+4`, `Ctrl+Alt+4` |
+| `filecatalog.filter_label.5` | `Alt+5`, `Ctrl+Alt+5` |
+| `filecatalog.filter_not_recently_saved` | `Alt+6`, `Ctrl+Alt+6` |
+| `filecatalog.filter_recently_saved` | `Alt+7`, `Ctrl+Alt+7` |
 | `filecatalog.filter_clear` | `D`, `Shift+D` |
 | `filecatalog.browse` | `Return`, `KP_Enter` |
 | `filecatalog.toggle_exif` | `I`, `Alt+I` |
 | `filecatalog.zoom_in` | `plus`, `equal`, `Alt+plus`, `Alt+equal` |
 | `filecatalog.zoom_out` | `minus`, `underscore`, `Alt+minus`, `Alt+underscore` |
-| `filecatalog.focus_path` | `Ctrl/Cmd+O`, `Ctrl/Cmd+Shift+O` |
-| `filecatalog.focus_query` | `Ctrl/Cmd+F` |
-| `filecatalog.toggle_trash` | `Ctrl/Cmd+T`, `Ctrl/Cmd+Shift+T` |
-| `filecatalog.empty_trash` | `Ctrl/Cmd+Shift+Delete` |
+| `filecatalog.focus_path` | `Ctrl+O`, `Ctrl+Shift+O` |
+| `filecatalog.focus_query` | `Ctrl+F` |
+| `filecatalog.toggle_trash` | `Ctrl+T`, `Ctrl+Shift+T` |
+| `filecatalog.empty_trash` | `Ctrl+Shift+Delete` |
 | `filecatalog.toggle_toolbar` | `T`, `Shift+T` |
 | `filecatalog.refresh` | `F5` |
 
@@ -322,29 +343,29 @@ The keys are listed as in `shortcuts.json`; `Ctrl/Cmd` stands for `Primary`.
 
 | Action | Default keys |
 |---|---|
-| `filecatalog.session_load` | `Ctrl/Cmd+O` |
-| `filecatalog.session_add` | `Ctrl/Cmd+plus` |
-| `filecatalog.session_remove` | `Ctrl/Cmd+minus` |
-| `filecatalog.session_save` | `Ctrl/Cmd+S` |
+| `filecatalog.session_load` | `Ctrl+O` |
+| `filecatalog.session_add` | `Ctrl+plus` |
+| `filecatalog.session_remove` | `Ctrl+minus` |
+| `filecatalog.session_save` | `Ctrl+S` |
 
 ### `filebrowser` – The thumbnails of the file browser
 
 | Action | Default keys |
 |---|---|
-| `filebrowser.inspector_popover` | `Ctrl/Cmd+space` |
-| `filebrowser.copy_to` | `Ctrl/Cmd+Shift+C` |
-| `filebrowser.move_to` | `Ctrl/Cmd+Shift+M` |
-| `filebrowser.copy_profile` | `Ctrl/Cmd+C`, `Ctrl/Cmd+Insert` |
-| `filebrowser.paste_profile` | `Ctrl/Cmd+V`, `Shift+Insert` |
-| `filebrowser.paste_profile_partial` | `Ctrl/Cmd+Shift+V` |
+| `filebrowser.inspector_popover` | `Ctrl+space` |
+| `filebrowser.copy_to` | `Ctrl+Shift+C` |
+| `filebrowser.move_to` | `Ctrl+Shift+M` |
+| `filebrowser.copy_profile` | `Ctrl+C`, `Ctrl+Insert` |
+| `filebrowser.paste_profile` | `Ctrl+V`, `Shift+Insert` |
+| `filebrowser.paste_profile_partial` | `Ctrl+Shift+V` |
 | `filebrowser.trash` | `Delete` |
 | `filebrowser.untrash` | `Shift+Delete` |
-| `filebrowser.remove` | `Ctrl/Cmd+Shift+Delete` |
-| `filebrowser.queue` | `Ctrl/Cmd+B` |
-| `filebrowser.queue_fast` | `Ctrl/Cmd+Shift+B` |
-| `filebrowser.select_all` | `Ctrl/Cmd+A` |
+| `filebrowser.remove` | `Ctrl+Shift+Delete` |
+| `filebrowser.queue` | `Ctrl+B` |
+| `filebrowser.queue_fast` | `Ctrl+Shift+B` |
+| `filebrowser.select_all` | `Ctrl+A` |
 | `filebrowser.rename` | `F2` |
-| `filebrowser.add_to_session` | `Ctrl/Cmd+Shift+S` |
+| `filebrowser.add_to_session` | `Ctrl+Shift+S` |
 | `filebrowser.open_previous` | `F3` |
 | `filebrowser.open_next` | `F4` |
 | `filebrowser.select_previous` | `Left`, `BackSpace`, `Shift+Left`, `Shift+BackSpace` |
@@ -357,34 +378,34 @@ The keys are listed as in `shortcuts.json`; `Ctrl/Cmd` stands for `Primary`.
 | `filebrowser.page_up` | `Page_Up` |
 | `filebrowser.page_down` | `Page_Down` |
 | `filebrowser.set_rank.0` | `Shift+0` |
-| `filebrowser.set_label.0` | `Ctrl/Cmd+Shift+0` |
+| `filebrowser.set_label.0` | `Ctrl+Shift+0` |
 | `filebrowser.set_rank.1` | `Shift+1` |
-| `filebrowser.set_label.1` | `Ctrl/Cmd+Shift+1` |
+| `filebrowser.set_label.1` | `Ctrl+Shift+1` |
 | `filebrowser.set_rank.2` | `Shift+2` |
-| `filebrowser.set_label.2` | `Ctrl/Cmd+Shift+2` |
+| `filebrowser.set_label.2` | `Ctrl+Shift+2` |
 | `filebrowser.set_rank.3` | `Shift+3` |
-| `filebrowser.set_label.3` | `Ctrl/Cmd+Shift+3` |
+| `filebrowser.set_label.3` | `Ctrl+Shift+3` |
 | `filebrowser.set_rank.4` | `Shift+4` |
-| `filebrowser.set_label.4` | `Ctrl/Cmd+Shift+4` |
+| `filebrowser.set_label.4` | `Ctrl+Shift+4` |
 | `filebrowser.set_rank.5` | `Shift+5` |
-| `filebrowser.set_label.5` | `Ctrl/Cmd+Shift+5` |
+| `filebrowser.set_label.5` | `Ctrl+Shift+5` |
 
 ### `filebrowser-inspector` – The thumbnails, while the inspector is shown
 
 | Action | Default keys |
 |---|---|
 | `filebrowser.inspector_set_rank.0` | `0` |
-| `filebrowser.inspector_set_label.0` | `Ctrl/Cmd+0` |
+| `filebrowser.inspector_set_label.0` | `Ctrl+0` |
 | `filebrowser.inspector_set_rank.1` | `1` |
-| `filebrowser.inspector_set_label.1` | `Ctrl/Cmd+1` |
+| `filebrowser.inspector_set_label.1` | `Ctrl+1` |
 | `filebrowser.inspector_set_rank.2` | `2` |
-| `filebrowser.inspector_set_label.2` | `Ctrl/Cmd+2` |
+| `filebrowser.inspector_set_label.2` | `Ctrl+2` |
 | `filebrowser.inspector_set_rank.3` | `3` |
-| `filebrowser.inspector_set_label.3` | `Ctrl/Cmd+3` |
+| `filebrowser.inspector_set_label.3` | `Ctrl+3` |
 | `filebrowser.inspector_set_rank.4` | `4` |
-| `filebrowser.inspector_set_label.4` | `Ctrl/Cmd+4` |
+| `filebrowser.inspector_set_label.4` | `Ctrl+4` |
 | `filebrowser.inspector_set_rank.5` | `5` |
-| `filebrowser.inspector_set_label.5` | `Ctrl/Cmd+5` |
+| `filebrowser.inspector_set_label.5` | `Ctrl+5` |
 
 ### `inspector` – The inspector
 
@@ -418,18 +439,18 @@ The keys are listed as in `shortcuts.json`; `Ctrl/Cmd` stands for `Primary`.
 
 | Action | Default keys |
 |---|---|
-| `queue.start_stop` | `Ctrl/Cmd+S` |
+| `queue.start_stop` | `Ctrl+S` |
 
 ### `queue` – The thumbnails of the processing queue
 
 | Action | Default keys |
 |---|---|
-| `queue.select_all` | `Ctrl/Cmd+A` |
-| `queue.open_in_editor` | `Ctrl/Cmd+E` |
+| `queue.select_all` | `Ctrl+A` |
+| `queue.open_in_editor` | `Ctrl+E` |
 | `queue.select_first` | `Home`, `Shift+Home` |
 | `queue.select_last` | `End`, `Shift+End` |
-| `queue.move_to_head` | `Ctrl/Cmd+Home` |
-| `queue.move_to_tail` | `Ctrl/Cmd+End` |
+| `queue.move_to_head` | `Ctrl+Home` |
+| `queue.move_to_tail` | `Ctrl+End` |
 | `queue.cancel` | `Delete` |
 | `queue.select_previous` | `Left`, `Shift+Left` |
 | `queue.select_next` | `Right`, `Shift+Right` |
@@ -440,18 +461,18 @@ The keys are listed as in `shortcuts.json`; `Ctrl/Cmd` stands for `Primary`.
 
 | Action | Default keys |
 |---|---|
-| `drawnmask.undo` | `Ctrl/Cmd+Z` |
-| `drawnmask.reset` | `Ctrl/Cmd+Shift+Z` |
+| `drawnmask.undo` | `Ctrl+Z` |
+| `drawnmask.reset` | `Ctrl+Shift+Z` |
 
 ### `maskspanel` – The masks list
 
 | Action | Default keys |
 |---|---|
-| `masks.toggle_show` | `Ctrl/Cmd+M` |
-| `masks.toggle_selected_enabled` | `Ctrl/Cmd+X` |
+| `masks.toggle_show` | `Ctrl+M` |
+| `masks.toggle_selected_enabled` | `Ctrl+X` |
 
 ### `saveas` – The "Save as" dialog
 
 | Action | Default keys |
 |---|---|
-| `saveas.ok` | `Ctrl/Cmd+Return`, `Ctrl/Cmd+KP_Enter` |
+| `saveas.ok` | `Ctrl+Return`, `Ctrl+KP_Enter` |

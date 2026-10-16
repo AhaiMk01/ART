@@ -38,32 +38,49 @@ enum class ShortcutPhase {
     After   // after it, i.e. only keys the widget did not consume
 };
 
-/// Modifier bits of a normalised key. `Primary` is the OS-convention
-/// modifier (Ctrl on Linux/Windows, Cmd on macOS); `Ctrl` is the physical
-/// Control key and only exists as a separate bit where it differs from Primary.
+/// Modifier bits of a normalised key. `Primary` is the modifier that the user
+/// chose for the shortcuts: Ctrl by default, or the OS key (Cmd on macOS, the
+/// Windows/Super key elsewhere). `Ctrl` is the physical Control key and only
+/// exists as a separate bit while Primary is not Ctrl. `Other` is set for a
+/// modifier that no shortcut can use (the OS key while Primary is Ctrl): a
+/// key pressed with it must not trigger the shortcut of the bare key.
 namespace shortcut_mod {
 constexpr unsigned Primary = 1;
 constexpr unsigned Ctrl = 2;
 constexpr unsigned Alt = 4;
 constexpr unsigned Shift = 8;
+constexpr unsigned Other = 16;
 } // namespace shortcut_mod
 
 
-/// The GDK modifier masks that the platform uses for each logical modifier.
+/// The GDK modifier masks of the logical modifiers.
 struct ModifierMasks {
-    guint primary = GDK_CONTROL_MASK;
+    guint primary = GDK_CONTROL_MASK; // what "Primary" is right now
     guint ctrl = GDK_CONTROL_MASK;
     guint alt = GDK_MOD1_MASK;
     guint shift = GDK_SHIFT_MASK;
     guint altgr = 0; // mask that signals AltGr (0 if the platform has none)
+    /// The OS key that the user can choose as Primary instead of Ctrl: Cmd on
+    /// macOS, the Windows (Super) key on the other platforms
+    guint os_key = GDK_SUPER_MASK;
+    /// How shortcuts.json spells it ("Cmd", "Super")
+    const char *os_key_name = "Super";
 
     /// Ask the running GDK; falls back to the X11 conventions if there is
-    /// no keymap (e.g. before gtk_init).
+    /// no keymap (e.g. before gtk_init). Primary is Ctrl: see withPrimary().
     static ModifierMasks native();
 
     /// Test configurations
     static ModifierMasks linux_like();
     static ModifierMasks mac_like();
+
+    /// A copy whose Primary is the OS key (`os`) or Ctrl
+    ModifierMasks withPrimary(bool os) const
+    {
+        ModifierMasks m = *this;
+        m.primary = os ? os_key : ctrl;
+        return m;
+    }
 
     /// Reduce a GdkEventKey::state to a combination of shortcut_mod bits.
     /// Lock and button bits are ignored, and an AltGr press (which some
@@ -167,6 +184,19 @@ public:
     /// The id of another action of the same context and phase as `id` that
     /// already has `key`, "" if there is none.
     std::string findConflict(const std::string &id, const ShortcutKey &key) const;
+    /// The ids of the actions of *other* contexts that already have `key`
+    /// and that a key press can reach together with `id` (see
+    /// contextsOverlap()): the one met first in the chain hides the others,
+    /// or both run if the first declines. Unlike findConflict() this is not
+    /// always a mistake (the defaults have some such pairs on purpose), but
+    /// it is worth a warning when a user assigns a key.
+    std::vector<std::string> findOverlaps(const std::string &id,
+                                          const ShortcutKey &key) const;
+    /// Whether two different contexts are asked for the same key press: the
+    /// window contexts and the ones of one tab (editor, file browser, queue).
+    /// The contexts that only exist while a widget has the focus or a key is
+    /// held (drawnmask, tool-value, ...) and unknown contexts overlap nothing.
+    static bool contextsOverlap(const std::string &a, const std::string &b);
 
     /// Overlay the contents of a shortcuts.json on the bindings. With `reset`
     /// (the default) they are first set back to the defaults; without it the
@@ -200,27 +230,42 @@ public:
     /// the action is disabled.
     std::string label(const std::string &id) const;
 
-    /// The modifier that the mouse actions ("Ctrl-click" and the like) use:
-    /// shortcut_mod::Primary (the default) or shortcut_mod::Ctrl, as set by
-    /// "mouse_primary_modifier" in shortcuts.json. They differ only where
-    /// Primary is not the Ctrl key, i.e. on macOS.
-    unsigned mouseModifier() const { return mouse_modifier_; }
-    /// `mod` is shortcut_mod::Primary or shortcut_mod::Ctrl (for an editor)
-    void setMouseModifier(unsigned mod)
+    /// The modifier of the shortcuts called "Primary": Ctrl (the default) or
+    /// the OS key (Cmd on macOS, the Windows key elsewhere), as set by
+    /// "primary_modifier" in shortcuts.json. The keys of the actions do not
+    /// change when it does: "Primary+S" is Ctrl+S or Cmd+S.
+    bool primaryIsOsKey() const { return !masks_.primaryIsCtrl(); }
+    /// (for an editor). A Ctrl key that was kept apart from Primary becomes
+    /// Primary again when Primary goes back to Ctrl.
+    void setPrimaryIsOsKey(bool os);
+    /// How it is called in the GUI ("Ctrl", "⌘")
+    std::string primaryName() const
     {
-        mouse_modifier_ = mod == shortcut_mod::Ctrl ? shortcut_mod::Ctrl
-                                                    : shortcut_mod::Primary;
+        return modifierName(masks_, shortcut_mod::Primary);
     }
+
+    /// The modifier of the mouse actions ("Ctrl-click" to reset a slider, fast
+    /// export, ...): Ctrl (the default) or the OS key, as set by
+    /// "mouse_primary_modifier" in shortcuts.json. It is independent of
+    /// primaryIsOsKey(): on macOS Ctrl-click is a right click, but that is
+    /// what the older versions of ART used, so it stays the default.
+    bool mouseIsOsKey() const { return mouse_os_key_; }
+    void setMouseIsOsKey(bool os) { mouse_os_key_ = os; }
     /// Its GDK mask, to test the state of mouse and scroll events
     guint mousePrimaryMask() const
     {
-        return mouse_modifier_ == shortcut_mod::Ctrl ? masks_.ctrl
-                                                     : masks_.primary;
+        return mouse_os_key_ ? masks_.os_key : masks_.ctrl;
     }
     /// How it is called in the GUI ("Ctrl", "⌘")
     std::string mouseModifierName() const
     {
-        return modifierName(masks_, mouse_modifier_);
+        return osKeyOrCtrlName(mouse_os_key_);
+    }
+    /// How the two keys that Primary and the mouse modifier can be are called
+    /// in the GUI
+    std::string osKeyOrCtrlName(bool os) const
+    {
+        return modifierName(masks_.withPrimary(os), shortcut_mod::Primary);
     }
 
     const std::vector<std::string> &warnings() const { return warnings_; }
@@ -254,7 +299,7 @@ private:
     std::vector<Entry> entries_;
     std::map<std::string, int> by_id_;
     std::vector<std::string> warnings_;
-    unsigned mouse_modifier_ = shortcut_mod::Primary;
+    bool mouse_os_key_ = false;
 };
 
 } } // namespace art::gui

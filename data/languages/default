@@ -1196,15 +1196,26 @@ PREFERENCES_SERIALIZE_TIFF_READ_LABEL;Serialize reading of TIFF files
 PREFERENCES_SERIALIZE_TIFF_READ_TOOLTIP;Enabling this option when working with folders containing uncompressed TIFF files can increase performance of thumbnail generation.
 PREFERENCES_SHORTCUTS_ACTION;Action
 PREFERENCES_SHORTCUTS_ADD;Add key...
+PREFERENCES_SHORTCUTS_ASSIGNANYWAY;Assign anyway
+PREFERENCES_SHORTCUTS_BACKTOCTRL;Go back to Ctrl
+PREFERENCES_SHORTCUTS_CHOOSE;Choose another key...
 PREFERENCES_SHORTCUTS_CHANGE;Change...
 PREFERENCES_SHORTCUTS_CONFLICT;<b>%1</b> is already used by <b>%2</b>.\n\nAssign it here and remove it from there?
 PREFERENCES_SHORTCUTS_ESC;(Esc to cancel)
+PREFERENCES_SHORTCUTS_KEEP;Keep it
+PREFERENCES_SHORTCUTS_KEEPBOTH;Keep both
 PREFERENCES_SHORTCUTS_KEYS;Shortcut
 PREFERENCES_SHORTCUTS_MOUSEMOD;Modifier of the mouse actions (Ctrl-click...)
-PREFERENCES_SHORTCUTS_MOUSEMOD_TIP;The key used with the mouse for resetting sliders, fast export, extending selections, drawing in the tools... On macOS the older versions of ART used Ctrl; the system convention is Cmd (and Ctrl-click is a right click).
+PREFERENCES_SHORTCUTS_MOUSEMOD_TIP;The key used with the mouse for resetting sliders, fast export, extending selections, drawing in the tools... It is Ctrl, as in the older versions of ART; on macOS you may prefer Cmd (Ctrl-click is a right click there).
+PREFERENCES_SHORTCUTS_OVERLAP;<b>%1</b> is also used by <b>%2</b>.\n\nBoth can be active at the same time, so only one of them will react to it. Keep both, or remove it from there?
 PREFERENCES_SHORTCUTS_PRESS;Press the new shortcut
 PREFERENCES_SHORTCUTS_REASSIGN;Reassign
+PREFERENCES_SHORTCUTS_PRIMARY;Primary modifier of the shortcuts
+PREFERENCES_SHORTCUTS_PRIMARY_TIP;The key that "Primary" stands for in the shortcuts: all the default shortcuts use it (Ctrl+S, Ctrl+Z...). Ctrl is what ART has always used. On macOS you can choose Cmd instead, elsewhere the Windows key. The mouse actions have their own setting.
 PREFERENCES_SHORTCUTS_RESETALL;Reset all
+PREFERENCES_SHORTCUTS_SYSCLASH;<b>%1</b> (%2) is a system shortcut.\n\nThe system may take it before ART gets to see it. What do you want to do with it?
+PREFERENCES_SHORTCUTS_SYSTEM;<b>%1</b> is a system shortcut.\n\nThe system may take it before ART gets to see it (see the system keyboard settings). Assign it anyway?
+PREFERENCES_SHORTCUTS_SYSTEMNOTE;Also note that <b>%1</b> is a system shortcut: the system may take it before ART gets to see it.
 PREFERENCES_SHORTCUTS_SEARCH;Search actions and keys
 PREFERENCES_SHORTCUTS_RESTART;Changes to the shortcuts take effect the next time ART is started. Customised shortcuts are shown in bold.
 PREFERENCES_SHORTCUTS_SAVEERROR;The shortcuts could not be saved:\n%1
