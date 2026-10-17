@@ -745,6 +745,10 @@ void WhiteBalance::registerShortcuts(ToolShortcutsManager *mgr)
 {
     mgr->addShortcut("tool.whitebalance.temperature", this, temp);
     mgr->addShortcut("tool.whitebalance.tint", this, green);
+    mgr->addShortcut("tool.whitebalance.equalizer", this, equal);
+    mgr->addShortcut("tool.whitebalance.multiplier_red", this, mult[0]);
+    mgr->addShortcut("tool.whitebalance.multiplier_green", this, mult[1]);
+    mgr->addShortcut("tool.whitebalance.multiplier_blue", this, mult[2]);
 }
 
 

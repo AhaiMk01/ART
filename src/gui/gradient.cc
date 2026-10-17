@@ -612,4 +612,14 @@ void Gradient::toolReset(bool to_initial)
 }
 
 
+void Gradient::registerShortcuts(ToolShortcutsManager *mgr)
+{
+    mgr->addShortcut("tool.gradient.angle", this, degree);
+    mgr->addShortcut("tool.gradient.feather", this, feather);
+    mgr->addShortcut("tool.gradient.strength", this, strength);
+    mgr->addShortcut("tool.gradient.center_x", this, centerX);
+    mgr->addShortcut("tool.gradient.center_y", this, centerY);
+}
+
+
 } } // namespace art::gui

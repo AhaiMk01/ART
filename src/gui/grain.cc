@@ -137,4 +137,11 @@ void FilmGrain::toolReset(bool to_initial)
 }
 
 
+void FilmGrain::registerShortcuts(ToolShortcutsManager *mgr)
+{
+    mgr->addShortcut("tool.grain.coarseness", this, iso);
+    mgr->addShortcut("tool.grain.strength", this, strength);
+}
+
+
 } } // namespace art::gui

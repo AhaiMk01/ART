@@ -212,4 +212,11 @@ void Dehaze::toolReset(bool to_initial)
 }
 
 
+void Dehaze::registerShortcuts(ToolShortcutsManager *mgr)
+{
+    mgr->addShortcut("tool.dehaze.depth", this, depth);
+    mgr->addShortcut("tool.dehaze.black_point", this, blackpoint);
+}
+
+
 } } // namespace art::gui

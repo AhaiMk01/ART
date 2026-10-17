@@ -644,6 +644,8 @@ void ToneCurve::showWhitePoint()
 void ToneCurve::registerShortcuts(ToolShortcutsManager *mgr)
 {
     mgr->addShortcut("tool.tonecurve.contrast", this, contrast);
+    mgr->addShortcut("tool.tonecurve.perceptual_strength", this, perceptualStrength);
+    mgr->addShortcut("tool.tonecurve.white_point", this, whitePoint);
 }
 
 void ToneCurve::colorForValue(double valX, double valY,

@@ -313,4 +313,24 @@ void ChMixer::modeChanged()
 }
 
 
+void ChMixer::registerShortcuts(ToolShortcutsManager *mgr)
+{
+    mgr->addShortcut("tool.chmixer.red_red", this, red[0]);
+    mgr->addShortcut("tool.chmixer.red_green", this, red[1]);
+    mgr->addShortcut("tool.chmixer.red_blue", this, red[2]);
+    mgr->addShortcut("tool.chmixer.green_red", this, green[0]);
+    mgr->addShortcut("tool.chmixer.green_green", this, green[1]);
+    mgr->addShortcut("tool.chmixer.green_blue", this, green[2]);
+    mgr->addShortcut("tool.chmixer.blue_red", this, blue[0]);
+    mgr->addShortcut("tool.chmixer.blue_green", this, blue[1]);
+    mgr->addShortcut("tool.chmixer.blue_blue", this, blue[2]);
+    mgr->addShortcut("tool.chmixer.hue_tweak_red", this, hue_tweak[0]);
+    mgr->addShortcut("tool.chmixer.hue_tweak_green", this, hue_tweak[1]);
+    mgr->addShortcut("tool.chmixer.hue_tweak_blue", this, hue_tweak[2]);
+    mgr->addShortcut("tool.chmixer.sat_tweak_red", this, sat_tweak[0]);
+    mgr->addShortcut("tool.chmixer.sat_tweak_green", this, sat_tweak[1]);
+    mgr->addShortcut("tool.chmixer.sat_tweak_blue", this, sat_tweak[2]);
+}
+
+
 } } // namespace art::gui

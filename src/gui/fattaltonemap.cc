@@ -134,4 +134,11 @@ void FattalToneMapping::toolReset(bool to_initial)
 }
 
 
+void FattalToneMapping::registerShortcuts(ToolShortcutsManager *mgr)
+{
+    mgr->addShortcut("tool.drcompression.detail", this, threshold);
+    mgr->addShortcut("tool.drcompression.amount", this, amount);
+}
+
+
 } } // namespace art::gui

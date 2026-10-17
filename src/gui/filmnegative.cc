@@ -738,4 +738,15 @@ void FilmNegative::toolReset(bool to_initial)
 }
 
 
+void FilmNegative::registerShortcuts(ToolShortcutsManager *mgr)
+{
+    mgr->addShortcut("tool.filmnegative.green_exponent", this, greenExp);
+    mgr->addShortcut("tool.filmnegative.red_ratio", this, redRatio);
+    mgr->addShortcut("tool.filmnegative.blue_ratio", this, blueRatio);
+    mgr->addShortcut("tool.filmnegative.output_level", this, outputLevel);
+    mgr->addShortcut("tool.filmnegative.green_balance", this, greenBalance);
+    mgr->addShortcut("tool.filmnegative.blue_balance", this, blueBalance);
+}
+
+
 } } // namespace art::gui

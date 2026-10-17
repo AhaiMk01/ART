@@ -184,4 +184,11 @@ void Defringe::toolReset(bool to_initial)
 }
 
 
+void Defringe::registerShortcuts(ToolShortcutsManager *mgr)
+{
+    mgr->addShortcut("tool.defringe.radius", this, radius);
+    mgr->addShortcut("tool.defringe.threshold", this, threshold);
+}
+
+
 } } // namespace art::gui

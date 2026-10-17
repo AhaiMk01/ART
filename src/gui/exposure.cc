@@ -179,6 +179,7 @@ void Exposure::registerShortcuts(ToolShortcutsManager *mgr)
 {
     mgr->addShortcut("tool.exposure.compensation", this, expcomp);
     mgr->addShortcut("tool.exposure.black", this, black);
+    mgr->addShortcut("tool.exposure.color_propagation_smoothness", this, hrblur);
 }
 
 

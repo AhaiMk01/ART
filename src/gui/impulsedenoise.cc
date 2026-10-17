@@ -109,4 +109,10 @@ void ImpulseDenoise::toolReset(bool to_initial)
 }
 
 
+void ImpulseDenoise::registerShortcuts(ToolShortcutsManager *mgr)
+{
+    mgr->addShortcut("tool.impulsedenoise.threshold", this, thresh);
+}
+
+
 } } // namespace art::gui

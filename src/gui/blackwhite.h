@@ -49,6 +49,7 @@ public:
 
     void updateRGBLabel(bool from_preset = true);
     void adjusterChanged(Adjuster *a, double newval) override;
+    void registerShortcuts(ToolShortcutsManager *mgr) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
     void trimValues(art::engine::procparams::ProcParams *pp) override;
     void enabledChanged() override;

@@ -467,4 +467,10 @@ void FilmSimulation::afterToneCurveToggled()
 }
 
 
+void FilmSimulation::registerShortcuts(ToolShortcutsManager *mgr)
+{
+    mgr->addShortcut("tool.filmsimulation.strength", this, m_strength);
+}
+
+
 } } // namespace art::gui

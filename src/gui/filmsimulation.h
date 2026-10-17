@@ -76,6 +76,7 @@ public:
     FilmSimulation();
 
     void adjusterChanged(Adjuster *a, double newval) override;
+    void registerShortcuts(ToolShortcutsManager *mgr) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
     void read(const art::engine::procparams::ProcParams *pp) override;
     void write(art::engine::procparams::ProcParams *pp) override;

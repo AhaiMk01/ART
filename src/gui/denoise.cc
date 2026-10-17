@@ -413,4 +413,20 @@ void Denoise::toolReset(bool to_initial)
 }
 
 
+void Denoise::registerShortcuts(ToolShortcutsManager *mgr)
+{
+    mgr->addShortcut("tool.denoise.gamma", this, gamma);
+    mgr->addShortcut("tool.denoise.luminance", this, luminance);
+    mgr->addShortcut("tool.denoise.luminance_detail", this, luminanceDetail);
+    mgr->addShortcut("tool.denoise.luminance_detail_threshold", this, luminanceDetailThreshold);
+    mgr->addShortcut("tool.denoise.chrominance_auto_factor", this, chrominanceAutoFactor);
+    mgr->addShortcut("tool.denoise.chrominance", this, chrominance);
+    mgr->addShortcut("tool.denoise.chrominance_red_green", this, chrominanceRedGreen);
+    mgr->addShortcut("tool.denoise.chrominance_blue_yellow", this, chrominanceBlueYellow);
+    mgr->addShortcut("tool.denoise.guided_chrominance", this, guidedChromaRadius);
+    mgr->addShortcut("tool.denoise.nlmeans_detail", this, nlDetail);
+    mgr->addShortcut("tool.denoise.nlmeans_strength", this, nlStrength);
+}
+
+
 } } // namespace art::gui

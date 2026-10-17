@@ -272,6 +272,7 @@ void LogEncoding::registerShortcuts(ToolShortcutsManager *mgr)
     mgr->addShortcut("tool.logencoding.white_ev", this, whiteEv);
     mgr->addShortcut("tool.logencoding.black_ev", this, blackEv);
     mgr->addShortcut("tool.logencoding.highlight_compression", this, highlightCompression);
+    mgr->addShortcut("tool.logencoding.regularization", this, regularization);
 }
 
 

@@ -516,4 +516,15 @@ void BlackWhite::toolReset(bool to_initial)
 }
 
 
+void BlackWhite::registerShortcuts(ToolShortcutsManager *mgr)
+{
+    mgr->addShortcut("tool.blackwhite.mixer_red", this, mixerRed);
+    mgr->addShortcut("tool.blackwhite.mixer_green", this, mixerGreen);
+    mgr->addShortcut("tool.blackwhite.mixer_blue", this, mixerBlue);
+    mgr->addShortcut("tool.blackwhite.gamma_red", this, gammaRed);
+    mgr->addShortcut("tool.blackwhite.gamma_green", this, gammaGreen);
+    mgr->addShortcut("tool.blackwhite.gamma_blue", this, gammaBlue);
+}
+
+
 } } // namespace art::gui

@@ -62,6 +62,7 @@ public:
     void toolReset(bool to_initial) override;
 
     void adjusterChanged(Adjuster *a, double newval) override;
+    void registerShortcuts(ToolShortcutsManager *mgr) override;
     void enabledChanged() override;
     void colorSpaceChanged();
 

@@ -243,4 +243,10 @@ void HSLEqualizer::toolReset(bool to_initial)
 }
 
 
+void HSLEqualizer::registerShortcuts(ToolShortcutsManager *mgr)
+{
+    mgr->addShortcut("tool.hsl.smoothing", this, smoothing);
+}
+
+
 } } // namespace art::gui

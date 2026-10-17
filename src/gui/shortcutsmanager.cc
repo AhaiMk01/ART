@@ -389,6 +389,9 @@ void ToolShortcutsManager::addShortcut(const std::string &action_id,
                                       FoldableToolPanel *tool,
                                       Adjuster *adjuster)
 {
+    if (!tool || !adjuster) {
+        return; // a slider that this tool did not create
+    }
     action_map_[action_id] = std::make_pair(tool, adjuster);
 
     // pressing the key arms the adjuster (and key repeat keeps it so)

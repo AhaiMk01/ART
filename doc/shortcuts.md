@@ -280,6 +280,10 @@ treats it as "cut"), except while a text field has the focus.
 
 ### `tool` – Held-key shortcuts for the tool sliders, and the F1 help
 
+Every slider of the tools of the Exposure, Detail, Color and Effects tabs has an
+action here, so that it can be given a key in the Preferences or in
+`shortcuts.json`; the ones that are *(none)* by default are unassigned.
+
 | Action | Default keys |
 |---|---|
 | `tool.help` | `F1` |
@@ -304,6 +308,86 @@ treats it as "cut"), except while a text field has the focus.
 | `tool.toneequalizer.band.4` | `4` |
 | `tool.toneequalizer.band.5` | `5` |
 | `tool.softlight.strength` | `O` |
+| `tool.exposure.color_propagation_smoothness` | *(none)* |
+| `tool.toneequalizer.regularization` | *(none)* |
+| `tool.toneequalizer.pivot` | *(none)* |
+| `tool.tonecurve.perceptual_strength` | *(none)* |
+| `tool.tonecurve.white_point` | *(none)* |
+| `tool.drcompression.detail` | *(none)* |
+| `tool.drcompression.amount` | *(none)* |
+| `tool.logencoding.regularization` | *(none)* |
+| `tool.sharpening.contrast_threshold` | *(none)* |
+| `tool.sharpening.usm_radius` | *(none)* |
+| `tool.sharpening.usm_amount` | *(none)* |
+| `tool.sharpening.deconv_radius` | *(none)* |
+| `tool.sharpening.deconv_amount` | *(none)* |
+| `tool.sharpening.deconv_corner_boost` | *(none)* |
+| `tool.sharpening.deconv_corner_latitude` | *(none)* |
+| `tool.sharpening.psf_iterations` | *(none)* |
+| `tool.sharpening.edges_radius` | *(none)* |
+| `tool.sharpening.edges_tolerance` | *(none)* |
+| `tool.sharpening.halo_amount` | *(none)* |
+| `tool.denoise.gamma` | *(none)* |
+| `tool.denoise.luminance` | *(none)* |
+| `tool.denoise.luminance_detail` | *(none)* |
+| `tool.denoise.luminance_detail_threshold` | *(none)* |
+| `tool.denoise.chrominance_auto_factor` | *(none)* |
+| `tool.denoise.chrominance` | *(none)* |
+| `tool.denoise.chrominance_red_green` | *(none)* |
+| `tool.denoise.chrominance_blue_yellow` | *(none)* |
+| `tool.denoise.guided_chrominance` | *(none)* |
+| `tool.denoise.nlmeans_detail` | *(none)* |
+| `tool.denoise.nlmeans_strength` | *(none)* |
+| `tool.impulsedenoise.threshold` | *(none)* |
+| `tool.defringe.radius` | *(none)* |
+| `tool.defringe.threshold` | *(none)* |
+| `tool.whitebalance.equalizer` | *(none)* |
+| `tool.whitebalance.multiplier_red` | *(none)* |
+| `tool.whitebalance.multiplier_green` | *(none)* |
+| `tool.whitebalance.multiplier_blue` | *(none)* |
+| `tool.chmixer.red_red` | *(none)* |
+| `tool.chmixer.red_green` | *(none)* |
+| `tool.chmixer.red_blue` | *(none)* |
+| `tool.chmixer.green_red` | *(none)* |
+| `tool.chmixer.green_green` | *(none)* |
+| `tool.chmixer.green_blue` | *(none)* |
+| `tool.chmixer.blue_red` | *(none)* |
+| `tool.chmixer.blue_green` | *(none)* |
+| `tool.chmixer.blue_blue` | *(none)* |
+| `tool.chmixer.hue_tweak_red` | *(none)* |
+| `tool.chmixer.hue_tweak_green` | *(none)* |
+| `tool.chmixer.hue_tweak_blue` | *(none)* |
+| `tool.chmixer.sat_tweak_red` | *(none)* |
+| `tool.chmixer.sat_tweak_green` | *(none)* |
+| `tool.chmixer.sat_tweak_blue` | *(none)* |
+| `tool.hsl.smoothing` | *(none)* |
+| `tool.blackwhite.mixer_red` | *(none)* |
+| `tool.blackwhite.mixer_green` | *(none)* |
+| `tool.blackwhite.mixer_blue` | *(none)* |
+| `tool.blackwhite.gamma_red` | *(none)* |
+| `tool.blackwhite.gamma_green` | *(none)* |
+| `tool.blackwhite.gamma_blue` | *(none)* |
+| `tool.filmsimulation.strength` | *(none)* |
+| `tool.pcvignette.strength` | *(none)* |
+| `tool.pcvignette.feather` | *(none)* |
+| `tool.pcvignette.roundness` | *(none)* |
+| `tool.pcvignette.center_x` | *(none)* |
+| `tool.pcvignette.center_y` | *(none)* |
+| `tool.gradient.angle` | *(none)* |
+| `tool.gradient.feather` | *(none)* |
+| `tool.gradient.strength` | *(none)* |
+| `tool.gradient.center_x` | *(none)* |
+| `tool.gradient.center_y` | *(none)* |
+| `tool.dehaze.depth` | *(none)* |
+| `tool.dehaze.black_point` | *(none)* |
+| `tool.grain.coarseness` | *(none)* |
+| `tool.grain.strength` | *(none)* |
+| `tool.filmnegative.green_exponent` | *(none)* |
+| `tool.filmnegative.red_ratio` | *(none)* |
+| `tool.filmnegative.blue_ratio` | *(none)* |
+| `tool.filmnegative.output_level` | *(none)* |
+| `tool.filmnegative.green_balance` | *(none)* |
+| `tool.filmnegative.blue_balance` | *(none)* |
 
 ### `tool-value` – While such a key is held: change or reset the slider
 

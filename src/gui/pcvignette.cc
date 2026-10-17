@@ -389,4 +389,14 @@ void PCVignette::getDimensions(int &x, int &y, int &w, int &h)
 }
 
 
+void PCVignette::registerShortcuts(ToolShortcutsManager *mgr)
+{
+    mgr->addShortcut("tool.pcvignette.strength", this, strength);
+    mgr->addShortcut("tool.pcvignette.feather", this, feather);
+    mgr->addShortcut("tool.pcvignette.roundness", this, roundness);
+    mgr->addShortcut("tool.pcvignette.center_x", this, centerX);
+    mgr->addShortcut("tool.pcvignette.center_y", this, centerY);
+}
+
+
 } } // namespace art::gui

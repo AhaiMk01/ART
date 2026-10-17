@@ -526,4 +526,20 @@ void Sharpening::toolReset(bool to_initial)
 }
 
 
+void Sharpening::registerShortcuts(ToolShortcutsManager *mgr)
+{
+    mgr->addShortcut("tool.sharpening.contrast_threshold", this, contrast);
+    mgr->addShortcut("tool.sharpening.usm_radius", this, radius);
+    mgr->addShortcut("tool.sharpening.usm_amount", this, amount);
+    mgr->addShortcut("tool.sharpening.deconv_radius", this, dradius);
+    mgr->addShortcut("tool.sharpening.deconv_amount", this, damount);
+    mgr->addShortcut("tool.sharpening.deconv_corner_boost", this, deconvCornerBoost);
+    mgr->addShortcut("tool.sharpening.deconv_corner_latitude", this, deconvCornerLatitude);
+    mgr->addShortcut("tool.sharpening.psf_iterations", this, psf_iterations);
+    mgr->addShortcut("tool.sharpening.edges_radius", this, eradius);
+    mgr->addShortcut("tool.sharpening.edges_tolerance", this, etolerance);
+    mgr->addShortcut("tool.sharpening.halo_amount", this, hcamount);
+}
+
+
 } } // namespace art::gui

@@ -186,6 +186,8 @@ void ToneEqualizer::registerShortcuts(ToolShortcutsManager *mgr)
     mgr->addShortcut("tool.toneequalizer.band.3", this, bands[2]);
     mgr->addShortcut("tool.toneequalizer.band.4", this, bands[3]);
     mgr->addShortcut("tool.toneequalizer.band.5", this, bands[4]);
+    mgr->addShortcut("tool.toneequalizer.regularization", this, regularization);
+    mgr->addShortcut("tool.toneequalizer.pivot", this, pivot);
 }
 
 

@@ -37,6 +37,7 @@ public:
     void
     setDefaults(const art::engine::procparams::ProcParams *defParams) override;
     void adjusterChanged(Adjuster *a, double newval) override;
+    void registerShortcuts(ToolShortcutsManager *mgr) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
     void trimValues(art::engine::procparams::ProcParams *pp) override;
     void enabledChanged() override;
