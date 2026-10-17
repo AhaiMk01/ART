@@ -58,6 +58,9 @@ public:
     virtual ~MasksContentProvider() {}
 
     virtual Gtk::Container *getContainer() = 0;
+    /// The widget of the tool that has the masks, whose header is shown
+    /// whenever the tool is (even if it is folded); nullptr if unknown
+    virtual Gtk::Widget *getToolWidget() { return nullptr; }
     virtual void getEvents(Events &events) = 0;
 
     virtual ToolPanelListener *listener() = 0;
@@ -130,8 +133,8 @@ public:
     /// What the "show mask" shortcut does in the editor `editor`: toggle the
     /// display of the mask of the region that the user last worked on (the
     /// last one selected, or shown, in any of the mask panels of the tools of
-    /// that editor), and switch off the mask shown by another panel. False if
-    /// there is no such panel.
+    /// that editor that are visible), and switch off the mask shown by another
+    /// panel. False if there is no such panel, and the key goes on.
     static bool toggleShowLastActive(Gtk::Widget &editor);
     /// Likewise for "enable/disable the selected region" (the checkbox of
     /// its row in the list)
@@ -210,6 +213,7 @@ private:
     // this panel is where the user is working: see toggleShowLastActive()
     void markActive();
     bool usable() const;
+    bool toolVisible() const;
     void toggleSelectedEnabled();
     static MasksPanel *lastActive(Gtk::Widget &editor);
     void onAreaShapeSelectionChanged();

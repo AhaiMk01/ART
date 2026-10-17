@@ -1013,11 +1013,22 @@ bool MasksPanel::usable() const
 }
 
 
+// the tool is on screen: its header is shown, whether the tool is folded or
+// not (so not when another tab of the tool panel is shown, or the tool is
+// hidden)
+bool MasksPanel::toolVisible() const
+{
+    const Gtk::Widget *w = cp_->getToolWidget();
+    return (w ? w : this)->get_mapped();
+}
+
+
 MasksPanel *MasksPanel::lastActive(Gtk::Widget &editor)
 {
     MasksPanel *res = nullptr;
     for (auto p : allMasksPanels()) {
-        if (p->last_used_ && p->usable() && p->is_ancestor(editor) &&
+        if (p->last_used_ && p->usable() && p->toolVisible() &&
+            p->is_ancestor(editor) &&
             (!res || p->last_used_ > res->last_used_)) {
             res = p;
         }

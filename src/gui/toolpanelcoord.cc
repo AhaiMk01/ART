@@ -1070,14 +1070,6 @@ void ToolPanelCoordinator::foldAllButOne(Gtk::Box *parent,
     }
 }
 
-bool ToolPanelCoordinator::localEditingTabActive() const
-{
-    return localPanelSW &&
-           toolPanelNotebook->get_current_page() ==
-               toolPanelNotebook->page_num(*localPanelSW);
-}
-
-
 void ToolPanelCoordinator::bindShortcuts()
 {
     auto sm = ShortcutsManager::getInstance();

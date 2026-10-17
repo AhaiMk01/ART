@@ -307,9 +307,8 @@ void defineDefaultShortcuts(ShortcutTable &t)
     // the drawn mask panel sees the key before the focused widget does
     add("drawnmask.undo", "drawnmask", {"Primary+z"}, Phase::Before);
     add("drawnmask.reset", "drawnmask", {"Primary+Shift+z"}, Phase::Before);
-    // the mask panel that the user last worked on, when the local editing tab
-    // is the active one and wherever the focus is in the editor (the editor
-    // keeps track of it). Ctrl+X is asked before the focused widget: the
+    // the mask panel that the user last worked on, if its tool is visible, and
+    // wherever the focus is in the editor (the panels keep track of it). Ctrl+X is asked before the focused widget: the
     // masks list would pass it to its search box, which cuts. A text field
     // that has the focus keeps its keys.
     add("masks.toggle_show", "editor", {"Primary+m"});

@@ -231,8 +231,11 @@ default).
 `masks.toggle_show` shows (or hides) the mask of the region that you last worked on
 in any tool (the last region selected, or whose mask was shown), and
 `masks.toggle_selected_enabled` enables or disables that region. Both work
-wherever the focus is in the editor, but only while the Local editing tab of
-the tool panel is shown. `masks.toggle_selected_enabled` is asked before the
+wherever the focus is in the editor, but only while the tool where you worked
+is visible, that is its header is shown, folded or not (so not when another tab
+of the tool panel is shown); if it is not, the key goes on to whatever else would
+handle it.
+`masks.toggle_selected_enabled` is asked before the
 focused widget (the list of regions would pass Ctrl+X to its search box, which
 treats it as "cut"), except while a text field has the focus.
 

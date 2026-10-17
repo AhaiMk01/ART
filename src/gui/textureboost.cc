@@ -39,6 +39,7 @@ public:
     Glib::ustring getToolName() override { return "textureboost"; }
 
     Gtk::Container *getContainer() override { return parent_->box; }
+    Gtk::Widget *getToolWidget() override { return parent_->getExpander(); }
 
     void getEvents(Events &events) override
     {

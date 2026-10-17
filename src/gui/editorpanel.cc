@@ -1750,22 +1750,20 @@ void EditorPanel::bindShortcuts()
     run("editor.zoom_fit",
         [this]() { iareapanel->imageArea->zoomPanel->zoomFitClicked(); });
 
-    // the masks of the tools of the local editing tab: those of the region
-    // that was last worked on, in whichever tool
-    const auto local_tab = [this]() { return tpc->localEditingTabActive(); };
+    // the masks of the tools: those of the region that was last worked on, in
+    // whichever visible tool (see MasksPanel::toggleShowLastActive)
     bind("masks.toggle_show",
-         [this]() { return MasksPanel::toggleShowLastActive(*this); },
-         local_tab);
+         [this]() { return MasksPanel::toggleShowLastActive(*this); });
     // (asked before the focused widget: not while a text field has the focus,
     // where Ctrl+X is "cut")
     bind("masks.toggle_selected_enabled",
          [this]() {
              return MasksPanel::toggleSelectedEnabledLastActive(*this);
          },
-         [this, local_tab]() {
+         [this]() {
              auto top = dynamic_cast<Gtk::Window *>(get_toplevel());
              Gtk::Widget *f = top ? top->get_focus() : nullptr;
-             return local_tab() && !dynamic_cast<Gtk::Editable *>(f) &&
+             return !dynamic_cast<Gtk::Editable *>(f) &&
                     !dynamic_cast<Gtk::TextView *>(f);
          });
 
