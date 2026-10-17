@@ -489,7 +489,9 @@ what a deviation means) stays yours.
    and fit only the offsets. Without one, never pick a value by hand: give
    the script a prior (`--prior`), the nearest preset for the same camera,
    light and basis (another stock if need be), or `1,1,0.15` when nothing
-   matches; the roll's own evidence moves it as far as it supports. Report
+   matches; the roll's own evidence moves it as far as it supports. A
+   preset is a slope a roll set; another frame's prior-weighted or weak
+   result is not one. Report
    the prior, its spread and the result. Slopes belong to the processing
    basis they were fitted in (colour space, input profile and its options,
    input gamma): a preset from another basis does not transfer, refit it
@@ -518,14 +520,18 @@ what a deviation means) stays yours.
    green's `den_G` and `s_G`, `a = 1 - g * log10(16)`: `den_c = k_c * den_G`,
    `gain_c = 1 - den_c`, `shift_c = k_c * (a + s_G) - a - g * o_final,cf`,
    plus `g * log10(s)` on every channel for the frame's capture exposure.
+   Master and black stay 0 after the fold: they are divided by each
+   channel's `den_c`, so with unequal slopes they shift colour as well as
+   level. Set brightness with exposure and the tone curve.
 
 Report each frame's offset and lam in plain terms (warm late sun, shop
 light). The sidecar takes the slopes and offsets as the script prints them.
 Removing a real warm or cool light is a choice: a frame whose light the user
 wants can take part of its correction (`alpha * lam`, alpha < 1, one stated
-alpha for that light). Never nudge a channel or exposure by eye after the
-fit: a render that still looks off is evidence about the picks, the basis
-or the light groups; go back there, or report it. Sunlit neutrals also
+alpha for that light). Never nudge a channel's offset or slope by eye after
+the fit: a render that still looks off is evidence about the picks, the
+basis or the light groups; go back there, or report it. Exposure and the
+curve are per-frame tonal choices, set against the clipping check. Sunlit neutrals also
 carry skylight, so a daylight frame corrected to them in full can look
 warm; that is the light, reported, not a reason to nudge.
 An automatic white balance is a cross-check, never the prior.
