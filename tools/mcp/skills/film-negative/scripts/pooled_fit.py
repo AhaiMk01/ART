@@ -263,6 +263,9 @@ def main(argv=None):
         mat, unc = unc, []
         result["weak"].append("offsets from uncertain rows only")
     fixed = "preset" if preset else None
+    if not n_mat and not preset:  # uncertain rows never set a slope
+        preset, fixed = [prior[0][0], prior[0][2]], "prior"
+        result["weak"].append("slope is the prior's: no material rows")
     try:
         fits = {c: fit_channel(mat, c, preset[0 if c == 0 else 1] if preset else None) for c in (0, 2)}
     except (ValueError, ZeroDivisionError):
@@ -332,7 +335,10 @@ def main(argv=None):
         k0, sd0 = prior
         for c in (0, 2):
             lo, hi = result["slopes"][NAME[c]]["boot90"]
-            se = max((hi - lo) / 2 / 1.645, 1e-4) if math.isfinite(hi - lo) else float("inf")
+            # resampling fewer than three frames says nothing about the spread
+            n_fr = len({r["frame"] for r in mat})
+            se = (max((hi - lo) / 2 / 1.645, 1e-4)
+                  if n_fr >= 3 and math.isfinite(hi - lo) else float("inf"))
             kd = fits[c]["k"]
             kp = (kd / se ** 2 + k0[c] / sd0 ** 2) / (1 / se ** 2 + 1 / sd0 ** 2)
             result["slopes"][NAME[c]].update(prior=k0[c], prior_sd=sd0, data_se=se, posterior=kp)

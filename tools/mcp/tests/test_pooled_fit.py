@@ -127,6 +127,22 @@ def test_single_frame_of_uncertain_rows_takes_the_prior(tmp_path):
     assert "weak: uncertain rows only" in f["notes"]
 
 
+def test_one_frame_never_outweighs_the_prior(tmp_path):
+    # a single frame carries a slope of its own, but resampling one frame has
+    # no spread: the prior must not be overruled by a zero-width interval
+    r = run(tmp_path, roll(tmp_path, {"01": (-0.1, 0.2)}), "--prior", "1,1,0.15")
+    for ch in "RB":
+        assert r["slopes"][ch]["posterior"] == pytest.approx(1.0)
+    # uncertain rows at two levels in one frame do not set a slope either
+    D = [np.array([K[0] * dg - 0.1, dg, K[2] * dg + 0.2]) for dg in (0.9, 1.4)]
+    sq = [dict(material="granite", object_id=f"rock{i}", basis="uncertain",
+               avg=list(lin(d)), sd=[50.0] * 3, size=32) for i, d in enumerate(D)]
+    p = tmp_path / "unc.json"
+    p.write_text(json.dumps(dict(frames={"01": dict(light="daylight", squares=sq)})))
+    r = run(tmp_path, p, "--prior", "1,1,0.15")
+    assert r["slopes"]["B"]["k"] == 1.0 and r["slopes"]["B"]["fixed"] == "prior"
+
+
 def test_fold_decodes_neutrals_to_equal_codes(tmp_path):
     offs = {f"{i:02d}": (-0.1 - 0.01 * i, 0.2 + 0.01 * i) for i in range(4)}
     s = {"00": 2.0}
