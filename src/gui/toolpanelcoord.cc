@@ -41,7 +41,7 @@ class TPScrolledWindow: public MyScrolledWindow {
 public:
     TPScrolledWindow(): mgr_(nullptr) {}
 
-    void setToolShortcutManager(ToolShortcutManager *mgr) { mgr_ = mgr; }
+    void setToolShortcutsManager(ToolShortcutsManager *mgr) { mgr_ = mgr; }
 
     bool on_scroll_event(GdkEventScroll *event) override
     {
@@ -52,7 +52,7 @@ public:
     }
 
 private:
-    ToolShortcutManager *mgr_;
+    ToolShortcutsManager *mgr_;
 };
 
 } // namespace
@@ -1273,25 +1273,25 @@ void ToolPanelCoordinator::setProgressListener(art::engine::ProgressListener *pl
     metadata->setProgressListener(pl);
 }
 
-void ToolPanelCoordinator::setToolShortcutManager(ToolShortcutManager *mgr)
+void ToolPanelCoordinator::setToolShortcutsManager(ToolShortcutsManager *mgr)
 {
     for (auto p : toolPanels) {
         p->registerShortcuts(mgr);
     }
 
     // static_cast<TPScrolledWindow
-    // *>(favoritePanelSW)->setToolShortcutManager(mgr);
+    // *>(favoritePanelSW)->setToolShortcutsManager(mgr);
     static_cast<TPScrolledWindow *>(exposurePanelSW)
-        ->setToolShortcutManager(mgr);
+        ->setToolShortcutsManager(mgr);
     static_cast<TPScrolledWindow *>(detailsPanelSW)
-        ->setToolShortcutManager(mgr);
-    static_cast<TPScrolledWindow *>(colorPanelSW)->setToolShortcutManager(mgr);
+        ->setToolShortcutsManager(mgr);
+    static_cast<TPScrolledWindow *>(colorPanelSW)->setToolShortcutsManager(mgr);
     static_cast<TPScrolledWindow *>(transformPanelSW)
-        ->setToolShortcutManager(mgr);
-    static_cast<TPScrolledWindow *>(rawPanelSW)->setToolShortcutManager(mgr);
-    static_cast<TPScrolledWindow *>(localPanelSW)->setToolShortcutManager(mgr);
+        ->setToolShortcutsManager(mgr);
+    static_cast<TPScrolledWindow *>(rawPanelSW)->setToolShortcutsManager(mgr);
+    static_cast<TPScrolledWindow *>(localPanelSW)->setToolShortcutsManager(mgr);
     static_cast<TPScrolledWindow *>(effectsPanelSW)
-        ->setToolShortcutManager(mgr);
+        ->setToolShortcutsManager(mgr);
 }
 
 bool ToolPanelCoordinator::getFilmNegativeSpot(art::engine::Coord spot,

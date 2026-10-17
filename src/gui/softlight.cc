@@ -102,7 +102,7 @@ void SoftLight::toolReset(bool to_initial)
     read(&pp);
 }
 
-void SoftLight::registerShortcuts(ToolShortcutManager *mgr)
+void SoftLight::registerShortcuts(ToolShortcutsManager *mgr)
 {
     mgr->addShortcut("tool.softlight.strength", this, strength);
 }

@@ -149,7 +149,7 @@ void defineDefaultShortcuts(ShortcutTable &t)
     add("tool.labcurve.contrast", "tool", {"j"});
     add("tool.labcurve.chromaticity", "tool", {"n"});
     add("tool.whitebalance.temperature", "tool", {"t"});
-    // was "i" too, but ToolShortcutManager keeps one adjuster per key and
+    // was "i" too, but ToolShortcutsManager keeps one adjuster per key and
     // LabCurve registers after WhiteBalance, so "i" has always been
     // brightness; bind this one to a free key in shortcuts.json if wanted
     add("tool.whitebalance.tint", "tool", {});

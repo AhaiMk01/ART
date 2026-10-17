@@ -2495,7 +2495,7 @@ void EditorPanel::beforeAfterToggled()
 
         beforeIarea = new ImageAreaPanel();
         if (shortcut_mgr_) {
-            beforeIarea->imageArea->setToolShortcutManager(shortcut_mgr_.get());
+            beforeIarea->imageArea->setToolShortcutsManager(shortcut_mgr_.get());
         }
 
         int HeaderBoxHeight = 17;
@@ -2842,9 +2842,9 @@ void EditorPanel::sizeChanged(int w, int h, int ow, int oh)
 void EditorPanel::setParent(RTWindow *p)
 {
     parent = p;
-    shortcut_mgr_.reset(new ToolShortcutManager(p));
-    tpc->setToolShortcutManager(shortcut_mgr_.get());
-    iareapanel->imageArea->setToolShortcutManager(shortcut_mgr_.get());
+    shortcut_mgr_.reset(new ToolShortcutsManager(p));
+    tpc->setToolShortcutsManager(shortcut_mgr_.get());
+    iareapanel->imageArea->setToolShortcutsManager(shortcut_mgr_.get());
 }
 
 

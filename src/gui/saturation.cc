@@ -117,7 +117,7 @@ void Saturation::toolReset(bool to_initial)
     read(&pp);
 }
 
-void Saturation::registerShortcuts(ToolShortcutManager *mgr)
+void Saturation::registerShortcuts(ToolShortcutsManager *mgr)
 {
     mgr->addShortcut("tool.saturation.saturation", this, saturation);
     mgr->addShortcut("tool.saturation.vibrance", this, vibrance);

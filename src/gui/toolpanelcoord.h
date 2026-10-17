@@ -375,7 +375,7 @@ public:
 
     void setProgressListener(art::engine::ProgressListener *pl);
 
-    void setToolShortcutManager(ToolShortcutManager *mgr);
+    void setToolShortcutsManager(ToolShortcutsManager *mgr);
 
 private:
     IdleRegister idle_register;

@@ -641,7 +641,7 @@ void ToneCurve::showWhitePoint()
     whitePoint->set_visible(pp.toneCurve.hasWhitePoint());
 }
 
-void ToneCurve::registerShortcuts(ToolShortcutManager *mgr)
+void ToneCurve::registerShortcuts(ToolShortcutsManager *mgr)
 {
     mgr->addShortcut("tool.tonecurve.contrast", this, contrast);
 }

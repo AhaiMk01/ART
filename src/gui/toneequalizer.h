@@ -43,7 +43,7 @@ public:
     void trimValues(art::engine::procparams::ProcParams *pp) override;
 
     void toolReset(bool to_initial) override;
-    void registerShortcuts(ToolShortcutManager *mgr) override;
+    void registerShortcuts(ToolShortcutsManager *mgr) override;
 
 private:
     void colormapToggled();

@@ -243,7 +243,7 @@ void LabCurve::toolReset(bool to_initial)
     read(&pp);
 }
 
-void LabCurve::registerShortcuts(ToolShortcutManager *mgr)
+void LabCurve::registerShortcuts(ToolShortcutsManager *mgr)
 {
     mgr->addShortcut("tool.labcurve.brightness", this, brightness);
     mgr->addShortcut("tool.labcurve.contrast", this, contrast);

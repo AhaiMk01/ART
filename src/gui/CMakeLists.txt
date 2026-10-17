@@ -162,7 +162,6 @@ set(NONCLISOURCEFILES
     controllines.cc
     filecatalog_rename.cc
     focusmask.cc
-    shortcutmanager.cc
     shortcutsmanager.cc
     shortcutseditor.cc
     shortcuttable.cc

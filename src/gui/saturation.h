@@ -55,7 +55,7 @@ public:
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
 
     void toolReset(bool to_initial) override;
-    void registerShortcuts(ToolShortcutManager *mgr) override;
+    void registerShortcuts(ToolShortcutsManager *mgr) override;
 };
 
 

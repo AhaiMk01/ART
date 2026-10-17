@@ -179,7 +179,7 @@ void ToneEqualizer::toolReset(bool to_initial)
     read(&pp);
 }
 
-void ToneEqualizer::registerShortcuts(ToolShortcutManager *mgr)
+void ToneEqualizer::registerShortcuts(ToolShortcutsManager *mgr)
 {
     mgr->addShortcut("tool.toneequalizer.band.1", this, bands[0]);
     mgr->addShortcut("tool.toneequalizer.band.2", this, bands[1]);

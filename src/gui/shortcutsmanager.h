@@ -26,6 +26,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -160,5 +161,42 @@ private:
     std::map<std::pair<const void *, std::string>, Binding> bindings_;
     bool debug_;
 };
+
+
+class RTWindow;
+class Adjuster;
+class FoldableToolPanel;
+
+/// The held-key shortcuts of the tool sliders (hold the key of a slider and use
+/// +/-/0 to change it; F1 shows the list). The keys come from the
+/// ShortcutsManager. One per editor.
+class ToolShortcutsManager {
+public:
+    ToolShortcutsManager(RTWindow *parent);
+    ~ToolShortcutsManager();
+    /// Register `adjuster` of `tool` as the target of the held-key shortcut
+    /// `action_id` (e.g. "tool.exposure.compensation"). Which key that is
+    /// comes from the ShortcutsManager.
+    void addShortcut(const std::string &action_id, FoldableToolPanel *tool,
+                     Adjuster *adjuster);
+    void reset(bool clear);
+    bool keyPressed(GdkEventKey *event);
+    bool keyReleased(GdkEventKey *event);
+    bool scrollPressed(GdkEventScroll *event);
+    bool shouldHandleScroll() const;
+    void showHelp();
+
+private:
+    void doit(int direction, int speed = 1);
+
+    RTWindow *parent_;
+    std::unordered_map<std::string, std::pair<FoldableToolPanel *, Adjuster *>>
+        action_map_;
+    std::string cur_action_; // the shortcut being held, "" if none
+    FoldableToolPanel *cur_tool_;
+    Adjuster *cur_adjuster_;
+    sigc::connection conn_;
+};
+
 
 } } // namespace art::gui

@@ -298,7 +298,7 @@ private:
 
     sigc::connection autosave_conn_;
 
-    std::unique_ptr<ToolShortcutManager> shortcut_mgr_;
+    std::unique_ptr<ToolShortcutsManager> shortcut_mgr_;
 };
 
 

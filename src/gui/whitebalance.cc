@@ -741,7 +741,7 @@ void WhiteBalance::fillMethods()
     }
 }
 
-void WhiteBalance::registerShortcuts(ToolShortcutManager *mgr)
+void WhiteBalance::registerShortcuts(ToolShortcutsManager *mgr)
 {
     mgr->addShortcut("tool.whitebalance.temperature", this, temp);
     mgr->addShortcut("tool.whitebalance.tint", this, green);

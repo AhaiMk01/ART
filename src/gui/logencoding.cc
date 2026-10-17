@@ -265,7 +265,7 @@ void LogEncoding::toolReset(bool to_initial)
     read(&pp);
 }
 
-void LogEncoding::registerShortcuts(ToolShortcutManager *mgr)
+void LogEncoding::registerShortcuts(ToolShortcutsManager *mgr)
 {
     mgr->addShortcut("tool.logencoding.gain", this, gain);
     mgr->addShortcut("tool.logencoding.target_gray", this, targetGray);

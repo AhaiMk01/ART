@@ -21,7 +21,7 @@
 #include "cropwindow.h"
 #include "../utils/multilangmgr.h"
 #include "options.h"
-#include "shortcutmanager.h"
+#include "shortcutsmanager.h"
 #include <cmath>
 #include <ctime>
 
@@ -853,7 +853,7 @@ void ImageArea::setAreaDrawListenerProvider(AreaDrawListenerProvider *alp)
     }
 }
 
-void ImageArea::setToolShortcutManager(ToolShortcutManager *mgr)
+void ImageArea::setToolShortcutsManager(ToolShortcutsManager *mgr)
 {
     shortcut_mgr_ = mgr;
 }

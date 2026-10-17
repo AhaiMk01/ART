@@ -35,7 +35,7 @@
 namespace art { namespace gui {
 
 
-class ToolShortcutManager;
+class ToolShortcutsManager;
 
 class ImageAreaPanel;
 class ImageArea: public Gtk::DrawingArea,
@@ -64,7 +64,7 @@ protected:
     PointerMotionListener *pmhlistener;
     ImageAreaToolListener *listener;
 
-    ToolShortcutManager *shortcut_mgr_;
+    ToolShortcutsManager *shortcut_mgr_;
 
     CropWindow *getCropWindow(int x, int y);
     Gtk::SizeRequestMode get_request_mode_vfunc() const override;
@@ -172,7 +172,7 @@ public:
 
     void setAreaDrawListenerProvider(AreaDrawListenerProvider *ap);
 
-    void setToolShortcutManager(ToolShortcutManager *mgr);
+    void setToolShortcutsManager(ToolShortcutsManager *mgr);
 
     void setHiDPI(bool yes);    
 };

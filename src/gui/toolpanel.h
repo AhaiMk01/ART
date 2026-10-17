@@ -27,7 +27,7 @@
 #include "../utils/multilangmgr.h"
 #include "paramsedited.h"
 #include "pparamschangelistener.h"
-#include "shortcutmanager.h"
+#include "shortcutsmanager.h"
 #include <glibmm.h>
 #include <gtkmm.h>
 
@@ -135,7 +135,7 @@ public:
         return nullptr;
     }
 
-    virtual void registerShortcuts(ToolShortcutManager *mgr) {}
+    virtual void registerShortcuts(ToolShortcutsManager *mgr) {}
 };
 
 class FoldableToolPanel: public ToolPanel {

@@ -175,7 +175,7 @@ void Exposure::showHRBlur()
     hrblur->set_visible(hrmode->get_active_row_number() == 2);
 }
 
-void Exposure::registerShortcuts(ToolShortcutManager *mgr)
+void Exposure::registerShortcuts(ToolShortcutsManager *mgr)
 {
     mgr->addShortcut("tool.exposure.compensation", this, expcomp);
     mgr->addShortcut("tool.exposure.black", this, black);
