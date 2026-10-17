@@ -555,6 +555,7 @@ HISTORY_MSG_491;Balanç de blancs
 HISTORY_MSG_492;Corbes RGB
 HISTORY_MSG_493;Configuració L*a*b*
 HISTORY_MSG_BWMIX_COLORCAST;B & N - Tint
+HISTORY_MSG_DRCOMPRESSION_SATCONTROL;CRD - Control de saturació
 HISTORY_MSG_SATURATION_VIBRANCE;S/V - Vivacitat
 HISTORY_MSG_LOCALCONTRAST_LIST;Contrast local - regions
 HISTORY_MSG_LOCALCONTRAST_HUEMASK;Contrast local - màscara T
@@ -746,7 +747,6 @@ HISTORY_MSG_SOFTLIGHT_ENABLED;Llum tènue
 HISTORY_MSG_SOFTLIGHT_STRENGTH;Llum tènue - Intensitat
 HISTORY_MSG_SPOT;Eliminació de taques
 HISTORY_MSG_SPOT_ENTRY;Eliminació de taques - Modificació de punts
-HISTORY_MSG_TM_FATTAL_SATCONTROL;CRD - Control de saturació
 HISTORY_MSG_TONE_EQUALIZER_ENABLED;Equalitzador tonal
 HISTORY_MSG_TONE_EQUALIZER_BANDS;Equalitzador tonal - Bandes
 HISTORY_MSG_TONE_EQUALIZER_REGULARIZATION;Equalitzador tonal - Regularització
@@ -966,6 +966,7 @@ OPTIONS_BUNDLED_MISSING;No s'ha pogut trobar el perfil "<b>%1</b>" inclòs!\n\nE
 OPTIONS_DEFIMG_MISSING;No s'ha trobat o no s'ha establert el perfil predeterminat per a <b>fotos no raw</b>.\n\nComproveu la vostra carpeta de perfils, pot ser que falti o estigui danyada.\n\nEs farà servir "<b>%1</b>" en el seu lloc.
 OPTIONS_DEFRAW_MISSING;No s'ha trobat o no s'ha establert el perfil predeterminat per a <b>fotos raw</b>.\n\nComproveu la vostra carpeta de perfils, pot ser que falti o estigui danyada.\n\nEs farà servir "<b>%1</b>" en el seu lloc.
 PARTIALPASTE_ADVANCEDGROUP;Configuració avançada
+PARTIALPASTE_DRCOMPRESSION;Compressió de rang dinàmic
 PARTIALPASTE_EFFECTSGROUP;Configuració d'efectes especials
 PARTIALPASTE_EXPOSUREGROUP;Configuració d'exposició
 PARTIALPASTE_SATURATION;Saturació/Vivacitat
@@ -1043,7 +1044,6 @@ PARTIALPASTE_SHARPENMICRO;Micro-contrast
 PARTIALPASTE_SMOOTHING;Suavitzat
 PARTIALPASTE_SOFTLIGHT;Llum tènue
 PARTIALPASTE_SPOT;Eliminació de taques
-PARTIALPASTE_TM_FATTAL;Compressió de rang dinàmic
 PARTIALPASTE_TM_LOG;Assignació de tons log
 PARTIALPASTE_TONE_EQUALIZER;Equalitzador tonal
 PARTIALPASTE_VIBRANCE;Vivacitat
@@ -1384,6 +1384,10 @@ TOOLBAR_TOOLTIP_HAND;Eina mà.\nDrecera: <b>%shortcut(toolbar.hand)%</b>
 TOOLBAR_TOOLTIP_PERSPECTIVE;<b>Correcció de perspectiva</b>.\nDrecera: <b>Majús-p</b>\n\nEditeu les línies de control per corregir la distorsió de la perspectiva. Cliqueu aquest botó de nou per aplicar la correcció.
 TOOLBAR_TOOLTIP_STRAIGHTEN;<b>Redreça</b> / <b>Rotació precisa</b>.\nDrecera: <b>Majús-s</b>\n\nIndiqueu la vertical o horitzontal dibuixant una línia guia sobre la vista prèvia de la imatge. L'angle de rotació es mostrarà al costat de la línia guia. El centre de rotació és el centre geomètric de la imatge.
 TOOLBAR_TOOLTIP_WB;Balanç de blancs puntual.\nDrecera: <b>Majús-w</b>
+TP_DRCOMPRESSION_AMOUNT;Quantitat
+TP_DRCOMPRESSION_LABEL;Compressió de rang dinàmic
+TP_DRCOMPRESSION_SATCONTROL;Control de saturació
+TP_DRCOMPRESSION_THRESHOLD;Detall
 TP_SATURATION_LABEL;Saturació/Vivacitat
 TP_BRIGHTCONTRSAT_CONTRAST;Contrast
 TP_SATURATION_SATURATION;Saturació
@@ -2028,10 +2032,6 @@ TP_SPOT_RADIUS;Radi
 TP_SPOT_FEATHER;Difuminat
 TP_SPOT_OPACITY;Opacitat
 TP_SPOT_DETAIL;Protecció de detalls
-TP_TM_FATTAL_AMOUNT;Quantitat
-TP_TM_FATTAL_LABEL;Compressió de rang dinàmic
-TP_TM_FATTAL_THRESHOLD;Detall
-TP_TM_FATTAL_SATCONTROL;Control de saturació
 TP_TONECURVE_BASECURVE;Corba base
 TP_TONECURVE_BASECURVE_LINEAR;Lineal
 TP_TONECURVE_BASECURVE_ROLLOFF;Atenuació suau de les altes llums

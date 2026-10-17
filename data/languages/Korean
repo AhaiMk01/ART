@@ -552,6 +552,7 @@ HISTORY_MSG_491;화이트 밸런스
 HISTORY_MSG_492;RGB커브
 HISTORY_MSG_493;L*a*b* 조정
 HISTORY_MSG_BWMIX_COLORCAST;흑백 - 착색의 색조 (Tint)
+HISTORY_MSG_DRCOMPRESSION_SATCONTROL;DRC - 채도 (Saturation) 컨트롤
 HISTORY_MSG_SATURATION_VIBRANCE;채도/바이브런스 - 바이브런스 (Vibrance)
 HISTORY_MSG_LOCALCONTRAST_LIST;부분 대비 - 영역
 HISTORY_MSG_LOCALCONTRAST_HUEMASK;부분 대비 - H 마스크
@@ -741,7 +742,6 @@ HISTORY_MSG_SOFTLIGHT_ENABLED;소프트라이트
 HISTORY_MSG_SOFTLIGHT_STRENGTH;소프트라이트 - 강도
 HISTORY_MSG_SPOT;스팟 제거
 HISTORY_MSG_SPOT_ENTRY;스팟 제거 - Point modif.
-HISTORY_MSG_TM_FATTAL_SATCONTROL;DRC - 채도 (Saturation) 컨트롤
 HISTORY_MSG_TONE_EQUALIZER_ENABLED;톤 이퀄라이저
 HISTORY_MSG_TONE_EQUALIZER_BANDS;톤 이퀄라이저 - Bands
 HISTORY_MSG_TONE_EQUALIZER_REGULARIZATION;톤 이퀄라이저 - 톤 변화 매끄럽게 하기 (Regularization)
@@ -961,6 +961,7 @@ OPTIONS_BUNDLED_MISSING;ART의 프로파일 "<b>%1</b>"이 없습니다.\n\n설�
 OPTIONS_DEFIMG_MISSING;<b>비 raw 화상</b>의 초기 프로파일이 안 보이든가, 설정 되지 않습니다.\n\n프로파일 디렉토리를 확인하세요. 존재하지 않아 든가 파손될 수 도 있습니다.\n\n초기 설정 값이 사용됩니다.
 OPTIONS_DEFRAW_MISSING;<b>raw화상</b>의 초기 프로파일이 안 보이든가, 설정되지 않습니다.\n\n프로파일 디렉토리를 확인하세요.존재하지 않아 든가 파손될 수 도 있습니다.\n\n초기 설정 값이 사용됩니다.
 PARTIALPASTE_ADVANCEDGROUP;고도한 설정
+PARTIALPASTE_DRCOMPRESSION;다이나믹 레인지압축
 PARTIALPASTE_EFFECTSGROUP;특수효과 설정
 PARTIALPASTE_EXPOSUREGROUP;노출 설정
 PARTIALPASTE_SATURATION;채도/바이브런스
@@ -1038,7 +1039,6 @@ PARTIALPASTE_SHARPENMICRO;미세 대비
 PARTIALPASTE_SMOOTHING;매끄럽게 하기
 PARTIALPASTE_SOFTLIGHT;소프트라이트
 PARTIALPASTE_SPOT;스팟 제거
-PARTIALPASTE_TM_FATTAL;다이나믹 레인지압축
 PARTIALPASTE_TM_LOG;로그 톤 매핑
 PARTIALPASTE_TONE_EQUALIZER;톤 이퀄라이저
 PARTIALPASTE_VIBRANCE;바이브런스
@@ -1384,6 +1384,10 @@ TOOLBAR_TOOLTIP_HAND;핸드 툴\n단축키:  <b>%shortcut(toolbar.hand)%</b>
 TOOLBAR_TOOLTIP_PERSPECTIVE;<b>원근 뒤틀기 보정</b>.\n단축키: <b>%shortcut(toolbar.perspective)%</b>\n\n원근 뒤틀기를 보정할 컨트롤 선을 편집함.
 TOOLBAR_TOOLTIP_STRAIGHTEN;<b>직선선택</b> / <b>각도보정</b>\n단축키: <b>%shortcut(toolbar.straighten)%</b>\n미리보기 상에 가이드 선을 그리고, 수직 또한 수평방향을 지시합니다.회전 각도는 가이드선 옆에 표시됩니다.회전의 중심은 미리보기의 중심입니다.
 TOOLBAR_TOOLTIP_WB;스팟 화이트 밸런스\n단축키:  <b>%shortcut(toolbar.white_balance_picker)%</b>
+TP_DRCOMPRESSION_AMOUNT;량
+TP_DRCOMPRESSION_LABEL;다이나믹 레인지지
+TP_DRCOMPRESSION_SATCONTROL;채도 (Saturation) 조정
+TP_DRCOMPRESSION_THRESHOLD;디테일
 TP_SATURATION_LABEL;채도/바이브런스
 TP_BRIGHTCONTRSAT_CONTRAST;대비
 TP_SATURATION_SATURATION;채도 (Saturation)
@@ -2034,10 +2038,6 @@ TP_SPOT_RADIUS;반경
 TP_SPOT_FEATHER;흐림 (Feather)
 TP_SPOT_OPACITY;불투명도
 TP_SPOT_DETAIL;세부보호
-TP_TM_FATTAL_AMOUNT;량
-TP_TM_FATTAL_LABEL;다이나믹 레인지지
-TP_TM_FATTAL_THRESHOLD;디테일
-TP_TM_FATTAL_SATCONTROL;채도 (Saturation) 조정
 TP_TONECURVE_BASECURVE;기본 곡선 (Base curve)
 TP_TONECURVE_BASECURVE_LINEAR;선형 (Linear)
 TP_TONECURVE_BASECURVE_ROLLOFF;하이라이트로의 완만한 전이

@@ -26,11 +26,11 @@
 namespace art { namespace gui {
 
 
-class FattalToneMapping: public ToolParamBlock,
+class DynamicRangeCompression: public ToolParamBlock,
                          public AdjusterListener,
                          public FoldableToolPanel {
 public:
-    FattalToneMapping();
+    DynamicRangeCompression();
 
     void read(const art::engine::procparams::ProcParams *pp) override;
     void write(art::engine::procparams::ProcParams *pp) override;
@@ -50,7 +50,7 @@ protected:
 
     art::engine::ProcEvent EvSatControl;
 
-    art::engine::procparams::FattalToneMappingParams initial_params;
+    art::engine::procparams::DynamicRangeCompressionParams initial_params;
 
     void satcontrolChanged();
 };

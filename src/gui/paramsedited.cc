@@ -38,7 +38,7 @@ void ParamsEdited::set(bool v)
     defringe = v;
     denoise = v;
     textureBoost = v;
-    fattal = v;
+    drcompression = v;
     logenc = v;
     impulseDenoise = v;
     toneEqualizer = v;

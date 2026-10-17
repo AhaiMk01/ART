@@ -596,6 +596,7 @@ HISTORY_MSG_DENOISE_NL_DETAIL;Rauschreduzierung - Finale Glättung - Details
 HISTORY_MSG_DENOISE_NL_STRENGTH;Rauschreduzierung - Finale Glättung - Luminanz
 HISTORY_MSG_DENOISE_SMOOTHING_METHOD;Rauschreduzierung - Glättungsmethode
 HISTORY_MSG_DISTORTION_AUTO;Auto Verzeichnungskorrektur
+HISTORY_MSG_DRCOMPRESSION_SATCONTROL;Dynamikkompression - Sättigungskontrolle
 HISTORY_MSG_DUALDEMOSAIC_AUTO_CONTRAST;Dual-Demosaicing - Auto-Kontrastschwelle
 HISTORY_MSG_DUALDEMOSAIC_CONTRAST;Dual-Demosaicing - Kontrastschwelle
 HISTORY_MSG_EPD_AREAMASK;Struktur erhöhen - Flächenmaske
@@ -736,7 +737,6 @@ HISTORY_MSG_SOFTLIGHT_ENABLED;Weiches Licht
 HISTORY_MSG_SOFTLIGHT_STRENGTH;Weiches Licht - Intensität
 HISTORY_MSG_SPOT;Flecken entfernen
 HISTORY_MSG_SPOT_ENTRY;Flecken entfernen - Punkt modifiziert
-HISTORY_MSG_TM_FATTAL_SATCONTROL;Dynamikkompression - Sättigungskontrolle
 HISTORY_MSG_TONECURVE_BASECURVE; Tonwertkurve - Basiskurve
 HISTORY_MSG_TONECURVE_CONTRAST_LEGACY;Tonwertkurve - Kontrast (veraltet)
 HISTORY_MSG_TONECURVE_MODE;Tonwertkurve - Modus
@@ -977,6 +977,7 @@ PARTIALPASTE_DIALOGLABEL;Selektives Einfügen des Bearbeitungsprofils
 PARTIALPASTE_DIRPYRDENOISE;Rauschreduzierung
 PARTIALPASTE_DIRPYREQUALIZER;Detailebenenkontrast
 PARTIALPASTE_DISTORTION;Verzeichnungskorrektur
+PARTIALPASTE_DRCOMPRESSION;Dynamikkompression
 PARTIALPASTE_EFFECTSGROUP;Spezialeffekte
 PARTIALPASTE_EQUALIZER;Wavelet
 PARTIALPASTE_EVERYTHING;Alle Parameter aktivieren/deaktivieren
@@ -1032,7 +1033,6 @@ PARTIALPASTE_SMOOTHING;Weichzeichnen
 PARTIALPASTE_SOFTLIGHT;Weiches Licht
 PARTIALPASTE_SPOT;Flecken entfernen
 PARTIALPASTE_TEXTUREBOOST;Struktur erhöhen/Schärfen
-PARTIALPASTE_TM_FATTAL;Dynamikkompression
 PARTIALPASTE_TM_LOG;Log Tone-Mapping
 PARTIALPASTE_TONECURVE;Tone Kurven
 PARTIALPASTE_TONE_EQUALIZER;Tonwertequalizer
@@ -1550,6 +1550,10 @@ TP_DIRPYRDENOISE_TYPE_9X9;9×9
 TP_DISTORTION_AMOUNT;Intensität
 TP_DISTORTION_AUTO_TIP;Korrigiert die Objektivverzeichnung der RAW-Datei anhand des eingebetteten JPEG-Bildes, sofern bei diesem die herstellerseitige Korrektur der Kamera angewendet wurde.
 TP_DISTORTION_LABEL;Verzeichnungskorrektur
+TP_DRCOMPRESSION_AMOUNT;Intensität
+TP_DRCOMPRESSION_LABEL;Dynamikkompression
+TP_DRCOMPRESSION_SATCONTROL;Sättigungskontrolle
+TP_DRCOMPRESSION_THRESHOLD;Details
 TP_EPD_DETAIL_THRESHOLD;Detailgröße
 TP_EPD_ITERATIONS;Iterationen
 TP_EPD_LABEL;Struktur erhöhen/Schärfen
@@ -2035,10 +2039,6 @@ TP_SPOT_SOURCE_X;Quelle X
 TP_SPOT_SOURCE_Y;Quelle Y
 TP_SPOT_TARGET_X;Ziel X
 TP_SPOT_TARGET_Y;Ziel Y
-TP_TM_FATTAL_AMOUNT;Intensität
-TP_TM_FATTAL_LABEL;Dynamikkompression
-TP_TM_FATTAL_SATCONTROL;Sättigungskontrolle
-TP_TM_FATTAL_THRESHOLD;Details
 TP_TONECURVE_BASECURVE;Basiskurve
 TP_TONECURVE_BASECURVE_LINEAR;Linear
 TP_TONECURVE_BASECURVE_ROLLOFF;Sanfter Lichterabfall

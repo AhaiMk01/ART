@@ -559,6 +559,7 @@ HISTORY_MSG_491;Balance de blancos
 HISTORY_MSG_492;Curvas RGB
 HISTORY_MSG_493;Ajustes L*a*b*
 HISTORY_MSG_BWMIX_COLORCAST;B & N - Tinte
+HISTORY_MSG_DRCOMPRESSION_SATCONTROL;CRD - Control de saturación
 HISTORY_MSG_SATURATION_VIBRANCE;S/V - Vivacidad
 HISTORY_MSG_LOCALCONTRAST_LIST;Contraste local - regiones
 HISTORY_MSG_LOCALCONTRAST_HUEMASK;Contraste local - máscara T
@@ -749,7 +750,6 @@ HISTORY_MSG_SOFTLIGHT_ENABLED;Luz tenue
 HISTORY_MSG_SOFTLIGHT_STRENGTH;Luz tenue - Intensidad
 HISTORY_MSG_SPOT;Eliminación de manchas
 HISTORY_MSG_SPOT_ENTRY;Eliminación de manchas - Modificación de puntos
-HISTORY_MSG_TM_FATTAL_SATCONTROL;CRD - Control de saturación
 HISTORY_MSG_TONE_EQUALIZER_ENABLED;Ecualizador tonal
 HISTORY_MSG_TONE_EQUALIZER_BANDS;Ecualizador tonal - Bandas
 HISTORY_MSG_TONE_EQUALIZER_REGULARIZATION;Ecualizador tonal - Regularización
@@ -969,6 +969,7 @@ OPTIONS_BUNDLED_MISSING;¡No se ha podido encontrar el perfil "<b>%1</b>" inclui
 OPTIONS_DEFIMG_MISSING;No se ha encontrado o no se ha establecido el perfil predeterminado para <b>fotos no raw</b>.\n\nPor favor, compruebe su carpeta de perfiles, puede que falte o esté dañada.\n\nSe usará "<b>%1</b>" en su lugar.
 OPTIONS_DEFRAW_MISSING;No se ha encontrado o no se ha establecido el perfil predeterminado para <b>fotos raw</b>.\n\nPor favor, compruebe su carpeta de perfiles, puede que falte o esté dañada.\n\nSe usará "<b>%1</b>" en su lugar.
 PARTIALPASTE_ADVANCEDGROUP;Ajustes avanzados
+PARTIALPASTE_DRCOMPRESSION;Compresión de rango dinámico
 PARTIALPASTE_EFFECTSGROUP;Ajustes de efectos especiales
 PARTIALPASTE_EXPOSUREGROUP;Ajustes de exposición
 PARTIALPASTE_SATURATION;Saturación/Vivacidad
@@ -1046,7 +1047,6 @@ PARTIALPASTE_SHARPENMICRO;Micro-contraste
 PARTIALPASTE_SMOOTHING;Suavizado
 PARTIALPASTE_SOFTLIGHT;Luz tenue
 PARTIALPASTE_SPOT;Eliminación de manchas
-PARTIALPASTE_TM_FATTAL;Compresión de rango dinámico
 PARTIALPASTE_TM_LOG;Asignación de tonos log
 PARTIALPASTE_TONE_EQUALIZER;Ecualizador tonal
 PARTIALPASTE_VIBRANCE;Vivacidad
@@ -1387,6 +1387,10 @@ TOOLBAR_TOOLTIP_HAND;Herramienta mano.\nAtajo: <b>%shortcut(toolbar.hand)%</b>
 TOOLBAR_TOOLTIP_PERSPECTIVE;<b>Corrección de perspectiva</b>.\nAtajo: <b>Mayús-p</b>\n\nEdite las líneas de control para corregir la distorsión de la perspectiva. Haga clic en este botón de nuevo para aplicar la corrección.
 TOOLBAR_TOOLTIP_STRAIGHTEN;<b>Enderezar</b> / <b>Rotación precisa</b>.\nAtajo: <b>Mayús-s</b>\n\nIndique la vertical u horizontal dibujando una línea guía sobre la vista previa de la imagen. El ángulo de rotación se mostrará junto a la línea guía. El centro de rotación es el centro geométrico de la imagen.
 TOOLBAR_TOOLTIP_WB;Balance de blancos puntual.\nAtajo: <b>Mayús-w</b>
+TP_DRCOMPRESSION_AMOUNT;Cantidad
+TP_DRCOMPRESSION_LABEL;Compresión de rango dinámico
+TP_DRCOMPRESSION_SATCONTROL;Control de saturación
+TP_DRCOMPRESSION_THRESHOLD;Detalle
 TP_SATURATION_LABEL;Saturación/Vivacidad
 TP_BRIGHTCONTRSAT_CONTRAST;Contraste
 TP_SATURATION_SATURATION;Saturación
@@ -2031,10 +2035,6 @@ TP_SPOT_RADIUS;Radio
 TP_SPOT_FEATHER;Difuminado
 TP_SPOT_OPACITY;Opacidad
 TP_SPOT_DETAIL;Protección de detalles
-TP_TM_FATTAL_AMOUNT;Cantidad
-TP_TM_FATTAL_LABEL;Compresión de rango dinámico
-TP_TM_FATTAL_THRESHOLD;Detalle
-TP_TM_FATTAL_SATCONTROL;Control de saturación
 TP_TONECURVE_BASECURVE;Curva base
 TP_TONECURVE_BASECURVE_LINEAR;Lineal
 TP_TONECURVE_BASECURVE_ROLLOFF;Atenuación suave de las altas luces

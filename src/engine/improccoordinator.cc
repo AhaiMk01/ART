@@ -456,7 +456,7 @@ void ImProcCoordinator::updatePreviewImage(int todo, bool panningRelatedChange)
         }
 
         if ((todo & M_HDR) &&
-            (params.fattal.enabled || params.dehaze.enabled)) {
+            (params.drcompression.enabled || params.dehaze.enabled)) {
             if (drcomp_11_dcrop_cache) {
                 delete drcomp_11_dcrop_cache;
                 drcomp_11_dcrop_cache = nullptr;

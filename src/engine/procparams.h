@@ -788,16 +788,16 @@ struct LogEncodingParams {
     bool operator!=(const LogEncodingParams &other) const;
 };
 
-struct FattalToneMappingParams {
+struct DynamicRangeCompressionParams {
     bool enabled;
     int threshold;
     int amount;
     bool satcontrol;
 
-    FattalToneMappingParams();
+    DynamicRangeCompressionParams();
 
-    bool operator==(const FattalToneMappingParams &other) const;
-    bool operator!=(const FattalToneMappingParams &other) const;
+    bool operator==(const DynamicRangeCompressionParams &other) const;
+    bool operator!=(const DynamicRangeCompressionParams &other) const;
 };
 
 struct ToneEqualizerParams {
@@ -1570,7 +1570,7 @@ public:
     DenoiseParams denoise; ///< Directional Pyramid denoising parameters
     TextureBoostParams
         textureBoost; ///< Edge Preserving Decomposition parameters
-    FattalToneMappingParams fattal; ///< Dynamic Range Compression
+    DynamicRangeCompressionParams drcompression; ///< Dynamic Range Compression
     LogEncodingParams logenc;
     ToneEqualizerParams toneEqualizer;
     CropParams crop;              ///< Crop parameters

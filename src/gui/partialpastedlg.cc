@@ -47,7 +47,7 @@ std::vector<ToggleInfo> get_toggles(ParamsEdited &pedited)
         {"PARTIALPASTE_EXPOSURE", &pedited.exposure, 0, nullptr},
         {"PARTIALPASTE_TONE_EQUALIZER", &pedited.toneEqualizer, 0, nullptr},
         {"PARTIALPASTE_TONECURVE", &pedited.toneCurve, 0, nullptr},
-        {"PARTIALPASTE_TM_FATTAL", &pedited.fattal, 0, nullptr},
+        {"PARTIALPASTE_DRCOMPRESSION", &pedited.drcompression, 0, nullptr},
         {"PARTIALPASTE_TM_LOG", &pedited.logenc, 0, nullptr},
 
         {"PARTIALPASTE_SPOT", &pedited.spot, 1, nullptr},

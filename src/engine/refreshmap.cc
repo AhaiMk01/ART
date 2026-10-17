@@ -511,9 +511,9 @@ int refreshmap[NUMOFEVENTS] = {
     DARKFRAME,            // EvLensCorrMode
     DARKFRAME,            // EvLensCorrLensfunCamera
     DARKFRAME,            // EvLensCorrLensfunLens
-    ALLNORAW,             // EvTMFattalEnabled
-    HDR,                  // EvTMFattalThreshold
-    HDR,                  // EvTMFattalAmount
+    ALLNORAW,             // EvDRCompressionEnabled
+    HDR,                  // EvDRCompressionThreshold
+    HDR,                  // EvDRCompressionAmount
     WHITEBALANCE,         // EvWBEnabled
     LUMINANCECURVE,       // EvRGBEnabled
     LUMINANCECURVE        // EvLEnabled

@@ -616,6 +616,7 @@ HISTORY_MSG_DENOISE_NL_DETAIL;NR - Dettaglio levigatura finale
 HISTORY_MSG_DENOISE_NL_STRENGTH;NR - Levigatura finale L
 HISTORY_MSG_DENOISE_SMOOTHING_METHOD;NR - Metodo di levigatura
 HISTORY_MSG_DISTORTION_AUTO;Correzione automatica distorsione
+HISTORY_MSG_DRCOMPRESSION_SATCONTROL;DRC - Controllo saturazione
 HISTORY_MSG_DUALDEMOSAIC_AUTO_CONTRAST;Doppia demosaic. - Soglia Auto
 HISTORY_MSG_DUALDEMOSAIC_CONTRAST;Doppia demosaic. - Soglia contrasto
 HISTORY_MSG_EPD_AREAMASK;TB - Maschera area
@@ -756,7 +757,6 @@ HISTORY_MSG_SOFTLIGHT_ENABLED;Soft light
 HISTORY_MSG_SOFTLIGHT_STRENGTH;Soft light - Intensità
 HISTORY_MSG_SPOT;Rimozione punti
 HISTORY_MSG_SPOT_ENTRY;Rimozione punti - Modif. punto
-HISTORY_MSG_TM_FATTAL_SATCONTROL;DRC - Controllo saturazione
 HISTORY_MSG_TONECURVE_BASECURVE;Curva tonale - Curva base
 HISTORY_MSG_TONECURVE_CONTRAST_LEGACY;Curva tonale - Contrasto vecchia modalità
 HISTORY_MSG_TONECURVE_MODE;Curva tonale - Modalità
@@ -997,6 +997,7 @@ PARTIALPASTE_DIALOGLABEL;Incolla una parte del profilo di sviluppo
 PARTIALPASTE_DIRPYRDENOISE;Riduzione rumore
 PARTIALPASTE_DIRPYREQUALIZER;Contrasto per livelli di dettaglio
 PARTIALPASTE_DISTORTION;Correzione distorsione
+PARTIALPASTE_DRCOMPRESSION;Compressione range dinamico
 PARTIALPASTE_EFFECTSGROUP;Impostazioni effetti speciali
 PARTIALPASTE_EQUALIZER;Livelli Wavelet
 PARTIALPASTE_EVERYTHING;Tutto
@@ -1052,7 +1053,6 @@ PARTIALPASTE_SMOOTHING;Levigatura
 PARTIALPASTE_SOFTLIGHT;Luce morbida
 PARTIALPASTE_SPOT;Rimozione punti
 PARTIALPASTE_TEXTUREBOOST;Evidenzia trama/Nitidezza
-PARTIALPASTE_TM_FATTAL;Compressione range dinamico
 PARTIALPASTE_TM_LOG;Log tone mapping
 PARTIALPASTE_TONECURVE;Curve di tono
 PARTIALPASTE_TONE_EQUALIZER;Equalizzatore di tono
@@ -1573,6 +1573,10 @@ TP_DIRPYRDENOISE_TYPE_9X9;9x9
 TP_DISTORTION_AMOUNT;Quantità
 TP_DISTORTION_AUTO_TIP;Corregge automaticamente la distorsione dell'obiettivo nel file raw allineando la correzione a quella del JPEG incorporato (se è presente e se tale JPEG è stato corretto dalla fotocamera)
 TP_DISTORTION_LABEL;Distorsione
+TP_DRCOMPRESSION_AMOUNT;Intensità
+TP_DRCOMPRESSION_LABEL;Compressione gamma dinamica
+TP_DRCOMPRESSION_SATCONTROL;Controllo saturazione
+TP_DRCOMPRESSION_THRESHOLD;Dettaglio
 TP_EPD_DETAIL_THRESHOLD;Scala di dettaglio
 TP_EPD_ITERATIONS;Iterazioni
 TP_EPD_LABEL;Evidenzia trama/Nitidezza
@@ -2058,10 +2062,6 @@ TP_SPOT_SOURCE_X;X sorgente
 TP_SPOT_SOURCE_Y;Y sorgente
 TP_SPOT_TARGET_X;X destinazione
 TP_SPOT_TARGET_Y;Y destinazione
-TP_TM_FATTAL_AMOUNT;Intensità
-TP_TM_FATTAL_LABEL;Compressione gamma dinamica
-TP_TM_FATTAL_SATCONTROL;Controllo saturazione
-TP_TM_FATTAL_THRESHOLD;Dettaglio
 TP_TONECURVE_BASECURVE;Curva base
 TP_TONECURVE_BASECURVE_LINEAR;Lineare
 TP_TONECURVE_BASECURVE_ROLLOFF;Smorzamento morbido alte luci

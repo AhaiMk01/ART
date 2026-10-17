@@ -531,6 +531,7 @@ HISTORY_MSG_491;White Balance
 HISTORY_MSG_492;RGB Curves
 HISTORY_MSG_493;L*a*b* Adjustments
 HISTORY_MSG_BWMIX_COLORCAST;B & W - Tint
+HISTORY_MSG_DRCOMPRESSION_SATCONTROL;DRC - Saturation control
 HISTORY_MSG_SATURATION_VIBRANCE;S/V - Vibrance
 HISTORY_MSG_LOCALCONTRAST_LIST;Local contrast - regions
 HISTORY_MSG_LOCALCONTRAST_HUEMASK;Local contrast - H mask
@@ -720,7 +721,6 @@ HISTORY_MSG_SOFTLIGHT_ENABLED;Soft light
 HISTORY_MSG_SOFTLIGHT_STRENGTH;Soft light - Strength
 HISTORY_MSG_SPOT;Spot removal
 HISTORY_MSG_SPOT_ENTRY;Spot removal - Point modif.
-HISTORY_MSG_TM_FATTAL_SATCONTROL;DRC - Saturation control
 HISTORY_MSG_TONE_EQUALIZER_ENABLED;Tone equalizer
 HISTORY_MSG_TONE_EQUALIZER_BANDS;Tone equalizer - Bands
 HISTORY_MSG_TONE_EQUALIZER_REGULARIZATION;Tone equalizer - Regularization
@@ -940,6 +940,7 @@ OPTIONS_BUNDLED_MISSING;The bundled profile "<b>%1</b>" could not be found!\n\nY
 OPTIONS_DEFIMG_MISSING;The default profile for <b>non-raw photos</b> could not be found or is not set.\n\nPlease check your profiles' directory, it may be missing or damaged.\n\n"<b>%1</b>" will be used instead.
 OPTIONS_DEFRAW_MISSING;The default profile for <b>raw photos</b> could not be found or is not set.\n\nPlease check your profiles' directory, it may be missing or damaged.\n\n"<b>%1</b>" will be used instead.
 PARTIALPASTE_ADVANCEDGROUP;Advanced Settings
+PARTIALPASTE_DRCOMPRESSION;Dynamic range compression
 PARTIALPASTE_EFFECTSGROUP;Special Effects Settings
 PARTIALPASTE_EXPOSUREGROUP;Exposure Settings
 PARTIALPASTE_SATURATION;Saturation/vibrance
@@ -1017,7 +1018,6 @@ PARTIALPASTE_SHARPENMICRO;Microcontrast
 PARTIALPASTE_SMOOTHING;Smoothing
 PARTIALPASTE_SOFTLIGHT;Soft light
 PARTIALPASTE_SPOT;Spot removal
-PARTIALPASTE_TM_FATTAL;Dynamic range compression
 PARTIALPASTE_TM_LOG;Log tone mapping
 PARTIALPASTE_TONE_EQUALIZER;Tone equalizer
 PARTIALPASTE_VIBRANCE;Vibrance
@@ -1389,6 +1389,10 @@ TOOLBAR_TOOLTIP_HAND;Hand tool.\nShortcut: <b>%shortcut(toolbar.hand)%</b>
 TOOLBAR_TOOLTIP_PERSPECTIVE;<b>Perspective Correction</b>.\nShortcut: <b>%shortcut(toolbar.perspective)%</b>\n\nEdit control lines to correct perspective distortion. Click this button again to apply the correction.
 TOOLBAR_TOOLTIP_STRAIGHTEN;<b>Straighten</b> / <b>fine rotation</b>.\nShortcut: <b>%shortcut(toolbar.straighten)%</b>\n\nIndicate the vertical or horizontal by drawing a guide line over the image preview. Angle of rotation will be shown next to the guide line. Center of rotation is the geometrical center of the image.
 TOOLBAR_TOOLTIP_WB;Spot white balance.\nShortcut: <b>%shortcut(toolbar.white_balance_picker)%</b>
+TP_DRCOMPRESSION_AMOUNT;Amount
+TP_DRCOMPRESSION_LABEL;Dynamic Range Compression
+TP_DRCOMPRESSION_SATCONTROL;Saturation control
+TP_DRCOMPRESSION_THRESHOLD;Detail
 TP_SATURATION_LABEL;Saturation/Vibrance
 TP_BRIGHTCONTRSAT_CONTRAST;Contrast
 TP_SATURATION_SATURATION;Saturation
@@ -2039,10 +2043,6 @@ TP_SPOT_RADIUS;Radius
 TP_SPOT_FEATHER;Feather
 TP_SPOT_OPACITY;Opacity
 TP_SPOT_DETAIL;Detail protection
-TP_TM_FATTAL_AMOUNT;Amount
-TP_TM_FATTAL_LABEL;Dynamic Range Compression
-TP_TM_FATTAL_THRESHOLD;Detail
-TP_TM_FATTAL_SATCONTROL;Saturation control
 TP_TONECURVE_BASECURVE;Base curve
 TP_TONECURVE_BASECURVE_LINEAR;Linear
 TP_TONECURVE_BASECURVE_ROLLOFF;Smooth highlights rolloff

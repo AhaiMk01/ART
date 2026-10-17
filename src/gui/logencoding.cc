@@ -68,7 +68,7 @@ LogEncoding::LogEncoding()
     regularization =
         Gtk::manage(new Adjuster(M("TP_LOGENC_REGULARIZATION"), 0, 100, 1, 65));
     satcontrol =
-        Gtk::manage(new Gtk::CheckButton(M("TP_TM_FATTAL_SATCONTROL")));
+        Gtk::manage(new Gtk::CheckButton(M("TP_DRCOMPRESSION_SATCONTROL")));
     satcontrol->signal_toggled().connect(
         sigc::mem_fun(*this, &LogEncoding::satcontrolChanged), true);
 

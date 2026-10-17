@@ -642,7 +642,7 @@ bool ImProcFunctions::process(Stage stage, Imagefloat *img)
     switch (stage) {
     case Stage::STAGE_0:
         STEP_(dehaze, !params->dehaze.enabled);
-        STEP_(dynamicRangeCompression, !params->fattal.enabled);
+        STEP_(dynamicRangeCompression, !params->drcompression.enabled);
         break;
     case Stage::STAGE_1:
         STEP_(channelMixer, !params->chmixer.enabled);

@@ -532,6 +532,7 @@ HISTORY_MSG_491;Fehéregyensúly (WB)
 HISTORY_MSG_492;RGB Görbék
 HISTORY_MSG_493;L*a*b* Korrekció
 HISTORY_MSG_BWMIX_COLORCAST;Fekete-fehér - Színezés
+HISTORY_MSG_DRCOMPRESSION_SATCONTROL;DRC - Telítettség vezérlés
 HISTORY_MSG_SATURATION_VIBRANCE;Telítettség/Élénkség - Élénkség
 HISTORY_MSG_LOCALCONTRAST_LIST;Helyi kontraszt - területek
 HISTORY_MSG_LOCALCONTRAST_HUEMASK;Helyi kontraszt - H maszk
@@ -710,7 +711,6 @@ HISTORY_MSG_SOFTLIGHT_ENABLED;Lágy fény
 HISTORY_MSG_SOFTLIGHT_STRENGTH;Lágy fény - Erősség
 HISTORY_MSG_SPOT;Foltok eltávolítása
 HISTORY_MSG_SPOT_ENTRY;Foltok eltávolítása - Folt módosítása
-HISTORY_MSG_TM_FATTAL_SATCONTROL;DRC - Telítettség vezérlés
 HISTORY_MSG_TONE_EQUALIZER_ENABLED;Tónuskiegyenlítő
 HISTORY_MSG_TONE_EQUALIZER_BANDS;Tónuskiegyenlítő - Sávok
 HISTORY_MSG_TONE_EQUALIZER_REGULARIZATION;Tónuskiegyenlítő - Szabályozás
@@ -928,6 +928,7 @@ OPTIONS_BUNDLED_MISSING;A(z) "<b>%1</b>" csomagban lévő profil nem található
 OPTIONS_DEFIMG_MISSING;A <b>nem nyers fotók</b> alapértelmezett profilja nem található, vagy nincs beállítva.\n\nKérjük, ellenőrizze profilja könyvtárát, lehet, hogy hiányzik vagy sérült.\n\n"<b>% 1</b>" lesz helyette alkalmazva.
 OPTIONS_DEFRAW_MISSING;A <b>nyers fotók</b> alapértelmezett profilja nem található, vagy nincs beállítva.\n\nKérjük, ellenőrizze a profilok könyvtárát, lehet, hogy hiányzik vagy sérült.\n\n"<b>%1< /b>" lesz helyette alkalmazva.
 PARTIALPASTE_ADVANCEDGROUP;Haladó beállítások
+PARTIALPASTE_DRCOMPRESSION;Dinamikus tartomány tömörítése
 PARTIALPASTE_EFFECTSGROUP;Speciális effektusok beállításai
 PARTIALPASTE_EXPOSUREGROUP;Expozíció beállításai
 PARTIALPASTE_SATURATION;Telítettség/Élénkség
@@ -1005,7 +1006,6 @@ PARTIALPASTE_SHARPENMICRO;Mikrokontraszt
 PARTIALPASTE_SMOOTHING;Simítás
 PARTIALPASTE_SOFTLIGHT;Lágy fény
 PARTIALPASTE_SPOT;Foltok eltávolítása
-PARTIALPASTE_TM_FATTAL;Dinamikus tartomány tömörítése
 PARTIALPASTE_TM_LOG;Logaritmikus tónusleképezés
 PARTIALPASTE_TONE_EQUALIZER;Tónuskiegyenlítő
 PARTIALPASTE_VIBRANCE;Élénkség
@@ -1351,6 +1351,10 @@ TOOLBAR_TOOLTIP_HAND;Kéz eszköz.\nGyorsbillentyű: <b>%shortcut(toolbar.hand)%
 TOOLBAR_TOOLTIP_PERSPECTIVE;<b>Perspektívakorrekció</b>.\nGyorsbillentyű: <b>%shortcut(toolbar.perspective)%</b>\n\nSzerkessze a vezérlővonalakat a perspektivikus torzítás javításához. Kattintson ismét erre a gombra a javítás alkalmazásához.
 TOOLBAR_TOOLTIP_STRAIGHTEN;<b>Egyenesítés</b> / <b>Finom elforgatás</b>.\nGyors gomb: <b>%shortcut(toolbar.straighten)%</b>\n\nJelölje meg a függőleges vagy vízszintes irányt úgy, hogy egy vezetővonalat húz a kép előnézetére. Az elforgatási szög a vezetővonal mellett jelenik meg. A forgatás középpontja a kép geometriai középpontja.
 TOOLBAR_TOOLTIP_WB;Fehéregyensúly kijelölés.\nGyorsbillentyű: <b>%shortcut(toolbar.white_balance_picker)%</b>
+TP_DRCOMPRESSION_AMOUNT;Mérték
+TP_DRCOMPRESSION_LABEL;Dinamikus tartomány tömörítése
+TP_DRCOMPRESSION_SATCONTROL;Telítettség szabályozása 
+TP_DRCOMPRESSION_THRESHOLD;Részletek
 TP_SATURATION_LABEL;Telítettség/Élénkség
 TP_BRIGHTCONTRSAT_CONTRAST;Kontraszt
 TP_SATURATION_SATURATION;Telítettség
@@ -1995,10 +1999,6 @@ TP_SPOT_RADIUS;Sugár
 TP_SPOT_FEATHER;Tollazat
 TP_SPOT_OPACITY;Átlátszatlanság
 TP_SPOT_DETAIL;Részletek védelme
-TP_TM_FATTAL_AMOUNT;Mérték
-TP_TM_FATTAL_LABEL;Dinamikus tartomány tömörítése
-TP_TM_FATTAL_THRESHOLD;Részletek
-TP_TM_FATTAL_SATCONTROL;Telítettség szabályozása 
 TP_TONECURVE_BASECURVE;Alapgörbe
 TP_TONECURVE_BASECURVE_LINEAR;Lineáris
 TP_TONECURVE_BASECURVE_ROLLOFF;Fokozatos átmenet a csúcsfényekhez

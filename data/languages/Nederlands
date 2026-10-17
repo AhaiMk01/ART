@@ -622,6 +622,7 @@ HISTORY_MSG_DENOISE_NL_DETAIL;Ruisonderdr. - finale verzachting detailherstel
 HISTORY_MSG_DENOISE_NL_STRENGTH;Ruisonderdr. - finale verzachting luminantie
 HISTORY_MSG_DENOISE_SMOOTHING_METHOD;RV - Verzachtingsmethode
 HISTORY_MSG_DISTORTION_AUTO;Autom. vervormingscorrectie
+HISTORY_MSG_DRCOMPRESSION_SATCONTROL;CDB - beperk verzadiging
 HISTORY_MSG_DUALDEMOSAIC_AUTO_CONTRAST;Dual-demozaïek - auto-drempel
 HISTORY_MSG_DUALDEMOSAIC_CONTRAST;Dual-demozaïek - contrastdrempel
 HISTORY_MSG_EPD_AREAMASK;TV - gebiedsmasker
@@ -745,7 +746,6 @@ HISTORY_MSG_SOFTLIGHT_ENABLED;Zacht licht
 HISTORY_MSG_SOFTLIGHT_STRENGTH;Zacht licht - kracht
 HISTORY_MSG_SPOT_ENTRY;Vlekken verwijderen - punt gewijzigd
 HISTORY_MSG_SPOT;Vlekken verwijderen
-HISTORY_MSG_TM_FATTAL_SATCONTROL;CDB - beperk verzadiging
 HISTORY_MSG_TONECURVE_PERCEPTUAL_STRENGTH;Tooncurve - perceptuele kracht
 HISTORY_MSG_TONECURVE_CONTRAST_LEGACY;Tooncurve - contrastmodus (verouderd)
 HISTORY_MSG_TONECURVE_SATCURVE;Tooncurve - verzadiging
@@ -981,6 +981,7 @@ PARTIALPASTE_DETAILGROUP;Details
 PARTIALPASTE_DIALOGLABEL;Profiel gedeeltelijk plakken
 PARTIALPASTE_DIRPYRDENOISE;Ruisonderdrukking
 PARTIALPASTE_DISTORTION;Corrigeer lensvervorming
+PARTIALPASTE_DRCOMPRESSION;Compressie dynamisch bereik
 PARTIALPASTE_EFFECTSGROUP;Speciale effecten
 PARTIALPASTE_EVERYTHING;Alles
 PARTIALPASTE_EXIFCHANGES;Wijzig Exifdata
@@ -1032,7 +1033,6 @@ PARTIALPASTE_SMOOTHING;Verzachten
 PARTIALPASTE_SOFTLIGHT;Zacht licht
 PARTIALPASTE_SPOT;Vlekken verwijderen
 PARTIALPASTE_TEXTUREBOOST;Textuurversterking/verscherping
-PARTIALPASTE_TM_FATTAL;Compressie dynamisch bereik
 PARTIALPASTE_TM_LOG;Log toonmapping
 PARTIALPASTE_TONECURVE;Tooncurves
 PARTIALPASTE_TONE_EQUALIZER;Toonequalizer
@@ -1543,6 +1543,10 @@ TP_DIRPYRDENOISE_TYPE_9X9;9x9
 TP_DISTORTION_AMOUNT;Hoeveelheid
 TP_DISTORTION_AUTO_TIP;Corrigeert automatisch de lensvervorming in RAW-bestanden door deze te vergelijken met de ingebedde JPG. Op voorwaarde dat in de camera was aangegeven dat lensvervorming automatisch gecorrigeerd moest worden.
 TP_DISTORTION_LABEL;Vervormingscorrectie
+TP_DRCOMPRESSION_AMOUNT;Hoeveelheid
+TP_DRCOMPRESSION_LABEL;Compressie dynamisch bereik
+TP_DRCOMPRESSION_SATCONTROL;Beperk verzadiging 
+TP_DRCOMPRESSION_THRESHOLD;Detail
 TP_EPD_DETAIL_THRESHOLD;Schaal details
 TP_EPD_ITERATIONS;Herhaling
 TP_EPD_LABEL;Textuurversterking/Verscherping
@@ -2029,10 +2033,6 @@ TP_SPOT_SOURCE_X;Bron X
 TP_SPOT_SOURCE_Y;Bron Y
 TP_SPOT_TARGET_X;Doel X
 TP_SPOT_TARGET_Y;Doel Y
-TP_TM_FATTAL_AMOUNT;Hoeveelheid
-TP_TM_FATTAL_LABEL;Compressie dynamisch bereik
-TP_TM_FATTAL_SATCONTROL;Beperk verzadiging 
-TP_TM_FATTAL_THRESHOLD;Detail
 TP_TONECURVE_BASECURVE;Basiscurve
 TP_TONECURVE_BASECURVE_LINEAR;Lineair
 TP_TONECURVE_BASECURVE_ROLLOFF;Zachte afvlakking hoge lichten

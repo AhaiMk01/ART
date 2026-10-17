@@ -550,6 +550,7 @@ HISTORY_MSG_491;ホワイトバランス
 HISTORY_MSG_492;RGBカーブ
 HISTORY_MSG_493;L*a*b*調整
 HISTORY_MSG_BWMIX_COLORCAST;白黒 - 着色の色合い (Tint)
+HISTORY_MSG_DRCOMPRESSION_SATCONTROL;DRC - 彩度 (Saturation) コントロール
 HISTORY_MSG_SATURATION_VIBRANCE;彩度/自然な彩度 - 自然な彩度 (Vibrance)
 HISTORY_MSG_LOCALCONTRAST_LIST;ローカルコントラスト - 領域
 HISTORY_MSG_LOCALCONTRAST_HUEMASK;ローカルコントラスト - 色相マスク
@@ -739,7 +740,6 @@ HISTORY_MSG_SOFTLIGHT_ENABLED;ソフトライト
 HISTORY_MSG_SOFTLIGHT_STRENGTH;ソフトライト - 強さ
 HISTORY_MSG_SPOT;スポット削除
 HISTORY_MSG_SPOT_ENTRY;スポット削除 - Point modif.
-HISTORY_MSG_TM_FATTAL_SATCONTROL;DRC - 彩度 (Saturation) コントロール
 HISTORY_MSG_TONE_EQUALIZER_ENABLED;トーンイコライザ
 HISTORY_MSG_TONE_EQUALIZER_BANDS;トーンイコライザ - Bands
 HISTORY_MSG_TONE_EQUALIZER_REGULARIZATION;トーンイコライザ - 遷移のスムーズ化 (Regularization)
@@ -959,6 +959,7 @@ OPTIONS_BUNDLED_MISSING;付属のプロファイル "<b>%1</b>"が見つかり�
 OPTIONS_DEFIMG_MISSING;<b>rawではない画像</b>のデフォルプロファイルが見つからないか 設定されていません\n\nプロファイル･ディレクトリを確認してください 存在しないか破損しているかもしれません\n\nデフォルト設定値が使用されます
 OPTIONS_DEFRAW_MISSING;<b>raw画像</b>のデフォル･プロファイルが見つからないか 設定されていません\n\nプロファイル･ディレクトリを確認してください 存在しないか破損しているかもしれません\n\nデフォルト設定値が使用されます
 PARTIALPASTE_ADVANCEDGROUP;高度な設定
+PARTIALPASTE_DRCOMPRESSION;ダイナミックレンジ圧縮
 PARTIALPASTE_EFFECTSGROUP;特殊効果設定
 PARTIALPASTE_EXPOSUREGROUP;露出設定
 PARTIALPASTE_SATURATION;彩度/自然な彩度
@@ -1036,7 +1037,6 @@ PARTIALPASTE_SHARPENMICRO;マイクロコントラスト
 PARTIALPASTE_SMOOTHING;スムージング
 PARTIALPASTE_SOFTLIGHT;ソフトな明るさ
 PARTIALPASTE_SPOT;スポット消去
-PARTIALPASTE_TM_FATTAL;ダイナミックレンジ圧縮
 PARTIALPASTE_TM_LOG;対数トーンマッピング
 PARTIALPASTE_TONE_EQUALIZER;トーンイコライザー
 PARTIALPASTE_VIBRANCE;自然な彩度
@@ -1382,6 +1382,10 @@ TOOLBAR_TOOLTIP_HAND;手の平ツール\nショートカット:  <b>%shortcut(to
 TOOLBAR_TOOLTIP_PERSPECTIVE;<b>遠近歪み補正</b>.\nショートカット: <b>%shortcut(toolbar.perspective)%</b>\n\n遠近歪みを補正するコントロールラインを編集する.
 TOOLBAR_TOOLTIP_STRAIGHTEN;<b>直線選択</b> / <b>角度補正</b>\nショートカット: <b>%shortcut(toolbar.straighten)%</b>\nプレビュー画像上にガイド線を描画し 垂直または水平方向を指示します. 回転角度は ガイド線の隣に表示されます. 回転の中心は プレビュー画像の中心です
 TOOLBAR_TOOLTIP_WB;スポット･ホワイトバランス\nショートカット:  <b>%shortcut(toolbar.white_balance_picker)%</b>
+TP_DRCOMPRESSION_AMOUNT;量
+TP_DRCOMPRESSION_LABEL;ダイナミックレンジ圧縮
+TP_DRCOMPRESSION_SATCONTROL;彩度 (Saturation) コントロール
+TP_DRCOMPRESSION_THRESHOLD;ディテール
 TP_SATURATION_LABEL;彩度/自然な彩度
 TP_BRIGHTCONTRSAT_CONTRAST;コントラスト
 TP_SATURATION_SATURATION;彩度 (Saturation)
@@ -2032,10 +2036,6 @@ TP_SPOT_RADIUS;半径
 TP_SPOT_FEATHER;ぼかし (Feather)
 TP_SPOT_OPACITY;不透明度
 TP_SPOT_DETAIL;細部保護
-TP_TM_FATTAL_AMOUNT;量
-TP_TM_FATTAL_LABEL;ダイナミックレンジ圧縮
-TP_TM_FATTAL_THRESHOLD;ディテール
-TP_TM_FATTAL_SATCONTROL;彩度 (Saturation) コントロール
 TP_TONECURVE_BASECURVE;ベースカーブ
 TP_TONECURVE_BASECURVE_LINEAR;リニア
 TP_TONECURVE_BASECURVE_ROLLOFF;ハイライトへのなだらかな遷移

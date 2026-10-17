@@ -314,7 +314,7 @@ void Crop::update(int todo)
     std::unique_ptr<Imagefloat> drCompCrop;
     bool stop = false;
 
-    if ((todo & M_HDR) && (params.fattal.enabled || params.dehaze.enabled)) {
+    if ((todo & M_HDR) && (params.drcompression.enabled || params.dehaze.enabled)) {
         Imagefloat *f = baseCrop;
         int fw = skips(parent->fw, skip);
         int fh = skips(parent->fh, skip);
@@ -326,7 +326,7 @@ void Crop::update(int todo)
             const bool copy_from_earlier_steps =
                 params.denoise.enabled || params.spot.enabled;
 
-            // fattal needs to work on the full image. So here we get the full
+            // drcompression needs to work on the full image. So here we get the full
             // image from imgsrc, and replace the denoised crop in case
             if (!copy_from_earlier_steps && skip == 1 &&
                 parent->drcomp_11_dcrop_cache) {

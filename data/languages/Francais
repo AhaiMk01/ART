@@ -533,6 +533,7 @@ HISTORY_MSG_491;Balances des Blancs
 HISTORY_MSG_492;Courbes RVB
 HISTORY_MSG_493;Ajustements L*a*b*
 HISTORY_MSG_BWMIX_COLORCAST;N & B - Dominante couleur
+HISTORY_MSG_DRCOMPRESSION_SATCONTROL;CPD - Contrôle de saturation
 HISTORY_MSG_SATURATION_VIBRANCE;S/V - Vibrance
 HISTORY_MSG_LOCALCONTRAST_LIST;Contraste local - Régions
 HISTORY_MSG_LOCALCONTRAST_HUEMASK;Contraste local - Masque T
@@ -722,7 +723,6 @@ HISTORY_MSG_SOFTLIGHT_ENABLED;Lumière douce
 HISTORY_MSG_SOFTLIGHT_STRENGTH;Lumière douce - Force
 HISTORY_MSG_SPOT;Retrait de taches
 HISTORY_MSG_SPOT_ENTRY;Retrait de taches - Modif. de points
-HISTORY_MSG_TM_FATTAL_SATCONTROL;CPD - Contrôle de saturation
 HISTORY_MSG_TONE_EQUALIZER_ENABLED;Égaliseur Tonal
 HISTORY_MSG_TONE_EQUALIZER_BANDS;Égaliseur Tonal - Bandes
 HISTORY_MSG_TONE_EQUALIZER_REGULARIZATION;Égaliseur Tonal - Régularisation
@@ -942,6 +942,7 @@ OPTIONS_BUNDLED_MISSING;Le profil fourni "<b>%1</b>" n'a pas été trouvé !\n\n
 OPTIONS_DEFIMG_MISSING;Le profil par défaut pour les <b>images standards</b> n'a pas été trouvé ou n'a pas été indiqué.\n\nVérifiez le dossier de vos profils, il peut être manquant ou endommagé\n\n"<b>%1</b>" sera utilisé à la place
 OPTIONS_DEFRAW_MISSING;Le profil par défaut pour les <b>images raw</b> n'a pas été trouvé ou n'a pas été indiqué.\n\nVérifiez le dossier de vos profils, il peut être manquant ou endommagé\n\n"<b>%1</b>" sera utilisé à la place
 PARTIALPASTE_ADVANCEDGROUP;Réglages avancés
+PARTIALPASTE_DRCOMPRESSION;Compression de la Plage Dynamique
 PARTIALPASTE_EFFECTSGROUP;Paramètres des effets spéciaux
 PARTIALPASTE_EXPOSUREGROUP;Paramètres Exposition
 PARTIALPASTE_SATURATION;Saturation/Vibrance
@@ -1019,7 +1020,6 @@ PARTIALPASTE_SHARPENMICRO;Microcontraste
 PARTIALPASTE_SMOOTHING;Lissage
 PARTIALPASTE_SOFTLIGHT;Lumière Douce
 PARTIALPASTE_SPOT;Retrait de taches
-PARTIALPASTE_TM_FATTAL;Compression de la Plage Dynamique
 PARTIALPASTE_TM_LOG;Mappage tonal Log
 PARTIALPASTE_TONE_EQUALIZER;Égaliseur tonal
 PARTIALPASTE_VIBRANCE;Vibrance
@@ -1295,6 +1295,10 @@ QUEUE_LOCATION_FOLDER;Enregistrer dans le dossier
 QUEUE_LOCATION_TEMPLATE;Utiliser le modèle
 QUEUE_LOCATION_TEMPLATE_TOOLTIP;Spécifiez l'emplacement de sortie en fonction de l'emplacement, du classement, de l'état de la corbeille ou de la position dans la file d'attente de la photo source.\n\nEn utilisant le chemin d'accès suivant comme exemple :\n<b>/home/tom/photos/2010-10-31/photo1.raw</b>\nla signification des chaînes de formatage est la suivante :\n<b>%d4</b> = <i>home</i>\n<b>%d3</b> = <i>tom</i>\n<b>%d2</b> = <i>photos</i>\n<b>%d1</b> = <i>31/10/2010</i> \n<b>%f</b> = <i>photo1</i>\n<b>%p1</b> = <i>/home/tom/photos/2010-10-31/</i>\n<b>%p2</b> = <i>/home/tom/photos/</i>\n<b>%p3</b> = <i>/home/tom/</i>\n<b>%p4</b> = <i>/home/</i>\n\n<b>%r</b> sera remplacé par le classement de la photo. Si la photo n'est pas classée, '<i>0</i>' est utilisé. Si la photo est dans la corbeille, '<i>x</i>' est utilisé.\n\n<b>%s1</b>, ..., <b>%s9</b> sera remplacé par la position initiale de la photo dans la file d'attente au moment du démarrage de la file d'attente. Le nombre spécifie le remplissage, par ex. <b>%s3</b> donne '<i>001</i>'.\n\n<b>%n</b> sera remplacé par le nom de l'instantané actuellement appliqué. Si aucun instantané n’existe ou n’est sélectionné, la chaîne vide sera utilisée. <b>%u</b> peut être utilisé à la place de <b>%n</b> pour remplacer les espaces par des traits de soulignement dans le nom de l'instantané.\n\nSi vous souhaitez enregistrer l'image de sortie à côté de l'image source, écrivez :\n<b>%p1/%f</b>\n\nSi vous souhaitez enregistrer l'image de sortie dans un dossier nommé '<i>converti</i>' situé dans le dossier de la photo source, écrivez :\ n<b>%p1/converted/%f</b>\n\nSi vous souhaitez enregistrer l'image de sortie dans\n'<i>/home/tom/photos/converted/2010-10-31</i>', écrivez :\n<b>%p2/converted/%d1/%f</b>
 QUEUE_LOCATION_TITLE;Emplacement de sortie
+TP_DRCOMPRESSION_AMOUNT;Quantité
+TP_DRCOMPRESSION_LABEL;Compression de la Plage Dynamique
+TP_DRCOMPRESSION_SATCONTROL;Contrôle de saturation
+TP_DRCOMPRESSION_THRESHOLD;Détail
 ​QUEUE_LOCATION_TITLE;Emplacement de sortie
 QUEUE_STARTSTOP_TOOLTIP;Démarre ou arrête le traitement des images dans la file.\n\nRaccourci : <b>Ctrl</b>+<b>s</b>
 RENAME_DIALOG_BASEDIR;Répertoire
@@ -2009,10 +2013,6 @@ TP_SPOT_RADIUS;Rayon
 TP_SPOT_FEATHER;Adoucissement
 TP_SPOT_OPACITY;Opacité
 TP_SPOT_DETAIL;Protection des détails
-TP_TM_FATTAL_AMOUNT;Quantité
-TP_TM_FATTAL_LABEL;Compression de la Plage Dynamique
-TP_TM_FATTAL_THRESHOLD;Détail
-TP_TM_FATTAL_SATCONTROL;Contrôle de saturation
 TP_TONECURVE_BASECURVE;Courbe de base
 TP_TONECURVE_BASECURVE_LINEAR;Linéaire
 TP_TONECURVE_BASECURVE_ROLLOFF;Atténuation progressive des hautes lumières

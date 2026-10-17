@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "fattaltonemap.h"
+#include "drcompression.h"
 #include "eventmapper.h"
 #include <cmath>
 #include <iomanip>
@@ -29,23 +29,23 @@ using namespace utils;
 using namespace art::engine;
 using namespace art::engine::procparams;
 
-FattalToneMapping::FattalToneMapping()
-    : FoldableToolPanel(this, "fattal", M("TP_TM_FATTAL_LABEL"), false, true,
+DynamicRangeCompression::DynamicRangeCompression()
+    : FoldableToolPanel(this, "drcompression", M("TP_DRCOMPRESSION_LABEL"), false, true,
                         true)
 {
     auto m = ProcEventMapper::getInstance();
     EvSatControl =
-        m->newEvent(art::engine::HDR, "HISTORY_MSG_TM_FATTAL_SATCONTROL");
+        m->newEvent(art::engine::HDR, "HISTORY_MSG_DRCOMPRESSION_SATCONTROL");
     EvToolReset.set_action(art::engine::HDR);
 
     amount =
-        Gtk::manage(new Adjuster(M("TP_TM_FATTAL_AMOUNT"), 1., 100., 1., 20.));
+        Gtk::manage(new Adjuster(M("TP_DRCOMPRESSION_AMOUNT"), 1., 100., 1., 20.));
     threshold = Gtk::manage(
-        new Adjuster(M("TP_TM_FATTAL_THRESHOLD"), -100., 300., 1., 30.0));
+        new Adjuster(M("TP_DRCOMPRESSION_THRESHOLD"), -100., 300., 1., 30.0));
     satcontrol =
-        Gtk::manage(new Gtk::CheckButton(M("TP_TM_FATTAL_SATCONTROL")));
+        Gtk::manage(new Gtk::CheckButton(M("TP_DRCOMPRESSION_SATCONTROL")));
     satcontrol->signal_toggled().connect(
-        sigc::mem_fun(*this, &FattalToneMapping::satcontrolChanged), true);
+        sigc::mem_fun(*this, &DynamicRangeCompression::satcontrolChanged), true);
 
     amount->setAdjusterListener(this);
     threshold->setAdjusterListener(this);
@@ -60,61 +60,61 @@ FattalToneMapping::FattalToneMapping()
     pack_start(*satcontrol);
 }
 
-void FattalToneMapping::read(const ProcParams *pp)
+void DynamicRangeCompression::read(const ProcParams *pp)
 {
     disableListener();
 
-    setEnabled(pp->fattal.enabled);
-    threshold->setValue(pp->fattal.threshold);
-    amount->setValue(pp->fattal.amount);
-    satcontrol->set_active(pp->fattal.satcontrol);
+    setEnabled(pp->drcompression.enabled);
+    threshold->setValue(pp->drcompression.threshold);
+    amount->setValue(pp->drcompression.amount);
+    satcontrol->set_active(pp->drcompression.satcontrol);
 
     enableListener();
 }
 
-void FattalToneMapping::write(ProcParams *pp)
+void DynamicRangeCompression::write(ProcParams *pp)
 {
-    pp->fattal.threshold = threshold->getValue();
-    pp->fattal.amount = amount->getValue();
-    pp->fattal.enabled = getEnabled();
-    pp->fattal.satcontrol = satcontrol->get_active();
+    pp->drcompression.threshold = threshold->getValue();
+    pp->drcompression.amount = amount->getValue();
+    pp->drcompression.enabled = getEnabled();
+    pp->drcompression.satcontrol = satcontrol->get_active();
 }
 
-void FattalToneMapping::setDefaults(const ProcParams *defParams)
+void DynamicRangeCompression::setDefaults(const ProcParams *defParams)
 {
-    threshold->setDefault(defParams->fattal.threshold);
-    amount->setDefault(defParams->fattal.amount);
+    threshold->setDefault(defParams->drcompression.threshold);
+    amount->setDefault(defParams->drcompression.amount);
 
-    initial_params = defParams->fattal;
+    initial_params = defParams->drcompression;
 }
 
-void FattalToneMapping::adjusterChanged(Adjuster *a, double newval)
+void DynamicRangeCompression::adjusterChanged(Adjuster *a, double newval)
 {
     if (listener && getEnabled()) {
         if (a == threshold) {
-            listener->panelChanged(EvTMFattalThreshold, a->getTextValue());
+            listener->panelChanged(EvDRCompressionThreshold, a->getTextValue());
         } else if (a == amount) {
-            listener->panelChanged(EvTMFattalAmount, a->getTextValue());
+            listener->panelChanged(EvDRCompressionAmount, a->getTextValue());
         }
     }
 }
 
-void FattalToneMapping::adjusterAutoToggled(Adjuster *a, bool newval) {}
+void DynamicRangeCompression::adjusterAutoToggled(Adjuster *a, bool newval) {}
 
-void FattalToneMapping::enabledChanged()
+void DynamicRangeCompression::enabledChanged()
 {
     if (listener) {
         if (get_inconsistent()) {
-            listener->panelChanged(EvTMFattalEnabled, M("GENERAL_UNCHANGED"));
+            listener->panelChanged(EvDRCompressionEnabled, M("GENERAL_UNCHANGED"));
         } else if (getEnabled()) {
-            listener->panelChanged(EvTMFattalEnabled, M("GENERAL_ENABLED"));
+            listener->panelChanged(EvDRCompressionEnabled, M("GENERAL_ENABLED"));
         } else {
-            listener->panelChanged(EvTMFattalEnabled, M("GENERAL_DISABLED"));
+            listener->panelChanged(EvDRCompressionEnabled, M("GENERAL_DISABLED"));
         }
     }
 }
 
-void FattalToneMapping::satcontrolChanged()
+void DynamicRangeCompression::satcontrolChanged()
 {
     if (listener && getEnabled()) {
         listener->panelChanged(EvSatControl, satcontrol->get_active()
@@ -123,18 +123,18 @@ void FattalToneMapping::satcontrolChanged()
     }
 }
 
-void FattalToneMapping::toolReset(bool to_initial)
+void DynamicRangeCompression::toolReset(bool to_initial)
 {
     ProcParams pp;
     if (to_initial) {
-        pp.fattal = initial_params;
+        pp.drcompression = initial_params;
     }
-    pp.fattal.enabled = getEnabled();
+    pp.drcompression.enabled = getEnabled();
     read(&pp);
 }
 
 
-void FattalToneMapping::registerShortcuts(ToolShortcutsManager *mgr)
+void DynamicRangeCompression::registerShortcuts(ToolShortcutsManager *mgr)
 {
     mgr->addShortcut("tool.drcompression.detail", this, threshold);
     mgr->addShortcut("tool.drcompression.amount", this, amount);

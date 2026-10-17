@@ -949,7 +949,7 @@ void Spot::tweakParams(procparams::ProcParams &pparams)
         pparams.smoothing.enabled = false;
         pparams.textureBoost.enabled = false;
         pparams.toneEqualizer.enabled = false;
-        pparams.fattal.enabled = false;
+        pparams.drcompression.enabled = false;
         pparams.dehaze.enabled = false;
         pparams.filmSimulation.enabled = false;
         pparams.blackwhite.enabled = false;

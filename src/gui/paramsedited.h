@@ -43,7 +43,7 @@ public:
     bool distortion;
     bool exif;
     bool exposure;
-    bool fattal;
+    bool drcompression;
     bool filmNegative;
     bool filmSimulation;
     bool flatfield;

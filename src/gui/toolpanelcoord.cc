@@ -121,7 +121,7 @@ ToolPanelCoordinator::ToolPanelCoordinator(bool batch)
     rawexposure = Gtk::manage(new RAWExposure());
     bayerrawexposure = Gtk::manage(new BayerRAWExposure());
     xtransrawexposure = Gtk::manage(new XTransRAWExposure());
-    fattal = Gtk::manage(new FattalToneMapping());
+    drcompression = Gtk::manage(new DynamicRangeCompression());
     logenc = Gtk::manage(new LogEncoding());
     colorcorrection = Gtk::manage(new ColorCorrection());
     smoothing = Gtk::manage(new Smoothing());
@@ -145,7 +145,7 @@ ToolPanelCoordinator::ToolPanelCoordinator(bool batch)
     addfavoritePanel(exposurePanel, exposure);
     addfavoritePanel(exposurePanel, toneEqualizer);
     addfavoritePanel(exposurePanel, toneCurve);
-    addfavoritePanel(exposurePanel, fattal);
+    addfavoritePanel(exposurePanel, drcompression);
     addfavoritePanel(exposurePanel, logenc);
 
     // details

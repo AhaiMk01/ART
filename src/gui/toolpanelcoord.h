@@ -63,7 +63,7 @@
 #include "colorcorrection.h"
 #include "darkframe.h"
 #include "dehaze.h"
-#include "fattaltonemap.h"
+#include "drcompression.h"
 #include "filmnegative.h"
 #include "filmsimulation.h"
 #include "flatfield.h"
@@ -157,7 +157,7 @@ protected:
     RAWExposure *rawexposure;
     BayerRAWExposure *bayerrawexposure;
     XTransRAWExposure *xtransrawexposure;
-    FattalToneMapping *fattal;
+    DynamicRangeCompression *drcompression;
     LogEncoding *logenc;
     MetaDataPanel *metadata;
     Smoothing *smoothing;
