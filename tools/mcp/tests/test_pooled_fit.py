@@ -109,6 +109,24 @@ def test_prior_settles_an_unset_slope(tmp_path):
         assert lo <= s["posterior"] <= hi
 
 
+def test_single_frame_of_uncertain_rows_takes_the_prior(tmp_path):
+    # one frame, one granite boulder tagged uncertain: no slope evidence; the
+    # prior sets it and the offset comes from the boulder, flagged weak
+    D = np.array([K[0] * 1.2 - 0.1, 1.2, K[2] * 1.2 + 0.2])
+    sq = [dict(material="granite", object_id="rock", basis="uncertain",
+               avg=list(lin(D)), sd=[50.0] * 3, size=32)]
+    p = tmp_path / "picks.json"
+    p.write_text(json.dumps(dict(frames={"01": dict(light="daylight", squares=sq)})))
+    with pytest.raises(SystemExit):
+        pf.main([str(p)])
+    r = run(tmp_path, p, "--prior", "1,1,0.15")
+    assert r["slopes"]["R"]["k"] == 1.0 and r["slopes"]["R"]["fixed"] == "prior"
+    assert len(r["weak"]) == 2
+    f = r["frames"]["01"]
+    assert f["R"]["final"] == pytest.approx(D[0] - D[1], abs=1e-9)
+    assert "weak: uncertain rows only" in f["notes"]
+
+
 def test_fold_decodes_neutrals_to_equal_codes(tmp_path):
     offs = {f"{i:02d}": (-0.1 - 0.01 * i, 0.2 + 0.01 * i) for i in range(4)}
     s = {"00": 2.0}

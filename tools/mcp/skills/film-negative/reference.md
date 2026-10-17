@@ -453,8 +453,10 @@ frame adds its own offset (scene light, printer light). Fit them together
 `scripts/pooled_fit.py` (run with `uv run`; input format in its docstring)
 does steps 2 to 7 and prints the slope checks, the D_G range the slope was
 checked over, each frame's shrinkage and how far its offset lies from the
-rest of its light group. Use it rather than writing a fit; the judgement
-(picks, basis, light groups, what a deviation means) stays yours.
+rest of its light group. Use it rather than writing a fit, for any number
+of frames, one included: where the picks cannot set the slope it takes the
+prior and marks what is weak. The judgement (picks, basis, light groups,
+what a deviation means) stays yours.
 
 1. Evidence: the table from "Choosing neutral references". Fit `material`
    rows only; read `uncertain` rows against the fit; `C` rows only describe
@@ -518,11 +520,14 @@ rest of its light group. Use it rather than writing a fit; the judgement
    plus `g * log10(s)` on every channel for the frame's capture exposure.
 
 Report each frame's offset and lam in plain terms (warm late sun, shop
-light). Removing a real warm or cool light is a choice: a frame whose light
-the user wants can take part of its correction (`alpha * lam`, alpha < 1).
-Sunlit neutrals also carry skylight, so a daylight frame corrected to them
-in full can look warm: keep some of the cool, judged on the render and
-reported.
+light). The sidecar takes the slopes and offsets as the script prints them.
+Removing a real warm or cool light is a choice: a frame whose light the user
+wants can take part of its correction (`alpha * lam`, alpha < 1, one stated
+alpha for that light). Never nudge a channel or exposure by eye after the
+fit: a render that still looks off is evidence about the picks, the basis
+or the light groups; go back there, or report it. Sunlit neutrals also
+carry skylight, so a daylight frame corrected to them in full can look
+warm; that is the light, reported, not a reason to nudge.
 An automatic white balance is a cross-check, never the prior.
 
 ### Density-specific reduction
@@ -679,11 +684,15 @@ Principles:
   white. Demote a white on evidence: its frame's offset stands apart from
   the rest of its light, or it reads tinted beside a sure neutral in the
   same frame. Without such evidence it stays `material`; demoting good
-  whites leaves the frame to a borrowed offset.
+  whites leaves the frame to a borrowed offset. Natural surfaces (rock,
+  soil, bark, sand) take their colour from their kind and weathering:
+  `uncertain` only when their kind is a grey one, otherwise not a neutral.
 - One light: surfaces lit by the frame's main light (a subject wholly in
   shade or indoors: that light). Undersides, back-lit faces and shadows on
   grass take the colour of what lights them; in a sunlit frame a cast
-  shadow is lit by the sky, another light.
+  shadow is lit by the sky, another light. Distant surfaces (hills, far
+  buildings) are seen through air that adds its own light: not neutral
+  evidence.
 - Measurable: well inside one material, away from edges, text and detail.
   Thin or small objects on a contrasting surround read diluted; dark
   surfaces at a grazing angle and glossy black paint carry sheen or sky

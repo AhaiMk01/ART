@@ -25,7 +25,10 @@ with the result. --green: green's den_G and shift s_G, to fold the result
 into NamiColor gains and shifts (master and black terms 0, FitBase off).
 
 Fits `material` rows only; `uncertain` rows are compared against the fit,
-`C` rows only describe the light. The report says whether the slope is set,
+`C` rows only describe the light. Works on any number of frames, one
+included: when no frame carries a slope, --prior (or --slopes) sets it and
+only offsets are fitted; with no `material` row at all, the offsets come
+from the `uncertain` rows. Both are reported as WEAK. The report says whether the slope is set,
 how far each frame's offset lies from the rest of its light group (in mD;
 what a large one means is a judgement, see "Neutral by material"), and the
 D_G range the slope was checked over (outside it the line is extrapolated).
@@ -244,26 +247,42 @@ def main(argv=None):
     flare = [float(v) for v in a.flare.split(",")]
     rows, meta = load(a.picks, flare)
     mat, unc, cee = rows["material"], rows["uncertain"], rows["C"]
-    if not mat:
-        sys.exit("no material rows")
     preset = [float(v) for v in a.slopes.split(",")] if a.slopes else None
     prior = None
     if a.prior:
         pv = [float(v) for v in a.prior.split(",")]
         prior = ({0: pv[0], 2: pv[1]}, pv[2] if len(pv) > 2 else 0.05)
-    fits = {c: fit_channel(mat, c, preset[0 if c == 0 else 1] if preset else None) for c in (0, 2)}
-    result = dict(slopes={}, checks=[], frames={}, uncertain=[], C=[])
+    result = dict(slopes={}, checks=[], frames={}, uncertain=[], C=[], weak=[])
     P = print
+    n_mat, n_unc = len(mat), len(unc)
+    if not mat:
+        # one frame or a roll without material neutrals: offsets from the
+        # uncertain rows at a slope that is not the roll's own, all weak
+        if not (preset or prior) or not unc:
+            sys.exit("no material rows: give --slopes or --prior to fit offsets from the uncertain rows")
+        mat, unc = unc, []
+        result["weak"].append("offsets from uncertain rows only")
+    fixed = "preset" if preset else None
+    try:
+        fits = {c: fit_channel(mat, c, preset[0 if c == 0 else 1] if preset else None) for c in (0, 2)}
+    except (ValueError, ZeroDivisionError):
+        if not prior:
+            sys.exit("no frame has two material objects to carry a slope: give --slopes or --prior")
+        preset, fixed = [prior[0][0], prior[0][2]], "prior"
+        fits = {c: fit_channel(mat, c, preset[0 if c == 0 else 1]) for c in (0, 2)}
+        result["weak"].append("slope is the prior's: no evidence in the picks")
 
-    P(f"material objects {len(mat)} in {len({r['frame'] for r in mat})} frames; "
-      f"uncertain {len(unc)}; C {len(cee)}")
+    P(f"material objects {n_mat} in {len({r['frame'] for r in rows['material']})} frames; "
+      f"uncertain {n_unc}; C {len(cee)}")
+    for w in result["weak"]:
+        P(f"WEAK: {w}")
     half = {}
     for c in (0, 2):
         f = fits[c]
         lo, hi = (f["k"], f["k"]) if preset else bootstrap(mat, c)
         half[c] = (hi - lo) / 2
-        result["slopes"][NAME[c]] = dict(k=f["k"], boot90=[lo, hi], scale=f["scale"])
-        P(f"k_{NAME[c]} {f['k']:.3f}" + ("  (preset)" if preset else
+        result["slopes"][NAME[c]] = dict(k=f["k"], boot90=[lo, hi], scale=f["scale"], fixed=fixed)
+        P(f"k_{NAME[c]} {f['k']:.3f}" + (f"  ({fixed})" if preset else
           f"  frame-bootstrap 90% {lo:.3f}-{hi:.3f}") + f"; robust scale {f['scale']:.2f}")
 
     # step 5: is the slope set?
@@ -361,6 +380,8 @@ def main(argv=None):
             objs = [r for r in mat if r["frame"] == fr]
             if len(objs) == 1:
                 notes.append("weak: one object sets its offset")
+            if not n_mat:
+                notes.append("weak: uncertain rows only")
             elif checked and min(r["D"][1] for r in objs) > checked[1]:
                 notes.append("weak: neutrals only above the checked D_G range")
         dev = " ".join(f"{1000 * v:+4.0f}" for v in o["dev"]) if "dev" in o else "   -    -"
