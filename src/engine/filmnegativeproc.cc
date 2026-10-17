@@ -761,19 +761,19 @@ bool doProcess(Imagefloat *input, Imagefloat *output,
 
         for (; j < rwidth - 3; j += 4) {
             STVFU(rlineout[j],
-                  vminf(rmultv * pow_F(LVFU(rlinein[j]), rexpv), clipv));
+                  vminf(rmultv * pow_F(vmaxf(LVFU(rlinein[j]), F2V(1e-6f)), rexpv), clipv));
             STVFU(glineout[j],
-                  vminf(gmultv * pow_F(LVFU(glinein[j]), gexpv), clipv));
+                  vminf(gmultv * pow_F(vmaxf(LVFU(glinein[j]), F2V(1e-6f)), gexpv), clipv));
             STVFU(blineout[j],
-                  vminf(bmultv * pow_F(LVFU(blinein[j]), bexpv), clipv));
+                  vminf(bmultv * pow_F(vmaxf(LVFU(blinein[j]), F2V(1e-6f)), bexpv), clipv));
         }
 
 #endif
 
         for (; j < rwidth; ++j) {
-            rlineout[j] = CLIP(rmult * pow_F(rlinein[j], rexp));
-            glineout[j] = CLIP(gmult * pow_F(glinein[j], gexp));
-            blineout[j] = CLIP(bmult * pow_F(blinein[j], bexp));
+            rlineout[j] = CLIP(rmult * pow_F(std::max(rlinein[j], 1e-6f), rexp));
+            glineout[j] = CLIP(gmult * pow_F(std::max(glinein[j], 1e-6f), gexp));
+            blineout[j] = CLIP(bmult * pow_F(std::max(blinein[j], 1e-6f), bexp));
         }
     }
     return refsUpdated;
@@ -1286,9 +1286,9 @@ void art::engine::Thumbnail::processFilmNegative(
     const float bavg = bsum / (rheight * rwidth);
 
     // Shifting current WB multipliers, based on channel averages.
-    rmult /= gavg / ravg;
+    rmult /= std::max(gavg, 1e-6f) / std::max(ravg, 1e-6f); // all-black: avoid 0/0
     // gmult /= gAvg / gAvg;  green chosen as reference channel
-    bmult /= gavg / bavg;
+    bmult /= std::max(gavg, 1e-6f) / std::max(bavg, 1e-6f);
 
     if (settings->verbose) {
         printf(
@@ -1316,19 +1316,19 @@ void art::engine::Thumbnail::processFilmNegative(
 
         for (; j < rwidth - 3; j += 4) {
             STVFU(rline[j],
-                  vminf(rmultv * pow_F(LVFU(rline[j]), rexpv), clipv));
+                  vminf(rmultv * pow_F(vmaxf(LVFU(rline[j]), F2V(1e-6f)), rexpv), clipv));
             STVFU(gline[j],
-                  vminf(gmultv * pow_F(LVFU(gline[j]), gexpv), clipv));
+                  vminf(gmultv * pow_F(vmaxf(LVFU(gline[j]), F2V(1e-6f)), gexpv), clipv));
             STVFU(bline[j],
-                  vminf(bmultv * pow_F(LVFU(bline[j]), bexpv), clipv));
+                  vminf(bmultv * pow_F(vmaxf(LVFU(bline[j]), F2V(1e-6f)), bexpv), clipv));
         }
 
 #endif
 
         for (; j < rwidth; ++j) {
-            rline[j] = CLIP(rmult * pow_F(rline[j], rexp));
-            gline[j] = CLIP(gmult * pow_F(gline[j], gexp));
-            bline[j] = CLIP(bmult * pow_F(bline[j], bexp));
+            rline[j] = CLIP(rmult * pow_F(std::max(rline[j], 1e-6f), rexp));
+            gline[j] = CLIP(gmult * pow_F(std::max(gline[j], 1e-6f), gexp));
+            bline[j] = CLIP(bmult * pow_F(std::max(bline[j], 1e-6f), bexp));
         }
     }
 }
@@ -1464,19 +1464,19 @@ void art::engine::Thumbnail::processFilmNegativeV2(
 
         for (; j < rwidth - 3; j += 4) {
             STVFU(rline[j],
-                  vminf(rmultv * pow_F(LVFU(rline[j]), rexpv), clipv));
+                  vminf(rmultv * pow_F(vmaxf(LVFU(rline[j]), F2V(1e-6f)), rexpv), clipv));
             STVFU(gline[j],
-                  vminf(gmultv * pow_F(LVFU(gline[j]), gexpv), clipv));
+                  vminf(gmultv * pow_F(vmaxf(LVFU(gline[j]), F2V(1e-6f)), gexpv), clipv));
             STVFU(bline[j],
-                  vminf(bmultv * pow_F(LVFU(bline[j]), bexpv), clipv));
+                  vminf(bmultv * pow_F(vmaxf(LVFU(bline[j]), F2V(1e-6f)), bexpv), clipv));
         }
 
 #endif
 
         for (; j < rwidth; ++j) {
-            rline[j] = CLIP(rmult * pow_F(rline[j], rexp));
-            gline[j] = CLIP(gmult * pow_F(gline[j], gexp));
-            bline[j] = CLIP(bmult * pow_F(bline[j], bexp));
+            rline[j] = CLIP(rmult * pow_F(std::max(rline[j], 1e-6f), rexp));
+            gline[j] = CLIP(gmult * pow_F(std::max(gline[j], 1e-6f), gexp));
+            bline[j] = CLIP(bmult * pow_F(std::max(bline[j], 1e-6f), bexp));
         }
     }
 }

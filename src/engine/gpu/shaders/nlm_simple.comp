@@ -36,7 +36,7 @@ void main()
     float r = 0.0; // sum of weighted pixel values (eq. 2)
     float s = 0.0; // sum of weights, for normalization
 
-    float m = 1.0 / mask.v[uint(g.y) * uint(pc.w) + uint(g.x)];
+    float m = 1.0 / max(mask.v[uint(g.y) * uint(pc.w) + uint(g.x)], 1e-9);
 
     for (int dy = -pc.Ds; dy <= pc.Ds; ++dy) {
         for (int dx = -pc.Ds; dx <= pc.Ds; ++dx) {

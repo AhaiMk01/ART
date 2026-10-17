@@ -325,9 +325,10 @@ void local_contrast_wavelets(array2D<float> &Y,
         min0 /= 327.68f;
         float ave = avedbl / double(W_L * H_L);
         float av = ave / 327.68f;
-        float ah = (multH - 1.f) / (av - max0);
+        // flat luminance gives av == max0 == min0
+        float ah = std::abs(av - max0) > 1e-6f ? (multH - 1.f) / (av - max0) : 0.f;
         float bh = 1.f - max0 * ah;
-        float al = (multL - 1.f) / (av - min0);
+        float al = std::abs(av - min0) > 1e-6f ? (multL - 1.f) / (av - min0) : 0.f;
         float bl = 1.f - min0 * al;
 
         if (max0 > 0.0) {
@@ -385,7 +386,7 @@ void local_contrast_wavelets(array2D<float> &Y,
                              MaxP[level]; // rapport between sD / max
                 float inx = log(insigma);
                 float iny = log(rapX);
-                float rap = inx / iny; // koef
+                float rap = std::abs(iny) > 1e-6f ? inx / iny : 1.f; // koef; iny == 0 when mean+sigma == max
                 float asig = 0.166f / sigma[level];
                 float bsig = 0.5f - asig * mean[level];
                 float amean = 0.5f / mean[level];

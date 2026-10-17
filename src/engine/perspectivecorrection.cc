@@ -150,10 +150,15 @@ inline void PerspectiveCorrection::correct(double &x, double &y, double scale,
         pout[1] += offy;
         pout[2] = 1.f;
         mat3mulv(pin, (float *)ihomograph_, pout);
-        pin[0] /= pin[2];
-        pin[1] /= pin[2];
-        x = pin[0];
-        y = pin[1];
+        if (pin[2] > 1e-6f) {
+            pin[0] /= pin[2];
+            pin[1] /= pin[2];
+            x = pin[0];
+            y = pin[1];
+        } else {
+            // point at or behind the vanishing plane: map it out of range
+            x = y = -1e7f;
+        }
     }
 }
 

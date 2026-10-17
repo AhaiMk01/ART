@@ -51,6 +51,9 @@ struct CLUTParamDescriptor {
     Glib::ustring gui_tooltip;
     std::vector<std::array<float, 4>> gui_bottom_gradient;
     std::vector<std::array<float, 4>> gui_left_gradient;
+    // for curves: the curve_id to pass to ART_fill_pipette (from the
+    // @ART-pipette directive of the script), or -1 if the curve has no pipette
+    int pipette_id = -1;
 
     bool fill_from_json(cJSON *root);
 };

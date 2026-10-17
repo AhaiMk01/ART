@@ -3615,10 +3615,19 @@ void RawImageSource::processFalseColorCorrection(Imagefloat *im,
         return;
     }
 
+    /* processFalseColorCorrectionThread indexes rbconv_Y/I/Q and rbout_I/Q
+     * by im->getWidth(), not by the raw sensor's native
+     * width. Those are the same value for most
+     * cameras, but for Fuji Super CCD sensors the de-rotated output image
+     * is substantially wider than the raw sensor, so allocating this
+     * buffer with the member W undersizes it and
+     * processFalseColorCorrectionThread writes past the end of every row. */
+    const int bufferW = im->getWidth();
+
 #ifdef _OPENMP
 #pragma omp parallel
     {
-        multi_array2D<float, 5> buffer(W, 3);
+        multi_array2D<float, 5> buffer(bufferW, 3);
         int tid = omp_get_thread_num();
         int nthreads = omp_get_num_threads();
         int blk = (im->getHeight() - 2) / nthreads;
@@ -3639,7 +3648,7 @@ void RawImageSource::processFalseColorCorrection(Imagefloat *im,
         }
     }
 #else
-    multi_array2D<float, 5> buffer(W, 3);
+    multi_array2D<float, 5> buffer(bufferW, 3);
 
     for (int t = 0; t < steps; t++) {
         processFalseColorCorrectionThread(im, buffer[0], buffer[1], buffer[2],

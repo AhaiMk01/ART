@@ -142,12 +142,11 @@ void NLMeans(array2D<float> &img, float normcoeff, int strength,
 #endif
     for (int y = 0; y < H; ++y) {
         for (int x = 0; x < W; ++x) {
-            mask[y][x] = (1.f / (mask[y][x] * h2)) / lutfactor;
+            mask[y][x] = (1.f / std::max(mask[y][x] * h2, 1e-9f)) / lutfactor;
         }
     }
 
-    // process by tiles to avoid numerical accuracy errors in the computation
-    // of the integral image
+    // process by tiles, for cache locality and to parallelize
     const int tile_size = 150;
     const int ntiles_x = int(std::ceil(float(WW) / (tile_size - 2 * border)));
     const int ntiles_y = int(std::ceil(float(HH) / (tile_size - 2 * border)));
@@ -196,28 +195,82 @@ void NLMeans(array2D<float> &img, float normcoeff, int strength,
                 return SQR(src[Y(zy)][X(zx)] - src[Y(zy + ty)][X(zx + tx)]);
             };
 
+            // Squared differences, then their sums over the (2p+1)^2 patch.
+            //
+            // The patch distance used to come from an integral image of the
+            // scores, i.e. as a difference of four large cumulative sums.
+            // Those are accumulated in float, so their rounding error grows
+            // with the size of the tile and is unrelated to the (small)
+            // distance being computed: a one-ulp change in the input moved
+            // dist2, and hence the weights, by far more than the noise it
+            // was meant to measure. Summing each patch directly (separably)
+            // makes dist2 depend only on its own (2p+1)^2 scores, with a
+            // relative error of a few ulps.
+            array2D<float> S(TW, TH, ARRAY2D_ALIGNED);
+            array2D<float> SH(TW, TH, ARRAY2D_ALIGNED);
             array2D<float> St(TW, TH, ARRAY2D_ALIGNED);
             array2D<float> SW(TW, TH, ARRAY2D_ALIGNED | ARRAY2D_CLEAR_DATA);
 
+            // interior of the tile, where dist2 is needed, and the rows /
+            // columns of scores that feed it
+            const int iy0 = border, iy1 = TH - border; // [iy0, iy1)
+            const int ix0 = border, ix1 = TW - border;
+            const int sy0 = iy0 - patch_radius, sy1 = iy1 + patch_radius;
+            const int sx0 = ix0 - patch_radius, sx1 = ix1 + patch_radius;
+
             for (int ty = -search_radius; ty <= search_radius; ++ty) {
                 for (int tx = -search_radius; tx <= search_radius; ++tx) {
-                    // Step 1 — Compute the integral image St
-                    St[0][0] = 0.f;
-                    for (int xx = 1; xx < TW; ++xx) {
-                        St[0][xx] = St[0][xx - 1] + score(tx, ty, xx, 0);
-                    }
-                    for (int yy = 1; yy < TH; ++yy) {
-                        St[yy][0] = St[yy - 1][0] + score(tx, ty, 0, yy);
-                    }
-                    for (int yy = 1; yy < TH; ++yy) {
-                        for (int xx = 1; xx < TW; ++xx) {
-                            // operation grouping tuned for performance
-                            // (empirically)
-                            St[yy][xx] =
-                                (St[yy][xx - 1] + St[yy - 1][xx]) -
-                                (St[yy - 1][xx - 1] - score(tx, ty, xx, yy));
+                    // Step 1 — squared differences, summed over the patch
+                    const bool x_in_range =
+                        start_x + sx0 >= 0 && start_x + sx1 - 1 < WW &&
+                        start_x + sx0 + tx >= 0 &&
+                        start_x + sx1 - 1 + tx < WW;
+                    for (int yy = sy0; yy < sy1; ++yy) {
+                        float *RESTRICT out = S[yy];
+                        if (x_in_range) {
+                            // no clamping needed along this row
+                            const float *RESTRICT ra = src[Y(yy)] + start_x;
+                            const float *RESTRICT rb =
+                                src[Y(yy + ty)] + start_x + tx;
+                            for (int xx = sx0; xx < sx1; ++xx) {
+                                const float d = ra[xx] - rb[xx];
+                                out[xx] = d * d;
+                            }
+                        } else {
+                            for (int xx = sx0; xx < sx1; ++xx) {
+                                out[xx] = score(tx, ty, xx, yy);
+                            }
                         }
                     }
+                    // same summation order for every pixel: -p, ..., +p
+                    for (int yy = sy0; yy < sy1; ++yy) {
+                        float *RESTRICT out = SH[yy];
+                        const float *RESTRICT in = S[yy];
+                        for (int xx = ix0; xx < ix1; ++xx) {
+                            out[xx] = in[xx - patch_radius];
+                        }
+                        for (int k = -patch_radius + 1; k <= patch_radius;
+                             ++k) {
+                            for (int xx = ix0; xx < ix1; ++xx) {
+                                out[xx] += in[xx + k];
+                            }
+                        }
+                    }
+                    for (int yy = iy0; yy < iy1; ++yy) {
+                        float *RESTRICT out = St[yy];
+                        const float *RESTRICT in0 = SH[yy - patch_radius];
+                        for (int xx = ix0; xx < ix1; ++xx) {
+                            out[xx] = in0[xx];
+                        }
+                        for (int k = -patch_radius + 1; k <= patch_radius;
+                             ++k) {
+                            const float *RESTRICT in = SH[yy + k];
+                            for (int xx = ix0; xx < ix1; ++xx) {
+                                out[xx] += in[xx];
+                            }
+                        }
+                    }
+
                     // Step 2 — Compute weight and estimate for patches
                     // V(x), V(y) with y = x + t
                     for (int yy = start_y + border; yy < end_y - border; ++yy) {
@@ -232,16 +285,7 @@ void NLMeans(array2D<float> &img, float normcoeff, int strength,
                             int sty = yy - start_y;
                             int stx = xx - start_x;
 
-                            vfloat dist2 =
-                                LVFU(St[sty + patch_radius]
-                                       [stx + patch_radius]) +
-                                LVFU(St[sty - patch_radius]
-                                       [stx - patch_radius]) -
-                                LVFU(St[sty + patch_radius]
-                                       [stx - patch_radius]) -
-                                LVFU(
-                                    St[sty - patch_radius][stx + patch_radius]);
-                            dist2 = vmaxf(dist2, zerov);
+                            vfloat dist2 = vmaxf(LVFU(St[sty][stx]), zerov);
                             vfloat d = dist2 * LVFU(mask[y][x]);
                             vfloat weight = explut[d];
                             STVFU(SW[y - start_y][x - start_x],
@@ -258,12 +302,7 @@ void NLMeans(array2D<float> &img, float normcoeff, int strength,
                             int sty = yy - start_y;
                             int stx = xx - start_x;
 
-                            float dist2 =
-                                St[sty + patch_radius][stx + patch_radius] +
-                                St[sty - patch_radius][stx - patch_radius] -
-                                St[sty + patch_radius][stx - patch_radius] -
-                                St[sty - patch_radius][stx + patch_radius];
-                            dist2 = std::max(dist2, 0.f);
+                            float dist2 = std::max(St[sty][stx], 0.f);
                             float d = dist2 * mask[y][x];
                             float weight = explut[d];
                             SW[y - start_y][x - start_x] += weight;
@@ -373,7 +412,7 @@ void detail_mask(const array2D<float> &src, array2D<float> &mask, float scaling,
 #endif
         for (int y = 0; y < H / 4; ++y) {
             for (int x = 0; x < W / 4; ++x) {
-                L2[y][x] = xlin2log(L2[y][x] / scaling, 50.f);
+                L2[y][x] = xlin2log(std::max(L2[y][x] / scaling, 0.f), 50.f);
             }
         }
         laplacian(L2, m2, threshold / scaling, ceiling / scaling, factor,
@@ -469,13 +508,15 @@ struct ScurvePC { unsigned int w, h; float thr; };
  * implemented -- the only blur type either caller ever requests. */
 bool detailMask(Context &ctx, Buffer &maskOut, Buffer &src, int W, int H,
                 float scaling, float threshold, float ceiling, float factor,
-                float blurSigma, BufferPool *pool)
+                float blurSigma, BufferPool *pool, const TileFrame *frame)
 {
     const size_t bytes = (size_t)W * H * sizeof(float);
+    const TileFrame whole = {0, 0, W, H};
+    const TileFrame &fr = frame ? *frame : whole;
     if (!maskOut.valid()) {
         return false;
     }
-    if (W < 8 || H < 8) {
+    if (fr.fw < 8 || fr.fh < 8) {
         /* uploadToBuffer takes the mapped() fast path when there is one, and
          * stages through ctx's own staging pool otherwise -- maskOut itself
          * may be an unmapped PreferDeviceLocal buffer on a discrete GPU. */
@@ -487,7 +528,19 @@ bool detailMask(Context &ctx, Buffer &maskOut, Buffer &src, int W, int H,
     /* Scratch, from the pool when there is one.  The locals keep the
      * non-pooled buffers alive for the whole function; `l2`/`m2` below point
      * at whichever pair is in use. */
-    const int W4 = W / 4, H4 = H / 4;
+    /* The coarse grid belongs to the whole image: W4 x H4 samples spaced
+     * fw/W4 apart, not 4 apart.  A tile computes just the coarse samples whose
+     * 2x2 source footprint lies inside it (all the way to the border where the
+     * tile touches the image's), so every value it shares with the whole-image
+     * run is the same. */
+    const int FW4 = fr.fw / 4, FH4 = fr.fh / 4;
+    int cx0, cx1, cy0, cy1;
+    coarseRange(fr.ox, W, fr.fw, FW4, cx0, cx1);
+    coarseRange(fr.oy, H, fr.fh, FH4, cy0, cy1);
+    const int W4 = cx1 - cx0 + 1, H4 = cy1 - cy0 + 1;
+    if (W4 < 2 || H4 < 2) {
+        return false;
+    }
     const size_t bytes4 = (size_t)W4 * H4 * sizeof(float);
     Buffer ownL2, ownM2;
     Buffer *l2p, *m2p;
@@ -519,7 +572,9 @@ bool detailMask(Context &ctx, Buffer &maskOut, Buffer &src, int W, int H,
         return false;
     }
 
-    if (!rescaleBilinear(pass, src, W, H, l2, W4, H4)) {
+    if (!rescaleBilinear(pass, src, W, H, l2, W4, H4,
+                         RescaleFrame{fr.fw, fr.fh, FW4, FH4, fr.ox, fr.oy,
+                                      cx0, cy0})) {
         return false;
     }
     {
@@ -542,7 +597,9 @@ bool detailMask(Context &ctx, Buffer &maskOut, Buffer &src, int W, int H,
             return false;
         }
     }
-    if (!rescaleBilinear(pass, m2, W4, H4, maskOut, W, H)) {
+    if (!rescaleBilinear(pass, m2, W4, H4, maskOut, W, H,
+                         RescaleFrame{FW4, FH4, fr.fw, fr.fh, cx0, cy0,
+                                      fr.ox, fr.oy})) {
         return false;
     }
     {
@@ -626,7 +683,8 @@ private:
  * nlm_simple.comp). */
 bool nlmeansSimpleOnDevice(Context &ctx, BufferPool &pool, Buffer &plane,
                           int W, int H, float normcoeff, double scale,
-                          int strength, int detail_thresh)
+                          int strength, int detail_thresh,
+                          const TileFrame *frame)
 {
     if (W <= 0 || H <= 0) {
         return false;
@@ -662,7 +720,8 @@ bool nlmeansSimpleOnDevice(Context &ctx, BufferPool &pool, Buffer &plane,
     }
 
     if (!detailMask(ctx, *maskBuf, plane, W, H, normcoeff, 1e-3f * normcoeff,
-                    normcoeff, amount, 2.f / (float)scale, &pool)) {
+                    normcoeff, amount, 2.f / (float)scale, &pool,
+                    frame)) {
         return false;
     }
 
@@ -706,10 +765,10 @@ bool nlmeansSimpleOnDevice(Context &ctx, BufferPool &pool, Buffer &plane,
 
 bool NLMeans(Context &ctx, BufferPool &pool, Buffer &plane, int W,
              int H, float normcoeff, double scale, int strength,
-             int detail_thresh)
+             int detail_thresh, const TileFrame *frame)
 {
     return nlmeansSimpleOnDevice(ctx, pool, plane, W, H, normcoeff, scale,
-                                 strength, detail_thresh);
+                                 strength, detail_thresh, frame);
 }
 
 } // namespace ops
@@ -724,7 +783,7 @@ namespace ops {
 
 bool NLMeans(Context &ctx, BufferPool &pool, Buffer &plane, int W,
              int H, float normcoeff, double scale, int strength,
-             int detail_thresh)
+             int detail_thresh, const TileFrame *frame)
 {
     return false;
 }

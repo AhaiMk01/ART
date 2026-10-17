@@ -1032,6 +1032,7 @@ void ColorCorrection::setEditProvider(EditDataProvider *provider)
 {
     masks_->setEditProvider(provider);
     wheel->setEditProvider(provider);
+    lut_params->setEditProvider(provider);
 }
 
 void ColorCorrection::procParamsChanged(
@@ -1144,6 +1145,7 @@ void ColorCorrection::regionShow(int idx)
     rgbluminance->set_active(r.rgbluminance);
     // modeChanged();
     lut_filename->set_filename(Glib::filename_from_utf8(r.lutFilename));
+    lut_params->setEditIDBase(ctlEditBase(true, idx));
     lut_params->setParams(
         art::engine::CLUTApplication::get_param_descriptors(r.lutFilename));
     lut_params->setValue(r.lut_params);

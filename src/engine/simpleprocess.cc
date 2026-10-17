@@ -369,6 +369,16 @@ private:
         return false;
     }
 
+    // last line of defence against NaN/Inf: report which stage let them in
+    void sanitize(const char *where)
+    {
+        const size_t bad = img->sanitize();
+        if (bad && settings->verbose) {
+            printf("WARNING: replaced %zu NaN samples after %s\n", bad,
+                   where);
+        }
+    }
+
     bool stage_denoise()
     {
         procparams::ProcParams &params = job->pparams;
@@ -407,6 +417,9 @@ private:
                 imgsrc->convertColorSpace(img, params.icm, currWB);
             }
         }
+
+        sanitize("input");
+
         if (stats_req) {
             // the CONVERTED tap: nothing of the pipeline after this runs
             filmStageStats(img, params, *stats_req, *stats_res);
@@ -429,6 +442,8 @@ private:
     {
         procparams::ProcParams &params = job->pparams;
         ImProcFunctions &ipf = *(ipf_p.get());
+
+        sanitize("denoise");
 
         LUTu hist16(65536);
         {
@@ -533,6 +548,8 @@ private:
             ipf.setScale(1);
             ipf.prsharpening(img);
         }
+
+        sanitize("pipeline");
 
         ART_PROFILE_SCOPE("rgb2out");
         Imagefloat *readyImg = ipf.rgb2out(img, params.icm);

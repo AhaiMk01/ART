@@ -50,7 +50,9 @@ private:
     Image8 *load_raw_preview(const Glib::ustring &fname, int width, int height);
     Image8 *load_img(const Glib::ustring &fname, int width, int height);
     void render(bool enable_cms);
-    void get_histogram(Image8 *img);
+    template <class T> void get_histogram(T *img);
+    bool show_clipping() const;
+    void mark_clipped(Image8 *img);
 
     Glib::ustring fname_;
     Glib::ustring ext_;

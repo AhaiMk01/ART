@@ -60,6 +60,7 @@ set(RTENGINESOURCEFILES
     # no #ifdef.  Only the vk_* internals below are conditional.
     gpu/gpu.cc
     gpu/residency.cc
+    gpu/tiling.cc
     badpixels.cc
     CA_correct_RT.cc
     PF_correct_RT.cc
@@ -215,6 +216,12 @@ endif()
 if(OCIO_FOUND)
     set(RTENGINESOURCEFILES ${RTENGINESOURCEFILES}
         extclut.cc
+        )
+endif()
+
+if(CTL_FOUND)
+    set(RTENGINESOURCEFILES ${RTENGINESOURCEFILES}
+        ctl.cc
         )
 endif()
 

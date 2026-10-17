@@ -70,6 +70,36 @@ bool ImProcFunctions::colorCorrection(Imagefloat *rgb)
         imgbuf = pipetteBuffer->getImgFloatBuffer();
     }
 
+    // pipette of a curve of a CTL script (LUT mode) of one of the regions
+    Imagefloat *ctlbuf = nullptr;
+    int ctl_region = -1;
+    int ctl_curve = -1;
+    if (art::utils::isCTLEditID(eid) &&
+        (art::utils::ctlEditValue(eid) & art::utils::EUID_CTL_COLORCORRECTION_TAG) &&
+        pipetteBuffer->getDataProvider()
+                ->getCurrSubscriber()
+                ->getPipetteBufferType() == art::utils::BT_IMAGEFLOAT) {
+        ctlbuf = pipetteBuffer->getImgFloatBuffer();
+        ctl_region = (art::utils::ctlEditBase(eid) &
+                      ~art::utils::EUID_CTL_COLORCORRECTION_TAG) >>
+                     art::utils::EUID_CTL_REGION_SHIFT;
+        ctl_curve = art::utils::ctlEditCurve(eid);
+    }
+    if (ctlbuf) {
+        // zero everything: pixels not covered by the LUT of the selected
+        // region (or if the tool/region is disabled) must not show a marker
+#ifdef _OPENMP
+#pragma omp parallel for if (multiThread)
+#endif
+        for (int y = 0; y < H; ++y) {
+            for (int x = 0; x < W; ++x) {
+                ctlbuf->r(y, x) = 0.f;
+                ctlbuf->g(y, x) = 0.f;
+                ctlbuf->b(y, x) = 0.f;
+            }
+        }
+    }
+
     if (!params->colorcorrection.enabled) {
         if (editWhatever) {
             editWhatever->fill(0.f);
@@ -808,6 +838,22 @@ bool ImProcFunctions::colorCorrection(Imagefloat *rgb)
 #else
                     int thread_id = 0;
 #endif
+                    if (ctlbuf && i == ctl_region && lut[i]->hasPipette()) {
+                        // the input of the LUT, as seen after the previous
+                        // regions, not masked
+                        AlignedBuffer<float> pr(W), pg(W), pb(W);
+                        memcpy(pr.data, rbuf.data, sizeof(float) * W);
+                        memcpy(pg.data, gbuf.data, sizeof(float) * W);
+                        memcpy(pb.data, bbuf.data, sizeof(float) * W);
+                        if (lut[i]->fillPipette(thread_id, ctl_curve, W,
+                                                pr.data, pg.data, pb.data)) {
+                            for (int x = 0; x < W; ++x) {
+                                ctlbuf->r(y, x) = pr.data[x];
+                                ctlbuf->g(y, x) = pg.data[x];
+                                ctlbuf->b(y, x) = pb.data[x];
+                            }
+                        }
+                    }
                     lut[i]->apply(thread_id, W, rbuf.data, gbuf.data,
                                   bbuf.data);
                     for (int x = 0; x < W; ++x) {

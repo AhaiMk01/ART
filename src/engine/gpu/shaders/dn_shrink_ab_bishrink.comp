@@ -36,8 +36,8 @@ void main()
     float c = ab.v[gid];
     float mag_ab = c * c;
     float l = lum.v[gid];
-    float mag_L = (l * l) * (1.0 / (ml * 9.0));
+    float mag_L = (l * l) * (1.0 / max(ml * 9.0, 1e-30));
 
-    float sf = 1.0 - exp(-(mag_ab / (nv.v[i] * ma)) - mag_L);
+    float sf = 1.0 - exp(-(mag_ab / max(nv.v[i] * ma, 1e-30)) - mag_L);
     ab.v[gid] = c * (sf * sf);
 }

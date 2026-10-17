@@ -118,9 +118,11 @@ void PreviewImage::load()
     loaded_ = true;
 
     auto lext = ext_.lowercase();
+    bool from_img = false;
 
     if (lext == "jpg" || lext == "jpeg" || lext == "png" /*|| lext == "tif" || lext == "tiff" || ImageIOManager::getInstance()->canLoad(lext)*/) {
         img_.reset(load_img(fname_, width_, height_));
+        from_img = true;
     } else if (settings->thumbnail_inspector_mode ==
                Settings::ThumbnailInspectorMode::RAW) {
         img_.reset(load_raw(fname_, width_, height_));
@@ -134,6 +136,13 @@ void PreviewImage::load()
     if (!img_ && (lext == "tif" || lext == "tiff" ||
                   ImageIOManager::getInstance()->canLoad(lext))) {
         img_.reset(load_img(fname_, width_, height_));
+        from_img = true;
+    }
+
+    if (img_ && from_img && show_clipping()) {
+        // same convention as the raw clipping view
+        mark_clipped(img_.get());
+        enable_cms_ = false;
     }
 
     if (img_) {
@@ -189,6 +198,16 @@ Image8 *PreviewImage::load_img(const Glib::ustring &fname, int w, int h)
 
     Image8 *ret = new Image8(w, h);
 
+    // the histogram has to come from the full-resolution data: resizing
+    // averages clipped pixels with their neighbours and smears out the
+    // spikes at the ends
+    const bool hist8 = compute_histogram_ && img->getType() == sImage8;
+    if (hist8) {
+        get_histogram(static_cast<Image8 *>(img));
+    } else if (compute_histogram_ && img->getType() == sImage16) {
+        get_histogram(static_cast<Image16 *>(img));
+    }
+
     if (img->getType() == sImage8) {
         static_cast<Image8 *>(img)->resizeImgTo(w, h, TI_Bilinear, ret);
     } else if (img->getType() == sImage16) {
@@ -210,6 +229,9 @@ Image8 *PreviewImage::load_img(const Glib::ustring &fname, int w, int h)
             cmsDeleteTransform(xform);
         }
         has_profile = false;
+        if (compute_histogram_) {
+            get_histogram(f);
+        }
         f->resizeImgTo(w, h, TI_Bilinear, ret);
     } else {
         delete ret;
@@ -225,19 +247,20 @@ Image8 *PreviewImage::load_img(const Glib::ustring &fname, int w, int h)
         }
     }
 
-    if (ret && compute_histogram_) {
-        get_histogram(ret);
-    }
-
     return ret;
 }
 
-void PreviewImage::get_histogram(Image8 *img)
+bool PreviewImage::show_clipping() const
 {
-    for (int i = 0; i < 3; ++i) {
-        hist_[i](256);
-    }
+    return settings->thumbnail_inspector_mode ==
+               Settings::ThumbnailInspectorMode::RAW &&
+           settings->thumbnail_inspector_raw_curve ==
+               Settings::ThumbnailInspectorRawCurve::RAW_CLIPPING;
+}
 
+
+void PreviewImage::mark_clipped(Image8 *img)
+{
     const int W = img->getWidth();
     const int H = img->getHeight();
 #ifdef _OPENMP
@@ -245,9 +268,49 @@ void PreviewImage::get_histogram(Image8 *img)
 #endif
     for (int y = 0; y < H; ++y) {
         for (int x = 0; x < W; ++x) {
-            hist_[0][img->r(y, x)]++;
-            hist_[1][img->g(y, x)]++;
-            hist_[2][img->b(y, x)]++;
+            const int r = img->r(y, x);
+            const int g = img->g(y, x);
+            const int b = img->b(y, x);
+            if (r >= 255 || g >= 255 || b >= 255) {
+                // one primary per clipped channel; they add up when
+                // several channels clip
+                img->r(y, x) = r >= 255 ? 255 : 0;
+                img->g(y, x) = g >= 255 ? 255 : 0;
+                img->b(y, x) = b >= 255 ? 255 : 0;
+            } else if (r <= 0 && g <= 0 && b <= 0) {
+                // shadows: dark yellow
+                img->r(y, x) = img->g(y, x) = 127;
+                img->b(y, x) = 0;
+            } else {
+                const int l = (r * 299 + g * 587 + b * 114) / 1000;
+                img->r(y, x) = img->g(y, x) = img->b(y, x) = l;
+            }
+        }
+    }
+}
+
+template <class T> void PreviewImage::get_histogram(T *img)
+{
+    // LUT(size) does not zero its storage unless asked to
+    for (int i = 0; i < 3; ++i) {
+        hist_[i](256, LUT_CLIP_BELOW | LUT_CLIP_ABOVE, true);
+    }
+
+    // 8 bit bins, whatever the sample type: 16 bit and float data is
+    // in [0, 65535]
+    constexpr bool is8 = std::is_same<T, Image8>::value;
+    const auto bin = [](float v) -> int {
+        return is8 ? int(v) : std::min(std::max(int(v), 0), 65535) >> 8;
+    };
+
+    const int W = img->getWidth();
+    const int H = img->getHeight();
+    // not parallelised: concurrent ++ on shared bins would race
+    for (int y = 0; y < H; ++y) {
+        for (int x = 0; x < W; ++x) {
+            hist_[0][bin(img->r(y, x))]++;
+            hist_[1][bin(img->g(y, x))]++;
+            hist_[2][bin(img->b(y, x))]++;
         }
     }
 }
@@ -414,9 +477,15 @@ public:
                 float &r = img->r(y, x);
                 float &g = img->g(y, x);
                 float &b = img->b(y, x);
-                if (r >= MAXVALF && b >= MAXVALF && b >= MAXVALF) {
-                    r = g = 65534.f;
-                    b = 0.f;
+                const bool rc = r >= MAXVALF;
+                const bool gc = g >= MAXVALF;
+                const bool bc = b >= MAXVALF;
+                if (rc || gc || bc) {
+                    // one primary per clipped channel; they add up when
+                    // several channels clip
+                    r = rc ? 65534.f : 0.f;
+                    g = gc ? 65534.f : 0.f;
+                    b = bc ? 65534.f : 0.f;
                 } else if (r <= 0.f && g <= 0.f && b <= 0.f) {
                     r = g = 65534.f / 2.f;
                     b = 0.f;

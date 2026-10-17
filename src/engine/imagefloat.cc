@@ -28,6 +28,8 @@
 #include "rtengine.h"
 #include "sleef.h"
 #include <cstring>
+#include <limits>
+#include <cmath>
 #include <tiffio.h>
 
 namespace art { namespace engine {
@@ -55,6 +57,16 @@ Imagefloat::Imagefloat(int w, int h, const Imagefloat *state_from):
 Imagefloat::~Imagefloat() {}
 
 // Call this method to handle floating points input values of different size
+namespace {
+
+// NaN -> 0; everything else (including Inf) unchanged
+inline float finiteOrZero(float v)
+{
+    return std::isnan(v) ? 0.f : v;
+}
+
+} // namespace
+
 void Imagefloat::setScanline(int row, unsigned char *buffer, int bps,
                              unsigned int numSamples)
 {
@@ -141,18 +153,19 @@ void Imagefloat::getScanline(int row, unsigned char *buffer, int bps,
             float *sbuffer = (float *)buffer;
             // agriggio -- assume the image is normalized to [0, 65535]
             for (int i = 0; i < width; i++) {
-                sbuffer[ix++] = r(row, i) / 65535.f;
-                sbuffer[ix++] = g(row, i) / 65535.f;
-                sbuffer[ix++] = b(row, i) / 65535.f;
+                // never write NaN into a float file
+                sbuffer[ix++] = finiteOrZero(r(row, i)) / 65535.f;
+                sbuffer[ix++] = finiteOrZero(g(row, i)) / 65535.f;
+                sbuffer[ix++] = finiteOrZero(b(row, i)) / 65535.f;
             }
         } else if (bps == 16) {
             int ix = 0;
             uint16_t *sbuffer = (uint16_t *)buffer;
             // agriggio -- assume the image is normalized to [0, 65535]
             for (int i = 0; i < width; i++) {
-                sbuffer[ix++] = DNG_FloatToHalf(r(row, i) / 65535.f);
-                sbuffer[ix++] = DNG_FloatToHalf(g(row, i) / 65535.f);
-                sbuffer[ix++] = DNG_FloatToHalf(b(row, i) / 65535.f);
+                sbuffer[ix++] = DNG_FloatToHalf(finiteOrZero(r(row, i)) / 65535.f);
+                sbuffer[ix++] = DNG_FloatToHalf(finiteOrZero(g(row, i)) / 65535.f);
+                sbuffer[ix++] = DNG_FloatToHalf(finiteOrZero(b(row, i)) / 65535.f);
             }
         }
     } else {
@@ -449,6 +462,46 @@ void Imagefloat::multiply(float factor, bool multithread)
             b(y, x) *= factor;
         }
     }
+}
+
+size_t Imagefloat::sanitize(bool multithread)
+{
+    syncCpu();   // GPU residency boundary: this reads the planes
+    const int W = width;
+    const int H = height;
+
+    // first pass is read-only so that a clean image (the normal case) never
+    // invalidates the GPU copy
+    bool dirty = false;
+#ifdef _OPENMP
+#pragma omp parallel for reduction(|| : dirty) if (multithread)
+#endif
+    for (int y = 0; y < H; ++y) {
+        for (int x = 0; x < W; ++x) {
+            dirty = dirty || std::isnan(r(y, x)) || std::isnan(g(y, x)) ||
+                    std::isnan(b(y, x));
+        }
+    }
+    if (!dirty) {
+        return 0;
+    }
+
+    syncCpuForWrite();
+    size_t bad = 0;
+#ifdef _OPENMP
+#pragma omp parallel for reduction(+ : bad) if (multithread)
+#endif
+    for (int y = 0; y < H; ++y) {
+        for (int x = 0; x < W; ++x) {
+            for (float *v : {&r(y, x), &g(y, x), &b(y, x)}) {
+                if (std::isnan(*v)) {
+                    *v = 0.f;
+                    ++bad;
+                }
+            }
+        }
+    }
+    return bad;
 }
 
 // convert values's range to [0;1] ; this method assumes that the input values's

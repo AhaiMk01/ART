@@ -217,7 +217,7 @@ int StdImageSource::load(const Glib::ustring &fname, int maxw_hint,
     }
 
     // this is probably a mistake if embedded profile is not D65
-    wb = ColorTemp(1.0, 1.0, 1.0, 1.0);
+    wb = ColorTemp(1.0, 1.0, 1.0);
 
     return 0;
 }

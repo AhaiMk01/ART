@@ -718,10 +718,6 @@ void RTWindow::on_mainNB_switch_page(Gtk::Widget *widget, guint page_num)
                 }
             }
         } else {
-            if (mainNB->get_nth_page(page_num) == bpanel) {
-                bpanel->refreshProfiles();
-            }
-
             // in single tab mode with command line filename epanel does not
             // exist yet
             if (isSingleTabMode() && epanel) {
@@ -1325,6 +1321,13 @@ void RTWindow::MoveFileBrowserToMain()
         if (fpanel->isInspectorVisible()) {
             fCatalog->enableInspector();
         }
+    } else {
+        // already in the main pane: make sure the layout matches
+        FileCatalog *fCatalog = fpanel->fileCatalog;
+        if (fCatalog->get_parent() == fpanel->ribbonPane &&
+            fCatalog->isInTabMode()) {
+            fCatalog->enableTabMode(false);
+        }
     }
 }
 
@@ -1340,6 +1343,14 @@ void RTWindow::MoveFileBrowserToEditor()
         fCatalog->refreshHeight();
         fCatalog->tbLeftPanel_1_visible(false);
         fCatalog->tbRightPanel_1_visible(false);
+    } else {
+        // already in the editor pane: make sure the layout matches
+        FileCatalog *fCatalog = fpanel->fileCatalog;
+        if (fCatalog->get_parent() == epanel->catalogPane &&
+            !fCatalog->isInTabMode()) {
+            fCatalog->enableTabMode(true);
+            fCatalog->refreshHeight();
+        }
     }
 }
 
