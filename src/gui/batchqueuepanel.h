@@ -84,8 +84,6 @@ public:
     bool canStartNext() override;
     void lastExportTimes(const art::engine::PipelineTimes &t) override;
 
-    void refreshProfiles();
-
     // For the Live control channel.
     BatchQueue *getBatchQueue() { return batchQueue; }
     // The "auto start" switch.

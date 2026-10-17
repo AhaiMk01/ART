@@ -1245,7 +1245,7 @@ float Color::eval_PQ_curve(float x, bool oetf)
         float den = 1.f + C3 * p;
         res = std::pow(num / den, M2);
     } else {
-        float p = std::pow(x, 1.f / M2);
+        float p = std::pow(LIM01(x), 1.f / M2); // encoded signal: den > 0 only on [0, 1]
         float num = std::max(p - C1, 0.f);
         float den = C2 - C3 * p;
         res = std::pow(num / den, 1.f / M1) * scaling;

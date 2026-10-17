@@ -225,6 +225,10 @@ float estimate_ambient_light(const array2D<float> &R, const array2D<float> &G,
     ambient[0] = rr / n;
     ambient[1] = gg / n;
     ambient[2] = bb / n;
+    for (int c = 0; c < 3; ++c) {
+        // a black patch would make every later r/ambient[c] 0/0 or x/0
+        ambient[c] = std::max(ambient[c], 1e-5f);
+    }
 
     // taken from darktable
     return darklim > 0 ? -1.125f * std::log(darklim)

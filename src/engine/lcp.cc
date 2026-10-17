@@ -977,7 +977,9 @@ void art::engine::LCPMapper::correctDistortion(double &x, double &y, int cx,
         const double f = sqrt(fx * fy / (scale * scale));
         const double th = atan2(r, f);
         const double th2 = th * th;
-        const double cfact = (((k2 * th2 + k1) * th2 + 1) * th) / r;
+        // at the optical centre r == 0 and th/r -> 1/f
+        const double cfact = r > 1e-9 ? (((k2 * th2 + k1) * th2 + 1) * th) / r
+                                      : 1.0 / f;
         const double ud = cfact * fx * du + u0;
         const double vd = cfact * fy * dv + v0;
 

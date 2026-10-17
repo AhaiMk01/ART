@@ -358,7 +358,7 @@ void calculateFiMatrix(Array2Df *FI, Array2Df *gradients[], float avgGrad[],
         // only apply gradients to levels>=detail_level but at least to the
         // coarsest
         if ((k >= detail_level || k == nlevels - 1) && beta != 1.f) {
-            const float a = alfa * avgGrad[k];
+            const float a = std::max(alfa * avgGrad[k], 1e-6f);
             // DEBUG_STR << "calculateFiMatrix: apply gradient to level " << k
             // << endl;
 #ifdef _OPENMP

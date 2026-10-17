@@ -25,5 +25,5 @@ void main()
         return;
     }
     uint o = g.y * pc.w + g.x;
-    buf.v[o] = art_xlin2log(buf.v[o] * pc.invScaling, pc.base);
+    buf.v[o] = art_xlin2log(max(buf.v[o] * pc.invScaling, 0.0), pc.base);
 }

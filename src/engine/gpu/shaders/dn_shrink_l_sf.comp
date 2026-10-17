@@ -40,5 +40,5 @@ void main()
     float mag = c * c;
     float m = nv.v[i] * levelFactor;
 
-    sf.v[gid] = mag / (mag + m * exp(-mag / (9.0 * m)) + pc.eps);
+    sf.v[gid] = mag / (mag + m * exp(-mag / max(9.0 * m, 1e-30)) + pc.eps);
 }

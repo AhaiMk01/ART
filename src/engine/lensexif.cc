@@ -103,11 +103,12 @@ public:
 class FujiCorrectionData: public ExifLensCorrection::CorrectionData {
 public:
     float cropf;
-    std::array<float, 9> knots;
-    std::array<float, 9> distortion;
-    std::array<float, 9> ca_r;
-    std::array<float, 9> ca_b;
-    std::array<float, 9> vignetting;
+    // all of the same length (9 knots on recent bodies, 11 or 8 on others)
+    std::vector<float> knots;
+    std::vector<float> distortion;
+    std::vector<float> ca_r;
+    std::vector<float> ca_b;
+    std::vector<float> vignetting;
 
     void get_coeffs(std::vector<float> &knots, std::vector<float> &dist,
                     std::vector<float> &vig,
@@ -115,24 +116,40 @@ public:
                     bool &is_dng) const override
     {
         is_dng = false;
-        knots.resize(9);
-        dist.resize(9);
-        vig.resize(9);
+
+        const bool add_zero = this->knots[0] > 0.f;
+        const int m = this->knots.size();
+        const int n = m + (add_zero ? 1 : 0);
+        const int o = add_zero ? 1 : 0;
+        knots.resize(n);
+        dist.resize(n);
+        vig.resize(n);
         for (int i = 0; i < 3; ++i) {
-            ca[i].resize(9);
+            ca[i].resize(n);
         }
 
-        for (int i = 0; i < 9; i++) {
-            knots[i] = cropf * this->knots[i];
+        for (int i = 0; i < m; i++) {
+            knots[i + o] = cropf * this->knots[i];
 
-            dist[i] = distortion[i] / 100 + 1;
+            dist[i + o] = distortion[i] / 100 + 1;
 
-            ca[0][i] = ca[1][i] = ca[2][i] = 1.f;
+            ca[0][i + o] = ca[1][i + o] = ca[2][i + o] = 1.f;
 
-            ca[0][i] *= ca_r[i] + 1;
-            ca[2][i] *= ca_b[i] + 1;
+            ca[0][i + o] *= ca_r[i] + 1;
+            ca[2][i + o] *= ca_b[i] + 1;
 
-            vig[i] = 1 - (1 - vignetting[i] / 100);
+            // processVignette() divides by the square of what we store here,
+            // and the camera divides by V/100 only once, so store its sqrt.
+            vig[i + o] = std::sqrt(std::max(vignetting[i], 1.f) / 100);
+        }
+
+        if (add_zero) {
+            knots[0] = 0.f;
+            dist[0] = dist[1];
+            for (int i = 0; i < 3; ++i) {
+                ca[i][0] = ca[i][1];
+            }
+            vig[0] = 1.f;
         }
     }
 
@@ -622,7 +639,7 @@ ExifLensCorrection::ExifLensCorrection(const FramesMetaData *meta, int width,
                                        int height,
                                        const CoarseTransformParams &coarse,
                                        int rawRotationDeg)
-    : data_(), is_dng_(false), swap_xy_(false)
+    : data_(), dist_r2_(false), is_dng_(false), swap_xy_(false)
 {
     if (rawRotationDeg >= 0) {
         int rot = (coarse.rotate + rawRotationDeg) % 360;
@@ -747,24 +764,51 @@ ExifLensCorrection::ExifLensCorrection(const FramesMetaData *meta, int width,
                 auto posc = getvec("ChromaticAberrationParams");
                 auto posv = getvec("VignettingParams");
 
-                if (posd.size() == 19 && posc.size() == 29 &&
-                    posv.size() == 19) {
+                // each table is [scale, N knots, N values (, N more values
+                // for CA)], with N depending on the camera. The CA table
+                // can have its own knots (e.g. no knot at 0).
+                const size_t n = posd.empty() ? 0 : (posd.size() - 1) / 2;
+                // the CA table has either the same knots or the same minus the
+                // one at 0, and possibly a trailing extra value
+                size_t nc = 0;
+                for (size_t c : {n, n - 1}) {
+                    if (c >= 2 && !posc.empty() && posc.size() >= 1 + 3 * c &&
+                        posc.size() <= 2 + 3 * c) {
+                        nc = c;
+                        break;
+                    }
+                }
+                const auto same = [](float a, float b) {
+                    return std::abs(a - b) < 1e-4f;
+                };
+                bool ok = n >= 2 && posd.size() == 1 + 2 * n &&
+                          posv.size() == 1 + 2 * n && nc >= 2;
+                for (size_t i = 0; ok && i < n; ++i) {
+                    ok = same(posd[i + 1], posv[i + 1]) &&
+                         (i == 0 || posd[i + 1] > posd[i]);
+                }
+                for (size_t i = 1; ok && i < nc; ++i) {
+                    ok = posc[i + 1] > posc[i];
+                }
+
+                if (ok) {
                     FujiCorrectionData *fuji = new FujiCorrectionData();
                     data_.reset(fuji);
 
-                    for (int i = 0; i < 9; i++) {
-                        float kd = posd[i + 1], kc = posc[i + 1],
-                              kv = posv[i + 1];
-                        if (kd != kc || kd != kv) {
-                            data_.reset(nullptr);
-                            break;
-                        }
-
-                        fuji->knots[i] = kd;
-                        fuji->distortion[i] = posd[i + 10];
-                        fuji->ca_r[i] = posc[i + 10];
-                        fuji->ca_b[i] = posc[i + 19];
-                        fuji->vignetting[i] = posv[i + 10];
+                    const std::vector<float> kc(posc.begin() + 1,
+                                                posc.begin() + 1 + nc);
+                    const std::vector<float> cr(posc.begin() + 1 + nc,
+                                                posc.begin() + 1 + 2 * nc);
+                    const std::vector<float> cb(posc.begin() + 1 + 2 * nc,
+                                                posc.begin() + 1 + 3 * nc);
+                    fuji->knots.assign(posd.begin() + 1, posd.begin() + 1 + n);
+                    fuji->distortion.assign(posd.begin() + 1 + n, posd.end());
+                    fuji->vignetting.assign(posv.begin() + 1 + n, posv.end());
+                    for (size_t i = 0; i < n; ++i) {
+                        fuji->ca_r.push_back(
+                            interpolate(kc, cr, fuji->knots[i]));
+                        fuji->ca_b.push_back(
+                            interpolate(kc, cb, fuji->knots[i]));
                     }
 
                     if (data_) {
@@ -785,6 +829,21 @@ ExifLensCorrection::ExifLensCorrection(const FramesMetaData *meta, int width,
 
     if (data_) {
         data_->get_coeffs(knots_, dist_, vig_, ca_, is_dng_);
+        dist_knots_ = knots_;
+        if (dynamic_cast<FujiCorrectionData *>(data_.get())) {
+            // Fuji's knots are radii in the distorted (source) image and its
+            // factor is source/output, but correctDistortion() looks the
+            // factor up by output radius: move the knots to output radii.
+            // The factor goes like r^2 (no distortion at the centre), so
+            // interpolate in r^2 and start from 1 at r = 0 instead of holding
+            // the first knot's value there.
+            for (size_t i = 1; i < knots_.size(); ++i) {
+                dist_knots_[i] = SQR(knots_[i] / dist_[i]);
+            }
+            dist_knots_[0] = 0.f;
+            dist_[0] = 1.f;
+            dist_r2_ = true;
+        }
 
         if (is_dng_) {
             float cx_d = knots_[0] * width;
@@ -833,8 +892,8 @@ void ExifLensCorrection::correctDistortion(double &x, double &y, int cx, int cy,
 
         float ccx = xx - w2_;
         float ccy = yy - h2_;
-        float dr =
-            interpolate(knots_, dist_, r_ * std::sqrt(SQR(ccx) + SQR(ccy)));
+        float rr = r_ * std::sqrt(SQR(ccx) + SQR(ccy));
+        float dr = interpolate(dist_knots_, dist_, dist_r2_ ? SQR(rr) : rr);
 
         x = dr * ccx + w2_;
         y = dr * ccy + h2_;

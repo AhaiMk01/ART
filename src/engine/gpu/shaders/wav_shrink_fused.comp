@@ -30,7 +30,7 @@ void main()
     mag = mag * mag;
     float lf = pc.levelFactorS[level];
     float nlf = pc.nineLevelFactorS[level];
-    float sf = mag / (mag + lf * exp(-mag / nlf) + pc.eps);
+    float sf = mag / (mag + lf * exp(-mag / max(nlf, 1e-30)) + pc.eps);
     float f = (sf * sf) / (sf + pc.eps);
     coeffs.v[gid] = c * f;
 }

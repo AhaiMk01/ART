@@ -37,13 +37,13 @@ public:
     ~LUT3D();
 
     void init(int dim, initializer &f, bool input_is_01 = true);
-    bool operator()(float &r, float &g, float &b);
+    bool operator()(float &r, float &g, float &b) const;
 
     int dimension() const { return dim_; }
     operator bool() const;
 
 private:
-    void apply_tetra(float &r, float &g, float &b);
+    void apply_tetra(float &r, float &g, float &b) const;
 
     bool input_is_01_;
     int dim_;
