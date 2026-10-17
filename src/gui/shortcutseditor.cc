@@ -171,6 +171,19 @@ ShortcutsEditor::ShortcutsEditor():
         sigc::mem_fun(*this, &ShortcutsEditor::resetAllPressed));
     search_.signal_search_changed().connect(
         sigc::mem_fun(*this, &ShortcutsEditor::searchChanged));
+    // Esc clears the search (and only closes the dialog if it is empty)
+    search_.signal_key_press_event().connect(
+        [this](GdkEventKey *ev) {
+            if (ev->keyval == GDK_KEY_Escape &&
+                !(ev->state & gtk_accelerator_get_default_mod_mask()) &&
+                !search_.get_text().empty()) {
+                search_.set_text("");
+                searchChanged(); // now, not after the entry's delay
+                return true;
+            }
+            return false;
+        },
+        false);
     tree_.get_selection()->signal_changed().connect(
         sigc::mem_fun(*this, &ShortcutsEditor::selectionChanged));
     tree_.signal_row_activated().connect(
@@ -243,12 +256,27 @@ bool ShortcutsEditor::rowVisible(
 
 void ShortcutsEditor::searchChanged()
 {
+    const std::string selected = selectedAction();
     query_ = search_.get_text().lowercase();
     filter_->refilter();
     if (!query_.empty()) {
         tree_.expand_all();
     } else {
         tree_.collapse_all();
+    }
+    // keep the selected action, if it is still shown (it is when the search is
+    // cleared): open its groups, select it and bring it into view
+    if (!selected.empty()) {
+        auto it = nodes_.find(selected);
+        if (it != nodes_.end()) {
+            const auto path = filter_->convert_child_path_to_path(
+                model_->get_path(it->second));
+            if (!path.empty()) {
+                tree_.expand_to_path(path);
+                tree_.get_selection()->select(path);
+                tree_.scroll_to_row(path, 0.5);
+            }
+        }
     }
     selectionChanged();
 }
