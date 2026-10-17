@@ -255,6 +255,8 @@ def main(argv=None):
     result = dict(slopes={}, checks=[], frames={}, uncertain=[], C=[], weak=[])
     P = print
     n_mat, n_unc = len(mat), len(unc)
+    if preset and prior:
+        print("--prior ignored: --slopes fixes the slope")
     if not mat:
         # one frame or a roll without material neutrals: offsets from the
         # uncertain rows at a slope that is not the roll's own, all weak
@@ -441,7 +443,9 @@ def main(argv=None):
                 result["C"].append(dict(frame=r["frame"], obj=r["obj"], resid=[resid(r, 0), resid(r, 2)]))
 
     # step 7: fold into NamiColor
-    if a.green:
+    if a.green and reasons and not prior:
+        P("\nNamiColor: not printed: the slope is NOT SET; rerun with --prior or --slopes")
+    elif a.green:
         den_g, s_g = (float(v) for v in a.green.split(","))
         g = a.input_gain
         base = 1 - g * math.log10(16)
