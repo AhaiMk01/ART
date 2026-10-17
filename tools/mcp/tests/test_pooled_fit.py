@@ -96,6 +96,19 @@ def test_preset_slopes_fit_offsets_only(tmp_path):
     assert r["frames"]["02"]["B"]["fit"] == pytest.approx(0.22, abs=1e-6)
 
 
+def test_prior_settles_an_unset_slope(tmp_path):
+    # two frames only: the slope is not set; the prior pulls it, the data move it
+    offs = {"01": (-0.1, 0.2), "02": (-0.12, 0.22)}
+    out = tmp_path / "out.json"
+    pf.main([str(roll(tmp_path, offs, noise=0.01)), "--prior", "0.9,1.2,0.05", "--json", str(out)])
+    r = json.loads(out.read_text())
+    assert r["checks"]
+    for ch, k0 in (("R", 0.9), ("B", 1.2)):
+        s = r["slopes"][ch]
+        lo, hi = sorted((s["k"], k0))
+        assert lo <= s["posterior"] <= hi
+
+
 def test_fold_decodes_neutrals_to_equal_codes(tmp_path):
     offs = {f"{i:02d}": (-0.1 - 0.01 * i, 0.2 + 0.01 * i) for i in range(4)}
     s = {"00": 2.0}

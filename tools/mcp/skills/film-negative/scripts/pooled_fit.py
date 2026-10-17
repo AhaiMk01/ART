@@ -5,7 +5,8 @@
 """Pooled roll fit (NamiColor) of reference.md, "Pooled roll fit", steps 2-7.
 
     uv run pooled_fit.py picks.json [--flare R,G,B] [--slopes kR,kB]
-                         [--green DEN_G,S_G] [--input-gain G] [--json out.json]
+                         [--prior kR,kB[,SD]] [--green DEN_G,S_G]
+                         [--input-gain G] [--json out.json]
 
 picks.json:
     {"frames": {"<frame>": {
@@ -18,7 +19,9 @@ picks.json:
 avg/sd: sample_spots at stage "source", in the processing basis.
 --flare: veiling offset in source units, subtracted before the log (NamiColor
 Flare = value / 65535). --slopes: a preset for the same film and basis; only
-offsets are fitted. --green: green's den_G and shift s_G, to fold the result
+offsets are fitted. --prior: when the slope is not set, weight the roll's own
+slope (its frame-bootstrap spread) against this prior and refit the offsets
+with the result. --green: green's den_G and shift s_G, to fold the result
 into NamiColor gains and shifts (master and black terms 0, FitBase off).
 
 Fits `material` rows only; `uncertain` rows are compared against the fit,
@@ -232,6 +235,8 @@ def main(argv=None):
     ap.add_argument("picks")
     ap.add_argument("--flare", default="0,0,0")
     ap.add_argument("--slopes", help="kR,kB preset: fit offsets only")
+    ap.add_argument("--prior", help="kR,kB[,sd]: when the slope is not set, combine the roll's "
+                    "slope with this prior (sd default 0.05) and refit the offsets")
     ap.add_argument("--green", help="den_G,s_G: fold into NamiColor gains and shifts")
     ap.add_argument("--input-gain", type=float, default=1.0)
     ap.add_argument("--json", help="write the full result here")
@@ -242,6 +247,10 @@ def main(argv=None):
     if not mat:
         sys.exit("no material rows")
     preset = [float(v) for v in a.slopes.split(",")] if a.slopes else None
+    prior = None
+    if a.prior:
+        pv = [float(v) for v in a.prior.split(",")]
+        prior = ({0: pv[0], 2: pv[1]}, pv[2] if len(pv) > 2 else 0.05)
     fits = {c: fit_channel(mat, c, preset[0 if c == 0 else 1] if preset else None) for c in (0, 2)}
     result = dict(slopes={}, checks=[], frames={}, uncertain=[], C=[])
     P = print
@@ -298,8 +307,23 @@ def main(argv=None):
                     reasons.append(f"uncertain rows in {len(side[s])} frames imply k_{NAME[c]} "
                                    f"{s}er ({', '.join(sorted(side[s]))})")
         P("slope " + ("NOT SET: " + "; ".join(reasons) + ". Take it from a preset (--slopes) "
-                      "and fit offsets only." if reasons else "SET"))
+                      "and fit offsets only, or give --prior." if reasons else "SET"))
     result["checks"] = reasons
+    if prior and not preset:
+        k0, sd0 = prior
+        for c in (0, 2):
+            lo, hi = result["slopes"][NAME[c]]["boot90"]
+            se = max((hi - lo) / 2 / 1.645, 1e-4) if math.isfinite(hi - lo) else float("inf")
+            kd = fits[c]["k"]
+            kp = (kd / se ** 2 + k0[c] / sd0 ** 2) / (1 / se ** 2 + 1 / sd0 ** 2)
+            result["slopes"][NAME[c]].update(prior=k0[c], prior_sd=sd0, data_se=se, posterior=kp)
+            if reasons:
+                fits[c] = fit_channel(mat, c, kp)
+                P(f"k_{NAME[c]} {kp:.3f} from the prior {k0[c]:.3f} (sd {sd0:.3f}) and the roll's "
+                  f"{kd:.3f} (sd {se:.3f}); offsets refitted with it")
+            else:
+                P(f"k_{NAME[c]} kept from the roll; the prior {k0[c]:.3f} is "
+                  f"{abs(kd - k0[c]) / math.hypot(se, sd0):.1f} sd away")
     if checked:
         P(f"slope checked over D_G {checked[0]:.2f}-{checked[1]:.2f} "
           f"(frames {', '.join(carry)}); outside it the line is extrapolated")

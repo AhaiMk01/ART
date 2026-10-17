@@ -484,9 +484,14 @@ rest of its light group. Use it rather than writing a fit; the judgement
    interval does not show it is set. A frame whose neutrals split
    by light (seen, and beyond tolerance) gives an offset but no slope. When
    the slope is not set, take it from a preset for the same film and setup
-   and fit only the offsets. Slopes belong to the processing basis they were
-   fitted in (colour space, input profile and its options, input gamma): a
-   preset from another basis does not transfer, refit it there.
+   and fit only the offsets. Without one, never pick a value by hand: give
+   the script a prior (`--prior`), the nearest preset for the same camera,
+   light and basis (another stock if need be), or `1,1,0.15` when nothing
+   matches; the roll's own evidence moves it as far as it supports. Report
+   the prior, its spread and the result. Slopes belong to the processing
+   basis they were fitted in (colour space, input profile and its options,
+   input gamma): a preset from another basis does not transfer, refit it
+   there.
 6. Shrink each frame's offset toward its light group (frames under one kind
    of light: daylight, one interior; never a roll mean across lights; a
    frame whose light no other frame shares, such as a lamp-lit room among
