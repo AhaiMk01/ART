@@ -5,7 +5,8 @@
 """Pooled roll fit (NamiColor) of reference.md, "Pooled roll fit", steps 2-7.
 
     uv run pooled_fit.py picks.json [--flare R,G,B] [--slopes kR,kB]
-                         [--prior kR,kB[,SD]] [--green DEN_G,S_G]
+                         [--prior kR,kB[,SD]] [--green DEN_G[,S_G]]
+                         [--base R,G,B [--base-frame F]] [--matrix 9 values]
                          [--input-gain G] [--json out.json]
 
 picks.json:
@@ -21,14 +22,21 @@ avg/sd: sample_spots at stage "source", in the processing basis.
 Flare = value / 65535). --slopes: a preset for the same film and basis; only
 offsets are fitted. --prior: when the slope is not set, weight the roll's own
 slope (its frame-bootstrap spread) against this prior and refit the offsets
-with the result. --green: green's den_G and shift s_G, to fold the result
-into NamiColor gains and shifts (master and black terms 0, FitBase off).
+with the result. --green: green's den_G (default 1) and shift s_G, to fold
+the result into NamiColor gains and shifts (master and black terms 0,
+FitBase off); --base sets s_G instead, so that the film base (or the
+thinnest on-film area) decodes to Cineon black, code 95. The input gain
+defaults to 0.489 * den_G (scene-linear). The JSON carries every setting
+the fold assumes.
 
 Fits `material` rows only; `uncertain` rows are compared against the fit,
 `C` rows only describe the light. Works on any number of frames, one
 included: when no frame carries a slope, --prior (or --slopes) sets it and
 only offsets are fitted; with no `material` row at all, the offsets come
-from the `uncertain` rows. Both are reported as WEAK. The report says whether the slope is set,
+from the `uncertain` rows. Both are reported as WEAK. A frame with only
+`uncertain` rows gets its own offset at the roll's slope, its uncertainty
+widened by how far `uncertain` rows miss `material` ones in shared frames
+(at least 25 mD), so shrinkage pulls it toward its light group. The report says whether the slope is set,
 how far each frame's offset lies from the rest of its light group (in mD;
 what a large one means is a judgement, see "Neutral by material"), and the
 D_G range the slope was checked over (outside it the line is extrapolated).
@@ -48,9 +56,19 @@ SPAN = 0.3  # "two levels well apart" in D_G
 SPAN_CURV = 0.5  # material span needed for the straight-axis check
 TOL, TOL_SAME = 25.0, 15.0  # mD: different materials / one material, similar D_G
 NAME = {0: "R", 1: "G", 2: "B"}
+# Cineon: 0.002 D per code, decoded at 300 codes per decade (negative gamma
+# 0.6), so input gain / den_G = 500 / 1023 gives a scene-linear positive
+G_CINEON = round(500 / 1023, 4)
 
 
-def load(path, flare):
+def scan_density(avg, flare, matrix=None):
+    """The density NamiColor aligns: flare removed, then the digital mask
+    (ART's `Dmask = 0.7 + M (D - 0.7)`, in scan density) when there is one."""
+    D = np.array([-math.log10((v - fl) / 65535) for v, fl in zip(avg, flare, strict=True)])
+    return D if matrix is None else 0.7 + matrix @ (D - 0.7)
+
+
+def load(path, flare, matrix=None):
     """One observation per object per frame and basis (step 2)."""
     frames = json.load(open(path, encoding="utf-8"))["frames"]
     groups, meta = {}, {}
@@ -62,8 +80,12 @@ def load(path, flare):
             if min(avg) <= 0:
                 continue
             n = min(int(q.get("size", 32)) ** 2, N_CAP)
-            D = [-math.log10(v / 65535) + math.log10(s) for v in avg]
-            sd = [q["sd"][c] / (avg[c] * math.log(10)) / math.sqrt(n) for c in range(3)]
+            # capture exposure after the mask: exact when its rows sum to 1
+            D = list(scan_density(q["avg"], flare, matrix) + math.log10(s))
+            sd = np.array([q["sd"][c] / (avg[c] * math.log(10)) / math.sqrt(n) for c in range(3)])
+            if matrix is not None:
+                sd = np.sqrt((matrix ** 2) @ sd ** 2)
+            sd = list(sd)
             key = (q["basis"], f, q.get("object_id") or q.get("material", "?"))
             groups.setdefault(key, []).append((D, sd, q.get("material", "?")))
     rows = {"material": [], "uncertain": [], "C": []}
@@ -240,12 +262,25 @@ def main(argv=None):
     ap.add_argument("--slopes", help="kR,kB preset: fit offsets only")
     ap.add_argument("--prior", help="kR,kB[,sd]: when the slope is not set, combine the roll's "
                     "slope with this prior (sd default 0.05) and refit the offsets")
-    ap.add_argument("--green", help="den_G,s_G: fold into NamiColor gains and shifts")
-    ap.add_argument("--input-gain", type=float, default=1.0)
+    ap.add_argument("--green", help="den_G[,s_G]: fold into NamiColor gains and shifts (den_G default 1)")
+    ap.add_argument("--base", help="R,G,B source (0..65535) of the film base, or of the thinnest "
+                    "on-film area: sets s_G so it decodes to Cineon black (code 95)")
+    ap.add_argument("--base-frame", help="frame the --base sample comes from (its capture s)")
+    ap.add_argument("--matrix", help="NamiColor digital mask, 9 row-major values (Custom preset): "
+                    "the fit then aligns masked density, as ART does")
+    ap.add_argument("--input-gain", type=float, default=None,
+                    help=f"NamiColor input gain (default {G_CINEON} * den_G: scene-linear)")
     ap.add_argument("--json", help="write the full result here")
     a = ap.parse_args(argv)
     flare = [float(v) for v in a.flare.split(",")]
-    rows, meta = load(a.picks, flare)
+    matrix = None
+    if a.matrix:
+        matrix = np.array([float(v) for v in a.matrix.split(",")]).reshape(3, 3)
+    rows, meta = load(a.picks, flare, matrix)
+    unequal_s = len({m["s"] for m in meta.values()}) > 1
+    if matrix is not None and np.abs(matrix.sum(axis=1) - 1).max() > 1e-3 and unequal_s:
+        print("WARNING: mask rows do not sum to 1, so capture exposure s does not pass through "
+              "it unchanged; frames with different s are not comparable")
     mat, unc, cee = rows["material"], rows["uncertain"], rows["C"]
     preset = [float(v) for v in a.slopes.split(",")] if a.slopes else None
     prior = None
@@ -377,6 +412,27 @@ def main(argv=None):
         result["curvature"][NAME[c]] = entry
         P(line)
 
+    # a frame with uncertain rows but no material row gets its own offset at
+    # the roll's slope, weak: its se carries the doubt in the material, as far
+    # as uncertain rows miss the material rows they share a frame with
+    lone = sorted({u["frame"] for u in unc} - set(fits[0]["offs"]))
+    if lone:
+        miss = []
+        for u in unc:
+            same = [m for m in mat if m["frame"] == u["frame"]]
+            if same:
+                m = min(same, key=lambda m: abs(m["D"][1] - u["D"][1]))
+                miss += [(u["D"][c] - m["D"][c]) - fits[c]["k"] * (u["D"][1] - m["D"][1]) for c in (0, 2)]
+        doubt = max(TOL / 1000, math.sqrt(float(np.mean(np.square(miss)))) if miss else 0.0)
+        result["uncertain_doubt"] = doubt
+        P(f"frames with uncertain rows only ({', '.join(lone)}): own offsets, se includes "
+          f"{1000 * doubt:.0f} mD for the material")
+        for c in (0, 2):
+            fu = fit_channel([u for u in unc if u["frame"] in lone], c, fits[c]["k"])
+            for f in lone:
+                fits[c]["offs"][f] = fu["offs"][f]
+                fits[c]["se"][f] = math.hypot(fu["se"][f], doubt)
+
     # step 6: shrinkage
     sh = shrink(fits, meta, set(fits[0]["offs"]))
     P("\nframe | light | offset R, B fit -> final (mD) | vs median of the rest of its light R, B (mD)"
@@ -388,7 +444,7 @@ def main(argv=None):
             objs = [r for r in mat if r["frame"] == fr]
             if len(objs) == 1:
                 notes.append("weak: one object sets its offset")
-            if not n_mat:
+            if not n_mat or fr in lone:
                 notes.append("weak: uncertain rows only")
             elif checked and min(r["D"][1] for r in objs) > checked[1]:
                 notes.append("weak: neutrals only above the checked D_G range")
@@ -443,13 +499,42 @@ def main(argv=None):
                 result["C"].append(dict(frame=r["frame"], obj=r["obj"], resid=[resid(r, 0), resid(r, 2)]))
 
     # step 7: fold into NamiColor
-    if a.green and reasons and not prior:
+    fold = a.green or a.base
+    if fold and reasons and not prior:
         P("\nNamiColor: not printed: the slope is NOT SET; rerun with --prior or --slopes")
-    elif a.green:
-        den_g, s_g = (float(v) for v in a.green.split(","))
-        g = a.input_gain
+    elif fold:
+        gv = [float(v) for v in (a.green or "1").split(",")]
+        den_g = gv[0]
+        g = a.input_gain if a.input_gain is not None else G_CINEON * den_g
         base = 1 - g * math.log10(16)
-        P(f"\nNamiColor (input gain {g}, master/black 0, FitBase off; Flare "
+        if a.base:
+            if len(gv) > 1:
+                sys.exit("give s_G (--green den_G,s_G) or --base, not both")
+            # the film base (or the thinnest on-film area) goes to code 95,
+            # Cineon black: everything on the film decodes to >= 0
+            s_base = meta[a.base_frame]["s"] if a.base_frame else 1.0
+            d_base = float(scan_density([float(v) for v in a.base.split(",")], flare, matrix)[1]
+                           + math.log10(s_base))
+            s_g = 95 / 1023 * den_g - base - g * d_base
+            P(f"\nanchor: film base D_G {d_base:.3f} at code 95 (Cineon black) -> s_G {s_g:.5f}")
+        elif len(gv) > 1:
+            s_g = gv[1]
+        else:
+            sys.exit("--green den_G needs s_G (den_G,s_G) or --base")
+        d_black = (95 / 1023 * den_g - base - s_g) / g  # D_G that decodes to 0
+        low = [r for r in rows["material"] + rows["uncertain"] if r["D"][1] < d_black]
+        if low:
+            P(f"WARNING: {len(low)} neutral row(s) thinner than D_G {d_black:.3f}, the density this "
+              "anchor puts at code 95: they decode below zero and exposure clamps them to black ("
+              + ", ".join(f"{r['frame']}:{r['obj']}" for r in low[:6]) + ")")
+        e = 1023 / 300 * g / den_g  # linear exponent per unit of film density
+        P(f"\ntonal exponent e = {e:.2f} (linear light = 10^(e*D)); scene-linear "
+          f"is {1023 / 300 * G_CINEON:.2f} (Cineon, negative gamma 0.6)")
+        if abs(g / den_g / G_CINEON - 1) > 0.15:
+            P(f"WARNING: input gain / den_G = {g / den_g:.3f}, not {G_CINEON}: the positive is "
+              + ("steeper" if g / den_g > G_CINEON else "flatter")
+              + " than scene-linear; contrast belongs to the tone curve")
+        P(f"NamiColor (input gain {g:.4f}, master/black 0, FitBase off; Flare "
           + ";".join(f"{v / 65535:.4f}" for v in flare) + "):")
         for fr in sorted(meta):
             o = sh[fr]
@@ -460,7 +545,12 @@ def main(argv=None):
             off = {0: o["R"]["final"], 1: 0.0, 2: o["B"]["final"]}
             gain = [1 - k[c] * den_g for c in range(3)]
             shift = [k[c] * (base + s_g) - base - g * off[c] + comp for c in range(3)]
-            result["frames"][fr]["namicolor"] = dict(gain=gain, shift=shift)
+            # everything the fold assumes, so a profile built from the JSON alone is complete
+            result["frames"][fr]["namicolor"] = dict(
+                gain=gain, shift=shift, namicolor_input_gain=g, namicolor_gain=gain,
+                namicolor_shift=shift, namicolor_master_gain=0.0, namicolor_master_shift=0.0,
+                namicolor_black=[0.0, 0.0, 0.0], namicolor_fit_base=False,
+                flare=[v / 65535 for v in flare], s_G=s_g, den_G=den_g, exponent=e)
             P(f"  {fr}: NamiColorGain=" + ";".join(f"{v:.5f}" for v in gain)
               + "  NamiColorShift=" + ";".join(f"{v:.5f}" for v in shift))
 

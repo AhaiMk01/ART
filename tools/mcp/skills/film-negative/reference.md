@@ -182,7 +182,7 @@ A pair of neutral patches can constrain channel alignment, but cannot identify
 a unique 3×3 colour-coupling matrix.
 Fit it only with enough independent evidence and record film, illumination,
 capture conditions, processing basis and limitations in `calibration_note`.
-After changing it, refit the pooled fit through the mask; compare tonal levels, unfitted materials and reserved
+After changing it, refit the pooled fit through the mask (`--matrix`, the same nine values); compare tonal levels, unfitted materials and reserved
 frames with the same diagnostic viewing response. Do not infer a measured
 calibration from a neutral patch or a more pleasing print look.
 
@@ -316,7 +316,8 @@ prior and marks what is weak. The judgement (picks, basis, light groups,
 what a deviation means) stays yours.
 
 1. Evidence: the table from "Choosing neutral references". Fit `material`
-   rows only; read `uncertain` rows against the fit; `C` rows only describe
+   rows only; read `uncertain` rows against the fit (a frame with no
+   `material` row takes its weak offset from them); `C` rows only describe
    the light.
 2. One observation per object per frame (average its squares).
    `D = -log10(avg/65535)`, `sd_D = sd / (avg * ln10) / sqrt(min(N, 64))`,
@@ -381,6 +382,19 @@ what a deviation means) stays yours.
    Master and black stay 0 after the fold: they are divided by each
    channel's `den_c`, so with unequal slopes they shift colour as well as
    level. Set brightness with exposure and the tone curve.
+   The overall contrast is `e = 1023/300 * g / den_G` (linear light =
+   `10^(e*D)`); keep `g / den_G = 500/1023 = 0.489` (the script's default):
+   Cineon spacing, a scene-linear positive. ART's default input gain 1 with
+   `den_G` 1 doubles `e`: blown highlights, crushed shadows, exaggerated
+   colour. Print-like contrast comes from the tone curve, never from `g`.
+   Anchor green with `--base`: the script sets `s_G` so the film base
+   decodes to code 95, Cineon black, and everything on the film to 0 or
+   above. A guessed `s_G` can put real detail below code 95: it decodes
+   negative, and exposure clamps it to 0 where no later step recovers it.
+   It warns when a neutral is thinner than the anchor. After applying,
+   check `image_stats(stage=converted)` per channel for values below 0
+   on the picture area. Its JSON holds every setting of the fold (input
+   gain, gains, shifts, master, black, FitBase, flare): apply all of them.
 
 Report each frame's offset and lam in plain terms (warm late sun, shop
 light). The sidecar takes the slopes and offsets as the script prints them.
@@ -398,7 +412,8 @@ An automatic white balance is a cross-check, never the prior.
 ## Choosing neutral references
 
 Choose by material, found by looking at the picture, never by how grey a
-spot reads or by whether it agrees with a fit (that is circular).
+spot reads, by whether it agrees with a fit (that is circular), or by what
+the basis makes the script do.
 
 Principles:
 

@@ -143,6 +143,21 @@ def test_one_frame_never_outweighs_the_prior(tmp_path):
     assert r["slopes"]["B"]["k"] == 1.0 and r["slopes"]["B"]["fixed"] == "prior"
 
 
+def test_frame_of_uncertain_rows_keeps_its_own_weak_offset(tmp_path):
+    # a roll with material frames and one frame of a grey boulder only: the
+    # boulder sets that frame's offset, shrunk toward the light, flagged weak
+    offs = {f"{i:02d}": (-0.10 + 0.02 * (i % 2), 0.20) for i in range(4)}
+    D = np.array([K[0] * 1.2 - 0.3, 1.2, K[2] * 1.2 + 0.5])
+    sq = [dict(material="granite", object_id="rock", basis="uncertain",
+               avg=list(lin(D)), sd=[50.0] * 3, size=32)]
+    r = run(tmp_path, roll(tmp_path, offs, extra={"09": dict(light="daylight", squares=sq)}))
+    f = r["frames"]["09"]
+    assert f["R"]["fit"] == pytest.approx(-0.3, abs=1e-6)
+    assert -0.3 < f["R"]["final"] < -0.09 and 0 < f["R"]["lam"] < 1
+    assert "weak: uncertain rows only" in f["notes"]
+    assert r["slopes"]["R"]["k"] == pytest.approx(K[0], abs=1e-6)  # never moves the slope
+
+
 def test_fold_decodes_neutrals_to_equal_codes(tmp_path):
     offs = {f"{i:02d}": (-0.1 - 0.01 * i, 0.2 + 0.01 * i) for i in range(4)}
     s = {"00": 2.0}
@@ -156,3 +171,58 @@ def test_fold_decodes_neutrals_to_equal_codes(tmp_path):
                  for c in range(3)]
             assert q[0] == pytest.approx(q[1], abs=1e-9)
             assert q[2] == pytest.approx(q[1], abs=1e-9)
+
+
+def test_default_input_gain_decodes_at_cineon_spacing(tmp_path, capsys):
+    # without --input-gain the fold is scene-linear: one unit of film density
+    # moves the Cineon code by 500 (0.002 D per code), whatever den_G is
+    offs = {f"{i:02d}": (-0.1, 0.2) for i in range(4)}
+    for den_g in (1.0, 2.0):
+        r = run(tmp_path, roll(tmp_path, offs), "--green", f"{den_g},{S_G}")
+        nc = r["frames"]["00"]["namicolor"]
+        g = pf.G_CINEON * den_g
+        q = [(1 - g * math.log10(16 * 10 ** (-D)) + nc["shift"][1]) / (1 - nc["gain"][1]) for D in (1.0, 2.0)]
+        assert 1023 * (q[1] - q[0]) == pytest.approx(500, abs=0.1)
+    assert "WARNING" not in capsys.readouterr().out
+    run(tmp_path, roll(tmp_path, offs), "--green", f"1,{S_G}", "--input-gain", "1")
+    assert "steeper than scene-linear" in capsys.readouterr().out
+
+
+def test_base_anchor_puts_the_film_base_at_cineon_black(tmp_path, capsys):
+    # --base-green sets s_G so the base decodes to code 95, for any frame's s;
+    # a neutral thinner than the base is flagged; the JSON is a full profile
+    offs = {f"{i:02d}": (-0.1, 0.2) for i in range(4)}
+    s = {"01": 2.0}
+    base_v = 65535 * 10 ** -0.35 * 2.0  # base at D' 0.35, sampled in frame 01 (s 2)
+    r = run(tmp_path, roll(tmp_path, offs, s=s), "--base", f"{base_v},{base_v},{base_v}", "--base-frame", "01")
+    nc = r["frames"]["00"]["namicolor"]
+    g = nc["namicolor_input_gain"]
+    assert g == pytest.approx(pf.G_CINEON) and nc["namicolor_fit_base"] is False
+    q_g = (1 - g * math.log10(16 * 10 ** -0.35) + nc["shift"][1]) / (1 - nc["gain"][1])
+    assert 1023 * q_g == pytest.approx(95, abs=1e-6)
+    assert "WARNING" not in capsys.readouterr().out
+    run(tmp_path, roll(tmp_path, offs), "--base", ",".join([str(65535 * 10 ** -1.0)] * 3))
+    assert "thinner than D_G 1.000" in capsys.readouterr().out
+
+
+def test_mask_fits_the_density_art_aligns(tmp_path):
+    # neutrals follow the model in masked density (ART: 0.7 + M (D - 0.7));
+    # the scan holds the unmasked density, so only --matrix recovers the slopes
+    M = np.array([[1.1, -0.15, 0.05], [-0.05, 1.1, -0.05], [0.0, -0.2, 1.2]])
+    Minv = np.linalg.inv(M)
+    frames = {}
+    for i in range(5):
+        sq = []
+        for j, dg in enumerate((0.9, 1.3, 1.7)):
+            Dm = np.array([K[0] * dg - 0.1 - 0.01 * i, dg, K[2] * dg + 0.2])
+            D = 0.7 + Minv @ (Dm - 0.7)
+            sq.append(dict(material="white paint", object_id=f"o{j}", basis="material",
+                           avg=list(lin(D)), sd=[50.0] * 3, size=32))
+        frames[f"{i:02d}"] = dict(light="daylight", squares=sq)
+    p = tmp_path / "picks.json"
+    p.write_text(json.dumps(dict(frames=frames)))
+    r = run(tmp_path, p, "--matrix", ",".join(str(v) for v in M.ravel()))
+    assert r["slopes"]["R"]["k"] == pytest.approx(K[0], abs=1e-6)
+    assert r["slopes"]["B"]["k"] == pytest.approx(K[2], abs=1e-6)
+    r0 = run(tmp_path, p)  # without the mask the fit sees other slopes
+    assert abs(r0["slopes"]["R"]["k"] - K[0]) > 0.01
