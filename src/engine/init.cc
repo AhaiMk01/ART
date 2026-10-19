@@ -179,8 +179,15 @@ int init(const Settings *s, Glib::ustring baseDir,
 
 void cleanup()
 {
-    /* Before the FFTW teardown, and before the thread pool is gone: the GPU
-     * teardown waits on the device and flushes the pipeline cache to disk. */
+    /* First of all: stop the worker threads (discarding queued work such as
+     * pending thumbnails), so that nothing is still running while the
+     * singletons below are torn down. Previously the pool lived until static
+     * destruction and drained its whole queue there, racing with the
+     * destruction of other globals (e.g. ImageIOManager). */
+    ThreadPool::cleanup();
+
+    /* Before the FFTW teardown: the GPU teardown waits on the device and
+     * flushes the pipeline cache to disk. */
     gpu::cleanup();
 
     Exiv2Metadata::cleanup();
