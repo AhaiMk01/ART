@@ -18,6 +18,7 @@
  */
 
 #include <atomic>
+#include <map>
 #include <set>
 
 #include <gtkmm.h>
@@ -69,15 +70,18 @@ public:
 
     typedef std::list<Job> JobList;
 
-    Impl(): active_(0), inactive_waiting_(false) {}
+    Impl(): active_(0) {}
 
     std::mutex mutex_;
 
     JobList jobs_;
 
+    // number of jobs being processed right now, in total and per listener
+    // (running_ is protected by mutex_)
     std::atomic<unsigned int> active_;
+    std::map<ThumbImageUpdateListener *, unsigned int> running_;
 
-    bool inactive_waiting_;
+    // notified whenever a job finishes
     std::condition_variable inactive_;
 
     void processNextJob()
@@ -130,6 +134,7 @@ public:
             DEBUG("%d job(s) remaining", int(jobs_.size()));
 
             ++active_;
+            ++running_[j.listener_];
         }
 
         // unlock and do processing; will relock on block exit, then call
@@ -157,12 +162,18 @@ public:
             j.listener_->updateImage(img, scale, thm->getProcParams().crop);
         }
 
-        if (--active_ == 0) {
+        {
+            // updating the counters and notifying with the mutex held
+            // guarantees that a waiter in removeJobs()/removeAllJobs(), which
+            // checks them with the mutex held, is either already waiting or
+            // sees the new state
             std::unique_lock<std::mutex> lock(mutex_);
-            if (inactive_waiting_) {
-                inactive_waiting_ = false;
-                inactive_.notify_all();
+            --active_;
+            auto it = running_.find(j.listener_);
+            if (it != running_.end() && --it->second == 0) {
+                running_.erase(it);
             }
+            inactive_.notify_all();
         }
     }
 };
@@ -231,13 +242,15 @@ void ThumbImageUpdater::removeJobs(ThumbImageUpdateListener *listener)
         }
     }
 
-    while (impl_->active_ != 0) {
-        DEBUG("waiting for running jobs1");
-        {
-            std::unique_lock<std::mutex> lock(impl_->mutex_);
-            impl_->inactive_waiting_ = true;
-            impl_->inactive_.wait(lock);
-        }
+    // Wait for this listener's own jobs that are running right now. Not for
+    // all running jobs: while the queue is deep there is always some job
+    // running (for any other listener), so waiting for that would block the
+    // caller (the GUI thread) until the queue is nearly empty.
+    {
+        std::unique_lock<std::mutex> lock(impl_->mutex_);
+        impl_->inactive_.wait(lock, [this, listener]() {
+            return impl_->running_.find(listener) == impl_->running_.end();
+        });
     }
 }
 
@@ -245,19 +258,11 @@ void ThumbImageUpdater::removeAllJobs()
 {
     DEBUG("stop");
 
-    {
-        std::unique_lock<std::mutex> lock(impl_->mutex_);
-        impl_->jobs_.clear();
-    }
-
-    while (impl_->active_ != 0) {
-        DEBUG("waiting for running jobs2");
-        {
-            std::unique_lock<std::mutex> lock(impl_->mutex_);
-            impl_->inactive_waiting_ = true;
-            impl_->inactive_.wait(lock);
-        }
-    }
+    // The queue is emptied first, so no new job can start and the wait for
+    // the running ones is bounded by the longest of them.
+    std::unique_lock<std::mutex> lock(impl_->mutex_);
+    impl_->jobs_.clear();
+    impl_->inactive_.wait(lock, [this]() { return impl_->active_ == 0; });
 }
 
 

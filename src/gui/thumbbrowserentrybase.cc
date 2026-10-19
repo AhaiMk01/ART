@@ -687,7 +687,10 @@ void ThumbBrowserEntryBase::draw(Cairo::RefPtr<Cairo::Context> cc)
 
     if (!backBuffer || selected != bbSelected ||
         (framed || (open_in_editor > 0)) != bbFramed ||
-        (!preview.empty() ? &preview[0] != bbPreview : !bbPreview) ||
+        // preview changed (or went away): for an entry that has no preview yet,
+        // the cached card is up to date as long as it was rendered without one
+        // too (bbPreview == nullptr)
+        (!preview.empty() ? &preview[0] != bbPreview : bbPreview != nullptr) ||
         exp_width != bbWidth || exp_height != bbHeight ||
         getIconsOnImageArea() != bbIcons ||
         getSpecificityIconsOnImageArea() != bbSpecificityIcons ||
