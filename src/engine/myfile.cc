@@ -27,171 +27,33 @@
 #include <unistd.h>
 #endif
 
-// get mmap() sorted out
-#ifdef MYFILE_MMAP
-
-#ifdef WIN32
-
-#include <windows.h>
-#include <fcntl.h>
-
-// dummy values
-#define MAP_PRIVATE 1
-#define PROT_READ 1
-#define MAP_FAILED (void *)-1
-
-#ifdef __GNUC__ // silence warning
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#endif
-
-void *mmap(void *start, size_t length, int prot, int flags, int fd,
-           off_t offset)
-{
-    HANDLE handle = CreateFileMapping((HANDLE)_get_osfhandle(fd), NULL,
-                                      PAGE_WRITECOPY, 0, 0, NULL);
-
-    if (handle != NULL) {
-        start = MapViewOfFile(handle, FILE_MAP_COPY, 0, offset, length);
-        CloseHandle(handle);
-        return start;
-    }
-
-    return MAP_FAILED;
-}
-
-int munmap(void *start, size_t length)
-{
-    UnmapViewOfFile(start);
-    return 0;
-}
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-
-#else // WIN32
-
-#include <fcntl.h>
-#include <sys/mman.h>
-#include <unistd.h>
-
-#endif // WIN32
-#endif // MYFILE_MMAP
-
 namespace art { namespace engine {
 
 
-#ifdef MYFILE_MMAP
-
+// Reads the whole file into memory.
 IMFILE *fopen(const char *fname)
 {
-    int fd;
+    FILE *f = g_fopen(fname, "rb");
 
-#ifdef WIN32
-
-    fd = -1;
-    // First convert UTF8 to UTF16, then use Windows function to open the file
-    // and convert back to file descriptor.
-    std::unique_ptr<wchar_t, GFreeFunc> wfname(
-        reinterpret_cast<wchar_t *>(
-            g_utf8_to_utf16(fname, -1, NULL, NULL, NULL)),
-        g_free);
-
-    HANDLE hFile =
-        CreateFileW(wfname.get(), GENERIC_READ, FILE_SHARE_READ, NULL,
-                    OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hFile != INVALID_HANDLE_VALUE) {
-        fd = _open_osfhandle((intptr_t)hFile, 0);
-    }
-
-#else
-
-    fd = ::g_open(fname, O_RDONLY);
-
-#endif
-
-    if (fd < 0) {
-        return nullptr;
-    }
-
-    struct stat stat_buffer;
-
-    if (fstat(fd, &stat_buffer) < 0) {
-        printf("no stat\n");
-        close(fd);
-        return nullptr;
-    }
-
-    void *data =
-        mmap(nullptr, stat_buffer.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-
-    if (data == MAP_FAILED) {
-        printf("no mmap %s\n", fname);
-        close(fd);
-        return nullptr;
+    if (!f) {
+        return NULL;
     }
 
     IMFILE *mf = new IMFILE;
-
     memset(mf, 0, sizeof(*mf));
-    mf->fd = fd;
+    fseek(f, 0, SEEK_END);
+    mf->size = ftell(f);
+    mf->data = new char[mf->size];
+    fseek(f, 0, SEEK_SET);
+    fread(mf->data, 1, mf->size, f);
+    fclose(f);
     mf->pos = 0;
-    mf->size = stat_buffer.st_size;
-    mf->data = (char *)data;
     mf->eof = false;
 
     return mf;
 }
 
 IMFILE *gfopen(const char *fname) { return fopen(fname); }
-#else
-
-IMFILE *fopen(const char *fname)
-{
-
-    FILE *f = g_fopen(fname, "rb");
-
-    if (!f) {
-        return NULL;
-    }
-
-    IMFILE *mf = new IMFILE;
-    memset(mf, 0, sizeof(*mf));
-    fseek(f, 0, SEEK_END);
-    mf->size = ftell(f);
-    mf->data = new char[mf->size];
-    fseek(f, 0, SEEK_SET);
-    fread(mf->data, 1, mf->size, f);
-    fclose(f);
-    mf->pos = 0;
-    mf->eof = false;
-
-    return mf;
-}
-
-IMFILE *gfopen(const char *fname)
-{
-
-    FILE *f = g_fopen(fname, "rb");
-
-    if (!f) {
-        return NULL;
-    }
-
-    IMFILE *mf = new IMFILE;
-    memset(mf, 0, sizeof(*mf));
-    fseek(f, 0, SEEK_END);
-    mf->size = ftell(f);
-    mf->data = new char[mf->size];
-    fseek(f, 0, SEEK_SET);
-    fread(mf->data, 1, mf->size, f);
-    fclose(f);
-    mf->pos = 0;
-    mf->eof = false;
-
-    return mf;
-}
-#endif // MYFILE_MMAP
 
 #ifndef WIN32
 IMFILE *gfopen_mapped(const char *fname)
@@ -246,18 +108,7 @@ void fclose(IMFILE *f)
         return;
     }
 #endif
-#ifdef MYFILE_MMAP
-
-    if (f->fd == -1) {
-        delete[] f->data;
-    } else {
-        munmap((void *)f->data, f->size);
-        close(f->fd);
-    }
-
-#else
     delete[] f->data;
-#endif
     delete f;
 }
 
