@@ -63,6 +63,17 @@ void exec_sync(const Glib::ustring &workdir,
                const std::vector<Glib::ustring> &argv, bool search_in_path,
                std::string *out, std::string *err);
 
+#ifndef WIN32
+// Like exec_sync(), but the child runs with prepend_path (a ':'-separated list)
+// put in front of its PATH, and argv[0] is looked up there too. This process's
+// own environment is never modified, so it is safe to call from several
+// threads at once (changing PATH with setenv() around the call is not).
+void exec_sync(const Glib::ustring &workdir,
+               const std::vector<Glib::ustring> &argv, bool search_in_path,
+               std::string *out, std::string *err,
+               const std::string &prepend_path);
+#endif // WIN32
+
 std::vector<std::string> get_env();
 
 class SubprocessInfo: public NonCopyable {
