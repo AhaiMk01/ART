@@ -41,9 +41,15 @@ public:
     explicit RawImage(const Glib::ustring &name);
     ~RawImage();
 
+    // multithread: true for an ordinary load, where this is the one raw being
+    // decoded and LibRaw may use OpenMP threads. Pass false when many raws
+    // are loaded concurrently from different threads (e.g. thumbnails):
+    // LibRaw then decodes with a single thread and loads can overlap (see
+    // LibrawLock in rawimage.cc for why).
     int loadRaw(bool loadData, unsigned int imageNum = 0, bool closeFile = true,
                 ProgressListener *plistener = nullptr,
-                double progressRange = 1.0, bool apply_corrections = true);
+                double progressRange = 1.0, bool apply_corrections = true,
+                bool multithread = true);
     void get_colorsCoeff(float *pre_mul_, float *scale_mul_, float *cblack_,
                          bool forceAutoWB);
     void set_prefilters()
@@ -88,7 +94,7 @@ protected:
     int do_loadRaw(const Glib::ustring &fname, bool loadData,
                    unsigned int imageNum, bool closeFile,
                    ProgressListener *plistener, double progressRange,
-                   bool apply_corrections);
+                   bool apply_corrections, bool multithread);
     ThreeValBool use_imgio_;
     Glib::ustring imgio_filename_;
 
@@ -224,7 +230,11 @@ public:
 
 public:
     bool thumbNeedsRotation() const;
-    Image8 *getThumbnail();
+    // maxw_hint/maxh_hint: see ImageIO::loadJPEGFromMemory(); the returned
+    // image is then not necessarily full size (but at least that big)
+    // scale_denom (optional) receives the reduction factor that was applied.
+    Image8 *getThumbnail(int maxw_hint = 0, int maxh_hint = 0,
+                         int *scale_denom = nullptr);
 
     float get_optical_black(int row, int col) const;
 

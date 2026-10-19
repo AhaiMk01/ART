@@ -102,7 +102,13 @@ public:
                                    IIOSampleFormat &sFormat,
                                    IIOSampleArrangement &sArrangement);
 
-    int loadJPEGFromMemory(const char *buffer, int bufsize);
+    // If maxw_hint and maxh_hint are > 0, the image may be decoded at a
+    // reduced size (1/2, 1/4 or 1/8, via libjpeg's scaled IDCT) as long as it
+    // stays at least maxw_hint x maxh_hint pixels.
+    // If scale_denom is not null, it gets the reduction factor used (1 if the
+    // image was decoded at full size).
+    int loadJPEGFromMemory(const char *buffer, int bufsize, int maxw_hint = 0,
+                           int maxh_hint = 0, int *scale_denom = nullptr);
     int loadPPMFromMemory(const char *buffer, int width, int height, bool swap,
                           int bps);
 

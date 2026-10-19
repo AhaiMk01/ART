@@ -300,7 +300,18 @@ Thumbnail *Thumbnail::loadQuickFromRaw(const Glib::ustring &fname,
 
     sensorType = ri->getSensorType();
 
-    Image8 *img = ri->getThumbnail();
+    // The preview is going to be shrunk to w x h (one of them is fixed, see
+    // below): no need to decode all of it. A full-size image is wanted for
+    // histogram matching.
+    int denom = 1; // reduction factor applied when decoding the preview
+    Image8 *img;
+    if (forHistogramMatching) {
+        img = ri->getThumbnail();
+    } else if (fixwh == 1) {
+        img = ri->getThumbnail(1, h, &denom);
+    } else {
+        img = ri->getThumbnail(w, 1, &denom);
+    }
 
     // did we succeed?
     if (!img) {
@@ -322,10 +333,10 @@ Thumbnail *Thumbnail::loadQuickFromRaw(const Glib::ustring &fname,
     } else {
         if (fixwh == 1) {
             w = h * img->getWidth() / img->getHeight();
-            tpp->scale = (double)img->getHeight() / h;
+            tpp->scale = (double)img->getHeight() * denom / h;
         } else {
             h = w * img->getHeight() / img->getWidth();
-            tpp->scale = (double)img->getWidth() / w;
+            tpp->scale = (double)img->getWidth() * denom / w;
         }
     }
 
@@ -372,7 +383,8 @@ Thumbnail *Thumbnail::loadFromRaw(const Glib::ustring &fname,
     RawImage *ri = new RawImage(fname);
     unsigned int tempImageNum = 0;
 
-    int r = ri->loadRaw(true, tempImageNum, false, nullptr, 1.0, false);
+    // many thumbnails are loaded concurrently: multithread = false
+    int r = ri->loadRaw(true, tempImageNum, false, nullptr, 1.0, false, false);
 
     if (r) {
         delete ri;
@@ -383,7 +395,7 @@ Thumbnail *Thumbnail::loadFromRaw(const Glib::ustring &fname,
     if (ri->getFrameCount() == 7) {
         // special case for Hasselblad H6D-100cMS pixelshift files
         // first frame is not bayer, load second frame
-        int r = ri->loadRaw(true, 1, false, nullptr, 1.0, false);
+        int r = ri->loadRaw(true, 1, false, nullptr, 1.0, false, false);
 
         if (r) {
             delete ri;

@@ -43,6 +43,7 @@ struct IMFILE {
     ssize_t size;
     char *data;
     bool eof;
+    bool mapped; // data is a read-only mmap() of fd, not a heap copy
     art::engine::ProgressListener *plistener;
     double progress_range;
     ssize_t progress_next;
@@ -60,6 +61,12 @@ void imfile_update_progress(IMFILE *f);
 
 IMFILE *fopen(const char *fname);
 IMFILE *gfopen(const char *fname);
+// Like gfopen(), but where possible the file is memory-mapped read-only
+// instead of being read into memory, so only the parts that are actually
+// accessed get read from disk. For callers that only need the metadata or the
+// embedded preview of a (large) raw file. Nothing may write to f->data.
+// Set ART_MMAP_RAW=0 to make this behave exactly like gfopen().
+IMFILE *gfopen_mapped(const char *fname);
 IMFILE *fopen(unsigned *buf, ssize_t size);
 void fclose(IMFILE *f);
 inline ssize_t ftell(IMFILE *f) { return f->pos; }

@@ -18,7 +18,14 @@
  */
 #include "myfile.h"
 #include <cstdarg>
+#include <cstdlib>
 #include <glibmm.h>
+#ifndef WIN32
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
 
 // get mmap() sorted out
 #ifdef MYFILE_MMAP
@@ -186,6 +193,35 @@ IMFILE *gfopen(const char *fname)
 }
 #endif // MYFILE_MMAP
 
+#ifndef WIN32
+IMFILE *gfopen_mapped(const char *fname)
+{
+    int fd = ::g_open(fname, O_RDONLY);
+    if (fd >= 0) {
+        struct stat st;
+        if (fstat(fd, &st) == 0 && st.st_size > 0) {
+            void *data =
+                mmap(nullptr, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+            if (data != MAP_FAILED) {
+                IMFILE *mf = new IMFILE;
+                memset(mf, 0, sizeof(*mf));
+                mf->fd = fd;
+                mf->size = st.st_size;
+                mf->data = static_cast<char *>(data);
+                mf->mapped = true;
+                return mf;
+            }
+        }
+        close(fd);
+    }
+    
+    // not mappable: read it as usual
+    return gfopen(fname);
+}
+#else
+IMFILE *gfopen_mapped(const char *fname) { return gfopen(fname); }
+#endif
+
 IMFILE *fopen(unsigned *buf, ssize_t size)
 {
 
@@ -202,6 +238,14 @@ IMFILE *fopen(unsigned *buf, ssize_t size)
 
 void fclose(IMFILE *f)
 {
+#ifndef WIN32
+    if (f->mapped) {
+        munmap(static_cast<void *>(f->data), f->size);
+        close(f->fd);
+        delete f;
+        return;
+    }
+#endif
 #ifdef MYFILE_MMAP
 
     if (f->fd == -1) {

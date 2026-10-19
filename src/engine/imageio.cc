@@ -397,8 +397,12 @@ int ImageIO::loadPNG(const Glib::ustring &fname)
 // #endif
 // }
 
-int ImageIO::loadJPEGFromMemory(const char *buffer, int bufsize)
+int ImageIO::loadJPEGFromMemory(const char *buffer, int bufsize, int maxw_hint,
+                                int maxh_hint, int *scale_denom)
 {
+    if (scale_denom) {
+        *scale_denom = 1;
+    }
     jpeg_decompress_struct cinfo;
     jpeg_create_decompress(&cinfo);
     // rt_jpeg_memory_src (&cinfo, (const JOCTET*)buffer, bufsize);
@@ -442,6 +446,21 @@ int ImageIO::loadJPEGFromMemory(const char *buffer, int bufsize)
         setup_read_icc_profile(&cinfo);
 
         jpeg_read_header(&cinfo, TRUE);
+
+        if (maxw_hint > 0 && maxh_hint > 0) {
+            int d = std::min<int>(cinfo.image_width / maxw_hint,
+                                  cinfo.image_height / maxh_hint);
+            if (d > 1) {
+                cinfo.scale_num = 1;
+                int l = std::min(d, 8);
+                for (d = 1; (d << 1) <= l; d = d << 1) {
+                }
+                cinfo.scale_denom = d;
+                if (scale_denom) {
+                    *scale_denom = d;
+                }
+            }
+        }
 
         deleteLoadedProfileData();
         loadedProfileDataJpg = true;

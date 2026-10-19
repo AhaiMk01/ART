@@ -77,12 +77,11 @@ public:
 
     typedef std::set<Job, JobCompare> JobSet;
 
-    Impl(): num_concurrent_threads_(0), job_count_(0) {}
+    Impl(): num_concurrent_threads_(0) {}
 
     MyMutex mutex_;
     std::deque<Job> jobs_;
     std::atomic<int> num_concurrent_threads_;
-    size_t job_count_;
 
     void processNextJob()
     {
@@ -117,19 +116,24 @@ public:
                     j.dir_id_, new FileBrowserEntry(tmb, j.dir_entry_));
             }
 
-            if (++job_count_ % 20 == 0) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            }
-
         } catch (Glib::Error &e) {
         } catch (...) {
         }
 
-        bool last = num_concurrent_threads_--;
+        // true only for the last thread still running (a post-decrement would
+        // yield the previous value, which is never zero here)
+        bool last = (--num_concurrent_threads_ == 0);
 
         // signal at end
-        if (last && jobs_.empty()) {
-            j.listener_->previewsFinished(j.dir_id_);
+        if (last) {
+            bool empty;
+            {
+                MyMutex::MyLock lock(mutex_);
+                empty = jobs_.empty();
+            }
+            if (empty) {
+                j.listener_->previewsFinished(j.dir_id_);
+            }
         }
     }
 };
