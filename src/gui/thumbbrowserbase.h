@@ -143,6 +143,8 @@ public:
     void selectFirst(bool enlarge);
     void selectLast(bool enlarge);
     void selectEntry(const ThumbBrowserEntryBase *entry);
+    void selectOnly(ThumbBrowserEntryBase *entry, bool focus);
+    bool hasFocus() const { return internal.has_focus(); }
 
     virtual bool isInTabMode() { return false; }
 

@@ -31,6 +31,7 @@
 #include "shortcutsmanager.h"
 #include "../utils/threadutils.h"
 #include <glibmm.h>
+#include <set>
 #include <map>
 
 namespace art { namespace gui {
@@ -2173,6 +2174,53 @@ void FileBrowser::openPrevImage()
             }
         }
     }
+}
+
+Glib::ustring
+FileBrowser::getNeighbourOf(const std::vector<FileBrowserEntry *> &entries)
+{
+    MYREADERLOCK(l, entryRW);
+
+    const std::set<const ThumbBrowserEntryBase *> gone(entries.begin(),
+                                                       entries.end());
+    size_t first = fd.size(), last = 0;
+    for (size_t i = 0; i < fd.size(); ++i) {
+        if (gone.find(fd[i]) != gone.end()) {
+            first = std::min(first, i);
+            last = i;
+        }
+    }
+    if (first == fd.size()) {
+        return "";
+    }
+
+    for (size_t i = last + 1; i < fd.size(); ++i) {
+        if (!fd[i]->filtered && gone.find(fd[i]) == gone.end()) {
+            return fd[i]->filename;
+        }
+    }
+    for (size_t i = first; i-- > 0;) {
+        if (!fd[i]->filtered && gone.find(fd[i]) == gone.end()) {
+            return fd[i]->filename;
+        }
+    }
+    return "";
+}
+
+void FileBrowser::selectByName(const Glib::ustring &fname, bool focus)
+{
+    ThumbBrowserEntryBase *entry = nullptr;
+    if (!fname.empty()) {
+        MYREADERLOCK(l, entryRW);
+
+        for (size_t i = 0; i < fd.size(); ++i) {
+            if (fd[i]->filename == fname) {
+                entry = fd[i];
+                break;
+            }
+        }
+    }
+    selectOnly(entry, focus);
 }
 
 void FileBrowser::selectImage(const Glib::ustring &fname)

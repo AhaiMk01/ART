@@ -595,6 +595,46 @@ void ThumbBrowserBase::selectLast(bool enlarge)
     setScrollPosition(h, v);
 }
 
+void ThumbBrowserBase::selectOnly(ThumbBrowserEntryBase *entry, bool focus)
+{
+    if (entry) {
+        double h, v;
+        getScrollPosition(h, v);
+
+        {
+            MYWRITERLOCK(l, entryRW);
+
+            // the entry might not be there any more
+            if (std::find(fd.begin(), fd.end(), entry) != fd.end() &&
+                !entry->filtered) {
+                // clears the selection and sets the anchor for the selection
+                // with the shift key
+                selectSingle(entry);
+                lastClicked = entry;
+                scrollToEntry(h, v, internal.get_width(), internal.get_height(),
+                              entry);
+            } else {
+                entry = nullptr;
+            }
+
+            MYWRITERLOCK_RELEASE(l);
+
+            if (entry) {
+                selectionChanged();
+            }
+        }
+
+        if (entry) {
+            setScrollPosition(h, v);
+            redraw();
+        }
+    }
+
+    if (focus) {
+        internal.grab_focus();
+    }
+}
+
 void ThumbBrowserBase::selectEntry(const ThumbBrowserEntryBase *entry)
 {
     {

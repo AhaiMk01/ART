@@ -192,6 +192,8 @@ public:
     void pasteProfile();
     void partPasteProfile();
     void selectImage(const Glib::ustring &fname);
+    Glib::ustring getNeighbourOf(const std::vector<FileBrowserEntry *> &entries);
+    void selectByName(const Glib::ustring &fname, bool focus);
     void openNextPreviousEditorImage(Glib::ustring fname, eRTNav eNextPrevious);
 
     void thumbRearrangementNeeded() override;
