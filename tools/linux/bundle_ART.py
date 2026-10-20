@@ -233,7 +233,7 @@ def main():
 libgioremote-volume-monitor.so: gio-native-volume-monitor,gio-volume-monitor
 libgvfsdbus.so: gio-vfs,gio-volume-monitor
 """)        
-    for name in ('ART', 'ART-cli'):
+    for name in ('ART', 'ART-cli', 'ART-dialogs'):
         shutil.move(os.path.join(opts.outdir, name),
                     os.path.join(opts.outdir, '.' + name + '.bin'))
     with open(os.path.join(opts.outdir, 'fonts.conf'), 'w') as out:
@@ -380,7 +380,38 @@ export LD_LIBRARY_PATH="$d/lib"
 export ART_EXIFTOOL_BASE_DIR="$d/lib/exiftool"
 exec "$d/.ART-cli.bin" "$@"
 """)
-    for name in ('ART', 'ART-cli'):
+
+    # user commands get the environment restored to what it was before the ART
+    # wrapper changed it (see engine/subprocess.cc:get_env), so ART-dialogs
+    # has to set up the GTK environment on its own
+    with open(os.path.join(opts.outdir, 'ART-dialogs'), 'w') as out:
+        out.write("""#!/bin/bash
+export ART_restore_GTK_CSD=$GTK_CSD
+export ART_restore_GDK_PIXBUF_MODULE_FILE=$GDK_PIXBUF_MODULE_FILE
+export ART_restore_GDK_PIXBUF_MODULEDIR=$GDK_PIXBUF_MODULEDIR
+export ART_restore_GIO_MODULE_DIR=$GIO_MODULE_DIR
+export ART_restore_LD_LIBRARY_PATH=$LD_LIBRARY_PATH
+export ART_restore_FONTCONFIG_FILE=$FONTCONFIG_FILE
+export ART_restore_GDK_BACKEND=$GDK_BACKEND
+export ART_restore_GTK_IM_MODULE_FILE=$GTK_IM_MODULE_FILE
+export GTK_CSD=0
+d=$(dirname $(readlink -f "$0"))
+t=$(mktemp -d --suffix=-ART-dialogs)
+trap 'rm -rf "$t"' EXIT
+export LD_LIBRARY_PATH="$d/lib"
+"$d/lib/gdk-pixbuf-2.0/gdk-pixbuf-query-loaders" "$d/lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-png.so" "$d/lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-svg.so" > "$t/loader.cache"
+"$d/lib/gtk-query-immodules-3.0" "$d"/lib/immodules/im-*.so > "$t/gtk.immodules"
+export GDK_PIXBUF_MODULE_FILE="$t/loader.cache"
+export GDK_PIXBUF_MODULEDIR="$d/lib/gdk-pixbuf-2.0"
+export GTK_IM_MODULE_FILE="$t/gtk.immodules"
+export GIO_MODULE_DIR="$d/lib/gio/modules"
+export FONTCONFIG_FILE="$d/fonts.conf"
+GDK_BACKEND="${GDK_BACKEND:-wayland,x11}"
+export GDK_BACKEND
+# not exec: the trap above has to remove $t, and the exit status is passed on
+"$d/.ART-dialogs.bin" "$@"
+""")
+    for name in ('ART', 'ART-cli', 'ART-dialogs'):
         os.chmod(os.path.join(opts.outdir, name), 0o755)
 
 if __name__ == '__main__':

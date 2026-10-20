@@ -41,6 +41,12 @@
  *
  * The target is derived from argv[0], so the same launcher can be installed
  * under any name.
+ *
+ * Built with -DART_LAUNCHER_DIALOGS=1 (as done for ART-dialogs, the zenity
+ * replacement that user commands run, possibly many times in a row) it is a
+ * lighter variant that does not start the private session bus, and uses the
+ * module caches of the main ART launcher as they are, instead of refreshing
+ * them on every run (see the comments in main()).
  */
 
 #include <sys/socket.h>
@@ -74,6 +80,13 @@ extern char **environ;
 
 static const char *prog = "ART-launcher";
 
+#ifdef ART_LAUNCHER_DIALOGS
+/* the name of the main launcher, whose tmpdir is shared */
+#ifndef ART_LAUNCHER_MAIN_NAME
+#define ART_LAUNCHER_MAIN_NAME "ART"
+#endif
+#endif
+
 static void die(const char *fmt, ...)
 {
     va_list ap;
@@ -85,7 +98,7 @@ static void die(const char *fmt, ...)
     exit(1);
 }
 
-static void warn(const char *fmt, ...)
+__attribute__((unused)) static void warn(const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
@@ -149,6 +162,7 @@ static void set_env_plain(const char *key, const char *val)
  * running the helper programs needed before startup
  * ------------------------------------------------------------------------- */
 
+#ifndef ART_LAUNCHER_DIALOGS
 static int run(char *const *args, const char *stdout_path)
 {
     posix_spawn_file_actions_t actions;
@@ -215,11 +229,13 @@ static void run_query_tool(const char *tool, const char *pattern,
     free(args);
     globfree(&g);
 }
+#endif // !ART_LAUNCHER_DIALOGS
 
 /* -------------------------------------------------------------------------
  * private session bus
  * ------------------------------------------------------------------------- */
 
+#ifndef ART_LAUNCHER_DIALOGS
 static int socket_is_live(const char *path)
 {
     struct sockaddr_un addr;
@@ -243,6 +259,7 @@ static int socket_is_live(const char *path)
     close(fd);
     return ok;
 }
+#endif // !ART_LAUNCHER_DIALOGS
 
 /* -------------------------------------------------------------------------
  * locating ourselves inside the bundle
@@ -333,7 +350,9 @@ int main(int argc, char **argv)
     char tmpdir[PATH_MAX];
     char sock[PATH_MAX];
     char buf[PATH_MAX];
+#ifndef ART_LAUNCHER_DIALOGS
     char pattern[PATH_MAX];
+#endif
     char loaders[PATH_MAX];
     char immodules[PATH_MAX];
     const char *tmp;
@@ -368,8 +387,16 @@ int main(int argc, char **argv)
         struct passwd *pw = getpwuid(getuid());
         user = (pw && pw->pw_name) ? pw->pw_name : "art";
     }
+#ifdef ART_LAUNCHER_DIALOGS
+    /* use the directory of the main launcher, so that its module caches can
+     * be shared. Whichever of the two runs first creates it */
+    fmtpath(tmpdir, sizeof(tmpdir), "%s%s%s-%s", tmp,
+            tmp[strlen(tmp) - 1] == '/' ? "" : "/", ART_LAUNCHER_MAIN_NAME,
+            user);
+#else
     fmtpath(tmpdir, sizeof(tmpdir), "%s%s%s-%s", tmp,
             tmp[strlen(tmp) - 1] == '/' ? "" : "/", name, user);
+#endif
 
     if (mkdir(tmpdir, 0700) != 0 && errno != EEXIST) {
         die("cannot create %s: %s", tmpdir, strerror(errno));
@@ -400,8 +427,15 @@ int main(int argc, char **argv)
     set_env("GDK_PIXBUF_MODULE_FILE", loaders);
     set_env("GTK_IM_MODULE_FILE", immodules);
 
+#ifdef ART_LAUNCHER_DIALOGS
+    /* the dialogs are plain GTK widgets that never talk to a session bus:
+     * tell GDBus not to try (and not to autolaunch one) instead of starting a
+     * daemon of our own */
+    set_env("DBUS_SESSION_BUS_ADDRESS", "disabled:");
+#else
     fmtpath(buf, sizeof(buf), "unix:path=%s", sock);
     set_env("DBUS_SESSION_BUS_ADDRESS", buf);
+#endif
 
     /* not set by us, but it must not leak into the helper programs either */
     save_env("GIO_MODULE_DIR");
@@ -411,6 +445,7 @@ int main(int argc, char **argv)
     fmtpath(buf, sizeof(buf), "%s/Resources/exiftool", contents);
     set_env_plain("ART_EXIFTOOL_BASE_DIR", buf);
 
+#ifndef ART_LAUNCHER_DIALOGS
     /* start the private session bus if it is not running already */
     if (!socket_is_live(sock)) {
         char daemon[PATH_MAX];
@@ -433,6 +468,7 @@ int main(int argc, char **argv)
         dbus_args[5] = NULL;
         run(dbus_args, "/dev/null");
     }
+#endif // !ART_LAUNCHER_DIALOGS
 
     /* Refresh the module caches unconditionally, i.e. independently of
      * whether the session bus above was just started or was already live.
@@ -447,6 +483,11 @@ int main(int argc, char **argv)
      * daemon coming up) that first launch produced, no matter how many times
      * the bundle is rebuilt afterwards. Querying the loaders/immodules is
      * cheap, so just do it every time. */
+#ifdef ART_LAUNCHER_DIALOGS
+    /* the module caches are those of the main launcher, which refreshes them
+     * at every start: use them as they are, and do not regenerate them if they
+     * are missing (ART has to have been run at least once) */
+#else
     fmtpath(buf, sizeof(buf), "%s/Resources/gdk-pixbuf-query-loaders",
             contents);
     fmtpath(pattern, sizeof(pattern),
@@ -457,6 +498,7 @@ int main(int argc, char **argv)
             contents);
     fmtpath(pattern, sizeof(pattern), "%s/Frameworks/im-*.so", contents);
     run_query_tool(buf, pattern, immodules);
+#endif // !ART_LAUNCHER_DIALOGS
 
     /* argv[0] is replaced by the real binary, and the process serial number
      * that LaunchServices may pass is dropped: the exec'd program gets it back
