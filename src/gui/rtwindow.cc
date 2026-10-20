@@ -724,8 +724,9 @@ void RTWindow::on_mainNB_switch_page(Gtk::Widget *widget, guint page_num)
             // in single tab mode with command line filename epanel does not
             // exist yet
             if (isSingleTabMode() && epanel) {
-                // Save profile on leaving the editor panel
-                epanel->saveProfile();
+                // Save profile on leaving the editor panel (in the
+                // background: the sidecar can be on a slow file system)
+                epanel->saveProfile(true);
 
                 // Moving the FileBrowser only if the user has switched to the
                 // FileBrowser tab
@@ -1081,6 +1082,8 @@ bool RTWindow::on_delete_event(GdkEventAny *event)
         }
     }
 
+    // make sure that what was saved in the background is on disk
+    Thumbnail::flushPendingWrites();
     cacheMgr->closeCache(); // also makes cleanup if too large
     WhiteBalance::cleanup();
     ProfilePanel::cleanup();

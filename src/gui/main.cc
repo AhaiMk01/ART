@@ -295,6 +295,7 @@ public:
         if (rtWindow) {
             art::gui::session::save(art::gui::session::filename() + ".last");
             art::gui::session::clear();
+            art::gui::Thumbnail::flushPendingWrites();
             cleanup_rt();
         }
 #ifdef __APPLE__

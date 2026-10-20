@@ -1065,6 +1065,10 @@ void run_with_progress(const std::vector<FileBrowserEntry *> &args, Func func,
 void FileCatalog::copyMoveRequested(const std::vector<FileBrowserEntry *> &args,
                                     bool move)
 {
+    // sidecars written in the background must be on disk before they are
+    // moved or deleted
+    Thumbnail::flushPendingWrites();
+
     const auto doit = [&](const Glib::ustring &s,
                           const Glib::ustring &d) -> bool {
         if (move) {
@@ -1155,6 +1159,10 @@ void FileCatalog::copyMoveRequested(const std::vector<FileBrowserEntry *> &args,
 void FileCatalog::deleteRequested(const std::vector<FileBrowserEntry *> &tbe,
                                   bool onlySelected)
 {
+    // sidecars written in the background must be on disk before they are
+    // moved or deleted
+    Thumbnail::flushPendingWrites();
+
     if (tbe.empty()) {
         return;
     }

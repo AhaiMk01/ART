@@ -152,7 +152,12 @@ public:
     void toggleSidePanels();
     void toggleSidePanelsZoomFit();
 
-    void saveProfile();
+    // Saves the processing parameters of the image being edited (nothing is
+    // written if they did not change and the files exist). With async the files
+    // are written by a background thread, which is what to use when the caller
+    // must not wait for the file system (see Thumbnail::saveProcParams()); the
+    // callers that need the files to be there right away must not.
+    void saveProfile(bool async = false);
     Glib::ustring getShortName();
     Glib::ustring getFileName();
     bool handleShortcutKey(GdkEventKey *event);

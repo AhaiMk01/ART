@@ -1277,7 +1277,7 @@ void EditorPanel::close()
     openThm = nullptr;
 }
 
-void EditorPanel::saveProfile()
+void EditorPanel::saveProfile(bool async)
 {
     if (!ipc || !openThm) {
         return;
@@ -1292,9 +1292,8 @@ void EditorPanel::saveProfile()
         ProcParams params;
         ipc->getParams(&params);
 
-        // Will call updateCache, which will update both the cached and sidecar
-        // files if necessary
-        openThm->setProcParams(FullPartialProfile(params), EDITOR);
+        // Will update both the cached and sidecar files if necessary
+        openThm->saveProcParams(FullPartialProfile(params), EDITOR, async);
     }
 
     if (options.sidecar_autosave_interval > 0) {
@@ -2821,7 +2820,7 @@ bool EditorPanel::autosave()
         return false;
     };
     Glib::signal_timeout().connect(sigc::slot<bool>(doit), 1000);
-    saveProfile();
+    saveProfile(true);
     return false;
 }
 

@@ -56,6 +56,10 @@ class Thumbnail: public PParamsSnapshotListener {
     art::engine::procparams::ProcParamsWithSnapshots pparams;
 
     bool pparamsValid;
+    // The parameters in memory may differ from those on disk: set by every
+    // change (the editor pushes its changes here without writing them, see
+    // setProcParams()), cleared when they are written or loaded.
+    bool pparamsDirty_;
     bool needsReProcessing;
     bool imageLoading;
 
@@ -119,6 +123,12 @@ class Thumbnail: public PParamsSnapshotListener {
     void saveRating();
     void loadRating();
     void saveMetadata();
+
+    // true if the files that saveProcParams() would write already exist
+    bool paramFilesExist() const;
+    // like updateCache(), but the files are written by a background thread
+    // (from a copy of the data taken here); the mutex must be held
+    void updateCacheAsync();
 
 public:
     Thumbnail(CacheManager *cm, const Glib::ustring &fname, CacheImageData *cf);
@@ -230,6 +240,21 @@ public:
 
     void updateCache(bool updatePParams = true,
                      bool updateCacheImageData = true);
+
+    // Saves the processing parameters (sidecar, cache entries, XMP metadata)
+    // as setProcParams(pp, whoChangedIt) does, except that nothing is written
+    // (and the listeners are not notified) if the parameters did not change
+    // and the files already exist. If async is true, the files are written by
+    // a background thread, so that a slow file system (external drive, network
+    // share) does not block the caller; see flushPendingWrites().
+    void saveProcParams(const art::engine::procparams::PartialProfile &pp,
+                        int whoChangedIt = -1, bool async = false);
+
+    // Waits until all the writes started by saveProcParams(..., async=true)
+    // have completed. To be called before anything that renames, moves,
+    // deletes or reads those files by name, and before exiting. (updateCache()
+    // waits by itself for the pending write of its own file.)
+    static void flushPendingWrites();
     void saveThumbnail();
 
     bool imageLoad(bool loading);
