@@ -30,6 +30,7 @@ constexpr unsigned CARBON_CMD = 0x100;
 constexpr unsigned CARBON_SHIFT = 0x200;
 constexpr unsigned CARBON_OPTION = 0x800;
 constexpr unsigned CARBON_CONTROL = 0x1000;
+constexpr unsigned CARBON_FN = 0x20000;
 constexpr unsigned CARBON_ALL =
     CARBON_CMD | CARBON_SHIFT | CARBON_OPTION | CARBON_CONTROL;
 
@@ -102,6 +103,12 @@ bool matchesSystemHotKey(const ShortcutKey &key, const ModifierMasks &masks,
 {
     const unsigned mods = carbonMods(key, masks);
     for (auto &h : list) {
+        // Fn is added by the system to the arrows and the like, but on a key
+        // that types a character it is a real modifier (Fn+A, Fn+E), which
+        // must not shadow the plain key
+        if ((h.carbon_mods & CARBON_FN) && gdk_keyval_to_unicode(key.keyval)) {
+            continue;
+        }
         if ((h.carbon_mods & CARBON_ALL) == mods &&
             keyval_of(h.keycode) == key.keyval) {
             return true;

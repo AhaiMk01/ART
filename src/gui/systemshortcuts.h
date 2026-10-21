@@ -36,7 +36,7 @@ namespace art { namespace gui {
 
 /// One system shortcut, as macOS describes it: a virtual key code and
 /// Carbon modifier flags (cmdKey 0x100, shiftKey 0x200, optionKey 0x800,
-/// controlKey 0x1000; the other bits, like Fn, are ignored)
+/// controlKey 0x1000; Fn, 0x20000, only counts on keys that type no character; other bits are ignored)
 struct SystemHotKey {
     int keycode;
     unsigned carbon_mods;

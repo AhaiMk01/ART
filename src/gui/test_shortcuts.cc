@@ -919,6 +919,7 @@ void testSystemShortcuts()
         case 49: return GDK_KEY_space;
         case 126: return GDK_KEY_Up;
         case 20: return GDK_KEY_3;
+        case 0: return GDK_KEY_a;
         default: return 0;
         }
     };
@@ -943,6 +944,8 @@ void testSystemShortcuts()
     CHECK(sys(cmd, "Primary+Shift+3"));
     CHECK(!sys(cmd, "Primary+3"));
     CHECK(!sys(cmd, "Primary+Alt+space"));
+    // Fn+A (code 0) is not the plain A key
+    CHECK(!matchesSystemHotKey(key(cmd, "a"), cmd, {{0, 0x20000}}, keyval_of));
     // a key code that types nothing matches nothing
     CHECK(!matchesSystemHotKey(key(cmd, "Primary+space"), cmd, {{999, 0x100}},
                                keyval_of));
