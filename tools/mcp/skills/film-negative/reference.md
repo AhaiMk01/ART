@@ -216,6 +216,36 @@ Profiles from version 1060 floor transmission at one 16-bit code
 lamps, emitters) decode to large but finite values; sidecars before 1060 keep
 1e-10 and can fail with "non-finite sample" where a steep fit meets them.
 
+### Shadow black
+
+The `- 1` in the decode (the `expm1`) subtracts `c0 = W*b/(1-b)` (0.0098 at
+W 0.9, 6.5 stops below W) from every channel. Without it the decode is the
+pure power law of the densities, where a density error is a constant colour
+ratio at every level. With it, an exact neutral stays neutral, but any
+residual grows as the values approach `c0`: a 0.25-stop density error becomes
+a cast of more than a stop in deep shadow. On six Hawaii frames, the median
+red/green and blue/green ratios over the darkest 10% of pixels were
++0.5..+1.5 and +1.0..+2.6 stops (purple shadows); with the black taken off
+luminance they were +0.06..+0.28 and +0.3..+0.6, about the same at every
+level.
+
+`scripts/black_curve.py --ev EV [--w W]` prints the stock-tool recipe:
+- `exposure.black` = `-c0 * 2^EV * 65535 / 2000`. ART's exposure computes
+  `v * 2^EV - black * 2000`, so a negative black adds `c0` back to every
+  channel: the pure power law.
+- curve 1 in Luminance mode: `Y -> max(Y - c0 * 2^EV, 0)`, given as
+  sRGB-gamma-encoded points. ART scales R, G and B by the new/old luminance
+  ratio, so black depth is unchanged and the shadow keeps its hue.
+
+ART applies the tone curve tool's parts in the order contrast, curve 1,
+curve 2. The black has to act before any look, so `contrast` stays 0 and the
+look goes on curve 2 (`mode2`, Neutral). On 03319 the ART render matched a
+NumPy computation of the same recipe to 0.000 stops of luminance. The
+recipe assumes `[ToneCurve] WhitePoint` 1: the Luminance curve clips channels
+above 1.0, so set exposure so that highlights with detail stay below it, and
+check clipping as usual. What is left after the black is the real density
+residual (the fit, flare or the basis), now at its true size.
+
 ## Observing each stage
 
 One film conversion has three observable stages. Name the stage, space,
