@@ -314,7 +314,7 @@ void Crop::update(int todo)
     std::unique_ptr<Imagefloat> drCompCrop;
     bool stop = false;
 
-    if ((todo & M_HDR) && (params.drcompression.enabled || params.dehaze.enabled)) {
+    if ((todo & M_HDR) && parent->ipf.stage0NeedsFullImage()) {
         Imagefloat *f = baseCrop;
         int fw = skips(parent->fw, skip);
         int fh = skips(parent->fh, skip);

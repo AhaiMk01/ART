@@ -455,8 +455,7 @@ void ImProcCoordinator::updatePreviewImage(int todo, bool panningRelatedChange)
             // spotprev->copyData(orig_prev);
         }
 
-        if ((todo & M_HDR) &&
-            (params.drcompression.enabled || params.dehaze.enabled)) {
+        if ((todo & M_HDR) && ipf.stage0NeedsFullImage()) {
             if (drcomp_11_dcrop_cache) {
                 delete drcomp_11_dcrop_cache;
                 drcomp_11_dcrop_cache = nullptr;

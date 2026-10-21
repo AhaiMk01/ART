@@ -203,6 +203,7 @@ public:
     bool needsLuminanceOnly();
     bool needsTransform();
     bool needsPCVignetting();
+    bool stage0NeedsFullImage();
 
     float resizeScale(const ProcParams *params, int fw, int fh, int &imw,
                       int &imh);

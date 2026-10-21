@@ -49,7 +49,8 @@ public:
           pl(pl), flush(flush),
           // internal state
           ii(nullptr), imgsrc(nullptr), fw(0), fh(0), scale_factor(1.0), tr(0),
-          pp(0, 0, 0, 0, 0), dnstore(), pipeline_scale(1.0), stop(false)
+          pp(0, 0, 0, 0, 0), dnstore(), pipeline_scale(1.0), stop(false),
+          crop_region(false)
     {
     }
 
@@ -253,6 +254,7 @@ private:
             pl->setProgress(0.30);
         }
         pp = PreviewProps(0, 0, fw, fh, 1);
+        crop_region = setup_crop_region(is_fast);
 
         if (pl) {
             pl->setProgress(0.40);
@@ -271,7 +273,13 @@ private:
             }
         }
 
-        img = new Imagefloat(fw, fh);
+        if (crop_region) {
+            int w, h;
+            imgsrc->getSize(pp, w, h);
+            img = new Imagefloat(w, h);
+        } else {
+            img = new Imagefloat(fw, fh);
+        }
         {
             ART_PROFILE_SCOPE("raw:getImage");
             imgsrc->getImage(currWB, tr, img, pp, params.exposure, params.raw);
@@ -381,16 +389,20 @@ private:
             }
 
             Imagefloat *trImg = nullptr;
-            if (ipf.needsLuminanceOnly()) {
+            if (crop_region) {
+                // straight into the crop
+                trImg = new Imagefloat(params.crop.w, params.crop.h, img);
+            } else if (ipf.needsLuminanceOnly()) {
                 trImg = img;
             } else {
                 trImg = new Imagefloat(fw, fh, img);
             }
             {
                 ART_PROFILE_SCOPE("transform");
-            ipf.transform(img, trImg, 0, 0, 0, 0, fw, fh, fw, fh,
-                          imgsrc->getMetaData(), imgsrc->getRotateDegree(),
-                          true);
+            ipf.transform(img, trImg, crop_region ? params.crop.x : 0,
+                          crop_region ? params.crop.y : 0, pp.getX(),
+                          pp.getY(), fw, fh, fw, fh, imgsrc->getMetaData(),
+                          imgsrc->getRotateDegree(), true);
             }
             if (trImg != img) {
                 delete img;
@@ -405,7 +417,12 @@ private:
         ImProcFunctions &ipf = *(ipf_p.get());
 
         int cx = 0, cy = 0, cw = img->getWidth(), ch = img->getHeight();
-        if (params.crop.enabled) {
+        if (crop_region) {
+            // img is the crop already
+            cx = params.crop.x;
+            cy = params.crop.y;
+            ipf.setViewport(cx, cy, fw, fh);
+        } else if (params.crop.enabled) {
             int iw = img->getWidth();
             int ih = img->getHeight();
 
@@ -609,6 +626,83 @@ private:
         fh = imh;
     }
 
+    // With a crop, process only the source region it needs, as
+    // Crop::setCropSizes() does. Sets pp to that region. Returns false when
+    // the full frame is needed.
+    bool setup_crop_region(bool is_fast)
+    {
+        const procparams::ProcParams &params = job->pparams;
+        ImProcFunctions &ipf = *(ipf_p.get());
+
+        if (!params.crop.enabled || is_fast || ipf.stage0NeedsFullImage()) {
+            return false;
+        }
+        // Not crop-local: denoise would change near the edges of the region,
+        // and film negative takes its reference medians over the image (older
+        // profiles). removeSpots() can work on a region, as in the editor, but
+        // that is not tested here yet.
+        if (params.denoise.enabled || params.filmNegative.enabled ||
+            (params.spot.enabled && !params.spot.entries.empty())) {
+            return false;
+        }
+        // transformLuminanceOnly() and transformLCPCAOnly() expect source and
+        // destination to have the same origin; perspective would need the
+        // whole frame anyway (the editor widens by 100%)
+        if (params.vignetting.enabled || params.perspective.enabled ||
+            (params.lensProf.needed() && params.lensProf.useCA)) {
+            return false;
+        }
+        // auto distortion is computed later, in stage_transform()
+        if (params.distortion.enabled && params.distortion.autocompute) {
+            return false;
+        }
+
+        int x1 = params.crop.x;
+        int y1 = params.crop.y;
+        int x2 = x1 + params.crop.w;
+        int y2 = y1 + params.crop.h;
+
+        if (ipf.needsTransform()) {
+            constexpr int border = 32; // as Crop::borderRequested
+            const int bx1 = std::max(x1 - border, 0);
+            const int by1 = std::max(y1 - border, 0);
+            const int bx2 = std::min(x2 + border, fw);
+            const int by2 = std::min(y2 + border, fh);
+            int sx, sy, sw, sh;
+            ipf.transCoord(fw, fh, bx1, by1, bx2 - bx1, by2 - by1, sx, sy, sw,
+                           sh);
+            x1 = sx;
+            y1 = sy;
+            x2 = sx + sw;
+            y2 = sy + sh;
+            if (params.lensProf.useDist && params.lensProf.needed()) {
+                // as check_need_larger_crop_for_transform() in dcrop.cc
+                const int dw = int(fw * 0.15 / 2);
+                const int dh = int(fh * 0.15 / 2);
+                x1 -= dw;
+                y1 -= dh;
+                x2 += dw;
+                y2 += dh;
+            }
+            x1 = std::max(x1, 0);
+            y1 = std::max(y1, 0);
+            x2 = std::min(x2, fw);
+            y2 = std::min(y2, fh);
+        }
+
+        if (double(x2 - x1) * (y2 - y1) >= double(fw) * fh) {
+            return false; // nothing to gain
+        }
+
+        pp = PreviewProps(x1, y1, x2 - x1, y2 - y1, 1);
+        if (settings->verbose) {
+            printf("Processing only the region %d,%d %dx%d of %dx%d needed "
+                   "for the crop\n",
+                   x1, y1, x2 - x1, y2 - y1, fw, fh);
+        }
+        return true;
+    }
+
     void adjust_procparams(double scale_factor)
     {
         procparams::ProcParams &params = job->pparams;
@@ -655,6 +749,7 @@ private:
 
     double pipeline_scale;
     bool stop;
+    bool crop_region; // pp is the source region of the crop
 };
 
 } // namespace
