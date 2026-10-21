@@ -21,15 +21,10 @@
 #include "utils.h"
 
 #ifdef ART_USE_LIBRAW
-// Record whether the LibRaw *library* was built with OpenMP. This has to be
-// read from libraw_config.h (written when LibRaw was built): the
-// LIBRAW_USE_OPENMP that libraw_types.h defines depends on the flags of
-// whoever includes it (ART is always built with -fopenmp), not on the library.
-#include <libraw_config.h>
-#ifdef LIBRAW_USE_OPENMP
-#define ART_LIBRAW_LIB_HAS_OPENMP 1
-#undef LIBRAW_USE_OPENMP // let libraw_types.h decide, as it always did
-#endif
+// ART_LIBRAW_LIB_HAS_OPENMP (set by CMake) records whether the LibRaw
+// *library* was built with OpenMP. The LIBRAW_USE_OPENMP that libraw_types.h
+// defines can't be used for that: it depends on the flags of whoever includes
+// it (ART is always built with -fopenmp), not on the library.
 #include <libraw.h>
 #ifdef _OPENMP
 #include <omp.h>
@@ -75,7 +70,7 @@ public:
         librawMutex->lock();
         locked_ = true;
 #endif
-#endif
+#endif // ART_LIBRAW_LIB_HAS_OPENMP
     }
     ~LibrawLock()
     {
