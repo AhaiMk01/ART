@@ -342,10 +342,17 @@ what a deviation means) stays yours.
    beyond tolerance, all in one direction, against `material` rows of
    their own frames. A narrow
    interval does not show it is set. A frame whose neutrals split
-   by light (seen, and beyond tolerance) gives an offset but no slope. When
-   the slope is not set, take it from a preset for the same film and setup
-   and fit only the offsets. Without one, never pick a value by hand: give
-   the script a prior (`--prior`): the slopes of the nearest preset for the
+   by light (seen, and beyond tolerance) gives an offset but no slope. An
+   unset slope on a roll of many frames usually means the search was thin,
+   not that the roll lacks evidence: a wrong slope pushes highlights and
+   shadows opposite ways on every frame, which no offset fixes. Before
+   falling back, search the frames without `material` rows again for a
+   light and a dark neutral each, under one light (white paint and a tyre,
+   asphalt) and refit. When
+   the slope is still not set, take it from a preset (an entry of the slope
+   record below for the same film and setup) and fit only the offsets.
+   Without one, never pick a value by hand: give
+   the script a prior (`--prior`): the slopes of the nearest entry for the
    same camera, light and basis (another stock if need be; used only as a
    prior, not as a preset), or `1,1,0.15` when nothing matches; the roll's
    own evidence moves it as far as it supports. A
@@ -408,6 +415,29 @@ curve are per-frame tonal choices, set against the clipping check ("Observing ea
 carry skylight, so a daylight frame corrected to them in full can look
 warm; that is the light, reported, not a reason to nudge.
 An automatic white balance is a cross-check, never the prior.
+
+### Slope record
+
+Presets and priors come from `film-slopes.json`, kept beside the rolls (the
+roll's folder or a parent; look for it before fitting). It lists slopes that
+rolls set, never prior-weighted results:
+
+```json
+[{"roll": "FILM011", "film": "Kodak UltraMax 400",
+  "camera": "Sony A7III", "light": "white LED panel",
+  "basis": {"input_profile": "(cameraICC)", "working": "Rec2020",
+            "namicolor_colorspace": 1, "input_gamma": 1},
+  "kR": 0.781, "kB": 1.030,
+  "kR_boot90": [0.772, 0.789], "kB_boot90": [1.012, 1.051]}]
+```
+
+An entry with the same film, camera, light and basis is a preset
+(`--slopes`). Otherwise the nearest entries with the same camera, light and
+basis give the prior (`--prior kR,kB,sd`): one entry gives its slopes and
+the script's default sd; several give their mean and their spread when it
+is wider. Name the entries used in the report. When the user has no record,
+use the `1,1,0.15` prior. When a roll sets its slope, offer to add its
+entry; do not add it without the user's agreement.
 
 ## Choosing neutral references
 
