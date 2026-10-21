@@ -715,13 +715,20 @@ private:
     FILE *file_;
 };
 
+// fmod() is slow, and hue shifts are nearly always within +-360 degrees,
+// where it returns its argument unchanged
+inline float wrap_360(float hue)
+{
+    return std::abs(hue) < 360.f ? hue : fmod(hue, 360.f);
+}
+
 // avoid hue shift discontinuity
 // (see https://torger.se/anders/dcamprof.html#dcp_hue_shift_discontinuity).
 // Adapted from dcamprof, Copyright 2015 Anders Torger, released under GPLv3
 inline float hue_interpolate(float f0, float hue0, float f1, float hue1)
 {
-    float h1 = fmod(hue0, 360.f);
-    float h2 = fmod(hue1, 360.f);
+    float h1 = wrap_360(hue0);
+    float h2 = wrap_360(hue1);
     float d = h2 - h1;
     float res = 0.f;
     if (h1 > h2) {
