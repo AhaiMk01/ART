@@ -348,7 +348,8 @@ what a deviation means) stays yours.
    shadows opposite ways on every frame, which no offset fixes. Before
    falling back, search the frames without `material` rows again for a
    light and a dark neutral each, under one light (white paint and a tyre,
-   asphalt) and refit. When
+   asphalt), mark each such frame `"searches": 2` in the picks (the
+   script lists them and prints no NamiColor settings until then) and refit. When
    the slope is still not set, take it from a preset (an entry of the slope
    record below for the same film and setup) and fit only the offsets.
    Without one, never pick a value by hand: give

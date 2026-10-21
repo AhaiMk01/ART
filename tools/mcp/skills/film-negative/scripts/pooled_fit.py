@@ -13,6 +13,7 @@ picks.json:
     {"frames": {"<frame>": {
         "light": "daylight",          # light group (scene light, never a capture setting)
         "s": 1.0,                     # capture multiplier vs the reference scan exposure
+        "searches": 1,                # times the frame was searched for neutrals (default 1)
         "squares": [{"material": "white paint", "object_id": "van",
                      "basis": "material" | "uncertain" | "C",
                      "avg": [r, g, b], "sd": [r, g, b], "size": 32}, ...]}}}
@@ -40,6 +41,9 @@ widened by how far `uncertain` rows miss `material` ones in shared frames
 how far each frame's offset lies from the rest of its light group (in mD;
 what a large one means is a judgement, see "Neutral by material"), and the
 D_G range the slope was checked over (outside it the line is extrapolated).
+When the slope is not set on a roll of several frames, the fold is not
+printed (not even with --prior) until every frame without a `material` row
+has "searches" 2 or more: search those frames again first.
 """
 
 import argparse
@@ -74,7 +78,7 @@ def load(path, flare, matrix=None):
     groups, meta = {}, {}
     for f, fr in frames.items():
         s = float(fr.get("s", 1.0))
-        meta[f] = dict(light=fr.get("light", "?"), s=s)
+        meta[f] = dict(light=fr.get("light", "?"), s=s, searches=int(fr.get("searches", 1)))
         for q in fr.get("squares", []):
             avg = [v - fl for v, fl in zip(q["avg"], flare, strict=True)]
             if min(avg) <= 0:
@@ -368,6 +372,18 @@ def main(argv=None):
         P("slope " + ("NOT SET: " + "; ".join(reasons) + ". Take it from a preset (--slopes) "
                       "and fit offsets only, or give --prior." if reasons else "SET"))
     result["checks"] = reasons
+    # an unset slope on a roll usually means a thin search: the frames
+    # without material rows are searched again before any prior is used
+    research = []
+    if reasons and len(meta) > 1:
+        with_mat = {r["frame"] for r in rows["material"]}
+        research = sorted(f for f in meta if f not in with_mat and meta[f]["searches"] < 2)
+    result["search_again"] = research
+    if research:
+        P(f"STEP 1 NOT DONE: the slope is not set and {len(research)} frame(s) without material "
+          f"rows were searched once: {', '.join(research)}. Search each again for a light and a "
+          'dark neutral under one light, set its "searches" to 2 (with or without new squares), '
+          "and refit before using --prior")
     if prior and not preset:
         k0, sd0 = prior
         for c in (0, 2):
@@ -500,7 +516,9 @@ def main(argv=None):
 
     # step 7: fold into NamiColor
     fold = a.green or a.base
-    if fold and reasons and not prior:
+    if fold and research:
+        P("\nNamiColor: not printed: search the frames listed under STEP 1 NOT DONE again, then refit")
+    elif fold and reasons and not prior:
         P("\nNamiColor: not printed: the slope is NOT SET; rerun with --prior or --slopes")
     elif fold:
         gv = [float(v) for v in (a.green or "1").split(",")]
