@@ -286,6 +286,10 @@ int main(int argc, char **argv)
         std::cout << "Terminating without anything to do." << std::endl;
     }
 
+    // as the GUI does on exit; among other things this stops the exiftool
+    // process started for reading metadata, which would otherwise keep running
+    art::engine::cleanup();
+
     return ret;
 }
 namespace art { namespace gui {
