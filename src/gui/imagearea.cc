@@ -120,6 +120,12 @@ void ImageArea::on_resized(Gtk::Allocation &req)
             if (alp_) {
                 alp_->setAreaDrawListener(mainCropWindow);
             }
+        } else if (!get_mapped()) {
+            // The editor tab is hidden (in single tab mode the file browser
+            // is moved in and out of the editor, which resizes this area):
+            // don't reprocess for a size nobody sees. The real size comes
+            // with the next allocation once the tab is shown again, and
+            // CropHandler::setWSize ignores it if it is unchanged.
         } else {
             mainCropWindow->setSize(
                 get_width(), get_height()); // this execute the refresh itself

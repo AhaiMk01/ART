@@ -365,6 +365,11 @@ float CropHandler::getZoomFactor()
 
 void CropHandler::setWSize(int w, int h)
 {
+    if (w == ww && h == wh) {
+        // a size-allocate with an unchanged size (e.g. when the editor tab
+        // is shown again): nothing to recompute, don't reprocess
+        return;
+    }
 
     ww = w;
     wh = h;
