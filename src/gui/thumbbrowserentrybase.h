@@ -78,6 +78,7 @@ protected:
 
     Glib::RefPtr<BackBuffer> backBuffer;
     BackBuffer preview_bb_;
+    static std::shared_ptr<RTSurface> hourglassIcon;
     bool bbSelected, bbFramed;
     guint8 *bbPreview;
     std::vector<std::shared_ptr<RTSurface>> bbIcons;

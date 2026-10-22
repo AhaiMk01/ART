@@ -119,6 +119,8 @@ Glib::ustring getPaddedName(const Glib::ustring &name)
 
 } // namespace
 
+std::shared_ptr<RTSurface> ThumbBrowserEntryBase::hourglassIcon;
+
 ThumbBrowserEntryBase::ThumbBrowserEntryBase(const Glib::ustring &fname)
     : fnlabw(0), fnlabh(0), dtlabw(0), dtlabh(0), exlabw(0), exlabh(0), prew(0),
       preh(0), prex(0), prey(0), upperMargin(6), borderWidth(1), textGap(6),
@@ -250,6 +252,40 @@ void ThumbBrowserEntryBase::updateBackBuffer()
         //     backBuffer->copyRGBCharData(&preview[0], 0, 0, prew, preh, prew * 3,
         //                                 prex, prey);
         // }
+    } else if (prew > 0 && preh > 0) {
+        // the image is not available yet: draw a placeholder with an hourglass
+        prex = borderWidth + (exp_width - prew) / 2;
+        int hh = exp_height -
+                 (upperMargin + bsHeight + borderWidth + infoh + lowerMargin);
+        prey =
+            upperMargin + bsHeight + borderWidth + std::max((hh - preh) / 2, 0);
+        const double radius = 4;
+        cc->begin_new_path();
+        cc->arc(prex + prew - radius, prey + radius, radius,
+                -art::engine::RT_PI / 2, 0);
+        cc->arc(prex + prew - radius, prey + preh - radius, radius, 0,
+                art::engine::RT_PI / 2);
+        cc->arc(prex + radius, prey + preh - radius, radius,
+                art::engine::RT_PI / 2, art::engine::RT_PI);
+        cc->arc(prex + radius, prey + radius, radius, art::engine::RT_PI,
+                3 * art::engine::RT_PI / 2);
+        cc->close_path();
+        const Gdk::RGBA &fg = selected ? texts : textn;
+        cc->set_source_rgba(fg.get_red(), fg.get_green(), fg.get_blue(), 0.12);
+        cc->fill();
+
+        if (!hourglassIcon) {
+            hourglassIcon = std::make_shared<RTSurface>("hourglass.svg");
+        }
+        if (hourglassIcon->surface && hourglassIcon->getWidth() <= prew &&
+            hourglassIcon->getHeight() <= preh) {
+            int ix = prex + (prew - hourglassIcon->getWidth()) / 2;
+            int iy = prey + (preh - hourglassIcon->getHeight()) / 2;
+            cc->set_source(hourglassIcon->surface, ix, iy);
+            cc->rectangle(ix, iy, hourglassIcon->getWidth(),
+                          hourglassIcon->getHeight());
+            cc->fill();
+        }
     }
 
     customBackBufferUpdate(cc);
