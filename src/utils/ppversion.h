@@ -1,3 +1,4 @@
+// -*- C++ -*-
 #pragma once
 
 namespace art { namespace utils {
@@ -5,10 +6,12 @@ namespace art { namespace utils {
 
 // This number has to be incremented whenever the ARP file format is modified or
 // the behaviour of a tool changes
-#define PPVERSION 1046
+#define PPVERSION 1047
 
 /*
   Log of version changes
+  1047  2026-10-22
+        adjuted coarseness coefficient for Smoothing in NOISE mode
   1046  2026-10-17
         renamed FattalToneMapping to DynamicRangeCompression
   1045  2026-05-25

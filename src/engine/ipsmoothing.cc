@@ -626,7 +626,7 @@ void add_noise(array2D<float> &R, array2D<float> &G, array2D<float> &B,
 
     const float sf =
         LIM01(float(strength) / (chan == Channel::L ? 200.f : 100.f)) / scale;
-    const float radius = (0.5f + 1.75f * float(coarseness) / 100.f) / scale;
+    const float radius = (0.5f + 1.75f * float(coarseness) / 100.f) / (1.5f * scale);
 
     RandomNumberGenerator rng(42 + int(chan) + coarseness + oY * fW + oX);
 

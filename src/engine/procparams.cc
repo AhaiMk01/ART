@@ -5368,6 +5368,9 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
         if (keyFile.has_group("Grain") && RELEVANT_(grain)) {
             assignFromKeyfile(keyFile, "Grain", "Enabled", grain.enabled);
             assignFromKeyfile(keyFile, "Grain", "ISO", grain.iso);
+            if (ppVersion < 1047) {
+                grain.iso = std::min(int(grain.iso * 1.5 + 0.5), 6400);
+            }
             assignFromKeyfile(keyFile, "Grain", "Strength", grain.strength);
             int gscale = 100;
             if (assignFromKeyfile(keyFile, "Grain", "Scale", gscale)) {
@@ -5486,6 +5489,10 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                 if (assignFromKeyfile(keyFile, smoothing_group,
                                       Glib::ustring("NoiseCoarseness_") + n,
                                       cur.noise_coarseness)) {
+                    if (ppVersion < 1047) {
+                        cur.noise_coarseness =
+                            std::min(int(cur.noise_coarseness * 1.5 + 0.5), 100);
+                    }
                     found = true;
                     done = false;
                 }
