@@ -466,6 +466,7 @@ class RustBackend:
                 'dir_couplers': {
                     'active': opts.dir_couplers_amount > 0,
                     'amount': opts.dir_couplers_amount,
+                    'diffusion_size_um': 0,
                 },
             },
             'print_render': {
