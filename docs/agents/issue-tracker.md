@@ -11,7 +11,7 @@ Issues and specs for this repo live as GitHub issues on the fork `AhaiMk01/ART`.
 - **Apply / remove labels**: `gh issue edit -R AhaiMk01/ART <number> --add-label "..."` / `--remove-label "..."`
 - **Close**: `gh issue close -R AhaiMk01/ART <number> --comment "..."`
 
-**Always target the fork `AhaiMk01/ART`.** In this clone `origin` is upstream `artraweditor/ART`, so a bare `gh` command run here hits upstream: never file issues, labels or comments there. Pass `-R AhaiMk01/ART` on every `gh issue`/`gh pr` call (as above). The fork's local git remote is named `fork`.
+**Always target the fork `AhaiMk01/ART`.** In this clone `origin` is the fork and `upstream` is `artraweditor/ART`; gh's default repo is set to the fork (`gh repo set-default`), but gh prefers a remote named `upstream` when no default is set, so still pass `-R AhaiMk01/ART` on every `gh issue`/`gh pr` call (as above). Never file issues, labels or comments on upstream.
 
 ## Pull requests as a triage surface
 

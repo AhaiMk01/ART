@@ -67,7 +67,7 @@ Pre-demosaic and early steps (spot removal, film negative, denoise, transform/le
 
 ### Issue tracker
 
-GitHub Issues on the fork `AhaiMk01/ART` (not upstream `origin`); always pass `-R AhaiMk01/ART` to `gh`. See `docs/agents/issue-tracker.md`.
+GitHub Issues on the fork `AhaiMk01/ART` (remote `origin`; upstream `artraweditor/ART` is remote `upstream`); always pass `-R AhaiMk01/ART` to `gh`. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
