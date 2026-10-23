@@ -1,3 +1,4 @@
+// -*- C++ -*-
 /**********************************************************************
 Finds the N_FEATURES best features in an image, and tracks these
 features to the next image.  Saves the feature

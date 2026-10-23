@@ -1,5 +1,9 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *
+ *  This file is part of ART.
+ *
+ *  Copyright (c) 2004-2019 the RawTherapee developers
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
  *  Created on: 20/nov/2010
  */

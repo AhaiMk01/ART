@@ -1,3 +1,4 @@
+// -*- C -*-
 /* GIMP - The GNU Image Manipulation Program
  * Copyright (C) 1995 Spencer Kimball and Peter Mattis
  *

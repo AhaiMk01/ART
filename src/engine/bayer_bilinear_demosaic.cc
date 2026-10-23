@@ -1,3 +1,4 @@
+// -*- C++ -*-
 ////////////////////////////////////////////////////////////////
 //
 //  Bilinear bayer demosaic, optimized for speed, intended use is for flat

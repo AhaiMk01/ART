@@ -1,3 +1,4 @@
+// -*- C -*-
 /*
   This file is part of darktable,
   copyright (c) 2016 Ulrich Pegelow.

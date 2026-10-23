@@ -1,5 +1,8 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *
+ *  This file is part of ART.
+ *
+ *  Copyright (c) 2004-2019 the RawTherapee developers
  */
 #include "gradient.h"
 #include "shortcutsmanager.h"

@@ -1,3 +1,4 @@
+// -*- C++ -*-
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"

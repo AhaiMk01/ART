@@ -1,6 +1,8 @@
 /* -*- C++ -*-
  *
- *  This file is part of RawTherapee.
+ *  This file is part of ART.
+ *
+ *  Copyright (c) 2004-2018 the RawTherapee developers
  */
 #pragma once
 
