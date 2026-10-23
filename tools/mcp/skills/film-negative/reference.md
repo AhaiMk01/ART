@@ -1,6 +1,6 @@
 # Film negative reference
 
-The skill gives the procedure; this file gives method equations and evidence limits. The skill converts with NamiColor only; a profile saved with another method (Density, power-law) is not converted here.
+The skill gives the procedure; this file gives method equations and evidence limits. The skill converts with NamiColor only; a profile saved with another method (power-law) is not converted here.
 
 ## Viewing previews
 

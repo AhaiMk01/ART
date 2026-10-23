@@ -1,5 +1,5 @@
-#55 fixture: no Version group, only new density fields, no Method.
+#55 fixture: no Version group, only new fields, no Method.
 # ProcParams::load must preserve the current method.
 [Film Negative]
-DensityGamma=1.4
-OutputBlackOffset=0.01
+NamiColorMasterGain=0.1
+NamiColorMasterShift=0.01

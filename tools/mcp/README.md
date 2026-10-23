@@ -197,9 +197,12 @@ would skip an incomplete one), the ones the request doesn't set at ART's
 defaults, which the result counts under `created` instead of listing. Setting `r`/`g`/`b` switches the region to RGB mode
 and turns the tool on (listed as `implied`).
 
-`film_negative.method` selects `power_law` (default), `density` or `namicolor`;
-`film_type` is `negative` or `reversal`. The two older methods and their
-sidecars retain their rendering. `color_space` (`working`/`input`) selects
+`film_negative.method` selects `power_law` (default) or `namicolor`;
+`film_type` is `negative` or `reversal`. The Density method was removed in
+PPVERSION 1064: ART renders a stored `Method=density` (or `1`) as power-law,
+it reads back as `power_law`, `method="density"` is refused, and the old
+`DensityGamma`, `DensityDmax`, `RGBGains`, `ChannelGamma` and
+`OutputBlackOffset` keys are ignored. `color_space` (`working`/`input`) selects
 the conversion basis; `sample_spots` reads linear values in that basis.
 
 For **power-law**, `red_ratio`, `green_exponent`, `blue_ratio` and the
@@ -214,7 +217,7 @@ of the previous profile's rendering of the new reference. Unset references
 are estimated by sampling 64 spots in the central 60% of the frame
 (`art-cli -x` on Render, `sample_spots` on Live), with a warning; unavailable
 sampling implies grey 65535/24 with a warning. Explicit `ref_output` wins.
-Density, NamiColor and transitions between methods do not invoke this rule.
+NamiColor and transitions between methods do not invoke this rule.
 Legacy power-law profiles (`BackCompat`, `RedBase`) stay under `raw`;
 typed edits other than `enabled` are refused on those profiles.
 
@@ -240,9 +243,8 @@ For normalized positive transmittance `T`, negative mode starts with
 Typed edits check the effective stored-plus-requested settings together:
 all numbers must be finite and every denominator strictly positive. An
 invalid coupled edit changes nothing, even when its individual values are
-within range. NamiColor ignores retained power-law references, density
-matrix/slopes/gains, paper response and `output_black_offset`; switching
-back to an older method makes that method's saved settings active again.
+within range. NamiColor ignores retained power-law references; switching
+back to power-law makes its saved settings active again.
 
 ART decodes NamiColor's approximate Cineon code into its linear buffer using
 `b = 10^((95-685)/300)` and
@@ -267,17 +269,14 @@ NamiColor, including the LUT input transfer selector. Use the rebuilt ART
 and restart existing MCP server processes to load the updated typed schema;
 an already-running server does not acquire the new fields automatically.
 
-`input_gamma` (0.5..2.8, default 1) is a source decoding override for density
-and NamiColor: `sign(x)*abs(x)^input_gamma` before inversion. Only explicitly
+`input_gamma` (0.5..2.8, default 1) is a source decoding override for NamiColor: `sign(x)*abs(x)^input_gamma` before inversion. Only explicitly
 unprofiled non-RAW scans (`InputProfile=(none)`) may use a non-unity value;
 RAW and profile-linearized inputs require 1. It is not the LUT's gamma.
 
 The common `target_mode` is `linear`, `paper` or `cineon`; the editor buffer
-stays linear. Paper is density-only. `cineon_primaries` (empty = working
+stays linear. `cineon_primaries` (empty = working
 profile) and `cineon_reference_white` (1e-6..1e6, default 0.9: code 685 is 90% diffuse white; 1 when absent below version 1058) control Cineon
-16-bit integer TIFF exports, supported by density and NamiColor.
-`output_black_offset` (0..0.05, default 0) subtracts from density's
-normalized linear output and floors it at zero; it is inactive in NamiColor.
+16-bit integer TIFF exports, supported by NamiColor.
 
 `cineon_lut` (empty = none) selects an external `.cube`, paired with
 `cineon_lut_sha256`; changed LUT bytes fail rendering. The LUT is evaluated
@@ -295,8 +294,8 @@ LUT output is decoded with `cineon_lut_output_transfer`
 (`linear`/`srgb`/`gamma_2_4`) and converted from
 `cineon_lut_output_primaries` (empty = working RGB) back to working linear.
 Declared incompatible log output is rejected, not treated as linear.
-A density paper target and a LUT are mutually exclusive. For pre-1054
-density sidecars using input-space conversion and a LUT, ART preserves the
+For pre-1054
+sidecars using input-space conversion and a LUT, ART preserves the
 old pre-working-conversion LUT ordering via an internal compatibility key;
 new profiles and NamiColor use the corrected ordering. Power-law keeps LUT
 settings inactive.
@@ -339,10 +338,10 @@ in the temp folder whose process is gone.
 
 Results of `get_profile`, `edit_profile` and `describe_adjustments` carry a
 `warnings` list when ART's profile version is newer than the schema's
-(`PPVERSION` 1059; 1055 added the active NamiColor matrix mask, 1056 the
+(`PPVERSION` 1064; 1055 added the active NamiColor matrix mask, 1056 the
 Cineon print-LUT order, 1057 `preserve_range`, 1058 the 0.9 reference white
-and `fit_base_anchor`, 1059 `denoise_before_inversion`; `flare` is not version-gated); edits keep working. A film-negative
-edit never raises a sidecar's `[Version]`: one older than 1046 (density keys) or 1055
+and `fit_base_anchor`, 1059 `denoise_before_inversion`, 1064 removed the Density method; `flare` is not version-gated); edits keep working. A film-negative
+edit never raises a sidecar's `[Version]`: one older than 1046 (matrix and film-type keys) or 1055
 (NamiColor mask) is refused until it has been opened and re-saved in ART; so is enabling
 `namicolor_fit_base` below 1058 without an explicit `fit_base_anchor`.
 

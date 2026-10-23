@@ -46,8 +46,6 @@ public:
 
     virtual bool getFilmNegativeSpot(art::engine::Coord spot, int spotSize,
                                      RGB &refInput, RGB &refOutput) = 0;
-    virtual bool getFilmNegativeBaseGains(art::engine::Coord spot, int spotSize,
-                                          std::array<double, 3> &gains) = 0;
     virtual Glib::ustring getFilmNegativeSourceId() const
     {
         return "Unknown";
@@ -103,7 +101,6 @@ public:
 private:
     void editToggled();
     void refSpotToggled();
-    void filmBaseToggled();
 
     void readOutputSliders(RGB &refOutput);
     void writeOutputSliders(const RGB &refOutput);
@@ -119,7 +116,6 @@ private:
     const art::engine::ProcEvent evFilmNegativeColorSpace;
     const art::engine::ProcEvent evFilmNegativeMethod;
     const art::engine::ProcEvent evFilmNegativeDensity;
-    const art::engine::ProcEvent evFilmNegativeFilmBase;
     const art::engine::ProcEvent evFilmNegativeCineon;
     const art::engine::ProcEvent evFilmNegativeMatrix;
     const art::engine::ProcEvent evFilmNegativeFlare;
@@ -158,8 +154,6 @@ private:
     Gtk::Label *const refInputLabel;
     Gtk::ToggleButton *const refSpotButton;
     MyComboBoxText *refspotsize;
-    Gtk::ToggleButton *const filmBaseButton;
-    MyComboBoxText *filmBaseSize;
 
     Adjuster *const outputLevel;
     Adjuster *const greenBalance;
@@ -168,17 +162,8 @@ private:
     Gtk::Grid *csGrid;
 
     Adjuster *const inputGamma;
-    Adjuster *const densityGamma;
-    Adjuster *const densityDmax;
     std::array<Adjuster *, 12> namicolorAdjusters;
     MyComboBoxText *namicolorFitBase;
-    Adjuster *const channelGammaR;
-    Adjuster *const channelGammaG;
-    Adjuster *const channelGammaB;
-    Adjuster *const rgbGainR;
-    Adjuster *const rgbGainG;
-    Adjuster *const rgbGainB;
-    Adjuster *const outputBlackOffset;
     Adjuster *const flareR;
     Adjuster *const flareG;
     Adjuster *const flareB;
@@ -196,7 +181,6 @@ private:
 
     Gtk::Widget *spotPickerBox;
     Gtk::Widget *refSpotPickerBox;
-    Gtk::Widget *filmBasePickerBox;
     Gtk::Separator *sep;
 
     IdleRegister idle_register;

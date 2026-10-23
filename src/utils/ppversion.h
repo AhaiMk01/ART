@@ -26,10 +26,15 @@ namespace art { namespace utils {
 
 // This number has to be incremented whenever the ARP file format is modified or
 // the behaviour of a tool changes
-#define PPVERSION 1063
+#define PPVERSION 1064
 
 /*
   Log of version changes
+  1064  2026-10-23
+        film negative: the Density method is removed, with DensityGamma,
+        DensityDmax, RGBGains, ChannelGamma, OutputBlackOffset and the
+        film-base picker. Method=density loads as power_law and warns; the
+        old keys are ignored. NamiColor's integer form 2 still loads
   1063  2026-10-23
         upstream 1047: adjusted coarseness coefficient for Grain ISO and
         Smoothing in NOISE mode (renumbered: fork versions 1046-1061 predate

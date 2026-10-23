@@ -6,8 +6,7 @@ Expected numbers are worked out by hand from ART's formula
 exp = -(G * (RedRatio, 1, BlueRatio)) and mult_c = RefOutput_c / RefInput_c^exp_c.
 Throughout, G = 2, RedRatio = 1, BlueRatio = 0.5, so exp = (-2, -2, -1).
 
-The pure-math tests (reference matrix, black offset, input gamma, density
-negative) are reference-formula checks on literals: they do not call the
+The pure-math tests (reference matrix) are reference-formula checks on literals: they do not call the
 engine. Engine coverage lives in test_integration_film_negative.py.
 """
 
@@ -86,11 +85,8 @@ def test_describe_lists_the_fields_with_ranges_and_keys():
     ranges = {n: (f.minimum, f.maximum) for n, f in tool.fields.items()}
     assert ranges["red_ratio"] == (0.3, 5) and ranges["blue_ratio"] == (0.3, 5)
     assert ranges["green_exponent"] == (0.3, 4)
-    assert ranges["density_gamma"] == (0.1, 4.0)
-    assert ranges["density_dmax"] == (0.0, 4.8)
-    assert ranges["output_black_offset"] == (0.0, 0.05)
     assert ranges["input_gamma"] == (0.5, 2.8)
-    assert tool.fields["method"].enum == ["power_law", "density", "namicolor"]
+    assert tool.fields["method"].enum == ["power_law", "namicolor"]
     assert tool.fields["film_type"].enum == ["negative", "reversal"]
     assert tool.fields["color_space"].enum == ["working", "input"]
     assert tool.fields["matrix_preset"].enum == ["identity", "status_m_reference", "custom"]
@@ -207,9 +203,6 @@ def test_entering_namicolor_rejects_nonfinite_or_malformed_inactive_settings(sto
     [
         ("power_law", "namicolor"),
         ("namicolor", "power_law"),
-        ("density", "namicolor"),
-        ("namicolor", "density"),
-        ("density", "density"),
         ("namicolor", None),
     ],
 )
@@ -233,18 +226,6 @@ def test_only_power_law_to_power_law_uses_reference_picker(current, requested):
     result = changes.edit(tool, [])
     assert calls == [] and result.implied == [] and result.warnings == []
     assert changes.profile["Film Negative"]["RefOutput"] == "1000;1000;1000"
-
-
-def test_namicolor_transition_preserves_inactive_density_settings():
-    changes = WorkingChanges(
-        profile(extra="Method=density\nRGBGains=0.5;-0.5;1\nOutputBlackOffset=0.01\n")
-    )
-    changes.edit(adj(method="namicolor"), [])
-    typed = read_format(changes.profile).adjustments["film_negative"]
-    assert typed["rgb_gains"] == [0.5, -0.5, 1]
-    assert typed["output_black_offset"] == 0.01
-    changes.edit(adj(method="density"), [])
-    assert read_format(changes.profile).adjustments["film_negative"]["rgb_gains"] == [0.5, -0.5, 1]
 
 
 def test_namicolor_mask_opt_in_is_refused_below_1055():
@@ -273,8 +254,8 @@ def test_legacy_power_law_cannot_be_silently_reinterpreted_as_namicolor(backcomp
     assert keyfile.dumps(changes.profile) == before
 
 
-@pytest.mark.parametrize("method", ["power_law", "density"])
-def test_namicolor_settings_remain_inactive_in_old_methods(method):
+@pytest.mark.parametrize("method", ["power_law"])
+def test_namicolor_settings_remain_inactive_in_power_law(method):
     changes = WorkingChanges(profile(extra=f"Method={method}\n"))
     changes.edit(adj(namicolor_gain=[1, 1, 1]), [])
     assert read_format(changes.profile).adjustments["film_negative"]["method"] == method
@@ -330,14 +311,9 @@ def test_a_value_outside_the_schema_stays_raw():
         {"red_ratio": 0.29}, {"red_ratio": 5.1}, {"green_exponent": 4.1}, {"blue_ratio": 0.2},
         {"ref_input": [1, 2]}, {"ref_input": [1, 2, 3, 4]}, {"ref_output": [1, -1, 3]},
         {"color_space": "srgb"},
-        {"density_gamma": 0.05}, {"density_gamma": 4.1},
-        {"density_dmax": -0.1}, {"density_dmax": 4.9},
         {"input_gamma": 0.49}, {"input_gamma": 2.81},
         {"method": "unknown"}, {"film_type": "unknown"},
-        {"rgb_gains": [-3.1, 0, 0]}, {"rgb_gains": [0, 3.1, 0]},
-        {"channel_gamma": [0.4, 1, 1]}, {"channel_gamma": [1, 2.1, 1]},
-        {"rgb_gains": [1, 2]}, {"channel_gamma": [1, 2, 3, 4]},
-        {"output_black_offset": -0.001}, {"output_black_offset": 0.051},
+        {"method": "density"},
         {"matrix": [1, 0, 0, 0, 1, 0, 0, 0]},
         {"matrix": [11, 0, 0, 0, 1, 0, 0, 0, 1]},
         {"matrix_preset": "status_m"},
@@ -347,36 +323,6 @@ def test_out_of_range_values_are_refused(fields):
     with pytest.raises(AdjustmentError) as e:
         parse_adjustments({"film_negative": fields})
     assert e.value.code == "out_of_range"
-
-
-def test_density_fields_round_trip():
-    changes = WorkingChanges(profile())
-    result = changes.edit(
-        adj(
-            method="density",
-            film_type="reversal",
-            density_gamma=1.5,
-            density_dmax=3.0,
-            rgb_gains=[-0.5, 0.2, 1.0],
-            channel_gamma=[0.8, 1.2, 1.5],
-        ),
-        [],
-    )
-    assert values(result) == {
-        "Method": "density",
-        "FilmType": "reversal",
-        "DensityGamma": "1.5",
-        "DensityDmax": "3",
-        "RGBGains": "-0.5;0.2;1",
-        "ChannelGamma": "0.8;1.2;1.5",
-    }
-    typed = read_format(changes.profile).adjustments["film_negative"]
-    assert typed["method"] == "density"
-    assert typed["film_type"] == "reversal"
-    assert typed["density_gamma"] == 1.5
-    assert typed["density_dmax"] == 3.0
-    assert typed["rgb_gains"] == [-0.5, 0.2, 1.0]
-    assert typed["channel_gamma"] == [0.8, 1.2, 1.5]
 
 
 def test_custom_matrix_round_trips():
@@ -402,7 +348,7 @@ def test_custom_matrix_round_trips():
     assert typed["calibration_note"] == "Portra, tungsten, Epson"
 
 
-@pytest.mark.parametrize("method", ["power_law", "density", "namicolor"])
+@pytest.mark.parametrize("method", ["power_law", "namicolor"])
 def test_matrix_coefficients_are_refused_unless_preset_is_custom(method):
     with pytest.raises(AdjustmentError, match="custom") as e:
         WorkingChanges(profile(extra=f"Method={method}\n")).edit(adj(matrix=[0.2, 0, 0, 0, 1, 0, 0, 0, 1]), [])
@@ -437,90 +383,42 @@ def test_reference_matrix_is_row_vector_times_rows():
     assert C == (P + 1.5 * (1.0 - P) - 0.1, P + 0.5 * (2.0 - P), P + 2.0 * (3.0 - P) + 0.2)
 
 
-def test_output_black_offset_round_trips():
-    changes = WorkingChanges(profile())
-    result = changes.edit(adj(output_black_offset=0.02), [])
-    assert values(result) == {"OutputBlackOffset": "0.02"}
-    typed = read_format(changes.profile).adjustments["film_negative"]
-    assert typed["output_black_offset"] == 0.02
-
-
-def test_output_black_offset_math():
-    # Hand literals for negative density, Dmax 2.5, gamma 1, identity matrix,
-    # unit slope, zero gain, T=0.1: L = 10^(-2.5) / 0.1 = 0.0316227766.
-    # 0.0316227766 * 65535 = 1966.05 + 106.34866401 = 2072.39866401.
-    # Offset 0.01: 0.0216227766 * 65535 = 1417.04866401. Offset 0.05 floors at 0.
-    linear = 0.0316227766
-    assert round(max(0.0, linear - 0.0) * 65535.0, 5) == 2072.39866
-    assert round(max(0.0, linear - 0.01) * 65535.0, 5) == 1417.04866
-    assert max(0.0, linear - 0.05) == 0.0
-    # Above full scale is kept: 1.5 * 65535 = 98302.5, not clipped to 65535.
-    assert max(0.0, 1.5 - 0.0) * 65535.0 == 98302.5
-
-
 def test_input_gamma_round_trips_and_defaults_to_one():
     changes = WorkingChanges(profile())
-    result = changes.edit(adj(method="density", input_gamma=1.8), [])
+    result = changes.edit(adj(method="namicolor", input_gamma=1.8), [])
     assert values(result)["InputGamma"] == "1.8"
-    assert values(result)["Method"] == "density"
+    assert values(result)["Method"] == "namicolor"
     typed = read_format(changes.profile).adjustments["film_negative"]
     assert typed["input_gamma"] == 1.8
     # a profile that omits the key keeps the unity default
     assert read_format(profile()).adjustments["film_negative"]["input_gamma"] == 1.0
 
 
+@pytest.mark.parametrize("stored", ["density", "1"])
+def test_a_removed_density_method_reads_as_power_law_and_cannot_be_written(stored):
+    # ART loads Method=density (text or 1) as power_law and ignores its old keys.
+    changes = WorkingChanges(profile(extra=f"Method={stored}\nDensityGamma=1.2\nRGBGains=0.5;0;0\n"))
+    typed = read_format(changes.profile).adjustments["film_negative"]
+    assert typed["method"] == "power_law"
+    assert "density_gamma" not in typed and "rgb_gains" not in typed
+    with pytest.raises(AdjustmentError) as e:
+        adj(method="density")
+    assert e.value.code == "out_of_range"
+    for removed in ("density_gamma", "density_dmax", "rgb_gains", "film_base_sample",
+                    "channel_gamma", "output_black_offset"):  # fmt: skip
+        with pytest.raises(AdjustmentError):
+            adj(**{removed: 1})
+    # a reference edit goes through the power-law picker like any power_law profile
+    changes.edit(adj(ref_input=[200, 50, 400]), [])
+    assert changes.profile["Film Negative"]["RefInput"] == "200;50;400"
+
+
 def test_integer_enum_sidecars_still_read_as_names():
-    stored = profile(extra="Method=1\nFilmType=1\nMatrixPreset=2\n")
+    stored = profile(extra="Method=2\nFilmType=1\nMatrixPreset=2\n")
     typed = read_format(stored).adjustments["film_negative"]
-    assert typed["method"] == "density"
+    assert typed["method"] == "namicolor"
     assert typed["film_type"] == "reversal"
     assert typed["matrix_preset"] == "custom"
-
-
-def test_input_gamma_linearizes_a_power_encoded_scan_once():
-    """sign(x)*abs(x)^InputGamma before density inversion.
-
-    A gamma-1.8 encoded mid grey (linear 0.18 stored as 0.18**(1/1.8)) must
-    come back to 0.18. Unity gamma leaves that encoded value unchanged.
-    Expected numbers are literals, not the implementation under test.
-    """
-    import math
-
-    encoded = 0.385711424751  # 0.18 ** (1/1.8)
-    linear = math.copysign(abs(encoded) ** 1.8, encoded)
-    assert math.isclose(linear, 0.18, rel_tol=1e-9)
-    assert math.copysign(abs(-encoded) ** 1.8, -encoded) == -linear
-    assert math.copysign(abs(encoded) ** 1.0, encoded) == encoded
-
-    dmax = 2.5
-    p = 0.7
-    anchor = 4.1 - dmax
-    Tc = linear
-    Dc = -math.log10(Tc)
-    Ac = dmax - p - 1.0 * (Dc - p)
-    Ci = anchor + 1.0 * (Ac - anchor)
-    Lc = 10.0 ** (-Ci)
-    assert math.isclose(Lc, (10.0 ** (-dmax)) / Tc, rel_tol=1e-9)
-    assert math.isclose(65535.0 * Lc, 1151.33259144, rel_tol=1e-7)
-
-
-def test_density_negative_math():
-    import math
-
-    dmax = 2.5
-    gamma = 1.0
-    p = 0.7
-    anchor = 4.1 - dmax
-    expected_outputs = []
-    for Tc in [0.01, 0.1, 1.0]:
-        Dc = -math.log10(Tc)
-        Ac = dmax - p - gamma * (Dc - p)
-        Ci = anchor + 1.0 * (Ac - anchor) - 0.0
-        expected_outputs.append(10.0 ** (-Ci))  # checked against literals below
-
-    assert math.isclose(expected_outputs[0], 0.316227766, rel_tol=1e-6)
-    assert math.isclose(expected_outputs[1], 0.031622777, rel_tol=1e-6)
-    assert math.isclose(expected_outputs[2], 0.003162278, rel_tol=1e-6)
 
 
 def test_enabling_is_implied_on_a_disabled_tool():
@@ -865,38 +763,6 @@ async def test_live_falls_back_when_the_editor_cannot_sample(art, tmp_path):
     assert keyfile.loads(applied["profile"])["Film Negative"]["RefOutput"] == "2730.625;2730.625;2730.625"
 
 
-def test_film_base_pick_sets_all_three_gains_to_c_minus_four():
-    # Identity, gamma 1, Dmax 2.5, slope 1: Tc=0.1 -> C=1.5 -> gains=-2.5.
-    changes = WorkingChanges(profile())
-    sample = 0.1 * 65535
-    result = changes.edit(adj(method="density", film_base_sample=[sample, sample, sample]), [])
-
-    assert values(result)["RGBGains"] == "-2.5;-2.5;-2.5"
-    assert "DensityDmax" not in values(result)
-    assert "DensityGamma" not in values(result)
-    assert "Matrix" not in values(result)
-    assert "ChannelGamma" not in values(result)
-    assert changes.profile["Film Negative"]["RGBGains"] == "-2.5;-2.5;-2.5"
-
-
-def test_film_base_pick_refuses_reversal_and_an_out_of_range_gain():
-    reversal = WorkingChanges(profile())
-    with pytest.raises(AdjustmentError, match="reversal") as denied:
-        reversal.edit(
-            adj(method="density", film_type="reversal", film_base_sample=[6553.5] * 3),
-            [],
-        )
-    assert denied.value.code == "out_of_range"
-    assert "RGBGains" not in reversal.profile["Film Negative"]
-
-    # Green is near the floor, so its gain falls outside -3..3. Nothing is written.
-    dark = WorkingChanges(profile())
-    with pytest.raises(AdjustmentError, match="outside -3"):
-        dark.edit(adj(method="density", film_base_sample=[65535, 1, 65535]), [])
-    assert "RGBGains" not in dark.profile["Film Negative"]
-    assert dark.profile["Film Negative"]["RedRatio"] == "1"
-
-
 @pytest.mark.parametrize("backend", ["render", "live"])
 async def test_namicolor_consumer_edit_get_describe_and_atomic_rejection(
     backend, tmp_path, monkeypatch, image, request
@@ -949,24 +815,24 @@ async def test_namicolor_consumer_edit_get_describe_and_atomic_rejection(
         assert not [request for request in art.received if b"sample_spots" in request]
 
 
-@pytest.mark.parametrize("method", ["density", "1", "namicolor", "2"])
+@pytest.mark.parametrize("method", ["namicolor", "2"])
 def test_inactive_power_law_compatibility_data_does_not_hide_other_methods(method):
     changes = WorkingChanges(profile(extra=f"Method={method}\nBackCompat=2\nRedBase=5\n"))
     typed = read_format(changes.profile).adjustments["film_negative"]
-    assert typed["method"] in ("density", "namicolor")
+    assert typed["method"] == "namicolor"
     result = changes.edit(adj(ref_input=[200, 50, 400]), [])
     assert result.implied == [] and result.warnings == []
     raw = read_format(changes.profile).raw["Film Negative"]
     assert raw["BackCompat"] == "2" and raw["RedBase"] == "5"
 
 
-def test_namicolor_round_trip_preserves_active_matrix_and_inactive_density_keys():
+def test_namicolor_round_trip_preserves_active_matrix():
     basis = '{"v":1,"color_space":"working","profile":"Rec2020","input_gamma":"1","source":"Unknown"}'
     changes = WorkingChanges(
         profile(
             extra=(
                 "Method=namicolor\nMatrixPreset=custom\nMatrix=1;0.2;0;0;1;0;0;0;1\n"
-                f"MatrixBasis={basis}\nOutputBlackOffset=0.01\n"
+                f"MatrixBasis={basis}\n"
             )
         )
     )
@@ -1044,45 +910,34 @@ OLD_BASIS = '{"v":1,"color_space":"working","profile":"Rec2020","input_gamma":"1
 
 @pytest.mark.parametrize("version", ["1040", "1045"])
 @pytest.mark.parametrize("fields", [
-    {"density_gamma": 1.3},
-    {"rgb_gains": [0.1, 0, 0]},
     {"film_type": "reversal"},
     {"matrix_preset": "custom"},
-    {"output_black_offset": 0.01},
     {"calibration_note": "x"},
 ])
-def test_density_keys_are_refused_below_version_1046_and_version_is_untouched(version, fields):
+def test_keys_read_from_1046_are_refused_below_it_and_version_is_untouched(version, fields):
     old = profile()
     old["Version"]["Version"] = version
     changes = WorkingChanges(old)
     before = keyfile.dumps(changes.profile)
     with pytest.raises(AdjustmentError, match="re-save the sidecar in ART"):
-        changes.edit(adj(method="density", **fields), [])
+        changes.edit(adj(**fields), [])
     assert keyfile.dumps(changes.profile) == before
 
 
-def test_a_method_only_edit_below_1046_is_allowed_and_leaves_version_alone():
-    old = profile()
-    old["Version"]["Version"] = "1045"
-    changes = WorkingChanges(old)
-    changes.edit(adj(method="density"), [])
-    assert changes.profile["Version"]["Version"] == "1045"
-
-
-def test_density_keys_are_accepted_from_1046():
+def test_keys_read_from_1046_are_accepted_from_it():
     old = profile()
     old["Version"]["Version"] = "1046"
     changes = WorkingChanges(old)
-    changes.edit(adj(method="density", density_gamma=1.3), [])
+    changes.edit(adj(film_type="reversal"), [])
     assert changes.profile["Version"]["Version"] == "1046"
-    assert changes.profile["Film Negative"]["DensityGamma"] == "1.3"
+    assert changes.profile["Film Negative"]["FilmType"] == "reversal"
 
 
 def test_a_sidecar_without_a_version_is_current_like_art_and_not_refused():
     old = profile()
     del old["Version"]
     changes = WorkingChanges(old)
-    changes.edit(adj(method="density", density_gamma=1.3), [])
+    changes.edit(adj(film_type="reversal"), [])
     assert "Version" not in changes.profile
 
 
@@ -1103,56 +958,8 @@ def test_typed_reference_edits_are_refused_below_1039_like_a_legacy_profile(vers
     assert "film_negative" not in read_format(old).adjustments
 
 
-@pytest.mark.parametrize("preset", ["status_m_reference", "custom"])
-def test_film_base_pick_refuses_a_non_identity_preset_with_an_empty_basis(preset):
-    changes = WorkingChanges(profile(extra="Method=density\n"))
-    before = keyfile.dumps(changes.profile)
-    with pytest.raises(AdjustmentError, match="matching matrix_basis"):
-        changes.edit(adj(matrix_preset=preset, matrix_basis="", film_base_sample=[6553.5] * 3), [])
-    assert keyfile.dumps(changes.profile) == before
-
-
-def test_film_base_pick_refuses_a_basis_for_another_input_gamma():
-    changes = WorkingChanges(profile(extra="Method=density\nInputGamma=2.2\n"))
-    with pytest.raises(AdjustmentError, match="matching matrix_basis"):
-        changes.edit(adj(
-            matrix_preset="status_m_reference", matrix_basis=OLD_BASIS, film_base_sample=[6553.5] * 3,
-        ), [])
-
-
-@pytest.mark.parametrize("raw_source", [None, True, False])
-def test_film_base_pick_refuses_an_input_gamma_ART_would_refuse(raw_source):
-    # A profiled source (the default camera profile): ART refuses any non-unity gamma.
-    changes = WorkingChanges(profile(extra="Method=density\n"))
-    with pytest.raises(AdjustmentError, match="profiled or raw"):
-        changes.edit(adj(input_gamma=2.2, film_base_sample=[6553.5] * 3), [], raw_source=raw_source)
-
-
-def test_film_base_pick_refuses_an_input_gamma_on_an_unprofiled_raw_source():
-    changes = WorkingChanges(profile(extra="Method=density\n"))
-    changes.profile["Color Management"] = {"InputProfile": "(none)"}
-    with pytest.raises(AdjustmentError, match="raw source"):
-        changes.edit(adj(input_gamma=2.2, film_base_sample=[6553.5] * 3), [], raw_source=True)
-
-
-def test_film_base_pick_accepts_an_input_gamma_on_an_unprofiled_scan():
-    changes = WorkingChanges(profile(extra="Method=density\n"))
-    changes.profile["Color Management"] = {"InputProfile": "(none)"}
-    changes.edit(adj(input_gamma=2.2, film_base_sample=[30000] * 3), [], raw_source=False)
-    assert "RGBGains" in changes.profile["Film Negative"]
-
-
-@pytest.mark.parametrize("preset", ["status_m_reference", "custom"])
-def test_density_method_refuses_a_non_identity_preset_without_a_basis(preset):
-    changes = WorkingChanges(profile(extra="Method=density\n"))
-    before = keyfile.dumps(changes.profile)
-    with pytest.raises(AdjustmentError, match="matching matrix_basis"):
-        changes.edit(adj(matrix_preset=preset), [])
-    assert keyfile.dumps(changes.profile) == before
-
-
-def test_density_method_accepts_a_non_identity_preset_with_its_basis():
-    changes = WorkingChanges(profile(extra="Method=density\n"))
+def test_namicolor_accepts_a_non_identity_preset_with_its_basis():
+    changes = WorkingChanges(profile(extra="Method=namicolor\n"))
     changes.edit(adj(matrix_preset="status_m_reference", matrix_basis=OLD_BASIS), [])
     assert changes.profile["Film Negative"]["MatrixPreset"] == "status_m_reference"
 
@@ -1202,13 +1009,13 @@ def test_partial_of_an_old_conversion_carries_white_1_and_legacy_anchor():
 
 def test_flare_defaults_to_zero_whatever_the_version():
     for version in ("1050", "1059"):
-        old = profile(extra="Method=density\n")
+        old = profile(extra="Method=namicolor\n")
         old["Version"]["Version"] = version
         assert read_format(old).adjustments["film_negative"]["flare"] == [0.0, 0.0, 0.0]
 
 
 def test_flare_edit_round_trips():
-    changes = WorkingChanges(profile(extra="Method=density\n"))
+    changes = WorkingChanges(profile(extra="Method=namicolor\n"))
     changes.edit(adj(flare=[0.01, 0.02, 0.03]), [])
     assert triple(changes.profile["Film Negative"]["Flare"]) == [0.01, 0.02, 0.03]
     assert read_format(changes.profile).adjustments["film_negative"]["flare"] == [0.01, 0.02, 0.03]

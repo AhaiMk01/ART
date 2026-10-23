@@ -11,7 +11,7 @@ from art_mcp import keyfile
 from art_mcp.profile import WorkingChanges, read_format
 from art_mcp.schema import AdjustmentError, parse_adjustments
 
-BASE = "[Version]\nVersion=1053\n\n[Film Negative]\nEnabled=true\nMethod=density\n"
+BASE = "[Version]\nVersion=1055\n\n[Film Negative]\nEnabled=true\nMethod=namicolor\n"
 WINDOWS_PATH = "C:\\Users\\x\\new.cube"
 
 
@@ -95,9 +95,9 @@ def test_a_matrix_basis_bound_to_an_input_profile_path_matches_that_profile():
     # InputProfile is a file path; ART stores it escaped, and the basis is JSON
     # whose own backslashes are JSON-escaped on top of that.
     profile = keyfile.loads(
-        "[Version]\nVersion=1053\n\n"
+        "[Version]\nVersion=1055\n\n"
         "[Color Management]\nInputProfile=C:\\\\profiles\\\\cam.icc\n\n"
-        "[Film Negative]\nEnabled=true\nMethod=density\nColorSpace=0\n"
+        "[Film Negative]\nEnabled=true\nMethod=namicolor\nColorSpace=0\n"
     )
     basis = json.dumps(
         {
@@ -116,11 +116,10 @@ def test_a_matrix_basis_bound_to_an_input_profile_path_matches_that_profile():
                 "film_negative": {
                     "matrix_preset": "status_m_reference",
                     "matrix_basis": basis,
-                    "film_base_sample": [20000, 12000, 6000],
                 }
             }
         ),
         [],
     )
 
-    assert {e.key for e in result.changed} >= {"RGBGains", "MatrixBasis"}
+    assert {e.key for e in result.changed} >= {"MatrixPreset", "MatrixBasis"}

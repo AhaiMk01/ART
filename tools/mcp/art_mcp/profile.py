@@ -27,12 +27,10 @@ from art_mcp.curves import LinearCurve, PointCurve, curve_warnings, decode, draw
 from art_mcp.filmnegative import GROUP as FILM_GROUP
 from art_mcp.filmnegative import (
     Estimate,
-    check_density_bindings,
     check_legacy,
     check_matrix_coefficients,
     check_namicolor,
     check_namicolor_matrix_basis,
-    film_base_edits,
     film_version_edits,
     format_triple,
     is_legacy,
@@ -314,7 +312,6 @@ class WorkingChanges:
         self,
         adjustments: Adjustments,
         film_estimate: Estimate | None = None,
-        raw_source: bool | None = None,
     ) -> tuple[list[RawEdit], list[RawEdit], list[Created], list[str]]:
         """The (explicit, implied) edits an adjustments request amounts to,
         what it creates (with the keys ART gets at their defaults) and warnings
@@ -339,8 +336,6 @@ class WorkingChanges:
                 check_matrix_coefficients(tool, self.profile.get(group))
                 mask_opt_in = check_namicolor_matrix_basis(tool, self.profile)
                 implied += film_version_edits(tool, self.profile, mask_opt_in)
-                check_density_bindings(tool, self.profile)
-                explicit += film_base_edits(tool, self.profile, raw_source)
             values = {f: getattr(tool, f) for f in model.model_fields if getattr(tool, f) is not None}
             if not values:
                 continue
@@ -405,8 +400,6 @@ class WorkingChanges:
         adjustments: Adjustments | None,
         raw_edits: list[RawEdit],
         film_estimate: Estimate | None = None,
-        *,
-        raw_source: bool | None = None,
     ) -> EditOutcome:
         """Apply adjustments and raw edits together, all or nothing.
 
@@ -430,7 +423,7 @@ class WorkingChanges:
             names = ", ".join(e.name for e in broken)
             raise AdjustmentError("out_of_range", f"a value can't hold a line break (write \\n for a newline): {names}")
         explicit, implied, created, warnings = (
-            self._compile(adjustments, film_estimate, raw_source) if adjustments else ([], [], [], [])
+            self._compile(adjustments, film_estimate) if adjustments else ([], [], [], [])
         )
         defaults = [e for c in created for e in c.defaults]
         raw_names = {e.name for e in raw_edits}

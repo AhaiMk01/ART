@@ -1614,23 +1614,10 @@ TP_FILMNEGATIVE_GUESS_TOOLTIP;Automatically set the red and blue ratios by picki
 TP_FILMNEGATIVE_LABEL;Film Negative
 TP_FILMNEGATIVE_METHOD;Method:
 TP_FILMNEGATIVE_METHOD_POWER_LAW;Power-law
-TP_FILMNEGATIVE_METHOD_DENSITY;Density
 TP_FILMNEGATIVE_FILMTYPE;Film type:
 TP_FILMNEGATIVE_FILMTYPE_NEGATIVE;Negative
 TP_FILMNEGATIVE_FILMTYPE_REVERSAL;Reversal
-TP_FILMNEGATIVE_DENSITY_GAMMA;Density gamma
 TP_FILMNEGATIVE_INPUT_GAMMA;Scanner gamma
-TP_FILMNEGATIVE_DENSITY_DMAX;Dmax
-TP_FILMNEGATIVE_CHANNEL_GAMMA_R;Red slope
-TP_FILMNEGATIVE_CHANNEL_GAMMA_G;Green slope
-TP_FILMNEGATIVE_CHANNEL_GAMMA_B;Blue slope
-TP_FILMNEGATIVE_RGB_GAIN_R;Red gain
-TP_FILMNEGATIVE_RGB_GAIN_G;Green gain
-TP_FILMNEGATIVE_RGB_GAIN_B;Blue gain
-TP_FILMNEGATIVE_FILMBASE_DENSITY_PICK;Pick film-base rebate
-TP_FILMNEGATIVE_FILMBASE_DENSITY_TOOLTIP;Pick unexposed film (the rebate between frames). Sets all three printer-light gains so that spot maps to density 4.0 (linear 1e-4) before paper, LUT, and black offset. Contrast, Dmax, and the matrix are left unchanged. Refused if a gain would fall outside -3 to 3.
-TP_FILMNEGATIVE_FILMBASE_DENSITY_FAILED;Film-base pick failed. Printer-light gains were not changed.
-TP_FILMNEGATIVE_ERR_DENSITY_PARAMS;Film Negative: invalid density parameters (gamma, Dmax or gains must be finite, gammas positive). The conversion was not applied
 TP_FILMNEGATIVE_ERR_UNKNOWN_ENUM;Film Negative: unknown %1 '%2'. Left unchanged
 TP_FILMNEGATIVE_ERR_INPUT_GAMMA_RAW;Film Negative: RAW input is already linear (InputGamma=%1). The override was not applied and the scan was not inverted
 TP_FILMNEGATIVE_ERR_INPUT_GAMMA_PROFILED;Film Negative: this input is already profile-linearized (InputGamma=%1). Set InputGamma to 1, or set the input profile to "(none)" for an unprofiled scan. The override was not applied and the scan was not inverted
@@ -1641,7 +1628,6 @@ TP_FILMNEGATIVE_ERR_MATRIX_BASIS_MISMATCH;Film Negative: bound color_space=%1 pr
 TP_FILMNEGATIVE_ERR_MATRIX_BASIS_SOURCE;Input gamma or source identity does not match the binding. Rebind the matrix.
 TP_FILMNEGATIVE_ERR_MATRIX_BASIS_CONTENT;Custom profile content changed.
 TP_FILMNEGATIVE_ERR_NONFINITE;Film Negative: non-finite sample detected. That pixel was left unchanged
-HISTORY_MSG_FILMNEGATIVE_FILMBASE_GAINS;Film Negative - Printer lights
 TP_FILMNEGATIVE_CINEON_REFWHITE;Cineon reference white
 TP_FILMNEGATIVE_CINEON_REFWHITE_TOOLTIP;Linear value encoded as Cineon code 685. The default 0.9 makes code 685 the 90% diffuse white. This one value scales NamiColor decoding, print-LUT input encoding and integer Cineon export together. Older profiles without the setting load 1.0.
 TP_FILMNEGATIVE_MATRIX_PRESET;Matrix preset:
@@ -1653,7 +1639,6 @@ TP_FILMNEGATIVE_MATRIX_INVALID;Invalid matrix: enter nine finite numbers, each b
 TP_FILMNEGATIVE_CALIBRATION_NOTE;Calibration note:
 TP_FILMNEGATIVE_MATRIX_PRESET_TOOLTIP;Optional digital mask in log-transmission density, for Density and NamiColor. In NamiColor it acts before per-channel alignment, centered at the fixed nominal density reference p=0.7 (not film-base Dmin). Identity leaves the rendering unchanged. Status M is an empirical DiVERE reference, not measured calibration of this scan or a universal correction. A non-identity matrix is bound to the processing space/profile, input transfer and source. Changing that basis requires explicitly re-selecting the preset, or choosing Identity. The selected mask remains active when switching between Density and NamiColor; switching methods does not rebind it.
 HISTORY_MSG_FILMNEGATIVE_MATRIX;Film Negative - Density matrix
-TP_FILMNEGATIVE_OUTPUT_BLACK_OFFSET;Output black offset
 TP_FILMNEGATIVE_PICK;Pick neutral spots
 TP_FILMNEGATIVE_RED;Red ratio
 TP_FILMNEGATIVE_COLORSPACE;Inversion color space:
@@ -2176,4 +2161,5 @@ TP_FILMNEGATIVE_FLARE_B;Flare blue
 TP_FILMNEGATIVE_FLARE_TOOLTIP;Veiling light, as a fraction of full-scale transmission, subtracted before the density log. Measure the light that reached the sensor through opaque areas: sample a fully opaque holder or a blocked, unexposed area. Do NOT use the film base or rebate.
 TP_FILMNEGATIVE_ERR_FLARE;Film Negative: flare must be finite and between 0 and 0.5 for every channel. The conversion was not applied
 TP_FILMNEGATIVE_WARN_MANUAL_VIGNETTING;Vignetting Correction acts on the inverted positive; for negatives use a lens profile or flat-field (raw) instead
+TP_FILMNEGATIVE_WARN_DENSITY_REMOVED;Film Negative: the Density method was removed. This profile is shown with the power law instead
 TP_FILMNEGATIVE_ERR_NAMICOLOR_PARAMS;NamiColor requires finite parameters, positive channel denominators and a positive finite reference white.

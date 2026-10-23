@@ -20,7 +20,7 @@ from pydantic import BaseModel, ConfigDict, RootModel
 
 from art_mcp import artdir, calllog, keyfile
 from art_mcp.compactschema import CompactToolSchemas
-from art_mcp.filmnegative import Estimate, SamplingUnsupported, estimate_for, path_is_raw
+from art_mcp.filmnegative import Estimate, SamplingUnsupported, estimate_for
 from art_mcp.keyfile import KeyFile
 from art_mcp.live.channel import ArtNotRunning, ChannelError, ChannelTimeout, ControlChannel
 from art_mcp.marks import Mark, check_marks, mark_file
@@ -537,7 +537,6 @@ def build_server(
                 parsed,
                 raw_edits or [],
                 film_estimate(path, parsed, changes.profile),
-                raw_source=path_is_raw(path),
             )
         except AdjustmentError as e:
             raise tool_error(e.code, str(e)) from e

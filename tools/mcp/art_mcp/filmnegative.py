@@ -17,10 +17,8 @@ channel medians of the central 60% of the input (20% border cut) and
 import json
 import math
 import statistics
-import struct
 from collections.abc import Callable
 from dataclasses import dataclass
-from pathlib import Path
 
 from art_mcp.keyfile import KeyFile, unescape
 from art_mcp.sampling import SpotSamples
@@ -95,7 +93,7 @@ def is_legacy(entries: Group, version: int | None = None) -> bool:
     """An active power-law profile whose references ART upgrades from V1/V2.
     Other methods retain this compatibility data inactive. Below Version 1039
     ART ignores RefInput/RefOutput/ColorSpace and converts the references."""
-    if entries.get("Method") in ("density", "1", "namicolor", "2"):
+    if entries.get("Method") in ("namicolor", "2"):
         return False
     if version is not None and version < 1039:
         return True
@@ -145,18 +143,12 @@ def read_fit_base_anchor(profile: KeyFile) -> str:
     return "legacy" if version.isdigit() and int(version) < 1058 else "code95"
 
 
-_DENSITY_FIELDS = (
+_V1046_FIELDS = (
     "film_type",
-    "density_gamma",
-    "density_dmax",
-    "rgb_gains",
-    "film_base_sample",
-    "channel_gamma",
     "matrix_preset",
     "matrix",
     "matrix_basis",
     "calibration_note",
-    "output_black_offset",
 )
 """Fields whose keys ART reads only when the sidecar's Version is >= 1046."""
 
@@ -170,7 +162,7 @@ def film_version_edits(tool: FilmNegative, profile: KeyFile, mask_opt_in: bool) 
     version = profile_version(profile)
     if version is not None:
         resave = "open and re-save the sidecar in ART (which migrates it), then retry"
-        gated = [f for f in _DENSITY_FIELDS if getattr(tool, f) is not None]
+        gated = [f for f in _V1046_FIELDS if getattr(tool, f) is not None]
         if version < 1046 and gated:
             raise AdjustmentError(
                 "out_of_range",
@@ -245,10 +237,10 @@ _PRESET = {
 }
 _METHOD = {
     "0": "power_law",
-    "1": "density",
+    "1": "power_law",  # density: ART renders it as power_law
     "2": "namicolor",
     "power_law": "power_law",
-    "density": "density",
+    "density": "power_law",
     "namicolor": "namicolor",
 }
 _FILM_TYPE = {
@@ -390,17 +382,6 @@ def check_matrix_binding(tool: FilmNegative, profile: KeyFile, entries: Group) -
             "(version, processing space, profile, input gamma and source); "
             "select Identity or provide the calibration binding",
         )
-
-
-def check_density_bindings(tool: FilmNegative, profile: KeyFile) -> None:
-    """Fail closed for the density method as ART does at render time: a
-    non-identity matrix needs its calibration binding."""
-    entries = profile.get(GROUP) or {}
-    if _method_name(tool, entries) != "density":
-        return
-    version = profile_version(profile)
-    if (version is None or version >= 1046) and _preset_name(tool, entries) != "identity":
-        check_matrix_binding(tool, profile, entries)
 
 
 def check_legacy(tool: FilmNegative, entries: Group | None, version: int | None = None) -> None:
@@ -578,206 +559,8 @@ def read_triple_field(stored: str | None, allow_negative: bool = False) -> list[
     return list(triple)
 
 
-BASE_TARGET_DENSITY = 4.0
-"""Rebate maps to linear 10^-4 before the black offset."""
-_RAW_SUFFIXES = {
-    ".3fr",
-    ".arw",
-    ".arq",
-    ".cr2",
-    ".cr3",
-    ".crf",
-    ".crw",
-    ".dcr",
-    ".dng",
-    ".fff",
-    ".iiq",
-    ".kdc",
-    ".mef",
-    ".mos",
-    ".mrw",
-    ".nef",
-    ".nrw",
-    ".orf",
-    ".pef",
-    ".raf",
-    ".raw",
-    ".rw2",
-    ".rwl",
-    ".rwz",
-    ".sr2",
-    ".srf",
-    ".srw",
-    ".x3f",
-}
-
-
-def path_is_raw(path: str) -> bool:
-    """Whether ART would treat ``path`` as raw for the InputGamma override."""
-    return Path(path).suffix.lower() in _RAW_SUFFIXES
-
-
-def _f32(value: float) -> float:
-    return struct.unpack("f", struct.pack("f", float(value)))[0]
-
-
 def _stored_float(entries: Group, key: str, default: float) -> float:
     try:
         return float(entries[key])
     except (KeyError, ValueError):
         return default
-
-
-def film_base_gains(
-    sample: Triple,
-    *,
-    density_gamma: float,
-    density_dmax: float,
-    channel_gamma: Triple,
-    matrix: tuple[float, ...],
-    input_gamma: float,
-) -> Triple:
-    """``RGBGains = C - 4`` from a pre-inversion average. Raises
-    ``AdjustmentError`` and returns nothing when any gain is unusable."""
-    if any(not math.isfinite(v) or not v > 0 for v in sample):
-        raise AdjustmentError(
-            "out_of_range",
-            "film_negative: film_base_sample is not a finite positive average",
-        )
-    p = _f32(0.7)
-    dmax = _f32(density_dmax)
-    dgamma = _f32(density_gamma)
-    gamma = _f32(input_gamma)
-    anchor = _f32(_f32(4.1) - dmax)
-    scale = _f32(MAXVALF)
-    slopes = tuple(_f32(v) for v in channel_gamma)
-    coeffs = tuple(_f32(v) for v in matrix)
-    if any(not math.isfinite(v) for v in coeffs + slopes + (dmax, dgamma, gamma)):
-        raise AdjustmentError(
-            "out_of_range",
-            "film_negative: density settings for a film-base pick must be finite",
-        )
-    working = []
-    for value in sample:
-        norm = _f32(_f32(value) / scale)
-        if gamma != _f32(1.0):
-            sign = _f32(-1.0) if norm < 0 else _f32(1.0)
-            norm = _f32(sign * math.pow(abs(norm), gamma))
-        if not math.isfinite(norm):
-            raise AdjustmentError(
-                "out_of_range",
-                "film_negative: film_base_sample is not a finite positive average",
-            )
-        tc = norm if norm > _f32(1e-10) else _f32(1e-10)
-        dc = _f32(-math.log10(tc))
-        ac = _f32(dmax - p - _f32(dgamma * _f32(dc - p)))
-        if not math.isfinite(ac):
-            raise AdjustmentError(
-                "out_of_range",
-                "film_negative: film_base_sample is not a finite positive average",
-            )
-        working.append(ac)
-    mixed = []
-    for row in range(3):
-        total = _f32(0.0)
-        for col in range(3):
-            total = _f32(total + _f32(coeffs[row * 3 + col] * _f32(working[col] - anchor)))
-        mixed.append(_f32(anchor + total))
-    gains = []
-    for channel in range(3):
-        density = _f32(anchor + _f32(slopes[channel] * _f32(mixed[channel] - anchor)))
-        gain = float(density) - BASE_TARGET_DENSITY
-        if not math.isfinite(gain) or gain < -3.0 or gain > 3.0:
-            raise AdjustmentError(
-                "out_of_range",
-                "film_negative: film-base pick would set a printer-light gain outside -3..3; no gains were changed",
-            )
-        gains.append(gain)
-    return gains[0], gains[1], gains[2]
-
-
-def film_base_edits(tool: FilmNegative, profile: KeyFile, raw_source: bool | None) -> list[RawEdit]:
-    """``RGBGains`` for a density rebate sample. Refuses the edit when the
-    pick cannot replace all three gains."""
-    sample = tool.film_base_sample
-    if sample is None:
-        return []
-    if tool.rgb_gains is not None:
-        raise AdjustmentError(
-            "out_of_range",
-            "film_negative: set film_base_sample or rgb_gains, not both",
-        )
-    entries = profile.get(GROUP) or {}
-    method = tool.method
-    if method is None:
-        method = _stored_name(entries.get("Method"), _METHOD, "power_law")
-    film_type = tool.film_type
-    if film_type is None:
-        film_type = _stored_name(entries.get("FilmType"), _FILM_TYPE, "negative")
-    if method != "density":
-        raise AdjustmentError(
-            "out_of_range",
-            "film_negative: film_base_sample applies only to the density method",
-        )
-    if film_type != "negative":
-        raise AdjustmentError(
-            "out_of_range",
-            "film_negative: the film-base picker is disabled for reversal",
-        )
-    preset = _preset_name(tool, entries)
-    if preset == "identity":
-        matrix = IDENTITY_MATRIX
-    elif preset == "status_m_reference":
-        matrix = STATUS_M_MATRIX
-    else:
-        stored = tool.matrix if tool.matrix is not None else read_matrix_field(entries.get("Matrix"))
-        if stored is None:
-            raise AdjustmentError(
-                "out_of_range",
-                "film_negative: custom density matrix is missing or not nine finite coefficients",
-            )
-        matrix = tuple(stored)
-    if preset != "identity":
-        check_matrix_binding(tool, profile, entries)
-    input_gamma = tool.input_gamma if tool.input_gamma is not None else _stored_float(entries, "InputGamma", 1.0)
-    icm = profile.get("Color Management") or {}
-    applied_gamma = 1.0
-    if input_gamma != 1.0:
-        # ART's resolveInputGamma: only an unprofiled non-raw scan may carry one.
-        if icm.get("InputProfile", "(cameraICC)") != "(none)":
-            raise AdjustmentError(
-                "out_of_range",
-                "film_negative: input_gamma is not 1 on a profiled or raw source; "
-                "ART refuses to render it, so no film-base gains were picked",
-            )
-        if raw_source is None:
-            raise AdjustmentError(
-                "out_of_range",
-                "film_negative: InputGamma is not 1 on an unprofiled scan, and "
-                "this edit did not say whether the file is raw",
-            )
-        if raw_source:
-            raise AdjustmentError(
-                "out_of_range",
-                "film_negative: input_gamma is not 1 on a raw source; ART refuses to render it",
-            )
-        applied_gamma = input_gamma
-    if tool.channel_gamma is not None:
-        channel = tool.channel_gamma
-    elif entries.get("ChannelGamma") is None:
-        channel = [1.0, 1.0, 1.0]
-    else:
-        channel = list(_stored_triple(entries, "ChannelGamma"))
-    gains = film_base_gains(
-        (sample[0], sample[1], sample[2]),
-        density_gamma=(
-            tool.density_gamma if tool.density_gamma is not None else _stored_float(entries, "DensityGamma", 1.0)
-        ),
-        density_dmax=(
-            tool.density_dmax if tool.density_dmax is not None else _stored_float(entries, "DensityDmax", 2.5)
-        ),
-        channel_gamma=(channel[0], channel[1], channel[2]),
-        matrix=matrix,
-        input_gamma=applied_gamma,
-    )
-    return [RawEdit(group=GROUP, key="RGBGains", value=format_triple(gains))]

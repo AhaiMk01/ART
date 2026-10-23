@@ -4,4 +4,4 @@
 Version=1050
 
 [Film Negative]
-DensityGamma=1.2
+NamiColorMasterGain=0.1

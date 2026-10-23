@@ -59,7 +59,8 @@ async def opened(client, scan):
             "path": str(scan),
             "adjustments": {
                 "film_negative": {
-                    "enabled": True, "method": "density", "color_space": "working", "cineon_reference_white": 1,
+                    "enabled": True, "method": "namicolor", "color_space": "working", "cineon_reference_white": 1,
+                    "namicolor_input_gain": 0.1, "namicolor_master_shift": -0.35,
                 }
             },
         },

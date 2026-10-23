@@ -335,22 +335,6 @@ Glib::ustring filmNegSourceId(const std::string &camera)
     return camera.empty() ? Glib::ustring("Unknown") : Glib::ustring(camera);
 }
 
-// Rejects density parameters that would render NaN/black instead of failing.
-bool validDensityParams(const FilmNegativeParams &params, ProgressListener *pl)
-{
-    bool ok = std::isfinite(params.inputGamma) && params.inputGamma > 0.0 &&
-              std::isfinite(params.densityGamma) && params.densityGamma > 0.0 &&
-              std::isfinite(params.densityDmax);
-    for (int c = 0; c < 3 && ok; ++c) {
-        ok = std::isfinite(params.channelGamma[c]) &&
-             params.channelGamma[c] > 0.0 && std::isfinite(params.rgbGains[c]);
-    }
-    if (!ok) {
-        filmNegError(pl, art::utils::M("TP_FILMNEGATIVE_ERR_DENSITY_PARAMS"));
-    }
-    return ok;
-}
-
 // Flare is a transmission fraction subtracted before the log; reject values
 // that are not a plausible veiling-light level instead of rendering garbage.
 bool validFlare(const FilmNegativeParams &params, ProgressListener *pl)
@@ -364,152 +348,6 @@ bool validFlare(const FilmNegativeParams &params, ProgressListener *pl)
         filmNegError(pl, art::utils::M("TP_FILMNEGATIVE_ERR_FLARE"));
     }
     return ok;
-}
-
-bool doProcessDensity(Imagefloat *input, Imagefloat *output,
-                      const FilmNegativeParams &params,
-                      const ColorManagementParams &icm, SourceTransfer src,
-                      ProgressListener *pl, const float densityMatrix[9])
-{
-    input->syncCpu();
-    output->syncCpuForWrite();
-
-    const float S = 65535.f;
-    float inputGamma = 1.f;
-    if (!validDensityParams(params, pl) || !validFlare(params, pl) ||
-        !resolveInputGamma(params, src, pl, inputGamma)) {
-        // Validation failures must not produce an inverted output.
-        leaveUnconverted(input, output);
-        return false;
-    }
-    const float densityGamma = static_cast<float>(params.densityGamma);
-    const float densityDmax = static_cast<float>(params.densityDmax);
-    const float p = 0.7f;
-    const float P = (params.filmType == FilmNegativeParams::FilmType::NEGATIVE)
-                        ? (4.1f - densityDmax)
-                        : 0.7f;
-
-    const std::array<float, 3> channelGamma = {
-        static_cast<float>(params.channelGamma[0]),
-        static_cast<float>(params.channelGamma[1]),
-        static_cast<float>(params.channelGamma[2])};
-
-    const std::array<float, 3> rgbGains = {
-        static_cast<float>(params.rgbGains[0]),
-        static_cast<float>(params.rgbGains[1]),
-        static_cast<float>(params.rgbGains[2])};
-
-    const std::array<float, 3> flare = {
-        static_cast<float>(params.flare[0]),
-        static_cast<float>(params.flare[1]),
-        static_cast<float>(params.flare[2])};
-
-    float outputBlackOffset = static_cast<float>(params.outputBlackOffset);
-    if (!std::isfinite(outputBlackOffset) || outputBlackOffset < 0.f) {
-        outputBlackOffset = 0.f;
-    }
-
-    const bool isNegative =
-        (params.filmType == FilmNegativeParams::FilmType::NEGATIVE);
-    const float tFloor = static_cast<float>(params.transmissionFloor);
-
-    const int rheight = input->getHeight();
-    const int rwidth = input->getWidth();
-
-    int nonFiniteCount = 0;
-
-#ifdef _OPENMP
-    #pragma omp parallel for reduction(+:nonFiniteCount)
-#endif
-    for (int i = 0; i < rheight; i++) {
-        float *rlinein = input->r(i);
-        float *glinein = input->g(i);
-        float *blinein = input->b(i);
-        float *rlineout = output->r(i);
-        float *glineout = output->g(i);
-        float *blineout = output->b(i);
-
-        for (int j = 0; j < rwidth; ++j) {
-            float in[3] = {rlinein[j], glinein[j], blinein[j]};
-            if (!std::isfinite(in[0]) || !std::isfinite(in[1]) ||
-                !std::isfinite(in[2])) {
-                nonFiniteCount++;
-                rlineout[j] = in[0];
-                glineout[j] = in[1];
-                blineout[j] = in[2];
-                continue;
-            }
-            float A[3];
-            double density[3];
-
-            for (int c = 0; c < 3; ++c) {
-                float sample = in[c];
-                float norm = sample / S;
-                // sign(x)*|x|^InputGamma on normalized source RGB. Unity
-                // skips this so decoded linear values are unchanged.
-                if (inputGamma != 1.f) {
-                    const float sign = norm < 0.f ? -1.f : 1.f;
-                    norm = sign * std::pow(std::fabs(norm), inputGamma);
-                }
-                // Veiling light is linear transmission: remove it before the
-                // log, then the usual floor applies.
-                norm -= flare[c];
-                const float Tc = norm > tFloor ? norm : tFloor;
-
-                float Dc = -std::log10(Tc);
-                float Ac;
-                if (isNegative) {
-                    Ac = densityDmax - p - densityGamma * (Dc - p);
-                } else {
-                    Ac = p + densityGamma * (Dc - p);
-                }
-
-                A[c] = Ac;
-            }
-
-            // B_i = P + sum_j M_ij * (A_j - P). Do not update channels
-            // before the sum. Identity preset already forced M = I.
-            float B[3];
-            for (int row = 0; row < 3; ++row) {
-                float sum = 0.f;
-                for (int col = 0; col < 3; ++col) {
-                    sum += densityMatrix[row * 3 + col] * (A[col] - P);
-                }
-                B[row] = P + sum;
-            }
-
-            for (int c = 0; c < 3; ++c) {
-                density[c] = P + channelGamma[c] * (B[c] - P) - rgbGains[c];
-            }
-
-            for (int c = 0; c < 3; ++c) {
-                float Lc = static_cast<float>(std::pow(10.0, -density[c]));
-                if (!std::isfinite(Lc)) {
-                    Lc = 0.f;
-                }
-                Lc -= outputBlackOffset;
-                if (!(Lc > 0.f) || !std::isfinite(Lc)) {
-                    Lc = 0.f;
-                }
-                float scaled = S * Lc;
-                if (!std::isfinite(scaled)) {
-                    scaled = 0.f;
-                }
-                if (c == 0) {
-                    rlineout[j] = scaled;
-                } else if (c == 1) {
-                    glineout[j] = scaled;
-                } else {
-                    blineout[j] = scaled;
-                }
-            }
-        }
-    }
-
-    if (nonFiniteCount > 0) {
-        filmNegError(pl, art::utils::M("TP_FILMNEGATIVE_ERR_NONFINITE"));
-    }
-    return nonFiniteCount == 0;
 }
 
 // Standard Cineon decode of a normalized 10-bit code: 95 is linear zero,
@@ -689,10 +527,7 @@ bool processLinearFilm(Imagefloat *input, Imagefloat *output,
         leaveUnconverted(input, output);
         return false;
     }
-    if (params.method == FilmNegativeParams::Method::NAMICOLOR) {
-        return doProcessNamiColor(input, output, params, src, pl, matrix);
-    }
-    return doProcessDensity(input, output, params, icm, src, pl, matrix);
+    return doProcessNamiColor(input, output, params, src, pl, matrix);
 }
 
 /**
@@ -778,88 +613,6 @@ bool doProcess(Imagefloat *input, Imagefloat *output,
         }
     }
     return refsUpdated;
-}
-
-// Printer-light gains that map a rebate sample to density 4 (linear 1e-4)
-// before the black offset. C is the matrix/channel-adjusted
-// density with the current RGBGains omitted. Writes gains only if every
-// channel is finite and inside [-3, 3].
-bool filmBaseGainsFromAverage(const float avg[3],
-                              const FilmNegativeParams &params,
-                              const ColorManagementParams &icm, bool isRaw,
-                              const Glib::ustring &sourceId,
-                              std::array<double, 3> &gains)
-{
-    if (params.method != FilmNegativeParams::Method::DENSITY ||
-        params.filmType != FilmNegativeParams::FilmType::NEGATIVE) {
-        return false;
-    }
-    float densityMatrix[9];
-    if (!activeDensityMatrix(params, icm, nullptr, sourceId, densityMatrix)) {
-        return false;
-    }
-
-    float inputGamma = 1.f;
-    if (!validDensityParams(params, nullptr) || !validFlare(params, nullptr) ||
-        !resolveInputGamma(params, sourceTransfer(isRaw, icm), nullptr,
-                           inputGamma)) {
-        return false;
-    }
-    const float S = 65535.f;
-    const float densityGamma = static_cast<float>(params.densityGamma);
-    const float densityDmax = static_cast<float>(params.densityDmax);
-    const float p = 0.7f;
-    const float P = 4.1f - densityDmax;
-    const float channelGamma[3] = {
-        static_cast<float>(params.channelGamma[0]),
-        static_cast<float>(params.channelGamma[1]),
-        static_cast<float>(params.channelGamma[2])};
-
-    float A[3];
-    for (int c = 0; c < 3; ++c) {
-        if (!std::isfinite(avg[c]) || !(avg[c] > 0.f)) {
-            return false;
-        }
-        float norm = avg[c] / S;
-        if (inputGamma != 1.f) {
-            const float sign = norm < 0.f ? -1.f : 1.f;
-            norm = sign * std::pow(std::fabs(norm), inputGamma);
-        }
-        if (!std::isfinite(norm)) {
-            return false;
-        }
-        // Same veiling-light subtraction as the render, so picks match it.
-        norm -= static_cast<float>(params.flare[c]);
-        const float tFloor = static_cast<float>(params.transmissionFloor);
-        const float Tc = norm > tFloor ? norm : tFloor;
-        const float Dc = -std::log10(Tc);
-        A[c] = densityDmax - p - densityGamma * (Dc - p);
-        if (!std::isfinite(A[c])) {
-            return false;
-        }
-    }
-
-    float B[3];
-    for (int row = 0; row < 3; ++row) {
-        float sum = 0.f;
-        for (int col = 0; col < 3; ++col) {
-            sum += densityMatrix[row * 3 + col] * (A[col] - P);
-        }
-        B[row] = P + sum;
-    }
-
-    std::array<double, 3> computed;
-    for (int c = 0; c < 3; ++c) {
-        // Current printer lights are not part of C.
-        const float density = P + channelGamma[c] * (B[c] - P);
-        const double gain = static_cast<double>(density) - 4.0;
-        if (!std::isfinite(gain) || gain < -3.0 || gain > 3.0) {
-            return false;
-        }
-        computed[c] = gain;
-    }
-    gains = computed;
-    return true;
 }
 
 } // namespace
@@ -1195,42 +948,6 @@ bool art::engine::ImProcCoordinator::getFilmNegativeSpot(int x, int y,
     return true;
 }
 
-bool art::engine::ImProcCoordinator::getFilmNegativeBaseGains(
-    int x, int y, int spotSize, std::array<double, 3> &gains)
-{
-    art::utils::MyMutex::MyLock lock(mProcessing);
-    if (!imgsrc || spotSize < 1 || fw <= 0 || fh <= 0) {
-        return false;
-    }
-    if (params.filmNegative.method != FilmNegativeParams::Method::DENSITY ||
-        params.filmNegative.filmType !=
-            FilmNegativeParams::FilmType::NEGATIVE) {
-        return false;
-    }
-
-    const int tr = getCoarseBitMask(params.coarse);
-    const Coord2D p = translateCoord(ipf, fw, fh, x, y);
-    RGB avg, max;
-    getSpotAvgMax(imgsrc, currWB, params, p, tr, spotSize,
-                  params.filmNegative.colorSpace ==
-                          FilmNegativeParams::ColorSpace::INPUT
-                      ? SpotSpace::INPUT
-                      : SpotSpace::WORKING,
-                  avg, max, ipf.getGPUContext());
-
-    const float sample[3] = {avg.r, avg.g, avg.b};
-    std::array<double, 3> computed;
-    const FramesMetaData *gainMeta = imgsrc->getMetaData();
-    const Glib::ustring sourceId = filmNegSourceId(
-        gainMeta ? gainMeta->getCamera() : std::string());
-    if (!filmBaseGainsFromAverage(sample, params.filmNegative, params.icm,
-                                  imgsrc->isRAW(), sourceId, computed)) {
-        return false;
-    }
-    gains = computed;
-    return true;
-}
-
 // ---------- >>> legacy mode >>> ---------------
 
 // For backwards compatibility with profiles saved by RT 5.7 - 5.8
@@ -1498,10 +1215,8 @@ const char *filmStageName(const ProcParams &p)
     switch (f.method) {
     case FilmNegativeParams::Method::POWER_LAW:
         return "power_law";
-    case FilmNegativeParams::Method::NAMICOLOR:
-        return "namicolor";
     default:
-        return "density";
+        return "namicolor";
     }
 }
 

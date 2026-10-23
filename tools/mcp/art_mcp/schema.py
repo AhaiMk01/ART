@@ -12,7 +12,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationEr
 from art_mcp.compactschema import CompactModel, compact_model_schema, full_schema
 from art_mcp.curves import CurveSpec
 
-PPVERSION = 1061
+PPVERSION = 1064
 """The processing-profile version (``src/utils/ppversion.h``) this schema was
 written for."""
 
@@ -362,15 +362,17 @@ def rgb_field(
 
 
 class FilmNegative(CompactModel):
-    """Film Negative: power_law, density or NamiColor (decode to signed linear RGB); references
+    """Film Negative: power_law or NamiColor (decode to signed linear RGB); references
     are as `sample_spots` reads them. Legacy power-law profiles (`BackCompat`, `RedBase`) stay
     raw: typed edits other than `enabled` are refused. Details: the film-negative skill."""
 
     enabled: bool | None = F("Enabled", "Turn the tool on or off", default=False)
-    method: Literal["power_law", "density", "namicolor"] | None = F(
+    method: Literal["power_law", "namicolor"] | None = F(
         "Method",
         "Conversion method",
-        read_as={"0": "power_law", "1": "density", "2": "namicolor"}, default="power_law",
+        # density was removed: ART loads it (text or 1) as power_law
+        read_as={"0": "power_law", "1": "power_law", "density": "power_law", "2": "namicolor"},
+        default="power_law",
     )  # fmt: skip
     film_type: Literal["negative", "reversal"] | None = F(
         "FilmType",
@@ -441,34 +443,10 @@ class FilmNegative(CompactModel):
         "code95: code 0 -> 95; legacy: 93/1023",
         default="code95",
     )
-    density_gamma: float | None = F("DensityGamma", "Gamma", ge=0.1, le=4.0, default=1.0)
-    density_dmax: float | None = F(
-        "DensityDmax", "Dmax", ge=0.0, le=4.8, default=2.5
-    )
-    rgb_gains: list[Annotated[float, Field(ge=-3.0, le=3.0)]] | None = rgb_field(
-        "RGBGains",
-        "Printer-light gains",
-        default=[0.0, 0.0, 0.0],
-        allow_negative=True,
-    )
-    film_base_sample: list[float] | None = Field(
-        None,
-        min_length=3,
-        max_length=3,
-        description=(
-            "Not stored: sample_spots avg sets RGBGains to C-4"
-        ),
-        json_schema_extra={"ephemeral": True, "key": "", "art_default": None},
-    )
     flare: list[Annotated[float, Field(ge=0.0, le=0.5)]] | None = rgb_field(
         "Flare",
-        "Density/NamiColor: fraction removed pre-log",
+        "fraction removed pre-log",
         default=[0.0, 0.0, 0.0],
-    )
-    channel_gamma: list[Annotated[float, Field(ge=0.5, le=2.0)]] | None = rgb_field(
-        "ChannelGamma",
-        "Channel contrast",
-        default=[1.0, 1.0, 1.0],
     )
     matrix_preset: Literal["identity", "status_m_reference", "custom"] | None = F(
         "MatrixPreset",
@@ -505,13 +483,6 @@ class FilmNegative(CompactModel):
         "CalibrationNote",
         "Capture note",
         default="",
-    )
-    output_black_offset: float | None = F(
-        "OutputBlackOffset",
-        "Density: subtracted after conversion",
-        ge=0.0,
-        le=0.05,
-        default=0.0,
     )
 
 

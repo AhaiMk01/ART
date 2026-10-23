@@ -314,8 +314,6 @@ public:
     // FilmNegProvider interface
     bool getFilmNegativeSpot(art::engine::Coord spot, int spotSize, RGB &refInput,
                              RGB &refOutput) override;
-    bool getFilmNegativeBaseGains(art::engine::Coord spot, int spotSize,
-                                  std::array<double, 3> &gains) override;
     Glib::ustring getFilmNegativeSourceId() const override;
 
     // rotatelistener interface

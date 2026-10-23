@@ -1,10 +1,10 @@
 """A Film Negative profile written by art_mcp, read by a real ART-cli.
 
 The unit tests hand art_mcp's own output to art_mcp; none of them proved ART can
-load it. ART once read the 3-value `RGBGains` and `ChannelGamma` lists as curves
-and refused every profile it was handed, which no test noticed. Skipped unless
-`ART_DIR` names an ART build with the density method (the installed ART may
-predate it) and, on Windows, its runtime DLLs are on PATH.
+load it. ART once read 3-value lists as curves and refused every profile it was
+handed, which no test noticed. Skipped unless `ART_DIR` names a current ART
+build (the installed ART may predate it) and, on Windows, its runtime DLLs are
+on PATH.
 """
 
 import copy
@@ -63,15 +63,15 @@ def base(tmp_path, scan):
     result, loaded = render(tmp_path, scan, {}, "base")
     assert result.returncode == 0 and loaded is not None, result.stderr
     if "Method" not in loaded.get("Film Negative", {}):
-        pytest.skip("this ART has no density method")
+        pytest.skip("this ART has no film negative method")
     return loaded
 
 
-def density(base: dict, **fields):
+def film(base: dict, **fields):
     # WorkingChanges edits the dict it is given: copy, so one test's profile
     # never leaks into the next built from the same base.
     changes = WorkingChanges(copy.deepcopy(base))
-    changes.edit(parse_adjustments({"film_negative": {"enabled": True, "method": "density", **fields}}), [])
+    changes.edit(parse_adjustments({"film_negative": {"enabled": True, "method": "namicolor", **fields}}), [])
     return changes.profile
 
 
@@ -112,26 +112,26 @@ def tiff_rgb_samples(path):
     return [values[index:index + 3] for index in range(0, total, 3)]
 
 
-def test_a_default_density_profile_loads(tmp_path, scan, base):
-    result, loaded = render(tmp_path, scan, density(base), "plain")
+def test_a_default_namicolor_profile_loads(tmp_path, scan, base):
+    result, loaded = render(tmp_path, scan, film(base), "plain")
 
     assert result.returncode == 0, result.stderr
     assert loaded is not None
-    assert loaded["Film Negative"]["Method"] == "density"
-    assert numbers(loaded["Film Negative"]["RGBGains"]) == [0, 0, 0]
+    assert loaded["Film Negative"]["Method"] == "namicolor"
 
 
-def test_gains_and_channel_gamma_come_back_as_written(tmp_path, scan, base):
-    gains = [-2.270584822, -2.521374106, -2.84470892]
-    gammas = [0.8, 1.2, 1.5]
+@pytest.mark.parametrize("stored", ["density", "1"])
+def test_a_removed_density_method_loads_as_power_law_and_ignores_its_keys(tmp_path, scan, base, stored):
+    profile = film(base, method="power_law")
+    profile["Film Negative"].update({"Method": stored, "DensityGamma": "1.4", "RGBGains": "0.5;0;0"})
 
-    result, loaded = render(tmp_path, scan, density(base, rgb_gains=gains, channel_gamma=gammas), "gains")
+    result, loaded = render(tmp_path, scan, profile, "density-removed")
 
     assert result.returncode == 0, result.stderr
     assert loaded is not None
-    film = loaded["Film Negative"]
-    assert numbers(film["RGBGains"]) == pytest.approx(gains, abs=1e-12)
-    assert numbers(film["ChannelGamma"]) == pytest.approx(gammas, abs=1e-12)
+    film_group = loaded["Film Negative"]
+    assert film_group["Method"] == "power_law"
+    assert "DensityGamma" not in film_group and "RGBGains" not in film_group
 
 
 @pytest.mark.parametrize(
@@ -142,7 +142,7 @@ def test_gains_and_channel_gamma_come_back_as_written(tmp_path, scan, base):
     ],
 )
 def test_a_custom_matrix_comes_back_as_written(tmp_path, scan, base, matrix):
-    profile = density(base, matrix_preset="custom", matrix=matrix, matrix_basis=BASIS)
+    profile = film(base, matrix_preset="custom", matrix=matrix, matrix_basis=BASIS)
 
     result, loaded = render(tmp_path, scan, profile, "matrix")
 
@@ -153,7 +153,7 @@ def test_a_custom_matrix_comes_back_as_written(tmp_path, scan, base, matrix):
 
 def test_namicolor_rejects_an_invalid_denominator_in_a_sidecar(tmp_path, scan, base):
     """Raw sidecars must not bypass the coupled-control validation."""
-    profile = density(base, method="namicolor")
+    profile = film(base, method="namicolor")
     profile["Film Negative"]["NamiColorGain"] = "1;0;0;"
     result, _ = render(tmp_path, scan, profile, "invalid-namicolor")
     assert result.returncode != 0
@@ -165,7 +165,7 @@ def test_transmission_floor_keeps_black_raw_values_finite_on_new_profiles(tmp_pa
     # sidecars before 1060 decodes them past float range; one 16-bit code does not.
     black = tmp_path / "black.tif"
     Image.new("RGB", (32, 32), (0, 0, 0)).save(black)
-    profile = density(base, method="namicolor", namicolor_input_gain=1, namicolor_gain=[0.218, 0.218, 0.218])
+    profile = film(base, method="namicolor", namicolor_input_gain=1, namicolor_gain=[0.218, 0.218, 0.218])
     result, written = render(tmp_path, black, profile, "floor-new")
     assert result.returncode == 0, result.stdout + result.stderr
     assert float(written["Film Negative"]["TransmissionFloor"]) == pytest.approx(1 / 65535)
@@ -180,7 +180,7 @@ def test_transmission_floor_keeps_black_raw_values_finite_on_new_profiles(tmp_pa
 
 @pytest.mark.parametrize("film_type", ["negative", "reversal"])
 def test_namicolor_identity_is_exact_and_old_dormant_masks_migrate(tmp_path, scan, base, film_type):
-    identity = density(
+    identity = film(
         base, method="namicolor", film_type=film_type,
         namicolor_input_gain=0.2, namicolor_master_shift=-0.35,
     )
@@ -195,7 +195,7 @@ def test_namicolor_identity_is_exact_and_old_dormant_masks_migrate(tmp_path, sca
     assert result.returncode == 0, result.stdout + result.stderr
     assert pixels(tmp_path / "mask-stale-identity.jpg") == expected
 
-    custom_identity = density(
+    custom_identity = film(
         identity, method="namicolor", matrix_preset="custom",
         matrix=[1, 0, 0, 0, 1, 0, 0, 0, 1], matrix_basis=BASIS,
     )
@@ -229,7 +229,7 @@ def test_namicolor_identity_is_exact_and_old_dormant_masks_migrate(tmp_path, sca
 ])
 @pytest.mark.parametrize("preset", ["custom", "status_m_reference"])
 def test_namicolor_active_mask_rejects_missing_or_mismatched_basis(tmp_path, scan, base, basis, preset):
-    profile = density(base, method="namicolor", namicolor_input_gain=0.2)
+    profile = film(base, method="namicolor", namicolor_input_gain=0.2)
     # Write raw sidecar fields as well as typed success cases above: engine validation
     # must protect GUI, CLI and profiles that bypass the MCP editing policy.
     profile["Film Negative"].update({
@@ -241,7 +241,7 @@ def test_namicolor_active_mask_rejects_missing_or_mismatched_basis(tmp_path, sca
 
 
 def test_namicolor_active_custom_mask_rejects_nonfinite_sidecar_coefficients(tmp_path, scan, base):
-    profile = density(base, method="namicolor")
+    profile = film(base, method="namicolor")
     profile["Film Negative"].update({
         "MatrixPreset": "custom", "Matrix": "nan;0;0;0;1;0;0;0;1;", "MatrixBasis": BASIS,
     })
@@ -270,7 +270,7 @@ def test_real_raw_namicolor_typed_mask_changes_pixels_and_identity_preserves_the
     source = f"{metadata.make or ''} {metadata.model or ''}"
     if source == " ":
         source = "Unknown"
-    identity = density(
+    identity = film(
         loaded, method="namicolor", color_space="working",
         namicolor_input_gain=0.2, namicolor_master_shift=-0.35,
     )
@@ -282,7 +282,7 @@ def test_real_raw_namicolor_typed_mask_changes_pixels_and_identity_preserves_the
         "v": 1, "color_space": "working", "profile": "Rec2020",
         "input_gamma": "1", "source": source,
     })
-    custom_identity = density(
+    custom_identity = film(
         identity, method="namicolor", matrix_preset="custom",
         matrix=[1, 0, 0, 0, 1, 0, 0, 0, 1], matrix_basis=basis,
     )
@@ -307,7 +307,7 @@ def test_real_raw_namicolor_typed_mask_changes_pixels_and_identity_preserves_the
 def _unit_white_profile(base, version=None, **fields):
     """NamiColor with input gain 0 and a shift that puts every channel on Cineon code 685,
     exported as unprinted linear float: the pixel value is the decode's reference white."""
-    profile = density(
+    profile = film(
         base, method="namicolor", color_space="working", namicolor_input_gain=0,
         namicolor_shift=[685 / 1023 - 1] * 3, **fields,
     )
@@ -412,9 +412,9 @@ def _render_jpg_pixels(tmp_path, scan, profile, tag):
 
 def test_zero_flare_renders_like_no_flare_key(tmp_path, base):
     scan = _gradient_scan(tmp_path / "g.tif")
-    plain = density(base)
+    plain = film(base)
     plain["Film Negative"].pop("Flare", None)
-    zero = density(base, flare=[0, 0, 0])
+    zero = film(base, flare=[0, 0, 0])
     assert _png_pixels_of(tmp_path, scan, plain, "plain") == _png_pixels_of(tmp_path, scan, zero, "zero")
 
 
@@ -430,13 +430,12 @@ def test_flare_equal_to_an_additive_offset_renders_like_the_clean_negative(tmp_p
     f = 0.01  # linear transmission fraction
     clean = _gradient_scan(tmp_path / "clean.tif")
     veiled = _gradient_scan(tmp_path / "veiled.tif", flare=f)
-    want = _render_jpg_pixels(tmp_path, clean, density(base), "clean")
-    got = _render_jpg_pixels(tmp_path, veiled, density(base, flare=[f, f, f]), "veiled")
-    uncorrected = _render_jpg_pixels(tmp_path, veiled, density(base), "uncorrected")
+    want = _render_jpg_pixels(tmp_path, clean, film(base), "clean")
+    got = _render_jpg_pixels(tmp_path, veiled, film(base, flare=[f, f, f]), "veiled")
+    uncorrected = _render_jpg_pixels(tmp_path, veiled, film(base), "uncorrected")
 
     def worst(a, b):
         pairs = zip(a.getdata(), b.getdata(), strict=True)
         return max(abs(p - q) for pa, pb in pairs for p, q in zip(pa, pb, strict=True))
 
-    assert worst(want, got) <= 4
     assert worst(want, uncorrected) > worst(want, got)

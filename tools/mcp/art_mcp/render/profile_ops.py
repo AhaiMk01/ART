@@ -14,7 +14,7 @@ from typing import TypeVar, cast
 from pydantic import BaseModel, ConfigDict, RootModel
 
 from art_mcp.concurrency import image_key
-from art_mcp.filmnegative import Estimate, SamplingUnsupported, estimate_for, path_is_raw
+from art_mcp.filmnegative import Estimate, SamplingUnsupported, estimate_for
 from art_mcp.metadata import ExiftoolError
 from art_mcp.profile import Conflict as EditConflict
 from art_mcp.profile import (
@@ -343,10 +343,7 @@ def edit_one(
             parsed = parse_adjustments(adjustments) if adjustments else None
             if parsed is not None and parsed.crop is not None:
                 session.check_crop(wp, parsed.crop)
-            outcome = wp.changes.edit(
-                parsed, raw_edits or [], film_estimate(session, wp, parsed),
-                raw_source=path_is_raw(path),
-            )
+            outcome = wp.changes.edit(parsed, raw_edits or [], film_estimate(session, wp, parsed))
         except AdjustmentError as e:
             raise render_error(e.code, str(e)) from e
         except UnknownKey as e:

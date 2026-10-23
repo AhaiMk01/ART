@@ -1520,7 +1520,7 @@ struct RAWParams {
 struct FilmNegativeParams {
     bool enabled;
 
-    enum class Method { POWER_LAW = 0, DENSITY, NAMICOLOR };
+    enum class Method { POWER_LAW = 0, NAMICOLOR };
     Method method;
 
     enum class FilmType { NEGATIVE = 0, REVERSAL };
@@ -1555,8 +1555,6 @@ struct FilmNegativeParams {
     // Scanner source-transfer override, applied only to an explicitly
     // unprofiled non-RAW scan. 1 is a no-op. Range 0.5..2.8.
     double inputGamma;
-    double densityGamma;
-    double densityDmax;
     double namicolorInputGain;
     double namicolorMasterGain;
     double namicolorMasterShift;
@@ -1586,9 +1584,6 @@ struct FilmNegativeParams {
     Glib::ustring matrixBasis;
     Glib::ustring calibrationNote;
 
-    std::array<double, 3> rgbGains;
-    std::array<double, 3> channelGamma;
-    double outputBlackOffset;
 
     // Linear value encoded as Cineon code 685 (default 0.9 = 90% diffuse
     // white; sidecars before 1058 without the key load 1.0). One shared scale
