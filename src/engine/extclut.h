@@ -70,6 +70,7 @@ private:
 
     bool ok_;
     bool is_server_;
+    bool use_cache_;
     Glib::ustring filename_;
     CLUTParamDescriptorList params_;
     OCIO::ConstCPUProcessorRcPtr proc_;
