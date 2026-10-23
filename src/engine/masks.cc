@@ -1621,15 +1621,15 @@ void fillPipetteMasks(Imagefloat *rgb, PlanarWhateverData<float> *editWhatever,
 }
 
 bool getDeltaEColor(Imagefloat *rgb, int x, int y, int offset_x, int offset_y,
-                    int full_width, int full_height, double scale, float &L,
-                    float &C, float &H)
+                    int full_width, int full_height, double scale, int size,
+                    float &L, float &C, float &H)
 {
     std::vector<float> med_L, med_a, med_b;
     TMatrix ws = ICCStore::getInstance()->workingSpaceMatrix(rgb->colorSpace());
     const auto mode = rgb->mode();
     x = x / scale - offset_x;
     y = y / scale - offset_y;
-    const int off = int(32.0 / scale + 0.5);
+    const int off = std::max(int(size / 2.0 / scale + 0.5), 1);
     if (x < 0 || x >= rgb->getWidth() || y < 0 || y >= rgb->getHeight()) {
         return false;
     }

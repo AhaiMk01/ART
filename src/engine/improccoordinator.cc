@@ -1668,10 +1668,10 @@ bool ImProcCoordinator::getHighQualComputed()
 
 void ImProcCoordinator::setHighQualComputed() { highQualityComputed = true; }
 
-bool ImProcCoordinator::getDeltaELCH(art::utils::EditUniqueID id, int x, int y, float &L,
-                                     float &C, float &H)
+bool ImProcCoordinator::getDeltaELCH(art::utils::EditUniqueID id, int x, int y,
+                                     int size, float &L, float &C, float &H)
 {
-    int change = ipf.setDeltaEData(id, x, y);
+    int change = ipf.setDeltaEData(id, x, y, size);
     if (!change) {
         return false;
     }

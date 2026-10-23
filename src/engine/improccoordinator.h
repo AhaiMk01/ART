@@ -339,8 +339,8 @@ public:
 
     InitialImage *getInitialImage() override { return imgsrc; }
 
-    bool getDeltaELCH(art::utils::EditUniqueID id, int x, int y, float &L, float &C,
-                      float &H) override;
+    bool getDeltaELCH(art::utils::EditUniqueID id, int x, int y, int size,
+                      float &L, float &C, float &H) override;
 
     ImProcFunctions::DenoiseInfoStore denoiseInfoStore;
 

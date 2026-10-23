@@ -338,6 +338,7 @@ public:
     bool FileBrowserToolbarSingleRow;
     bool hideTPVScrollbar;
     int whiteBalanceSpotSize;
+    int deltaESpotSize;
     int curvebboxpos; // 0=above, 1=right, 2=below, 3=left
 
     bool showFilmStripToolBar;

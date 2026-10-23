@@ -568,8 +568,8 @@ public:
 
     virtual void getAutoCrop(double ratio, int &x, int &y, int &w, int &h) = 0;
 
-    virtual bool getDeltaELCH(art::utils::EditUniqueID id, int x, int y, float &L, float &C,
-                              float &H) = 0;
+    virtual bool getDeltaELCH(art::utils::EditUniqueID id, int x, int y,
+                              int size, float &L, float &C, float &H) = 0;
 
     virtual void saveInputICCReference(const Glib::ustring &fname,
                                        bool apply_wb) = 0;

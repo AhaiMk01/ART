@@ -106,11 +106,69 @@ public:
     virtual void setAreaDrawListener(AreaDrawListener *listener) = 0;
 };
 
+// A combo box for choosing the spot size; every row reads "Size: N"
+class SpotSizeCombo: public Gtk::ComboBox {
+public:
+    explicit SpotSizeCombo(const Glib::ustring &label,
+                           const std::vector<int> &sizes, int current)
+        : size_(current)
+    {
+        model_ = Gtk::ListStore::create(cols_);
+        int active = 0, i = 0;
+        for (int s : sizes) {
+            auto row = *model_->append();
+            row[cols_.size] = s;
+            row[cols_.text] = label + " " + std::to_string(s);
+            if (s == current) {
+                active = i;
+            }
+            ++i;
+        }
+        set_model(model_);
+        pack_start(cols_.text);
+        set_active(active);
+        set_tooltip_text(M("TP_LABMASKS_DELTAE_SIZE_TOOLTIP"));
+    }
+
+    int getSize() const { return size_; }
+    sigc::signal<void, int> signal_size_changed() { return sig_size_changed_; }
+
+protected:
+    void on_changed() override
+    {
+        Gtk::ComboBox::on_changed();
+        auto it = get_active();
+        if (it) {
+            int s = (*it)[cols_.size];
+            if (s != size_) {
+                size_ = s;
+                sig_size_changed_.emit(s);
+            }
+        }
+    }
+
+private:
+    struct Columns: public Gtk::TreeModelColumnRecord {
+        Gtk::TreeModelColumn<int> size;
+        Gtk::TreeModelColumn<Glib::ustring> text;
+        Columns()
+        {
+            add(size);
+            add(text);
+        }
+    };
+
+    Columns cols_;
+    Glib::RefPtr<Gtk::ListStore> model_;
+    int size_;
+    sigc::signal<void, int> sig_size_changed_;
+};
+
 class DeltaEColorProvider {
 public:
     virtual ~DeltaEColorProvider() = default;
-    virtual bool getDeltaELCH(EditUniqueID id, art::engine::Coord pos, float &L,
-                              float &C, float &H) = 0;
+    virtual bool getDeltaELCH(EditUniqueID id, art::engine::Coord pos, int size,
+                              float &L, float &C, float &H) = 0;
 };
 
 class MasksPanel: public Gtk::VBox,
@@ -261,6 +319,7 @@ private:
 
     void onDeltaESpotRequested(art::engine::Coord pos);
     void onDeltaEPickClicked();
+    void onDeltaESizeChanged(int size);
     void onDrawnMaskUpdated();
 
     bool onMaskNameFocusOut(GdkEventFocus *e);
@@ -391,6 +450,7 @@ private:
     Adjuster *deltaEStrength;
     Gtk::CheckButton *deltaEInverted;
     Gtk::Button *deltaEPick;
+    SpotSizeCombo *deltaESize;
 
     Adjuster *contrastThreshold;
     DeltaEColorProvider *deltaE_provider_;

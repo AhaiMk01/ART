@@ -1009,8 +1009,8 @@ bool ImProcFunctions::guidedSmoothing(Imagefloat *rgb)
 
     if (eid == art::utils::EUID_Masks_DE3) {
         if (getDeltaEColor(rgb, deltaE.x, deltaE.y, offset_x, offset_y,
-                           full_width, full_height, scale, deltaE.L, deltaE.C,
-                           deltaE.H)) {
+                           full_width, full_height, scale, deltaE.size,
+                           deltaE.L, deltaE.C, deltaE.H)) {
             deltaE.ok = true;
         }
     }

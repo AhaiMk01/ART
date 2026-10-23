@@ -52,7 +52,7 @@ class DeltaEArea: public Gtk::DrawingArea,
 public:
     DeltaEArea()
         : Gtk::DrawingArea(), EditSubscriber(ET_OBJECTS), L_(0.f), C_(0.f),
-          H_(0.f)
+          H_(0.f), spot_size_(32)
     {
         // Editing geometry; create the spot rectangle
         Rectangle *spotRect = new Rectangle();
@@ -77,6 +77,9 @@ public:
             delete geometry;
         }
     }
+
+    void setSpotSize(int size) { spot_size_ = size; }
+    int getSpotSize() const { return spot_size_; }
 
     void setColor(float L, float C, float H)
     {
@@ -174,8 +177,9 @@ public:
     {
         auto provider = getEditProvider();
         Rectangle *spotRect = static_cast<Rectangle *>(visibleGeometry.at(0));
-        spotRect->setXYWH(provider->posImage.x - 16, provider->posImage.y - 16,
-                          32, 32);
+        spotRect->setXYWH(provider->posImage.x - spot_size_ / 2,
+                          provider->posImage.y - spot_size_ / 2, spot_size_,
+                          spot_size_);
 
         return true;
     }
@@ -224,6 +228,7 @@ private:
     float H_;
 
     SigSpotRequested sig_spot_requested_;
+    int spot_size_;
 };
 
 class DrawnMaskPanel: public MyExpander,
@@ -1377,6 +1382,12 @@ MasksPanel::MasksPanel(MasksContentProvider *cp)
     vb = Gtk::manage(new Gtk::VBox());
     deltaEPick = Gtk::manage(new Gtk::Button(M("TP_LABMASKS_DELTAE_PICK")));
     vb->pack_start(*deltaEPick, Gtk::PACK_SHRINK);
+    deltaESize = Gtk::manage(new SpotSizeCombo(
+        M("TP_WBALANCE_SIZE"), {2, 4, 8, 16, 32, 64}, options.deltaESpotSize));
+    static_cast<DeltaEArea *>(deltaEColor)->setSpotSize(deltaESize->getSize());
+    vb->pack_start(*deltaESize, Gtk::PACK_SHRINK);
+    deltaESize->signal_size_changed().connect(
+        sigc::mem_fun(*this, &MasksPanel::onDeltaESizeChanged));
     vb->pack_start(*deltaEColor, Gtk::PACK_EXPAND_WIDGET, 4);
     hb->pack_start(*vb, Gtk::PACK_SHRINK, 4);
     tb = Gtk::manage(new ToolParamBlock());
@@ -3390,6 +3401,12 @@ inline const art::engine::ProcEvent &MasksPanel::deltaEMaskEvent() const
     return deltaEMask->getEnabled() ? EvDeltaEMask : EvDeltaEMaskVoid;
 }
 
+void MasksPanel::onDeltaESizeChanged(int s)
+{
+    options.deltaESpotSize = s;
+    static_cast<DeltaEArea *>(deltaEColor)->setSpotSize(s);
+}
+
 void MasksPanel::onDeltaEPickClicked()
 {
     static_cast<DeltaEArea *>(deltaEColor)->activateSpot();
@@ -3401,7 +3418,8 @@ void MasksPanel::onDeltaESpotRequested(art::engine::Coord pos)
         deltaEMask->set_sensitive(false);
         float L, C, H;
         if (deltaE_provider_->getDeltaELCH(
-                static_cast<DeltaEArea *>(deltaEColor)->getEditID(), pos, L, C,
+                static_cast<DeltaEArea *>(deltaEColor)->getEditID(), pos,
+                static_cast<DeltaEArea *>(deltaEColor)->getSpotSize(), L, C,
                 H)) {
             double b, t;
             deltaEL->getValue(b, t);

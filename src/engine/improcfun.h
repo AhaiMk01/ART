@@ -231,11 +231,13 @@ public:
         float H;
         double x;
         double y;
+        int size;
 
-        DeltaEData(): ok(false), L(0), C(0), H(0), x(-1), y(-1) {}
+        DeltaEData(): ok(false), L(0), C(0), H(0), x(-1), y(-1), size(32) {}
     };
     DeltaEData deltaE;
-    int setDeltaEData(art::utils::EditUniqueID id, double x, double y);
+    int setDeltaEData(art::utils::EditUniqueID id, double x, double y,
+                      int size = 32);
 
     // Spot Removal Tool
     void removeSpots(art::engine::Imagefloat *img, art::engine::ImageSource *imgsrc,

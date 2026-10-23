@@ -1260,11 +1260,11 @@ void ToolPanelCoordinator::setAreaDrawListener(AreaDrawListener *listener)
 }
 
 bool ToolPanelCoordinator::getDeltaELCH(EditUniqueID id, art::engine::Coord pos,
-                                        float &L, float &C, float &H)
+                                        int size, float &L, float &C, float &H)
 {
     if (ipc) {
         GThreadUnLock unlock;
-        return ipc->getDeltaELCH(id, pos.x, pos.y, L, C, H);
+        return ipc->getDeltaELCH(id, pos.x, pos.y, size, L, C, H);
     }
     return false;
 }

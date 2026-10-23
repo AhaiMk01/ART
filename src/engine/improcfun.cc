@@ -719,8 +719,10 @@ bool ImProcFunctions::process(Stage stage, Imagefloat *img)
     return stop;
 }
 
-int ImProcFunctions::setDeltaEData(art::utils::EditUniqueID id, double x, double y)
+int ImProcFunctions::setDeltaEData(art::utils::EditUniqueID id, double x,
+                                   double y, int size)
 {
+    deltaE.size = size;
     deltaE.ok = false;
     deltaE.x = x;
     deltaE.y = y;

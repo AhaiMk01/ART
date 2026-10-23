@@ -81,7 +81,7 @@ void fillPipetteMasks(Imagefloat *rgb, PlanarWhateverData<float> *editWhatever,
                       MasksEditID id, bool multithread);
 
 bool getDeltaEColor(Imagefloat *rgb, int x, int y, int offset_x, int offset_y,
-                    int full_width, int full_height, double scale, float &L,
-                    float &C, float &H);
+                    int full_width, int full_height, double scale, int size,
+                    float &L, float &C, float &H);
 
 }} // namespace art::engine

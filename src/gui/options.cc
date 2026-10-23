@@ -583,6 +583,7 @@ void Options::setDefaults()
     FileBrowserToolbarSingleRow = false;
     hideTPVScrollbar = false;
     whiteBalanceSpotSize = 8;
+    deltaESpotSize = 32;
     showFilmStripToolBar = false;
     menuGroupRank = true;
     menuGroupLabel = true;
@@ -1899,6 +1900,11 @@ void Options::readFromFile(Glib::ustring fname)
                         "Color Management", "WhiteBalanceSpotSize");
                 }
 
+                if (keyFile.has_key("Color Management", "DeltaESpotSize")) {
+                    deltaESpotSize = keyFile.get_integer("Color Management",
+                                                         "DeltaESpotSize");
+                }
+
                 if (keyFile.has_key("Color Management", "ClutsDirectory")) {
                     clutsDir = keyFile.get_string("Color Management",
                                                   "ClutsDirectory");
@@ -2553,6 +2559,8 @@ void Options::saveToFile(Glib::ustring fname)
 
         keyFile.set_integer("Color Management", "WhiteBalanceSpotSize",
                             whiteBalanceSpotSize);
+        keyFile.set_integer("Color Management", "DeltaESpotSize",
+                            deltaESpotSize);
         keyFile.set_string("Color Management", "ClutsDirectory", clutsDir);
 
         Glib::ustring os_mon_prof = "";

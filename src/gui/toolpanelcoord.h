@@ -371,8 +371,8 @@ public:
     void setAreaDrawListener(AreaDrawListener *listener) override;
 
     // DeltaEColorProvider interface
-    bool getDeltaELCH(EditUniqueID id, art::engine::Coord pos, float &L, float &C,
-                      float &H) override;
+    bool getDeltaELCH(EditUniqueID id, art::engine::Coord pos, int size,
+                      float &L, float &C, float &H) override;
 
     void setProgressListener(art::engine::ProgressListener *pl);
 
