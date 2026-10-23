@@ -1,3 +1,4 @@
+// -*- C++ -*-
 #pragma once
 
 namespace art { namespace engine {

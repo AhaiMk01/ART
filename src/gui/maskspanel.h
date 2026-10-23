@@ -1,21 +1,21 @@
 /* -*- C++ -*-
  *
- *  This file is part of RawTherapee.
+ *  This file is part of ART.
  *
- *  Copyright 2018 Alberto Griggio <alberto.griggio@gmail.com>
+ *  Copyright (c) 2018-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #pragma once
@@ -58,6 +58,9 @@ public:
     virtual ~MasksContentProvider() {}
 
     virtual Gtk::Container *getContainer() = 0;
+    /// The widget of the tool that has the masks, whose header is shown
+    /// whenever the tool is (even if it is folded); nullptr if unknown
+    virtual Gtk::Widget *getToolWidget() { return nullptr; }
     virtual void getEvents(Events &events) = 0;
 
     virtual ToolPanelListener *listener() = 0;
@@ -103,11 +106,69 @@ public:
     virtual void setAreaDrawListener(AreaDrawListener *listener) = 0;
 };
 
+// A combo box for choosing the spot size; every row reads "Size: N"
+class SpotSizeCombo: public Gtk::ComboBox {
+public:
+    explicit SpotSizeCombo(const Glib::ustring &label,
+                           const std::vector<int> &sizes, int current)
+        : size_(current)
+    {
+        model_ = Gtk::ListStore::create(cols_);
+        int active = 0, i = 0;
+        for (int s : sizes) {
+            auto row = *model_->append();
+            row[cols_.size] = s;
+            row[cols_.text] = label + " " + std::to_string(s);
+            if (s == current) {
+                active = i;
+            }
+            ++i;
+        }
+        set_model(model_);
+        pack_start(cols_.text);
+        set_active(active);
+        set_tooltip_text(M("TP_LABMASKS_DELTAE_SIZE_TOOLTIP"));
+    }
+
+    int getSize() const { return size_; }
+    sigc::signal<void, int> signal_size_changed() { return sig_size_changed_; }
+
+protected:
+    void on_changed() override
+    {
+        Gtk::ComboBox::on_changed();
+        auto it = get_active();
+        if (it) {
+            int s = (*it)[cols_.size];
+            if (s != size_) {
+                size_ = s;
+                sig_size_changed_.emit(s);
+            }
+        }
+    }
+
+private:
+    struct Columns: public Gtk::TreeModelColumnRecord {
+        Gtk::TreeModelColumn<int> size;
+        Gtk::TreeModelColumn<Glib::ustring> text;
+        Columns()
+        {
+            add(size);
+            add(text);
+        }
+    };
+
+    Columns cols_;
+    Glib::RefPtr<Gtk::ListStore> model_;
+    int size_;
+    sigc::signal<void, int> sig_size_changed_;
+};
+
 class DeltaEColorProvider {
 public:
     virtual ~DeltaEColorProvider() = default;
-    virtual bool getDeltaELCH(EditUniqueID id, art::engine::Coord pos, float &L,
-                              float &C, float &H) = 0;
+    virtual bool getDeltaELCH(EditUniqueID id, art::engine::Coord pos, int size,
+                              float &L, float &C, float &H) = 0;
 };
 
 class MasksPanel: public Gtk::VBox,
@@ -126,6 +187,16 @@ public:
     void getMasks(std::vector<art::engine::procparams::Mask> &masks,
                   int &show_mask_idx);
     int getSelected();
+
+    /// What the "show mask" shortcut does in the editor `editor`: toggle the
+    /// display of the mask of the region that the user last worked on (the
+    /// last one selected, or shown, in any of the mask panels of the tools of
+    /// that editor that are visible), and switch off the mask shown by another
+    /// panel. False if there is no such panel, and the key goes on.
+    static bool toggleShowLastActive(Gtk::Widget &editor);
+    /// Likewise for "enable/disable the selected region" (the checkbox of
+    /// its row in the list)
+    static bool toggleSelectedEnabledLastActive(Gtk::Widget &editor);
 
     void adjusterChanged(Adjuster *a, double newval) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
@@ -197,6 +268,12 @@ private:
     void onMaskInvertedChanged();
     void onAreaMaskToggleChanged();
     void onShowMaskChanged();
+    // this panel is where the user is working: see toggleShowLastActive()
+    void markActive();
+    bool usable() const;
+    bool toolVisible() const;
+    void toggleSelectedEnabled();
+    static MasksPanel *lastActive(Gtk::Widget &editor);
     void onAreaShapeSelectionChanged();
     void onAreaShapeResetPressed();
     void onAreaShapeAddPressed();
@@ -242,6 +319,7 @@ private:
 
     void onDeltaESpotRequested(art::engine::Coord pos);
     void onDeltaEPickClicked();
+    void onDeltaESizeChanged(int size);
     void onDrawnMaskUpdated();
 
     bool onMaskNameFocusOut(GdkEventFocus *e);
@@ -318,6 +396,7 @@ private:
     Adjuster *lightnessMaskDetail;
     Adjuster *maskBlur;
     Gtk::CheckButton *showMask;
+    unsigned long last_used_ = 0; // 0: never, else the later the more recent
     sigc::connection selectionConn;
     Gtk::CheckButton *maskInverted;
     MyExpander *areaMask;
@@ -371,6 +450,7 @@ private:
     Adjuster *deltaEStrength;
     Gtk::CheckButton *deltaEInverted;
     Gtk::Button *deltaEPick;
+    SpotSizeCombo *deltaESize;
 
     Adjuster *contrastThreshold;
     DeltaEColorProvider *deltaE_provider_;

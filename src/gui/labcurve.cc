@@ -1,20 +1,21 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "labcurve.h"
 #include "../engine/improcfun.h"
@@ -243,11 +244,11 @@ void LabCurve::toolReset(bool to_initial)
     read(&pp);
 }
 
-void LabCurve::registerShortcuts(ToolShortcutManager *mgr)
+void LabCurve::registerShortcuts(ToolShortcutsManager *mgr)
 {
-    mgr->addShortcut(GDK_KEY_i, this, brightness);
-    mgr->addShortcut(GDK_KEY_j, this, contrast);
-    mgr->addShortcut(GDK_KEY_n, this, chromaticity);
+    mgr->addShortcut("tool.labcurve.brightness", this, brightness);
+    mgr->addShortcut("tool.labcurve.contrast", this, contrast);
+    mgr->addShortcut("tool.labcurve.chromaticity", this, chromaticity);
 }
 
 

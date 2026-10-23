@@ -1,21 +1,22 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
  *  Copyright (c) 2011 Michael Ezra <www.michaelezra.com>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "filecatalog.h"
 
@@ -39,6 +40,7 @@
 #include "rtimage.h"
 #include "rtwindow.h"
 #include "session.h"
+#include "shortcutsmanager.h"
 #include "thumbimageupdater.h"
 
 namespace art { namespace gui {
@@ -154,6 +156,7 @@ FileCatalog::FileCatalog(FilePanel *filepanel)
       filter_panel_update_(false), previewsToLoad(0), previewsLoaded(0),
       modifierKey(0), bqueue_(nullptr)
 {
+    bindShortcuts();
     inTabMode = false;
 
     set_name("FileBrowser");
@@ -747,6 +750,8 @@ FileCatalog::FileCatalog(FilePanel *filepanel)
 
 FileCatalog::~FileCatalog()
 {
+    ShortcutsManager::getInstance()->unbindOwner(this);
+
     idle_register.destroy();
 
     for (int i = 0; i < 5; i++) {
@@ -1544,7 +1549,7 @@ void FileCatalog::categoryButtonToggled(Gtk::ToggleButton *b, bool isMouseClick)
 {
 
     // was control key pressed
-    bool control_down = modifierKey & GDK_CONTROL_MASK;
+    bool control_down = modifierKey & ShortcutsManager::mousePrimaryMask();
 
     // was shift key pressed
     bool shift_down = modifierKey & GDK_SHIFT_MASK;
@@ -2483,269 +2488,147 @@ void FileCatalog::openNextPreviousEditorImage(Glib::ustring fname,
     }
 }
 
+void FileCatalog::bindShortcuts()
+{
+    auto sm = ShortcutsManager::getInstance();
+    const auto bind = [this, sm](const char *id,
+                                 std::function<bool(GdkEventKey *)> f,
+                                 ShortcutsManager::Guard enabled = {}) {
+        sm->bind(this, id, std::move(f), std::move(enabled));
+    };
+    const auto run = [this, sm](const char *id, std::function<void()> f,
+                                ShortcutsManager::Guard enabled = {}) {
+        sm->bind(this, id, [f](GdkEventKey *) {
+            f();
+            return true;
+        }, std::move(enabled));
+    };
+    const auto toggle = [](Gtk::ToggleButton *b) {
+        b->set_active(!b->get_active());
+    };
+    const auto visible = [](Gtk::Button *const *b) {
+        return [b]() { return (*b)->is_visible(); };
+    };
+
+    // GUI layout
+    run("filecatalog.toggle_left_panel", [=]() { toggle(tbLeftPanel_1); });
+    run("filecatalog.toggle_right_panel", [=]() { toggle(tbRightPanel_1); });
+    run("filecatalog.toggle_left_and_right_panels", [=]() {
+        toggle(tbLeftPanel_1);
+        toggle(tbRightPanel_1);
+    });
+    run("filecatalog.maximize", [this]() { toggleSidePanels(); });
+    run("filecatalog.reset_path", [this]() {
+        BrowsePath->set_text(selectedDirectory);
+        fileBrowser->getFocus();
+    });
+
+    // filters: the button toggled is the same as with the mouse, and the
+    // modifiers the key was pressed with are what the button handler looks at
+    // (Primary+key adds to the current filter instead of replacing it, like
+    // Primary+click)
+    const auto filter = [this, bind](const char *id,
+                                     std::function<Gtk::ToggleButton *()> b) {
+        bind(id, [this, b](GdkEventKey *e) {
+            // the key variants with Ctrl/Primary add to the filter, whichever
+            // modifier the mouse uses for the same
+            modifierKey = e->state;
+            if (e->state & (ShortcutsManager::primaryMask() |
+                            GDK_CONTROL_MASK)) {
+                modifierKey |= ShortcutsManager::mousePrimaryMask();
+            }
+            categoryButtonToggled(b(), false);
+            return true;
+        });
+    };
+    filter("filecatalog.filter_unranked", [this]() { return bUnRanked; });
+    filter("filecatalog.filter_rank.1", [this]() { return bRank[0]; });
+    filter("filecatalog.filter_rank.2", [this]() { return bRank[1]; });
+    filter("filecatalog.filter_rank.3", [this]() { return bRank[2]; });
+    filter("filecatalog.filter_rank.4", [this]() { return bRank[3]; });
+    filter("filecatalog.filter_rank.5", [this]() { return bRank[4]; });
+    filter("filecatalog.filter_not_edited", [this]() { return bEdited[0]; });
+    filter("filecatalog.filter_edited", [this]() { return bEdited[1]; });
+    filter("filecatalog.filter_no_label", [this]() { return bUnCLabeled; });
+    filter("filecatalog.filter_label.1", [this]() { return bCLabel[0]; });
+    filter("filecatalog.filter_label.2", [this]() { return bCLabel[1]; });
+    filter("filecatalog.filter_label.3", [this]() { return bCLabel[2]; });
+    filter("filecatalog.filter_label.4", [this]() { return bCLabel[3]; });
+    filter("filecatalog.filter_label.5", [this]() { return bCLabel[4]; });
+    filter("filecatalog.filter_not_recently_saved",
+           [this]() { return bRecentlySaved[0]; });
+    filter("filecatalog.filter_recently_saved",
+           [this]() { return bRecentlySaved[1]; });
+    filter("filecatalog.filter_clear", [this]() { return bFilterClear; });
+
+    bind("filecatalog.browse", [this](GdkEventKey *) {
+        if (BrowsePath->is_focus()) {
+            FileCatalog::buttonBrowsePathPressed();
+            return true;
+        }
+        return false; // Return then opens the selection (FileBrowser)
+    });
+    run("filecatalog.toggle_exif", [=]() { toggle(exifInfo); });
+    run("filecatalog.zoom_in", [this]() { zoomIn(); });
+    run("filecatalog.zoom_out", [this]() { zoomOut(); });
+    run("filecatalog.focus_path", [this]() {
+        if (!BrowsePath->has_focus()) {
+            BrowsePath->select_region(0, BrowsePath->get_text_length());
+            BrowsePath->grab_focus();
+        } else {
+            fileBrowser->getFocus();
+        }
+    });
+    run("filecatalog.focus_query", [this]() {
+        if (!Query->has_focus()) {
+            Query->select_region(0, Query->get_text_length());
+            Query->grab_focus();
+        } else {
+            fileBrowser->getFocus();
+        }
+    });
+    run("filecatalog.toggle_trash", [this]() {
+        modifierKey = 0; // otherwise the shortcut won't work (see the button
+                         // handler)
+        categoryButtonToggled(bTrash, false);
+    });
+    run("filecatalog.empty_trash", [this]() { emptyTrash(); },
+        [this]() { return bTrash->get_active(); });
+    bind("filecatalog.toggle_toolbar", [this](GdkEventKey *e) {
+        if (inTabMode) {
+            if (options.showFilmStripToolBar) {
+                hideToolBar();
+            } else {
+                showToolBar();
+            }
+            options.showFilmStripToolBar = !options.showFilmStripToolBar;
+        }
+        if (!(e->state & GDK_SHIFT_MASK)) {
+            refreshHeight();
+        }
+        return true;
+    });
+    run("filecatalog.refresh", [this]() { FileCatalog::browsePathRefresh(); });
+
+    // the session buttons: only while they are visible
+    run("filecatalog.session_load", [this]() { sessionLoadPressed(); },
+        visible(&button_session_load_));
+    run("filecatalog.session_add", [this]() { sessionAddPressed(); },
+        visible(&button_session_add_));
+    run("filecatalog.session_remove", [this]() { sessionRemovePressed(); },
+        visible(&button_session_remove_));
+    run("filecatalog.session_save", [this]() { sessionSavePressed(); },
+        visible(&button_session_save_));
+}
+
 bool FileCatalog::handleShortcutKey(GdkEventKey *event)
 {
-
-    bool ctrl = event->state & GDK_CONTROL_MASK;
-    bool shift = event->state & GDK_SHIFT_MASK;
-    bool alt = event->state & GDK_MOD1_MASK;
-    bool altgr = event->state & (GDK_MOD2_MASK | GDK_MOD5_MASK);
     modifierKey = event->state;
 
-    // GUI Layout
-    switch (getKeyval(event)) {
-    case GDK_KEY_l:
-        if (!alt && !ctrl) {
-            tbLeftPanel_1->set_active(
-                !tbLeftPanel_1->get_active()); // toggle left panel
-        }
-
-        if (!alt && ctrl) {
-            tbRightPanel_1->set_active(
-                !tbRightPanel_1->get_active()); // toggle right panel
-        }
-
-        if (alt && ctrl) {
-            tbLeftPanel_1->set_active(
-                !tbLeftPanel_1->get_active()); // toggle left panel
-            tbRightPanel_1->set_active(
-                !tbRightPanel_1->get_active()); // toggle right panel
-        }
-
+    if (ShortcutsManager::getInstance()->dispatch(
+            event, ShortcutPhase::After,
+            {{"filecatalog-session", this}, {"filecatalog", this}})) {
         return true;
-
-    case GDK_KEY_m:
-        if (!ctrl && !alt) {
-            toggleSidePanels();
-        }
-
-        return true;
-    }
-
-    if (!shift) {
-        switch (getKeyval(event)) {
-        case GDK_KEY_Escape:
-            BrowsePath->set_text(selectedDirectory);
-            fileBrowser->getFocus();
-            return true;
-        }
-    }
-
-    if (!alt && !shift && !altgr) { // shift is reserved for ranking
-        switch (getKeyval(event)) {
-        case GDK_KEY_0:
-            categoryButtonToggled(bUnRanked, false);
-            return true;
-
-        case GDK_KEY_1:
-            categoryButtonToggled(bRank[0], false);
-            return true;
-
-        case GDK_KEY_2:
-            categoryButtonToggled(bRank[1], false);
-            return true;
-
-        case GDK_KEY_3:
-            categoryButtonToggled(bRank[2], false);
-            return true;
-
-        case GDK_KEY_4:
-            categoryButtonToggled(bRank[3], false);
-            return true;
-
-        case GDK_KEY_5:
-            categoryButtonToggled(bRank[4], false);
-            return true;
-
-        case GDK_KEY_6:
-            categoryButtonToggled(bEdited[0], false);
-            return true;
-
-        case GDK_KEY_7:
-            categoryButtonToggled(bEdited[1], false);
-            return true;
-        }
-    }
-
-    if (!alt && !shift) {
-        switch (getKeyval(event)) {
-
-        case GDK_KEY_Return:
-        case GDK_KEY_KP_Enter:
-            if (BrowsePath->is_focus()) {
-                FileCatalog::buttonBrowsePathPressed();
-                return true;
-            }
-
-            break;
-        }
-    }
-
-    if (alt && !shift) { // shift is reserved for color labeling
-        switch (getKeyval(event)) {
-        case GDK_KEY_0:
-            categoryButtonToggled(bUnCLabeled, false);
-            return true;
-
-        case GDK_KEY_1:
-            categoryButtonToggled(bCLabel[0], false);
-            return true;
-
-        case GDK_KEY_2:
-            categoryButtonToggled(bCLabel[1], false);
-            return true;
-
-        case GDK_KEY_3:
-            categoryButtonToggled(bCLabel[2], false);
-            return true;
-
-        case GDK_KEY_4:
-            categoryButtonToggled(bCLabel[3], false);
-            return true;
-
-        case GDK_KEY_5:
-            categoryButtonToggled(bCLabel[4], false);
-            return true;
-
-        case GDK_KEY_6:
-            categoryButtonToggled(bRecentlySaved[0], false);
-            return true;
-
-        case GDK_KEY_7:
-            categoryButtonToggled(bRecentlySaved[1], false);
-            return true;
-        }
-    }
-
-    if (!ctrl && !alt) {
-        switch (getKeyval(event)) {
-        case GDK_KEY_d:
-        case GDK_KEY_D:
-            categoryButtonToggled(bFilterClear, false);
-            return true;
-        }
-    }
-
-    if (!ctrl || (alt && !options.tabbedUI)) {
-        switch (getKeyval(event)) {
-        case GDK_KEY_i:
-            // case GDK_KEY_I:
-            exifInfo->set_active(!exifInfo->get_active());
-            return true;
-
-        case GDK_KEY_plus:
-        case GDK_KEY_equal:
-            zoomIn();
-            return true;
-
-        case GDK_KEY_minus:
-        case GDK_KEY_underscore:
-            zoomOut();
-            return true;
-        }
-    }
-
-    if (ctrl && !alt) {
-        switch (getKeyval(event)) {
-        case GDK_KEY_o:
-            if (button_session_load_->is_visible()) {
-                sessionLoadPressed();
-                return true;
-            }
-        case GDK_KEY_O:
-            if (!BrowsePath->has_focus()) {
-                BrowsePath->select_region(0, BrowsePath->get_text_length());
-                BrowsePath->grab_focus();
-            } else {
-                fileBrowser->getFocus();
-            }
-            return true;
-
-        case GDK_KEY_f:
-            if (!Query->has_focus()) {
-                Query->select_region(0, Query->get_text_length());
-                Query->grab_focus();
-            } else {
-                fileBrowser->getFocus();
-            }
-            return true;
-
-        case GDK_KEY_t:
-        case GDK_KEY_T:
-            modifierKey = 0; // HOMBRE: yet another hack.... otherwise the
-                             // shortcut won't work
-            categoryButtonToggled(bTrash, false);
-            return true;
-
-        case GDK_KEY_Delete:
-            if (shift && bTrash->get_active()) {
-                emptyTrash();
-                return true;
-            }
-            break;
-
-        case GDK_KEY_plus:
-            if (button_session_add_->is_visible()) {
-                sessionAddPressed();
-                return true;
-            }
-            break;
-
-        case GDK_KEY_minus:
-            if (button_session_remove_->is_visible()) {
-                sessionRemovePressed();
-                return true;
-            }
-            break;
-
-        case GDK_KEY_s:
-            if (button_session_save_->is_visible()) {
-                sessionSavePressed();
-                return true;
-            }
-            break;
-        }
-    }
-
-    if (!ctrl && !alt && shift) {
-        switch (getKeyval(event)) {
-        case GDK_KEY_t:
-        case GDK_KEY_T:
-            if (inTabMode) {
-                if (options.showFilmStripToolBar) {
-                    hideToolBar();
-                } else {
-                    showToolBar();
-                }
-
-                options.showFilmStripToolBar = !options.showFilmStripToolBar;
-            }
-
-            return true;
-        }
-    }
-
-    if (!ctrl && !alt && !shift) {
-        switch (getKeyval(event)) {
-        case GDK_KEY_t:
-        case GDK_KEY_T:
-            if (inTabMode) {
-                if (options.showFilmStripToolBar) {
-                    hideToolBar();
-                } else {
-                    showToolBar();
-                }
-
-                options.showFilmStripToolBar = !options.showFilmStripToolBar;
-            }
-
-            refreshHeight();
-            return true;
-
-        case GDK_KEY_F5:
-            FileCatalog::browsePathRefresh();
-            return true;
-        }
     }
 
     return fileBrowser->keyPressed(event);

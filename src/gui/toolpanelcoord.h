@@ -1,21 +1,22 @@
 /* -*- C++ -*-
  *
- *  This file is part of RawTherapee.
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #pragma once
 
@@ -63,7 +64,7 @@
 #include "colorcorrection.h"
 #include "darkframe.h"
 #include "dehaze.h"
-#include "fattaltonemap.h"
+#include "drcompression.h"
 #include "filmnegative.h"
 #include "filmsimulation.h"
 #include "flatfield.h"
@@ -157,7 +158,7 @@ protected:
     RAWExposure *rawexposure;
     BayerRAWExposure *bayerrawexposure;
     XTransRAWExposure *xtransrawexposure;
-    FattalToneMapping *fattal;
+    DynamicRangeCompression *drcompression;
     LogEncoding *logenc;
     MetaDataPanel *metadata;
     Smoothing *smoothing;
@@ -351,7 +352,7 @@ public:
     CropGUIListener *startCropEditing(Thumbnail *thm = nullptr) override;
 
     void updateTPVScrollbar(bool hide);
-    bool handleShortcutKey(GdkEventKey *event);
+    void bindShortcuts();
 
     // ToolBarListener interface
     void toolSelected(ToolMode tool) override;
@@ -370,12 +371,12 @@ public:
     void setAreaDrawListener(AreaDrawListener *listener) override;
 
     // DeltaEColorProvider interface
-    bool getDeltaELCH(EditUniqueID id, art::engine::Coord pos, float &L, float &C,
-                      float &H) override;
+    bool getDeltaELCH(EditUniqueID id, art::engine::Coord pos, int size,
+                      float &L, float &C, float &H) override;
 
     void setProgressListener(art::engine::ProgressListener *pl);
 
-    void setToolShortcutManager(ToolShortcutManager *mgr);
+    void setToolShortcutsManager(ToolShortcutsManager *mgr);
 
 private:
     IdleRegister idle_register;

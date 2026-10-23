@@ -1,21 +1,22 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "dcrop.h"
 #include "curves.h"
@@ -314,7 +315,7 @@ void Crop::update(int todo)
     std::unique_ptr<Imagefloat> drCompCrop;
     bool stop = false;
 
-    if ((todo & M_HDR) && (params.fattal.enabled || params.dehaze.enabled)) {
+    if ((todo & M_HDR) && parent->ipf.stage0NeedsFullImage()) {
         Imagefloat *f = baseCrop;
         int fw = skips(parent->fw, skip);
         int fh = skips(parent->fh, skip);
@@ -326,7 +327,7 @@ void Crop::update(int todo)
             const bool copy_from_earlier_steps =
                 params.denoise.enabled || params.spot.enabled;
 
-            // fattal needs to work on the full image. So here we get the full
+            // drcompression needs to work on the full image. So here we get the full
             // image from imgsrc, and replace the denoised crop in case
             if (!copy_from_earlier_steps && skip == 1 &&
                 parent->drcomp_11_dcrop_cache) {

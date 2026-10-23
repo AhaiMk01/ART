@@ -50,6 +50,10 @@ public:
         -> std::future<typename std::result_of<F(Args...)>::type>;
 
     static void init(size_t num_workers);
+    // Stops the pool for good: pending tasks are discarded, tasks already
+    // running finish, then the workers are joined. Tasks added afterwards are
+    // silently dropped (their futures are left broken). Call before tearing
+    // down anything the tasks might use.
     static void cleanup();
 
 private:
@@ -69,6 +73,8 @@ public:
     ~ThreadPool();
 
 private:
+    void shutdown();
+
     // need to keep track of threads so we can join them
     std::vector<std::thread> workers_;
     // the task queue
@@ -96,12 +102,14 @@ private:
     std::condition_variable condition_;
     bool stop_;
     size_t idx_;
+    bool shutdown_; // set by shutdown(): enqueue() drops tasks instead of throwing
 
     static std::unique_ptr<ThreadPool> instance_;
 };
 
 // the constructor just launches some amount of workers
-inline ThreadPool::ThreadPool(size_t threads): stop_(false), idx_(0)
+inline ThreadPool::ThreadPool(size_t threads)
+    : stop_(false), idx_(0), shutdown_(false)
 {
     for (size_t i = 0; i < threads; ++i) {
         workers_.emplace_back([this] {
@@ -139,6 +147,12 @@ auto ThreadPool::enqueue(Priority p, F &&f, Args &&...args)
     {
         std::unique_lock<std::mutex> lock(queue_mutex_);
 
+        // pool has been shut down (application exit): drop the task; the
+        // returned future will report a broken promise
+        if (shutdown_) {
+            return res;
+        }
+
         // don't allow enqueueing after stopping the pool
         if (stop_) {
             throw std::runtime_error("enqueue on stopped ThreadPool");
@@ -159,7 +173,25 @@ inline ThreadPool::~ThreadPool()
     }
     condition_.notify_all();
     for (std::thread &worker : workers_) {
-        worker.join();
+        if (worker.joinable()) { // not already joined by shutdown()
+            worker.join();
+        }
+    }
+}
+
+inline void ThreadPool::shutdown()
+{
+    {
+        std::unique_lock<std::mutex> lock(queue_mutex_);
+        shutdown_ = true;
+        stop_ = true; // workers exit as soon as the queue is empty
+        tasks_ = decltype(tasks_)(); // discard everything not yet started
+    }
+    condition_.notify_all();
+    for (std::thread &worker : workers_) {
+        if (worker.joinable()) {
+            worker.join();
+        }
     }
 }
 
@@ -168,7 +200,14 @@ inline void ThreadPool::init(size_t num_workers)
     instance_.reset(new ThreadPool(num_workers));
 }
 
-inline void ThreadPool::cleanup() { instance_.reset(nullptr); }
+inline void ThreadPool::cleanup()
+{
+    // keep the (now idle) object alive: code running during the rest of the
+    // teardown may still call add_task()
+    if (instance_) {
+        instance_->shutdown();
+    }
+}
 
 template <class F, class... Args>
 auto ThreadPool::add_task(Priority p, F &&f, Args &&...args)

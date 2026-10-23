@@ -2,7 +2,7 @@
  *
  *  This file is part of ART.
  *
- *  Copyright (c) 2021 Alberto Griggio <alberto.griggio@gmail.com>
+ *  Copyright (c) 2020-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *  Copyright (c) 2012 Oliver Duis <www.oliverduis.de>
  *
  *  ART is free software: you can redistribute it and/or modify

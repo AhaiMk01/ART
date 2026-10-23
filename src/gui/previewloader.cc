@@ -1,20 +1,21 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2019-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "previewloader.h"
@@ -77,12 +78,11 @@ public:
 
     typedef std::set<Job, JobCompare> JobSet;
 
-    Impl(): num_concurrent_threads_(0), job_count_(0) {}
+    Impl(): num_concurrent_threads_(0) {}
 
     MyMutex mutex_;
     std::deque<Job> jobs_;
     std::atomic<int> num_concurrent_threads_;
-    size_t job_count_;
 
     void processNextJob()
     {
@@ -117,19 +117,24 @@ public:
                     j.dir_id_, new FileBrowserEntry(tmb, j.dir_entry_));
             }
 
-            if (++job_count_ % 20 == 0) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            }
-
         } catch (Glib::Error &e) {
         } catch (...) {
         }
 
-        bool last = num_concurrent_threads_--;
+        // true only for the last thread still running (a post-decrement would
+        // yield the previous value, which is never zero here)
+        bool last = (--num_concurrent_threads_ == 0);
 
         // signal at end
-        if (last && jobs_.empty()) {
-            j.listener_->previewsFinished(j.dir_id_);
+        if (last) {
+            bool empty;
+            {
+                MyMutex::MyLock lock(mutex_);
+                empty = jobs_.empty();
+            }
+            if (empty) {
+                j.listener_->previewsFinished(j.dir_id_);
+            }
         }
     }
 };

@@ -1,20 +1,21 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2018-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <gtkmm.h>
@@ -27,6 +28,7 @@
 #include "focusmask.h"
 #include "guiutils.h"
 #include "inspector.h"
+#include "shortcutsmanager.h"
 #include "../utils/multilangmgr.h"
 #include "options.h"
 #include "rtwindow.h"
@@ -590,6 +592,7 @@ Inspector::Inspector(FileCatalog *filecatalog)
     : filecatalog_(filecatalog), focusmask_on_("focusscreen-on.svg"),
       focusmask_off_("focusscreen-off.svg")
 {
+    bindShortcuts();
     ibox_.pack_start(ins_[0], Gtk::PACK_EXPAND_WIDGET, 3);
     ibox_.pack_start(ins_[1], Gtk::PACK_EXPAND_WIDGET, 3);
     pack_start(ibox_);
@@ -1126,72 +1129,53 @@ void Inspector::focus_mask_toggled()
     }
 }
 
-bool Inspector::handleShortcutKey(GdkEventKey *event)
+void Inspector::bindShortcuts()
 {
-    bool ctrl = event->state & GDK_CONTROL_MASK;
-    bool shift = event->state & GDK_SHIFT_MASK;
-    bool alt = event->state & GDK_MOD1_MASK;
-#ifdef __WIN32__
-    bool altgr = event->state & GDK_MOD2_MASK;
-#else
-    bool altgr = false;
-#endif
+    auto sm = ShortcutsManager::getInstance();
+    const auto run = [this, sm](const char *id, std::function<void()> f) {
+        sm->bind(this, id, [f](GdkEventKey *) {
+            f();
+            return true;
+        });
+    };
 
-    if (!ctrl && !shift && !alt && !altgr) {
-        switch (getKeyval(event)) {
-        case GDK_KEY_h:
-            toggleShowHistogram();
-            return true;
-        case GDK_KEY_c:
-            toggleUseCms();
-            return true;
-        case GDK_KEY_z:
-            setZoomFit(false);
-            return true;
-        case GDK_KEY_x:
-            setZoomFit(true);
-            return true;
-        case GDK_KEY_j:
-            setDisplayMode(Inspector::DisplayMode::JPG);
-            return true;
-        case GDK_KEY_r:
-            setDisplayMode(Inspector::DisplayMode::RAW_LINEAR);
-            return true;
-        case GDK_KEY_f:
-            setDisplayMode(Inspector::DisplayMode::RAW_FILM_CURVE);
-            return true;
-        case GDK_KEY_s:
-            setDisplayMode(Inspector::DisplayMode::RAW_SHADOW_BOOST);
-            return true;
-        case GDK_KEY_w:
-            setDisplayMode(Inspector::DisplayMode::RAW_CLIP_WARNING);
-            return true;
-        case GDK_KEY_y:
-            split_->set_active(!split_->get_active());
-            return true;
-        case GDK_KEY_Tab:
-            if (split_->get_active()) {
-                ins_[active_].setHighlight(false);
-                active_ = 1 - active_;
-                ins_[active_].setHighlight(true);
-                queue_draw();
-                return true;
-            }
-            break;
-        }
-    }
-    if (!ctrl && shift && !alt && !altgr) {
-        switch (getKeyval(event)) {
-        case GDK_KEY_F:
-            focusmask_->set_active(!focusmask_->get_active());
-            return true;
-        case GDK_KEY_I:
-            toggleShowInfo();
+    run("inspector.toggle_histogram", [this]() { toggleShowHistogram(); });
+    run("inspector.toggle_cms", [this]() { toggleUseCms(); });
+    run("inspector.zoom_100", [this]() { setZoomFit(false); });
+    run("inspector.zoom_fit", [this]() { setZoomFit(true); });
+    run("inspector.mode_jpeg",
+        [this]() { setDisplayMode(Inspector::DisplayMode::JPG); });
+    run("inspector.mode_raw_linear",
+        [this]() { setDisplayMode(Inspector::DisplayMode::RAW_LINEAR); });
+    run("inspector.mode_raw_film_curve",
+        [this]() { setDisplayMode(Inspector::DisplayMode::RAW_FILM_CURVE); });
+    run("inspector.mode_raw_shadow_boost", [this]() {
+        setDisplayMode(Inspector::DisplayMode::RAW_SHADOW_BOOST);
+    });
+    run("inspector.mode_raw_clip_warning", [this]() {
+        setDisplayMode(Inspector::DisplayMode::RAW_CLIP_WARNING);
+    });
+    run("inspector.toggle_split",
+        [this]() { split_->set_active(!split_->get_active()); });
+    sm->bind(this, "inspector.switch_pane", [this](GdkEventKey *) {
+        if (split_->get_active()) {
+            ins_[active_].setHighlight(false);
+            active_ = 1 - active_;
+            ins_[active_].setHighlight(true);
+            queue_draw();
             return true;
         }
-    }
+        return false;
+    });
+    run("inspector.toggle_focus_mask",
+        [this]() { focusmask_->set_active(!focusmask_->get_active()); });
+    run("inspector.toggle_info", [this]() { toggleShowInfo(); });
+}
 
-    return false;
+
+Inspector::~Inspector()
+{
+    ShortcutsManager::getInstance()->unbindOwner(this);
 }
 
 void Inspector::onInspectorResized(Gtk::Allocation &a)
@@ -1374,24 +1358,31 @@ void Inspector::popover(const ThumbBrowserEntryBase *entry)
             return true;
         };
     
+    // the keys that switch the display mode: anything else closes the popover
+    const std::pair<const char *, Inspector::DisplayMode> modes[] = {
+        {"inspector.popover.mode_jpeg", Inspector::DisplayMode::JPG},
+        {"inspector.popover.mode_raw_linear",
+         Inspector::DisplayMode::RAW_LINEAR},
+        {"inspector.popover.mode_raw_film_curve",
+         Inspector::DisplayMode::RAW_FILM_CURVE},
+        {"inspector.popover.mode_raw_shadow_boost",
+         Inspector::DisplayMode::RAW_SHADOW_BOOST},
+        {"inspector.popover.mode_raw_clip_warning",
+         Inspector::DisplayMode::RAW_CLIP_WARNING}};
+    for (auto &m : modes) {
+        const auto mode = m.second;
+        ShortcutsManager::getInstance()->bind(
+            &p, m.first,
+            [&toggle_mode, mode](GdkEventKey *) { return toggle_mode(mode); });
+    }
+
     p.signal_key_press_event().connect(
         [&](GdkEventKey *event)
         {
-            static const std::unordered_map<int, Inspector::DisplayMode> mm = {
-                { GDK_KEY_j, Inspector::DisplayMode::JPG },
-                { GDK_KEY_r, Inspector::DisplayMode::RAW_LINEAR },
-                { GDK_KEY_f, Inspector::DisplayMode::RAW_FILM_CURVE },
-                { GDK_KEY_s, Inspector::DisplayMode::RAW_SHADOW_BOOST },
-                { GDK_KEY_w, Inspector::DisplayMode::RAW_CLIP_WARNING }
-            };
-
-            auto modified = event->state;          
-
-            if (!modified) {
-                auto it = mm.find(getKeyval(event));
-                if (it != mm.end()) {
-                    return toggle_mode(it->second);
-                }
+            if (ShortcutsManager::getInstance()->dispatch(
+                    event, ShortcutPhase::After,
+                    {{"inspector-popover", &p}})) {
+                return true;
             }
             done = true;
             p.hide();
@@ -1423,6 +1414,7 @@ void Inspector::popover(const ThumbBrowserEntryBase *entry)
     while (!done) {
         gtk_main_iteration();
     }
+    ShortcutsManager::getInstance()->unbindOwner(&p);
 }
 
 

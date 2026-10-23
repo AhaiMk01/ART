@@ -1,20 +1,21 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "../engine/rt_math.h"
 #include <cstring>
@@ -31,6 +32,7 @@
 #include "../engine/imgiomanager.h"
 #include "../engine/processingjob.h"
 #include "batchqueue.h"
+#include "shortcutsmanager.h"
 #include "batchqueuebuttonset.h"
 #include "filecatalog.h"
 #include "guiutils.h"
@@ -50,6 +52,7 @@ BatchQueue::BatchQueue(FileCatalog *aFileCatalog)
       listener(nullptr), batch_profile_(nullptr)
 {
     fileCatalog->setBatchQueue(this);
+    bindShortcuts();
 
     location = THLOC_BATCHQUEUE;
 
@@ -91,16 +94,14 @@ BatchQueue::BatchQueue(FileCatalog *aFileCatalog)
     // Accelerators
     pmaccelgroup = Gtk::AccelGroup::create();
     pmenu.set_accel_group(pmaccelgroup);
-    open->add_accelerator("activate", pmaccelgroup, GDK_KEY_e,
-                          Gdk::CONTROL_MASK, Gtk::ACCEL_VISIBLE);
-    selall->add_accelerator("activate", pmaccelgroup, GDK_KEY_a,
-                            Gdk::CONTROL_MASK, Gtk::ACCEL_VISIBLE);
-    head->add_accelerator("activate", pmaccelgroup, GDK_KEY_Home,
-                          (Gdk::ModifierType)0, Gtk::ACCEL_VISIBLE);
-    tail->add_accelerator("activate", pmaccelgroup, GDK_KEY_End,
-                          (Gdk::ModifierType)0, Gtk::ACCEL_VISIBLE);
-    cancel->add_accelerator("activate", pmaccelgroup, GDK_KEY_Delete,
-                            (Gdk::ModifierType)0, Gtk::ACCEL_VISIBLE);
+    const auto accel = [this](Gtk::MenuItem *item, const char *id) {
+        ShortcutsManager::getInstance()->addAccelerator(*item, pmaccelgroup, id);
+    };
+    accel(open, "queue.open_in_editor");
+    accel(selall, "queue.select_all");
+    accel(head, "queue.move_to_head");
+    accel(tail, "queue.move_to_tail");
+    accel(cancel, "queue.cancel");
 
     open->signal_activate().connect(
         sigc::mem_fun(*this, &BatchQueue::openLastSelectedItemInEditor));
@@ -126,6 +127,8 @@ BatchQueue::BatchQueue(FileCatalog *aFileCatalog)
 
 BatchQueue::~BatchQueue()
 {
+    ShortcutsManager::getInstance()->unbindOwner(this);
+
     std::set<BatchQueueEntry *> removable_bqes;
 
     mutex_removable_batch_queue_entries.lock();
@@ -193,34 +196,29 @@ void BatchQueue::doubleClicked(ThumbBrowserEntryBase *entry)
     openItemInEditor(entry);
 }
 
-bool BatchQueue::keyPressed(GdkEventKey *event)
+void BatchQueue::bindShortcuts()
 {
-    bool ctrl = event->state & GDK_CONTROL_MASK;
-    bool shift = event->state & GDK_SHIFT_MASK;
+    auto sm = ShortcutsManager::getInstance();
+    const auto bind = [this, sm](const char *id,
+                                 std::function<void(GdkEventKey *)> f) {
+        sm->bind(this, id, [f](GdkEventKey *e) {
+            f(e);
+            return true;
+        });
+    };
+    const auto shift = [](GdkEventKey *e) {
+        return bool(e->state & GDK_SHIFT_MASK);
+    };
 
-    auto keyval = getKeyval(event);
-
-    if ((keyval == GDK_KEY_A || keyval == GDK_KEY_a) && ctrl) {
-        selectAll();
-        return true;
-    } else if ((keyval == GDK_KEY_E || keyval == GDK_KEY_e) && ctrl) {
-        openLastSelectedItemInEditor();
-        return true;
-    } else if (keyval == GDK_KEY_Home) {
-        if (!ctrl) {
-            selectFirst(shift);
-        } else {
-            headItems(selected);
-        }
-        return true;
-    } else if (keyval == GDK_KEY_End) {
-        if (!ctrl) {
-            selectLast(shift);
-        } else {
-            tailItems(selected);
-        }
-        return true;
-    } else if (keyval == GDK_KEY_Delete) {
+    bind("queue.select_all", [this](GdkEventKey *) { selectAll(); });
+    bind("queue.open_in_editor",
+         [this](GdkEventKey *) { openLastSelectedItemInEditor(); });
+    bind("queue.select_first",
+         [=](GdkEventKey *e) { selectFirst(shift(e)); });
+    bind("queue.select_last", [=](GdkEventKey *e) { selectLast(shift(e)); });
+    bind("queue.move_to_head", [this](GdkEventKey *) { headItems(selected); });
+    bind("queue.move_to_tail", [this](GdkEventKey *) { tailItems(selected); });
+    bind("queue.cancel", [this](GdkEventKey *) {
         ThumbBrowserEntryBase *tosel = nullptr;
         bool seen = false;
         for (auto t : fd) {
@@ -240,21 +238,20 @@ bool BatchQueue::keyPressed(GdkEventKey *event)
         if (tosel) {
             selectEntry(tosel);
         }
-        return true;
-    } else if (keyval == GDK_KEY_Left) {
-        selectPrev(1, shift);
-        return true;
-    } else if (keyval == GDK_KEY_Right) {
-        selectNext(1, shift);
-        return true;
-    } else if (keyval == GDK_KEY_Up) {
-        selectPrev(numOfCols, shift);
-        return true;
-    } else if (keyval == GDK_KEY_Down) {
-        selectNext(numOfCols, shift);
-        return true;
-    }
-    return false;
+    });
+    bind("queue.select_previous",
+         [=](GdkEventKey *e) { selectPrev(1, shift(e)); });
+    bind("queue.select_next", [=](GdkEventKey *e) { selectNext(1, shift(e)); });
+    bind("queue.select_row_up",
+         [=](GdkEventKey *e) { selectPrev(numOfCols, shift(e)); });
+    bind("queue.select_row_down",
+         [=](GdkEventKey *e) { selectNext(numOfCols, shift(e)); });
+}
+
+bool BatchQueue::keyPressed(GdkEventKey *event)
+{
+    return ShortcutsManager::getInstance()->dispatch(
+        event, ShortcutPhase::After, {{"queue", this}});
 }
 
 void BatchQueue::addEntries(const std::vector<BatchQueueEntry *> &entries,

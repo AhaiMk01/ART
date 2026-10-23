@@ -1,21 +1,22 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
  *  Copyright (c) 2010 Oliver Duis <www.oliverduis.de>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "../utils/multilangmgr.h"
 #include "../gui/options.h"
@@ -397,8 +398,12 @@ int ImageIO::loadPNG(const Glib::ustring &fname)
 // #endif
 // }
 
-int ImageIO::loadJPEGFromMemory(const char *buffer, int bufsize)
+int ImageIO::loadJPEGFromMemory(const char *buffer, int bufsize, int maxw_hint,
+                                int maxh_hint, int *scale_denom)
 {
+    if (scale_denom) {
+        *scale_denom = 1;
+    }
     jpeg_decompress_struct cinfo;
     jpeg_create_decompress(&cinfo);
     // rt_jpeg_memory_src (&cinfo, (const JOCTET*)buffer, bufsize);
@@ -442,6 +447,21 @@ int ImageIO::loadJPEGFromMemory(const char *buffer, int bufsize)
         setup_read_icc_profile(&cinfo);
 
         jpeg_read_header(&cinfo, TRUE);
+
+        if (maxw_hint > 0 && maxh_hint > 0) {
+            int d = std::min<int>(cinfo.image_width / maxw_hint,
+                                  cinfo.image_height / maxh_hint);
+            if (d > 1) {
+                cinfo.scale_num = 1;
+                int l = std::min(d, 8);
+                for (d = 1; (d << 1) <= l; d = d << 1) {
+                }
+                cinfo.scale_denom = d;
+                if (scale_denom) {
+                    *scale_denom = d;
+                }
+            }
+        }
 
         deleteLoadedProfileData();
         loadedProfileDataJpg = true;

@@ -1,21 +1,21 @@
 /* -*- C++ -*-
  *
- *  This file is part of RawTherapee.
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #pragma once
 
@@ -23,6 +23,7 @@
 #include <string>
 #include <vector>
 
+#include <functional>
 #include <glibmm/ustring.h>
 
 namespace art { namespace utils {
@@ -35,11 +36,28 @@ public:
     void load(const Glib::ustring &language,
               const std::vector<Glib::ustring> &fnames);
     Glib::ustring getStr(const std::string &key) const;
+
+    /// Strings may contain "%shortcut(action.id)%", which is replaced by what
+    /// the provider returns for the id: the key currently bound to that
+    /// action, so that tooltips follow the OS conventions and the user's
+    /// customisation. Without a provider the text is left as it is.
+    using ShortcutLabeler = std::function<Glib::ustring(const std::string &)>;
+    void setShortcutLabeler(ShortcutLabeler f) { shortcut_labeler_ = std::move(f); }
+
+    /// "%mouse_primary%" in a string becomes this: the name of the modifier of
+    /// the mouse actions ("Ctrl", or Cmd on macOS), for "%mouse_primary%-click"
+    /// and the like.
+    void setMousePrimaryModifierName(const Glib::ustring &name)
+    {
+        mouse_primary_name_ = name;
+    }
     static bool isOSLanguageDetectSupported();
     static Glib::ustring getOSUserLanguage();
 
 private:
     std::map<std::string, Glib::ustring> translations;
+    ShortcutLabeler shortcut_labeler_;
+    Glib::ustring mouse_primary_name_;
 };
 
 extern MultiLangMgr langMgr;

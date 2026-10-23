@@ -1,22 +1,23 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "myflatcurve.h"
+#include "shortcutsmanager.h"
 #include "../engine/curves.h"
 #include "guiutils.h"
 #include <cstring>
@@ -732,7 +733,7 @@ bool MyFlatCurve::handleEvents(GdkEvent *event)
                     curve.rightTangent.insert(itrt, 0);
                     num++;
 
-                    if (mod_type & GDK_CONTROL_MASK) {
+                    if (mod_type & ShortcutsManager::mousePrimaryMask()) {
                         clampedY = point.getVal01(clampedX);
                     }
 
@@ -1829,7 +1830,7 @@ void MyFlatCurve::getCursorPosition(Gdk::EventType evType, bool isHint, int evX,
     // update deltaX/Y if the user drags a point
     if (editedHandle != FCT_EditedHandle_None) {
         // set the dragging factor
-        int control_key = mod_type & GDK_CONTROL_MASK;
+        int control_key = mod_type & ShortcutsManager::mousePrimaryMask();
         int shift_key = mod_type & GDK_SHIFT_MASK;
 
         // the increment get smaller if modifier key are used, and "snap to" may

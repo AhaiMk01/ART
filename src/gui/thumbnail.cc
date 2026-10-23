@@ -1,19 +1,22 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
  *
+ *  This file is part of ART.
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  Copyright (c) 2004-2025 the RawTherapee developers
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
+ *
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "thumbnail.h"
 #include "../engine/imagedata.h"
@@ -21,11 +24,16 @@
 #include "../utils/multilangmgr.h"
 #include "options.h"
 #include <cstdio>
+#include <condition_variable>
 #include <cstdlib>
+#include <deque>
+#include <functional>
 #include <glib/gstdio.h>
 #include <glibmm.h>
 #include <iomanip>
+#include <mutex>
 #include <sstream>
+#include <thread>
 
 #include "../engine/dynamicprofile.h"
 #include "../engine/metadata.h"
@@ -44,10 +52,146 @@ using namespace utils;
 
 using namespace art::engine::procparams;
 
+namespace {
+
+// Runs, one at a time and in order, the writes of the sidecar and cache files
+// started by Thumbnail::saveProcParams(..., async=true). The jobs work on
+// copies of the data and never touch the Thumbnail, so they cannot race with
+// it; what has to be ordered is the access to the files, which is why a job is
+// identified by the name of the image: a new job replaces the pending one for
+// the same image (only the newest data matter), and wait(key) lets whoever
+// writes or deletes those files synchronously let the pending job finish first.
+class BackgroundWriter {
+public:
+    BackgroundWriter(): busy_(false), stop_(false) {}
+
+    ~BackgroundWriter()
+    {
+        waitAll();
+        {
+            std::lock_guard<std::mutex> lock(m_);
+            stop_ = true;
+        }
+        cv_.notify_all();
+        if (thread_.joinable()) {
+            thread_.join();
+        }
+    }
+
+    void post(const std::string &key, std::function<void()> job)
+    {
+        {
+            std::lock_guard<std::mutex> lock(m_);
+            if (!thread_.joinable()) {
+                thread_ = std::thread([this]() { loop(); });
+            }
+            for (auto &j : jobs_) {
+                if (j.first == key) {
+                    j.second = std::move(job); // not started yet: replace it
+                    return;
+                }
+            }
+            jobs_.emplace_back(key, std::move(job));
+        }
+        cv_.notify_all();
+    }
+
+    // returns when nothing is pending or running for key
+    void wait(const std::string &key)
+    {
+        std::unique_lock<std::mutex> lock(m_);
+        done_.wait(lock, [&]() {
+            if (busy_ && running_ == key) {
+                return false;
+            }
+            for (auto &j : jobs_) {
+                if (j.first == key) {
+                    return false;
+                }
+            }
+            return true;
+        });
+    }
+
+    void waitAll()
+    {
+        std::unique_lock<std::mutex> lock(m_);
+        done_.wait(lock, [&]() { return jobs_.empty() && !busy_; });
+    }
+
+private:
+    void loop()
+    {
+        std::unique_lock<std::mutex> lock(m_);
+        for (;;) {
+            cv_.wait(lock, [&]() { return stop_ || !jobs_.empty(); });
+            if (jobs_.empty()) {
+                return; // stop_
+            }
+            auto job = std::move(jobs_.front());
+            jobs_.pop_front();
+            running_ = job.first;
+            busy_ = true;
+            lock.unlock();
+            try {
+                job.second();
+            } catch (...) {
+            }
+            lock.lock();
+            busy_ = false;
+            running_.clear();
+            done_.notify_all();
+        }
+    }
+
+    std::mutex m_;
+    std::condition_variable cv_, done_;
+    std::deque<std::pair<std::string, std::function<void()>>> jobs_;
+    std::string running_;
+    bool busy_;
+    bool stop_;
+    std::thread thread_;
+};
+
+BackgroundWriter &writer()
+{
+    static BackgroundWriter instance;
+    return instance;
+}
+
+// Writes the edited metadata to the XMP sidecar of fname. Returns false (and
+// sets errmsg) on failure.
+bool save_xmp_metadata(const Glib::ustring &fname, const ExifPairs &exif,
+                       const IPTCPairs &iptc, Glib::ustring &errmsg)
+{
+    auto fn = art::engine::Exiv2Metadata::xmpSidecarPath(fname);
+    try {
+        auto xmp = art::engine::Exiv2Metadata::getXmpSidecar(fname);
+        art::engine::Exiv2Metadata meta;
+        meta.xmpData() = std::move(xmp);
+        meta.setExif(exif);
+        meta.setIptc(iptc);
+        meta.saveToXmp(fn);
+        if (options.rtSettings.verbose > 1) {
+            std::cout << "saved edited metadata for " << fname << " to " << fn
+                      << std::endl;
+        }
+        return true;
+    } catch (std::exception &exc) {
+        std::cerr << "ERROR saving metadata for " << fname << " to " << fn
+                  << ": " << exc.what() << std::endl;
+        errmsg = Glib::ustring::compose(M("METADATA_SAVE_ERROR"), fn,
+                                        exc.what());
+        return false;
+    }
+}
+
+} // namespace
+
 Thumbnail::Thumbnail(CacheManager *cm, const Glib::ustring &fname,
                      CacheImageData *cf)
     : fname(fname), cfs(*cf), cachemgr(cm), ref(1), enqueueNumber(0),
-      tpp(nullptr), pparamsValid(false), needsReProcessing(true),
+      tpp(nullptr), pparamsValid(false), pparamsDirty_(false), needsReProcessing(true),
       imageLoading(false), lastImg(nullptr), lastW(0), lastH(0), lastScale(0),
       initial_(false), first_process_(true)
 {
@@ -67,7 +211,7 @@ Thumbnail::Thumbnail(CacheManager *cm, const Glib::ustring &fname,
 Thumbnail::Thumbnail(CacheManager *cm, const Glib::ustring &fname,
                      const std::string &md5)
     : fname(fname), cachemgr(cm), ref(1), enqueueNumber(0), tpp(nullptr),
-      pparamsValid(false), needsReProcessing(true), imageLoading(false),
+      pparamsValid(false), pparamsDirty_(false), needsReProcessing(true), imageLoading(false),
       lastImg(nullptr), lastW(0), lastH(0), lastScale(0.0), initial_(true),
       first_process_(true)
 {
@@ -439,6 +583,7 @@ void Thumbnail::loadProcParams(bool load_rating)
     MyMutex::MyLock lock(mutex);
 
     pparamsValid = false;
+    pparamsDirty_ = false;
     pparams.master.setDefaults();
     const PartialProfile *defaultPP =
         art::engine::ProfileStore::getInstance()->getDefaultPartialProfile(getType() ==
@@ -504,6 +649,7 @@ void Thumbnail::clearProcParams(int whoClearedIt)
         // reset the params to defaults
         pparams.master.setDefaults();
         pparams.snapshots.clear();
+        pparamsDirty_ = true;
 
         // and restore rank and inTrash
         if (options.thumbnail_rating_mode ==
@@ -560,6 +706,7 @@ void Thumbnail::setProcParams(const PartialProfile &pp, int whoChangedIt,
 
         if (pparams.master != tmp) {
             cfs.recentlySaved = false;
+            pparamsDirty_ = true;
         } else if (pparamsValid && !updateCacheNow) {
             // nothing to do
             return;
@@ -588,6 +735,119 @@ void Thumbnail::setProcParams(const ProcParams &pp, int whoChangedIt,
     setProcParams(FullPartialProfile(pp), whoChangedIt, updateCacheNow,
                   resetToDefault);
 }
+
+bool Thumbnail::paramFilesExist() const
+{
+    if (options.saveParamsFile &&
+        !Glib::file_test(options.getParamFile(fname), Glib::FILE_TEST_EXISTS)) {
+        return false;
+    }
+    if (options.saveParamsCache &&
+        !Glib::file_test(getCacheFileName("profiles", paramFileExtension),
+                         Glib::FILE_TEST_EXISTS)) {
+        return false;
+    }
+    return Glib::file_test(getCacheFileName("data", ".txt"),
+                           Glib::FILE_TEST_EXISTS);
+}
+
+void Thumbnail::saveProcParams(const PartialProfile &pp, int whoChangedIt,
+                               bool async)
+{
+    {
+        MyMutex::MyLock lock(mutex);
+        ProcParams tmp = pparams.master;
+        pp.applyTo(pparams.master);
+
+        if (pparams.master != tmp) {
+            cfs.recentlySaved = false;
+            pparamsDirty_ = true;
+        }
+
+        // The parameters can already be here (and equal to pp) without having
+        // been written: the editor pushes every change with
+        // setProcParams(..., updateCacheNow=false). So "unchanged" is not
+        // enough, what matters is whether they are on disk.
+        if (!pparamsDirty_ && pparamsValid && !rating_.edited() &&
+            paramFilesExist()) {
+            // everything is already on disk: don't touch the files (which can
+            // be slow), and don't make the listeners throw away and regenerate
+            // the thumbnail
+            return;
+        }
+
+        // do not update rank, colorlabel and inTrash
+        pparamsValid = true;
+        if (options.thumbnail_rating_mode ==
+            Options::ThumbnailRatingMode::PROCPARAMS) {
+            saveRating();
+        }
+
+        if (async) {
+            updateCacheAsync();
+        } else {
+            updateCache();
+        }
+    } // end of mutex lock
+
+    for (size_t i = 0; i < listeners.size(); i++) {
+        listeners[i]->procParamsChanged(this, whoChangedIt);
+    }
+}
+
+void Thumbnail::updateCacheAsync()
+{
+    // same as updateCache(), except for the writes: take a copy of what has to
+    // be written (the caller holds the mutex), and let the writer thread do
+    // the slow part
+    saveRating();
+
+    pparamsDirty_ = false; // what is copied below is what ends up on disk
+
+    art::engine::ProgressListener *pl = cachemgr->getProgressListener();
+    const Glib::ustring fn = fname;
+    const Glib::ustring sidecar =
+        options.saveParamsFile ? options.getParamFile(fname) : "";
+    const Glib::ustring cacheprof =
+        options.saveParamsCache
+            ? getCacheFileName("profiles", paramFileExtension)
+            : "";
+    const Glib::ustring datafile = getCacheFileName("data", ".txt");
+    ProcParamsWithSnapshots params = pparams;
+    CacheImageData data = cfs;
+    ExifPairs exif = pparams.master.metadata.exif;
+    IPTCPairs iptc = pparams.master.metadata.iptc;
+    const bool save_meta =
+        options.rtSettings.metadata_xmp_sync ==
+            art::engine::Settings::MetadataXmpSync::READ_WRITE &&
+        !(exif.empty() && iptc.empty());
+
+    writer().post(fn.raw(), [=]() mutable {
+        std::vector<Glib::ustring> errors;
+        if (params.save(nullptr, sidecar, cacheprof) != 0) {
+            errors.push_back(Glib::ustring::compose(
+                M("PROCPARAMS_SAVE_ERROR"), sidecar.empty() ? cacheprof : sidecar,
+                Glib::ustring("write failed")));
+        }
+        data.save(datafile);
+        if (save_meta) {
+            Glib::ustring err;
+            if (!save_xmp_metadata(fn, exif, iptc, err)) {
+                errors.push_back(err);
+            }
+        }
+        if (!errors.empty() && pl) {
+            // errors are shown by the GUI thread
+            Glib::signal_idle().connect_once(sigc::slot<void>([pl, errors]() {
+                for (auto &e : errors) {
+                    pl->error(e);
+                }
+            }));
+        }
+    });
+}
+
+void Thumbnail::flushPendingWrites() { writer().waitAll(); }
 
 bool Thumbnail::isRecentlySaved() { return cfs.recentlySaved; }
 
@@ -1061,14 +1321,21 @@ void Thumbnail::saveThumbnail()
  */
 void Thumbnail::updateCache(bool updatePParams, bool updateCacheImageData)
 {
+    // a background write started earlier must not complete after (and so
+    // overwrite) this one
+    writer().wait(fname.raw());
+
     saveRating();
 
     if (updatePParams && pparamsValid) {
-        pparams.save(cachemgr->getProgressListener(),
-                     options.saveParamsFile ? options.getParamFile(fname) : "",
-                     options.saveParamsCache
-                         ? getCacheFileName("profiles", paramFileExtension)
-                         : "");
+        if (pparams.save(
+                cachemgr->getProgressListener(),
+                options.saveParamsFile ? options.getParamFile(fname) : "",
+                options.saveParamsCache
+                    ? getCacheFileName("profiles", paramFileExtension)
+                    : "") == 0) {
+            pparamsDirty_ = false;
+        }
     }
 
     if (updateCacheImageData) {
@@ -1147,15 +1414,18 @@ void Thumbnail::saveRating()
         if (rating_.rank.edited && rating_.rank != pparams.master.rank) {
             pparams.master.rank = rating_.rank;
             pparamsValid = true;
+            pparamsDirty_ = true;
         }
         if (rating_.color.edited &&
             rating_.color != pparams.master.colorlabel) {
             pparams.master.colorlabel = rating_.color;
             pparamsValid = true;
+            pparamsDirty_ = true;
         }
         if (rating_.trash.edited && rating_.trash != pparams.master.inTrash) {
             pparams.master.inTrash = rating_.trash;
             pparamsValid = true;
+            pparamsDirty_ = true;
         }
     } else if (rating_.edited()) {
         auto fn = art::engine::Exiv2Metadata::xmpSidecarPath(fname);
@@ -1267,25 +1537,11 @@ void Thumbnail::saveMetadata()
         return;
     }
 
-    auto fn = art::engine::Exiv2Metadata::xmpSidecarPath(fname);
-    try {
-        auto xmp = art::engine::Exiv2Metadata::getXmpSidecar(fname);
-        art::engine::Exiv2Metadata meta;
-        meta.xmpData() = std::move(xmp);
-        meta.setExif(pparams.master.metadata.exif);
-        meta.setIptc(pparams.master.metadata.iptc);
-        meta.saveToXmp(fn);
-        if (options.rtSettings.verbose > 1) {
-            std::cout << "saved edited metadata for " << fname << " to " << fn
-                      << std::endl;
-        }
-    } catch (std::exception &exc) {
-        std::cerr << "ERROR saving metadata for " << fname << " to " << fn
-                  << ": " << exc.what() << std::endl;
-        if (cachemgr->getProgressListener()) {
-            cachemgr->getProgressListener()->error(Glib::ustring::compose(
-                M("METADATA_SAVE_ERROR"), fn, exc.what()));
-        }
+    Glib::ustring err;
+    if (!save_xmp_metadata(fname, pparams.master.metadata.exif,
+                           pparams.master.metadata.iptc, err) &&
+        cachemgr->getProgressListener()) {
+        cachemgr->getProgressListener()->error(err);
     }
 }
 
@@ -1310,6 +1566,7 @@ void Thumbnail::snapshotsChanged(
     if (pparamsValid || !snapshots.empty()) {
         pparamsValid = true;
         pparams.snapshots = snapshots;
+        pparamsDirty_ = true;
         updateCache(true, false);
     }
 }

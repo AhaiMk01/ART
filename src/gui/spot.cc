@@ -1,23 +1,25 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2019 Jean-Christophe FRISCH <natureh.510@gmail.com>
+ *  Copyright (c) 2020-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "spot.h"
+#include "shortcutsmanager.h"
 #include "../engine/refreshmap.h"
 #include "../engine/rt_math.h"
 #include "edit.h"
@@ -657,7 +659,7 @@ bool Spot::button1Pressed(int modifierKey)
     EditDataProvider *editProvider = getEditProvider();
 
     if (editProvider) {
-        if (lastObject == -1 && (modifierKey & GDK_CONTROL_MASK)) {
+        if (lastObject == -1 && (modifierKey & ShortcutsManager::mousePrimaryMask())) {
             draggedSide = DraggedSide::SOURCE;
             addNewEntry();
             EditSubscriber::action = ES_ACTION_DRAGGING;
@@ -718,7 +720,7 @@ bool Spot::button3Pressed(int modifierKey)
         return false;
     }
 
-    if ((modifierKey & GDK_CONTROL_MASK) &&
+    if ((modifierKey & ShortcutsManager::mousePrimaryMask()) &&
         (EditSubscriber::mouseOverGeometry.at(lastObject) == &targetMODisc ||
          lastObject >= STATIC_MO_OBJ_NBR)) {
         lastObject = SOURCE_DISC;
@@ -948,7 +950,7 @@ void Spot::tweakParams(procparams::ProcParams &pparams)
         pparams.smoothing.enabled = false;
         pparams.textureBoost.enabled = false;
         pparams.toneEqualizer.enabled = false;
-        pparams.fattal.enabled = false;
+        pparams.drcompression.enabled = false;
         pparams.dehaze.enabled = false;
         pparams.filmSimulation.enabled = false;
         pparams.blackwhite.enabled = false;

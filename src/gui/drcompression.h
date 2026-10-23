@@ -1,21 +1,21 @@
 /** -*- C++ -*-
  *
- *  This file is part of RawTherapee.
+ *  This file is part of ART.
  *
- *  Copyright (c) 2017 Alberto Griggio <alberto.griggio@gmail.com>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #pragma once
 
@@ -26,17 +26,18 @@
 namespace art { namespace gui {
 
 
-class FattalToneMapping: public ToolParamBlock,
+class DynamicRangeCompression: public ToolParamBlock,
                          public AdjusterListener,
                          public FoldableToolPanel {
 public:
-    FattalToneMapping();
+    DynamicRangeCompression();
 
     void read(const art::engine::procparams::ProcParams *pp) override;
     void write(art::engine::procparams::ProcParams *pp) override;
     void
     setDefaults(const art::engine::procparams::ProcParams *defParams) override;
     void adjusterChanged(Adjuster *a, double newval) override;
+    void registerShortcuts(ToolShortcutsManager *mgr) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
     void enabledChanged() override;
 
@@ -49,7 +50,7 @@ protected:
 
     art::engine::ProcEvent EvSatControl;
 
-    art::engine::procparams::FattalToneMappingParams initial_params;
+    art::engine::procparams::DynamicRangeCompressionParams initial_params;
 
     void satcontrolChanged();
 };

@@ -1,7 +1,12 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *
+ *  This file is part of ART.
+ *
+ *  Copyright (c) 2004-2019 the RawTherapee developers
+ *  Copyright (c) 2019-2026 Alberto Griggio <alberto.griggio@gmail.com>
  */
 #include "pcvignette.h"
+#include "shortcutsmanager.h"
 #include "eventmapper.h"
 
 namespace art { namespace gui {
@@ -272,7 +277,7 @@ bool PCVignette::button1Pressed(int modifierKey)
 
     // EditDataProvider *provider = getEditProvider();
 
-    if (!(modifierKey & GDK_CONTROL_MASK)) {
+    if (!(modifierKey & ShortcutsManager::mousePrimaryMask())) {
         // button press is valid (no modifier key)
         int im_x, im_y;
         int imW, imH;
@@ -385,6 +390,16 @@ void PCVignette::getDimensions(int &x, int &y, int &w, int &h)
     } else {
         p->getImageSize(w, h);
     }
+}
+
+
+void PCVignette::registerShortcuts(ToolShortcutsManager *mgr)
+{
+    mgr->addShortcut("tool.pcvignette.strength", this, strength);
+    mgr->addShortcut("tool.pcvignette.feather", this, feather);
+    mgr->addShortcut("tool.pcvignette.roundness", this, roundness);
+    mgr->addShortcut("tool.pcvignette.center_x", this, centerX);
+    mgr->addShortcut("tool.pcvignette.center_y", this, centerY);
 }
 
 

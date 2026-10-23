@@ -1,3 +1,24 @@
+/* -*- C++ -*-
+ *
+ *  This file is part of ART.
+ *
+ *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
+ *
+ *  ART is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  ART is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #pragma once
 
 namespace art { namespace gui {
@@ -125,13 +146,13 @@ enum {
     ADDSET_EPD_EDGESTOPPING,
     ADDSET_EPD_SCALE,
     ADDSET_EPD_REWEIGHTINGITERATES,
-    ADDSET_FATTAL_THRESHOLD,
-    ADDSET_FATTAL_AMOUNT,
+    ADDSET_DRCOMPRESSION_THRESHOLD,
+    ADDSET_DRCOMPRESSION_AMOUNT,
     ADDSET_LOCALCONTRAST_RADIUS,
     ADDSET_LOCALCONTRAST_AMOUNT,
     ADDSET_LOCALCONTRAST_DARKNESS,
     ADDSET_LOCALCONTRAST_LIGHTNESS,
-    ADDSET_FATTAL_ANCHOR,
+    ADDSET_DRCOMPRESSION_ANCHOR,
     ADDSET_SHARPENMICRO_CONTRAST,
     ADDSET_SHARP_CONTRAST,
     ADDSET_BAYER_FALSE_COLOR_SUPPRESSION,

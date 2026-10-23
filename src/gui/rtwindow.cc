@@ -1,21 +1,22 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>, Oliver Duis
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  * <www.oliverduis.de>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "rtwindow.h"
@@ -26,6 +27,7 @@
 #include "livecontrol.h"
 #include "options.h"
 #include "preferences.h"
+#include "shortcutsmanager.h"
 #include "rtimage.h"
 #include "../utils/threadutils.h"
 #include "../utils/version.h"
@@ -405,6 +407,10 @@ RTWindow::RTWindow()
         sigc::mem_fun(*this, &RTWindow::keyReleased));
     signal_scroll_event().connect(
         sigc::mem_fun(*this, &RTWindow::scrollPressed), false);
+    bindShortcuts();
+    // (debug aid) once everything has been created and an image opened
+    Glib::signal_timeout().connect_seconds_once(
+        []() { ShortcutsManager::getInstance()->reportUnbound(); }, 20);
 
     Gtk::Widget *main_widget = nullptr;
     if (simpleEditor) {
@@ -588,6 +594,7 @@ bool RTWindow::on_draw(const ::Cairo::RefPtr<::Cairo::Context> &cr)
 RTWindow::~RTWindow()
 {
     live_control_.reset();
+    ShortcutsManager::getInstance()->unbindOwner(this);
     idle_register.destroy();
 
     cacheMgr->setProgressListener(nullptr);
@@ -721,8 +728,9 @@ void RTWindow::on_mainNB_switch_page(Gtk::Widget *widget, guint page_num)
             // in single tab mode with command line filename epanel does not
             // exist yet
             if (isSingleTabMode() && epanel) {
-                // Save profile on leaving the editor panel
-                epanel->saveProfile();
+                // Save profile on leaving the editor panel (in the
+                // background: the sidecar can be on a slow file system)
+                epanel->saveProfile(true);
 
                 // Moving the FileBrowser only if the user has switched to the
                 // FileBrowser tab
@@ -899,35 +907,57 @@ void RTWindow::quit()
     }
 }
 
+void RTWindow::bindShortcuts()
+{
+    auto sm = ShortcutsManager::getInstance();
+    const auto not_simple = []() { return !simpleEditor; };
+
+    sm->bind(this, "window.quit", [this](GdkEventKey *) {
+        quit();
+        return true;
+    });
+    sm->bind(this, "window.fullscreen", [this](GdkEventKey *) {
+        toggle_fullscreen();
+        return true;
+    });
+    // in simpleEditor mode there is only the editor: no tabs to switch
+    sm->bind(this, "window.show_file_browser", [this](GdkEventKey *) {
+        mainNB->set_current_page(mainNB->page_num(*fpanel));
+        return true;
+    }, not_simple);
+    sm->bind(this, "window.show_queue", [this](GdkEventKey *) {
+        mainNB->set_current_page(mainNB->page_num(*bpanel));
+        return true;
+    }, not_simple);
+    sm->bind(this, "window.show_editor", [this](GdkEventKey *) {
+        // single tab mode, editor panel
+        if (isSingleTabMode() && epanel) {
+            mainNB->set_current_page(mainNB->page_num(*epanel));
+        }
+        return true;
+    }, not_simple);
+    sm->bind(this, "window.close_tab", [this](GdkEventKey *) {
+        // multi-tab mode, close editor panel
+        if (!isSingleTabMode() &&
+            mainNB->get_current_page() != mainNB->page_num(*fpanel) &&
+            mainNB->get_current_page() != mainNB->page_num(*bpanel)) {
+            EditorPanel *ep = static_cast<EditorPanel *>(
+                mainNB->get_nth_page(mainNB->get_current_page()));
+            remEditorPanel(ep);
+            return true;
+        }
+        return false;
+    }, not_simple);
+}
+
 bool RTWindow::keyPressed(GdkEventKey *event)
 {
-    bool ctrl = event->state & GDK_CONTROL_MASK;
-    // bool shift = event->state & GDK_SHIFT_MASK;
-
-    auto keyval = getKeyval(event);
-
-    bool try_quit = false;
-#if defined(__APPLE__)
-    bool apple_cmd = event->state & GDK_MOD2_MASK;
-
-    if (keyval == GDK_KEY_q && apple_cmd) {
-        try_quit = true;
-    }
-
-#else
-
-    if (keyval == GDK_KEY_q && ctrl) {
-        try_quit = true;
-    }
-
-#endif
-
-    if (try_quit) {
-        quit();
-    }
-
-    if (keyval == GDK_KEY_F11) {
-        toggle_fullscreen();
+    // the shortcuts of the window itself (quit, fullscreen, main tabs); the
+    // panels below still do their own matching
+    if (ShortcutsManager::getInstance()->dispatch(
+            event, ShortcutPhase::After,
+            {{"window", this}, {"mainwindow", this}})) {
+        return true;
     }
 
     if (simpleEditor)
@@ -936,36 +966,6 @@ bool RTWindow::keyPressed(GdkEventKey *event)
     {
         return epanel->handleShortcutKey(event);
     };
-
-    if (ctrl) {
-        switch (keyval) {
-        case GDK_KEY_F2: // file browser panel
-            mainNB->set_current_page(mainNB->page_num(*fpanel));
-            return true;
-
-        case GDK_KEY_F3: // batch queue panel
-            mainNB->set_current_page(mainNB->page_num(*bpanel));
-            return true;
-
-        case GDK_KEY_F4: // single tab mode, editor panel
-            if (isSingleTabMode() && epanel) {
-                mainNB->set_current_page(mainNB->page_num(*epanel));
-            }
-
-            return true;
-
-        case GDK_KEY_w: // multi-tab mode, close editor panel
-            if (!isSingleTabMode() &&
-                mainNB->get_current_page() != mainNB->page_num(*fpanel) &&
-                mainNB->get_current_page() != mainNB->page_num(*bpanel)) {
-
-                EditorPanel *ep = static_cast<EditorPanel *>(
-                    mainNB->get_nth_page(mainNB->get_current_page()));
-                remEditorPanel(ep);
-                return true;
-            }
-        }
-    }
 
     if (mainNB->get_current_page() == mainNB->page_num(*fpanel)) {
         return fpanel->handleShortcutKey(event);
@@ -1127,6 +1127,8 @@ bool RTWindow::on_delete_event(GdkEventAny *event)
         }
     }
 
+    // make sure that what was saved in the background is on disk
+    Thumbnail::flushPendingWrites();
     cacheMgr->closeCache(); // also makes cleanup if too large
     WhiteBalance::cleanup();
     ProfilePanel::cleanup();
@@ -1196,8 +1198,18 @@ void RTWindow::writeToolExpandedStatus(std::vector<int> &tpOpen)
 
 void RTWindow::showPreferences()
 {
+    // the dialog is modal but runs a nested main loop, so Cmd+, (or the
+    // button) can get here again while it is open: bring it to the front
+    // instead of showing a second copy
+    static Preferences *current = nullptr;
+    if (current) {
+        current->present();
+        return;
+    }
     Preferences *pref = new Preferences(this);
+    current = pref;
     pref->run();
+    current = nullptr;
     delete pref;
 
     fpanel->optionsChanged();

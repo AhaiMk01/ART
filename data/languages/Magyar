@@ -8,7 +8,7 @@ ABOUT_TAB_CREDITS;Szerzők
 ABOUT_TAB_LICENSE;Licenc
 ABOUT_TAB_RELEASENOTES;Kiadási megjegyzések
 ABOUT_TAB_SPLASH;Splash
-ADJUSTER_RESET_TO_DEFAULT;<b>Kattintás</b> - visszaállítja az alapértelmezett értékre.\n<b>Ctrl</b>+<b>kattintás</b> - visszaállítja az utoljára mentett értékre.
+ADJUSTER_RESET_TO_DEFAULT;<b>Kattintás</b> - visszaállítja az alapértelmezett értékre.\n<b>%mouse_primary%</b>+<b>kattintás</b> - visszaállítja az utoljára mentett értékre.
 CTL_SIGMOID;Szigmoid tónusleképező
 CTL_SIGMOID_BASE_PRIMARIES;Alap elsődlegesek
 CTL_SIGMOID_INSET;Csillapítás
@@ -63,7 +63,7 @@ DYNPROFILEEDITOR_CUSTOMDATA_TAGS;Címkék
 DYNPROFILEEDITOR_CUSTOMDATA_TOOLTIP;Az egyeztetendő további metaadatcímkék soronként egy <i>kulcs=érték</i> párjainak listája, ahol a <b>kulcs</b> egy címke neve az Exiv2 szintaxisa szerint, az <b>érték</b> pedig az egyeztetni kívánt érték (használja a "re:" előtagot a reguláris kifejezés megadásához).
 EDITWINDOW_TITLE;Képszerkesztés
 EDIT_OBJECT_TOOLTIP;Megjelenít egy widgetet az előnézeti ablakban, amely lehetővé teszi az eszköz beállítását.
-EDIT_PIPETTE_TOOLTIP;Ha vezérlőpontot szeretne hozzáadni a görbéhez, tartsa lenyomva a Ctrl billentyűt, és a bal egérgombbal kattintson a kívánt pontra a kép előnézetén.\nA pont beállításához tartsa lenyomva a Ctrl billentyűt, és a bal egérgombbal kattintson a megfelelő területre a kép előnézetén, majd engedje el a Ctrl billentyűt. (kivéve, ha finom vezérlést szeretne), és miközben továbbra is lenyomva tartja a bal egérgombot, mozgassa az egeret felfelé vagy lefelé, hogy az adott pontot felfelé vagy lefelé mozgassa a görbén.
+EDIT_PIPETTE_TOOLTIP;Ha vezérlőpontot szeretne hozzáadni a görbéhez, tartsa lenyomva a %mouse_primary% billentyűt, és a bal egérgombbal kattintson a kívánt pontra a kép előnézetén.\nA pont beállításához tartsa lenyomva a %mouse_primary% billentyűt, és a bal egérgombbal kattintson a megfelelő területre a kép előnézetén, majd engedje el a %mouse_primary% billentyűt. (kivéve, ha finom vezérlést szeretne), és miközben továbbra is lenyomva tartja a bal egérgombot, mozgassa az egeret felfelé vagy lefelé, hogy az adott pontot felfelé vagy lefelé mozgassa a görbén.
 ERROR_MSG_FILE_READ;Hiba a fájl olvasásakor: %1
 ERROR_MSG_MAXERRORS;... (%1 előző hibák nem láthatók)
 ERROR_MSG_METADATA_VALUE;Metaadat: hiba a %1 -nek %2 -re történő állításakor
@@ -125,13 +125,13 @@ FILEBROWSER_APPLYPROFILE;Alkalmaz
 FILEBROWSER_APPLYPROFILE_PARTIAL;Részlegesen alkalmaz
 FILEBROWSER_AUTODARKFRAME;Auto fekete kép (dark-frame)
 FILEBROWSER_AUTOFLATFIELD;Auto flat-field
-FILEBROWSER_BROWSEPATHBUTTONHINT;Bélyegképek listájának frissítése.\nGyorsbillentyű: <b>F5</b>
-FILEBROWSER_BROWSEPATHHINT;Adja meg az elérési utat a navigációhoz.\n\nGyorsbillentyűk:\n<b>Ctrl-o</b> a beviteli mezőre állítja a fókuszt.\n<b>Enter</b> / <b>Ctrl-Enter</b> böngészés;\n<b>Esc</b> törli a változásokat.\n<b>Shift-Esc</b> elveszi a fókuszt.\n\nÚtvonal gyorsbillentyűk:\n<b>~</b>	- a felhasználó saját (home) könyvtára.\n<b>!</b>	- a felhasználó képeinek könyvtára
+FILEBROWSER_BROWSEPATHBUTTONHINT;Bélyegképek listájának frissítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.refresh)%</b>
+FILEBROWSER_BROWSEPATHHINT;Adja meg az elérési utat a navigációhoz.\n\nGyorsbillentyűk:\n<b>%shortcut(filecatalog.focus_path)%</b> a beviteli mezőre állítja a fókuszt.\n<b>Enter</b> / <b>Ctrl-Enter</b> böngészés;\n<b>Esc</b> törli a változásokat.\n<b>Shift-Esc</b> elveszi a fókuszt.\n\nÚtvonal gyorsbillentyűk:\n<b>~</b>	- a felhasználó saját (home) könyvtára.\n<b>!</b>	- a felhasználó képeinek könyvtára
 FILEBROWSER_CACHE;Gyorsítótár
 FILEBROWSER_CACHECLEARFROMFULL;Mindent töröl, a gyorsítótárazott profilokat is
 FILEBROWSER_CACHECLEARFROMPARTIAL;Mindent töröl, kivéve a gyorsítótárazott profilokat
 FILEBROWSER_CLEARPROFILE;Törlés
-FILEBROWSER_COLORLABEL_TOOLTIP;Színcímke.\n\nHasználja a lenyitható menüt vagy a gyorsbillentyűket:\n<b>Shift-Ctrl-0</b> Nincs színcímke\n<b>Shift-Ctrl-1</b> Vörös\n<b>Shift-Ctrl-2</b> Sárga\n<b>Shift-Ctrl-3</b> Zöld\n<b>Shift-Ctrl-4</b> Kék\n<b>Shift-Ctrl-5</b> Lila
+FILEBROWSER_COLORLABEL_TOOLTIP;Színcímke.\n\nHasználja a lenyitható menüt vagy a gyorsbillentyűket:\n<b>%shortcut(filebrowser.set_label.0)%</b> Nincs színcímke\n<b>%shortcut(filebrowser.set_label.1)%</b> Vörös\n<b>%shortcut(filebrowser.set_label.2)%</b> Sárga\n<b>%shortcut(filebrowser.set_label.3)%</b> Zöld\n<b>%shortcut(filebrowser.set_label.4)%</b> Kék\n<b>%shortcut(filebrowser.set_label.5)%</b> Lila
 FILEBROWSER_COPYPROFILE;Feldolgozási profil másolása
 FILEBROWSER_CURRENT_NAME;Aktuális név:
 FILEBROWSER_DARKFRAME;Dark-frame (Fekete referenciakép)
@@ -186,13 +186,13 @@ FILEBROWSER_POPUPTRASH;Áthelyezés a kukába
 FILEBROWSER_POPUPUNRANK;Értékelés nélküli
 FILEBROWSER_POPUPUNTRASH;Eltávolítás a kukából
 FILEBROWSER_QUERYBUTTONHINT;Találati lista törlése
-FILEBROWSER_QUERYHINT;Írja be a keresendő fájlneveket. A fájlnév egy részletét is beírhatja. A keresett kifejezéseket vesszővel válassza el egymástól, e.g.\n<i>1001,1004,1199</i>\n\nkeresési kifejezés kizárásához használja a <i>!=</i> előtagot.\npl.\n<i>!=1001,1004,1199</i>\n\nGyorsbillentyűk:\n<b>Ctrl-f</b> - a fókuszt a keresőmezőre helyezi,\n<b>Enter</b> - keresés,\n<b>Shift-Esc</b> - törli a keresőmezőt,\n<b>Esc</b> - elveszi a fókuszt a keresőmezőről.
+FILEBROWSER_QUERYHINT;Írja be a keresendő fájlneveket. A fájlnév egy részletét is beírhatja. A keresett kifejezéseket vesszővel válassza el egymástól, e.g.\n<i>1001,1004,1199</i>\n\nkeresési kifejezés kizárásához használja a <i>!=</i> előtagot.\npl.\n<i>!=1001,1004,1199</i>\n\nGyorsbillentyűk:\n<b>%shortcut(filecatalog.focus_query)%</b> - a fókuszt a keresőmezőre helyezi,\n<b>Enter</b> - keresés,\n<b>Shift-Esc</b> - törli a keresőmezőt,\n<b>Esc</b> - elveszi a fókuszt a keresőmezőről.
 FILEBROWSER_QUERYLABEL; Keresés:
-FILEBROWSER_RANK1_TOOLTIP;Értékelés 1 *\nGyorsbillentyű: <b>Shift-1</b>
-FILEBROWSER_RANK2_TOOLTIP;Értékelés 2 *\nGyorsbillentyű: <b>Shift-2</b>
-FILEBROWSER_RANK3_TOOLTIP;Értékelés 3 *\nGyorsbillentyű: <b>Shift-3</b>
-FILEBROWSER_RANK4_TOOLTIP;Értékelés 4 *\nGyorsbillentyű: <b>Shift-4</b>
-FILEBROWSER_RANK5_TOOLTIP;Értékelés 5 *\nGyorsbillentyű: <b>Shift-5</b>
+FILEBROWSER_RANK1_TOOLTIP;Értékelés 1 *\nGyorsbillentyű: <b>%shortcut(filebrowser.set_rank.1)%</b>
+FILEBROWSER_RANK2_TOOLTIP;Értékelés 2 *\nGyorsbillentyű: <b>%shortcut(filebrowser.set_rank.2)%</b>
+FILEBROWSER_RANK3_TOOLTIP;Értékelés 3 *\nGyorsbillentyű: <b>%shortcut(filebrowser.set_rank.3)%</b>
+FILEBROWSER_RANK4_TOOLTIP;Értékelés 4 *\nGyorsbillentyű: <b>%shortcut(filebrowser.set_rank.4)%</b>
+FILEBROWSER_RANK5_TOOLTIP;Értékelés 5 *\nGyorsbillentyű: <b>%shortcut(filebrowser.set_rank.5)%</b>
 FILEBROWSER_RENAMEDLGLABEL;Fájl(ok) Átnevezése/Áthelyezése
 FILEBROWSER_RENAME_DIALOG_LOAD_TIP;Beállítások betöltése fájlból
 FILEBROWSER_RENAME_DIALOG_SAVE_TIP;Beállítások mentése fájlba
@@ -206,27 +206,27 @@ FILEBROWSER_SESSION_REMOVE_LABEL;A kijelölt(ek) eltávolítása a munkamenetbő
 FILEBROWSER_SESSION_LOAD_LABEL;Munkamenet betöltése fájlból
 FILEBROWSER_SESSION_SAVE_LABEL;Munkamenet mentése fájlba
 FILECHOOSER_FILTER_ARS;ART munkamenet fájlok (*.ars)
-FILEBROWSER_SHOWCOLORLABEL1HINT;Vörös címkéjű képek megjelenítése.\nGyorsbillentyű: <b>Alt-1</b>
-FILEBROWSER_SHOWCOLORLABEL2HINT;Sárga címkéjű képek megjelenítése.\nGyorsbillentyű: <b>Alt-2</b>
-FILEBROWSER_SHOWCOLORLABEL3HINT;Zöld címkéjű képek megjelenítése.\nGyorsbillentyű: <b>Alt-3</b>
-FILEBROWSER_SHOWCOLORLABEL4HINT;Kék címkéjű képek megjelenítése.\nGyorsbillentyű: <b>Alt-4</b>
-FILEBROWSER_SHOWCOLORLABEL5HINT;Lila címkéjű képek megjelenítése.\nGyorsbillentyű: <b>Alt-5</b>
-FILEBROWSER_SHOWDIRHINT;Összes szűrő törlése.\nGyorsbillentyű: <b>d</b>
-FILEBROWSER_SHOWEDITEDHINT;Már szerkesztett képek megjelenítése.\nGyorsbillentyű: <b>7</b>
-FILEBROWSER_SHOWEDITEDNOTHINT;Még nem szerkesztett képek megjelenítése.\nGyorsbillentyű: <b>6</b>
+FILEBROWSER_SHOWCOLORLABEL1HINT;Vörös címkéjű képek megjelenítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.filter_label.1)%</b>
+FILEBROWSER_SHOWCOLORLABEL2HINT;Sárga címkéjű képek megjelenítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.filter_label.2)%</b>
+FILEBROWSER_SHOWCOLORLABEL3HINT;Zöld címkéjű képek megjelenítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.filter_label.3)%</b>
+FILEBROWSER_SHOWCOLORLABEL4HINT;Kék címkéjű képek megjelenítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.filter_label.4)%</b>
+FILEBROWSER_SHOWCOLORLABEL5HINT;Lila címkéjű képek megjelenítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.filter_label.5)%</b>
+FILEBROWSER_SHOWDIRHINT;Összes szűrő törlése.\nGyorsbillentyű: <b>%shortcut(filecatalog.filter_clear)%</b>
+FILEBROWSER_SHOWEDITEDHINT;Már szerkesztett képek megjelenítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.filter_edited)%</b>
+FILEBROWSER_SHOWEDITEDNOTHINT;Még nem szerkesztett képek megjelenítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.filter_not_edited)%</b>
 FILEBROWSER_SHOWEXIFINFO;Exif információk megjelenítése.\n\nGyorsbillentyűk:\n<b>i</b> - Több szerkesztőlap mód,\n<b>Alt-i</b> - Egy szerkesztőlap mód.
 FILEBROWSER_SHOWNOTTRASHHINT;Csak a nem törölt képek megjelenítése.
 FILEBROWSER_SHOWORIGINALHINT;Csak az eredeti képeket mutatja.\n\nHa több kép létezik azonos fájlnévvel, de eltérő kiterjesztéssel, akkor az tekinthető eredetinek, amelynek kiterjesztése a legközelebb van a Beállítások > Fájlböngésző > Felismert kiterjesztések listájának tetejéhez..
-FILEBROWSER_SHOWRANK1HINT;1 csillaggal jelölt képek megjelenítése.\nGyorsbillentyű: <b>1</b>
-FILEBROWSER_SHOWRANK2HINT;2 csillaggal jelölt képek megjelenítése.\nGyorsbillentyű: <b>2</b>
-FILEBROWSER_SHOWRANK3HINT;3 csillaggal jelölt képek megjelenítése.\nGyorsbillentyű: <b>3</b>
-FILEBROWSER_SHOWRANK4HINT;4 csillaggal jelölt képek megjelenítése.\nGyorsbillentyű: <b>4</b>
-FILEBROWSER_SHOWRANK5HINT;5 csillaggal jelölt képek megjelenítése.\nGyorsbillentyű: <b>5</b>
-FILEBROWSER_SHOWRECENTLYSAVEDHINT;Mentett képek megjelenítése.\nGyorsbillentyű: <b>Alt-7</b>
-FILEBROWSER_SHOWRECENTLYSAVEDNOTHINT;Nem mentett képek megjelenítése.\nGyorsbillentyű: <b>Alt-6</b>
-FILEBROWSER_SHOWTRASHHINT;Kuka tartalmának megjelenítése.\nGyorsbillentyű: <b>Ctrl-t</b>
-FILEBROWSER_SHOWUNCOLORHINT;Színcímke nélküli képek megjelenítése.\nGyorsbillentyű: <b>Alt-0</b>
-FILEBROWSER_SHOWUNRANKHINT;Nem értékelt képek megjelenítése.\nGyorsbillentyű: <b>0</b>
+FILEBROWSER_SHOWRANK1HINT;1 csillaggal jelölt képek megjelenítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.filter_rank.1)%</b>
+FILEBROWSER_SHOWRANK2HINT;2 csillaggal jelölt képek megjelenítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.filter_rank.2)%</b>
+FILEBROWSER_SHOWRANK3HINT;3 csillaggal jelölt képek megjelenítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.filter_rank.3)%</b>
+FILEBROWSER_SHOWRANK4HINT;4 csillaggal jelölt képek megjelenítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.filter_rank.4)%</b>
+FILEBROWSER_SHOWRANK5HINT;5 csillaggal jelölt képek megjelenítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.filter_rank.5)%</b>
+FILEBROWSER_SHOWRECENTLYSAVEDHINT;Mentett képek megjelenítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.filter_recently_saved)%</b>
+FILEBROWSER_SHOWRECENTLYSAVEDNOTHINT;Nem mentett képek megjelenítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.filter_not_recently_saved)%</b>
+FILEBROWSER_SHOWTRASHHINT;Kuka tartalmának megjelenítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.toggle_trash)%</b>
+FILEBROWSER_SHOWUNCOLORHINT;Színcímke nélküli képek megjelenítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.filter_no_label)%</b>
+FILEBROWSER_SHOWUNRANKHINT;Nem értékelt képek megjelenítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.filter_unranked)%</b>
 FILEBROWSER_SORT_LABEL;Bélyegképek rendezése
 FILEBROWSER_SORT_FILENAME;Fájlnév
 FILEBROWSER_SORT_FILENAME_REV;Fájlnév (fordított)
@@ -237,7 +237,7 @@ FILEBROWSER_SORT_MODTIME_REV;Fájl módosításának ideje (legújabb fent)
 FILEBROWSER_SORT_PROCTIME;Utolsó szerkesztés ideje (legrégebbi fent)
 FILEBROWSER_SORT_PROCTIME_REV;Utolsó szerkesztés ideje (legújabb fent)
 FILEBROWSER_THUMBSIZE;Bélyegkép mérete
-FILEBROWSER_UNRANK_TOOLTIP;Nem értékelt.\nGyorsbillentyű: <b>Shift-0</b>
+FILEBROWSER_UNRANK_TOOLTIP;Nem értékelt.\nGyorsbillentyű: <b>%shortcut(filebrowser.set_rank.0)%</b>
 FILEBROWSER_ZOOMINHINT;Bélyegképek méretének növelése.\n\nGyorsbillentyűk:\n<b>+</b> - Több szerkesztőlap mód,\n<b>Alt</b>-<b>+</b> - Egy szerkesztőlap mód.
 FILEBROWSER_ZOOMOUTHINT;Bélyegképek méretének csökkentése.\n\nGyorsbillentyűk:\n<b>-</b> - Több szerkesztőlap mód,\n<b>Alt</b>-<b>-</b> - Egy szerkesztőlap mód.
 FILECHOOSER_FILTER_ANY;Minden fájl
@@ -532,6 +532,7 @@ HISTORY_MSG_491;Fehéregyensúly (WB)
 HISTORY_MSG_492;RGB Görbék
 HISTORY_MSG_493;L*a*b* Korrekció
 HISTORY_MSG_BWMIX_COLORCAST;Fekete-fehér - Színezés
+HISTORY_MSG_DRCOMPRESSION_SATCONTROL;DRC - Telítettség vezérlés
 HISTORY_MSG_SATURATION_VIBRANCE;Telítettség/Élénkség - Élénkség
 HISTORY_MSG_LOCALCONTRAST_LIST;Helyi kontraszt - területek
 HISTORY_MSG_LOCALCONTRAST_HUEMASK;Helyi kontraszt - H maszk
@@ -710,7 +711,6 @@ HISTORY_MSG_SOFTLIGHT_ENABLED;Lágy fény
 HISTORY_MSG_SOFTLIGHT_STRENGTH;Lágy fény - Erősség
 HISTORY_MSG_SPOT;Foltok eltávolítása
 HISTORY_MSG_SPOT_ENTRY;Foltok eltávolítása - Folt módosítása
-HISTORY_MSG_TM_FATTAL_SATCONTROL;DRC - Telítettség vezérlés
 HISTORY_MSG_TONE_EQUALIZER_ENABLED;Tónuskiegyenlítő
 HISTORY_MSG_TONE_EQUALIZER_BANDS;Tónuskiegyenlítő - Sávok
 HISTORY_MSG_TONE_EQUALIZER_REGULARIZATION;Tónuskiegyenlítő - Szabályozás
@@ -724,7 +724,7 @@ HISTORY_MSG_TONECURVE_MODE;Tónusgörbe - Mód
 HISTORY_MSG_TONECURVE_WHITEPOINT;Tónusgörbe - Fehér pont
 HISTORY_MSG_WBALANCE_MULT;WB - szorzók
 HISTORY_NEWSNAPSHOT;Hozzáad
-HISTORY_NEWSNAPSHOT_TOOLTIP;Gyorsbillentyű: <b>Alt-s</b>
+HISTORY_NEWSNAPSHOT_TOOLTIP;Gyorsbillentyű: <b>%shortcut(editor.add_snapshot)%</b>
 HISTORY_SNAPSHOT;Pillanatkép
 HISTORY_SNAPSHOTS;Pillanatképek
 HISTORY_SNAPSHOT_CONFIRM_UPDATE;Felülírja az aktuális pillanatképet?
@@ -770,17 +770,17 @@ ICCPROFCREATOR_SAVEDIALOG_TITLE;ICC profil mentése másként
 ICCPROFCREATOR_SLOPE;Lejtő
 ICCPROFCREATOR_TRC_PRESET;Tónus válaszgörbe:
 INSPECTOR_ENABLE_CMS;Színkezelés engedélyezése.
-INSPECTOR_FOCUS_MASK;Fókusz maszk.\nGyorsbillentyű: <b>Shift-f</b>.
-INSPECTOR_HISTOGRAM;Hisztogram.\nGyorsbillentyű: <b>h</b>.
-INSPECTOR_INFO;Gyors infó.\nGyorsbillentyű: <b>Shift-i</b>.
-INSPECTOR_PREVIEW;Beágyazott előnézeti kép.\nGyorsbillentyű: <b>j</b>.
-INSPECTOR_RAW_LINEAR;Gyors Raw renderelés lineáris tónusgörbével.\nGyorsbillentyű: <b>r</b>.
-INSPECTOR_RAW_FILM;Gyors Raw renderelés filmszerű tónusgörbével.\nGyorsbillentyű: <b>f</b>.
-INSPECTOR_RAW_CLIP;Raw kivágott képpontok.\nGyorsbillentyű: <b>w</b>.
-INSPECTOR_RAW_SHADOW;Gyors Raw renderelés árnyéknövelő tónusgörbével.\nGyorsbillentyű: <b>s</b>.
-INSPECTOR_SPLIT;Osztott nézet.\nGyorsbillentyű: <b>y</b>.
-INSPECTOR_ZOOM_FIT;Ablakhoz illesztés.\nGyorsbillentyű: <b>x</b>.
-INSPECTOR_ZOOM_11;Nagyítás 100%-ra.\nGyorsbillentyű: <b>z</b>.
+INSPECTOR_FOCUS_MASK;Fókusz maszk.\nGyorsbillentyű: <b>%shortcut(inspector.toggle_focus_mask)%</b>.
+INSPECTOR_HISTOGRAM;Hisztogram.\nGyorsbillentyű: <b>%shortcut(inspector.toggle_histogram)%</b>.
+INSPECTOR_INFO;Gyors infó.\nGyorsbillentyű: <b>%shortcut(inspector.toggle_info)%</b>.
+INSPECTOR_PREVIEW;Beágyazott előnézeti kép.\nGyorsbillentyű: <b>%shortcut(inspector.mode_jpeg)%</b>.
+INSPECTOR_RAW_LINEAR;Gyors Raw renderelés lineáris tónusgörbével.\nGyorsbillentyű: <b>%shortcut(inspector.mode_raw_linear)%</b>.
+INSPECTOR_RAW_FILM;Gyors Raw renderelés filmszerű tónusgörbével.\nGyorsbillentyű: <b>%shortcut(inspector.mode_raw_film_curve)%</b>.
+INSPECTOR_RAW_CLIP;Raw kivágott képpontok.\nGyorsbillentyű: <b>%shortcut(inspector.mode_raw_clip_warning)%</b>.
+INSPECTOR_RAW_SHADOW;Gyors Raw renderelés árnyéknövelő tónusgörbével.\nGyorsbillentyű: <b>%shortcut(inspector.mode_raw_shadow_boost)%</b>.
+INSPECTOR_SPLIT;Osztott nézet.\nGyorsbillentyű: <b>%shortcut(inspector.toggle_split)%</b>.
+INSPECTOR_ZOOM_FIT;Ablakhoz illesztés.\nGyorsbillentyű: <b>%shortcut(inspector.zoom_fit)%</b>.
+INSPECTOR_ZOOM_11;Nagyítás 100%-ra.\nGyorsbillentyű: <b>%shortcut(inspector.zoom_100)%</b>.
 IPTCPANEL_CATEGORY;Kategória
 IPTCPANEL_CATEGORYHINT;A szolgáltató véleménye alapján azonosítja a kép tárgyát.
 IPTCPANEL_CITY;Város
@@ -826,25 +826,25 @@ IPTCPANEL_TRANSREFERENCEHINT;Adja meg a munkafolyamat vezérléséhez vagy nyomo
 LABMASKS_AREA_MASK_EMPTY_WARNING;Figyelmeztetés: a területformák jelenlegi kombinációja üres maszkot eredményez
 MAIN_BUTTON_FULLSCREEN;Teljes képernyő
 MAIN_BUTTON_ICCPROFCREATOR;ICC Profil Kreátor
-MAIN_BUTTON_NAVNEXT_TOOLTIP;Navigáljon a szerkesztőben megnyitott képhez képest a következő képre.\nGyorsbillentyű: <b>Shift-F4</b>\n\nA Fájlböngészőben vagy a Filmszalagban jelenleg kiválasztott bélyegképhez képest a következő képre navigáláshoz:\nGyorsbillentyű: <b>F4</b>
-MAIN_BUTTON_NAVPREV_TOOLTIP;Navigáljon az előző képre a szerkesztőben megnyitott képhez képest.\nGyorsbillentyű: <b>Shift-F3</b>\n\nA Fájlböngészőben vagy a Filmszalagban jelenleg kiválasztott bélyegképhez viszonyított előző képhez való navigálás:\nGyorsbillentyű: <b>F3</b>
-MAIN_BUTTON_NAVSYNC_TOOLTIP;Szinkronizálja a fájlböngészőt vagy a filmszalagot a szerkesztővel, hogy megjelenítse az éppen megnyitott kép bélyegképét, és törölje az összes aktív szűrőt.\nGyorsbillentyű: <b>x</b>\n\nUgyanaz, de az aktív szűrők törlése nélkül:\nGyorsbillentyű: <b>y</b>\n(Vegye figyelembe, hogy a megnyitott kép bélyegképe nem jelenik meg, ha kiszűri).
+MAIN_BUTTON_NAVNEXT_TOOLTIP;Navigáljon a szerkesztőben megnyitott képhez képest a következő képre.\nGyorsbillentyű: <b>%shortcut(editor.next_image)%</b>\n\nA Fájlböngészőben vagy a Filmszalagban jelenleg kiválasztott bélyegképhez képest a következő képre navigáláshoz:\nGyorsbillentyű: <b>%shortcut(filebrowser.open_next)%</b>
+MAIN_BUTTON_NAVPREV_TOOLTIP;Navigáljon az előző képre a szerkesztőben megnyitott képhez képest.\nGyorsbillentyű: <b>%shortcut(editor.previous_image)%</b>\n\nA Fájlböngészőben vagy a Filmszalagban jelenleg kiválasztott bélyegképhez viszonyított előző képhez való navigálás:\nGyorsbillentyű: <b>%shortcut(filebrowser.open_previous)%</b>
+MAIN_BUTTON_NAVSYNC_TOOLTIP;Szinkronizálja a fájlböngészőt vagy a filmszalagot a szerkesztővel, hogy megjelenítse az éppen megnyitott kép bélyegképét, és törölje az összes aktív szűrőt.\nGyorsbillentyű: <b>%shortcut(editor.sync_file_browser_clear_filters)%</b>\n\nUgyanaz, de az aktív szűrők törlése nélkül:\nGyorsbillentyű: <b>%shortcut(editor.sync_file_browser)%</b>\n(Vegye figyelembe, hogy a megnyitott kép bélyegképe nem jelenik meg, ha kiszűri).
 MAIN_BUTTON_PREFERENCES;Beállítások
-MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;Az aktuális kép elhelyezése a feldolgozási sorba (Ctrl-kattintás a gyors exportáláshoz).\nGyorsbillentyű: <b>Ctrl-b</b> (<b>Ctrl-Shift-b</b> gyors exportáláshoz)
-MAIN_BUTTON_SAVE_TOOLTIP;Aktuális kép mentése (Ctrl-kattintás a gyors exportáláshoz).\nGyorsbillentyű: <b>Ctrl-s</b> (<b>Ctrl-Shift-s</b> gyors exportáláshoz)
+MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;Az aktuális kép elhelyezése a feldolgozási sorba (%mouse_primary%-kattintás a gyors exportáláshoz).\nGyorsbillentyű: <b>%shortcut(editor.queue)%</b> (<b>%shortcut(editor.queue_fast)%</b> gyors exportáláshoz)
+MAIN_BUTTON_SAVE_TOOLTIP;Aktuális kép mentése (%mouse_primary%-kattintás a gyors exportáláshoz).\nGyorsbillentyű: <b>%shortcut(editor.save)%</b> (<b>%shortcut(editor.save_fast)%</b> gyors exportáláshoz)
 MAIN_BUTTON_SENDTOEDITOR;Kép szerkesztése külső szerkesztőben
-MAIN_BUTTON_SENDTOEDITOR_TOOLTIP;Az aktuális kép szerkesztése külső szerkesztőben.\nGyorsbillentyű: <b>Ctrl-e</b> (<b>Ctrl-Shift-e</b> a gyors exportáláshoz)
-MAIN_BUTTON_SHOWHIDESIDEPANELS_TOOLTIP;Minden oldalsó panel megjelenítése/elrejtése.\nGyorsbillentyű: <b>m</b>
+MAIN_BUTTON_SENDTOEDITOR_TOOLTIP;Az aktuális kép szerkesztése külső szerkesztőben.\nGyorsbillentyű: <b>%shortcut(editor.send_to_external_editor)%</b> (<b>%shortcut(editor.send_to_external_editor_alt)%</b> a gyors exportáláshoz)
+MAIN_BUTTON_SHOWHIDESIDEPANELS_TOOLTIP;Minden oldalsó panel megjelenítése/elrejtése.\nGyorsbillentyű: <b>%shortcut(editor.maximize_preview)%</b>
 MAIN_BUTTON_UNFULLSCREEN;Kilépés a teljes képernyőből
 MAIN_FRAME_EDITOR;Szerkesztő
-MAIN_FRAME_EDITOR_TOOLTIP;Szerkesztő.\nGyorsbillentyű: <b>Ctrl-F4</b>
+MAIN_FRAME_EDITOR_TOOLTIP;Szerkesztő.\nGyorsbillentyű: <b>%shortcut(window.show_editor)%</b>
 MAIN_FRAME_FILEBROWSER;Fájlböngésző
-MAIN_FRAME_FILEBROWSER_TOOLTIP;Fájlböngésző.\nGyorsbillentyű: <b>Ctrl-F2</b>
+MAIN_FRAME_FILEBROWSER_TOOLTIP;Fájlböngésző.\nGyorsbillentyű: <b>%shortcut(window.show_file_browser)%</b>
 MAIN_FRAME_PLACES;Helyek
 MAIN_FRAME_PLACES_ADD;Hozzáad
 MAIN_FRAME_PLACES_DEL;Töröl
 MAIN_FRAME_QUEUE;Feldolgozási sor
-MAIN_FRAME_QUEUE_TOOLTIP;Feldolgozási sor.\nGyorsbillentyű: <b>Ctrl-F3</b>
+MAIN_FRAME_QUEUE_TOOLTIP;Feldolgozási sor.\nGyorsbillentyű: <b>%shortcut(window.show_queue)%</b>
 MAIN_FRAME_RECENT;Legutóbbi mappák
 MAIN_MSG_ALREADYEXISTS;A fájl már létezik.
 MAIN_MSG_AUTOSAVING;Automatikus mentés
@@ -864,51 +864,51 @@ MAIN_MSG_WRITEFAILED;Nem sikerült írni\n<b>"%1"</b>\n\nGyőződjön meg arról
 MAIN_TAB_ADVANCED;Haladó
 MAIN_TAB_ADVANCED_TOOLTIP;Gyorsbillentyű: <b>Alt-w</b>
 MAIN_TAB_COLOR;Színek
-MAIN_TAB_COLOR_TOOLTIP;Gyorsbillentyű: <b>Alt-c</b>
+MAIN_TAB_COLOR_TOOLTIP;Gyorsbillentyű: <b>%shortcut(toolpanel.tab_color)%</b>
 MAIN_TAB_DETAIL;Részletek
-MAIN_TAB_DETAIL_TOOLTIP;Gyorsbillentyű: <b>Alt-d</b>
+MAIN_TAB_DETAIL_TOOLTIP;Gyorsbillentyű: <b>%shortcut(toolpanel.tab_details)%</b>
 MAIN_TAB_DEVELOP; Kötegelt szerkesztés
 MAIN_TAB_EFFECTS;Különleges hatások
-MAIN_TAB_EFFECTS_TOOLTIP;Gyorsbillentyű: <b>Alt-f</b>
+MAIN_TAB_EFFECTS_TOOLTIP;Gyorsbillentyű: <b>%shortcut(toolpanel.tab_effects)%</b>
 MAIN_TAB_EXIF;Exif
 MAIN_TAB_EXPORT; Gyors Exportálás 
 MAIN_TAB_EXPOSURE;Expozíció
-MAIN_TAB_EXPOSURE_TOOLTIP;Gyorsbillentyű: <b>Alt-e</b>
+MAIN_TAB_EXPOSURE_TOOLTIP;Gyorsbillentyű: <b>%shortcut(toolpanel.tab_exposure)%</b>
 MAIN_TAB_FAVORITES;Kedvencek
-MAIN_TAB_FAVORITES_TOOLTIP;Gyorsbillentyű: <b>Alt-u</b>
+MAIN_TAB_FAVORITES_TOOLTIP;Gyorsbillentyű: <b>%shortcut(toolpanel.tab_favorites)%</b>
 MAIN_TAB_FILTER; Szűrő
 MAIN_TAB_INSPECT; Vizsgálat
-MAIN_TAB_INSPECT_TOOLTIP;Aktiválja a vizsgálót.\nGyorsbillentyű: <b>Ctrl-i</b>
+MAIN_TAB_INSPECT_TOOLTIP;Aktiválja a vizsgálót.\nGyorsbillentyű: <b>%shortcut(filepanel.toggle_right_notebook)%</b>
 MAIN_TAB_IPTC;IPTC
 MAIN_TAB_LOCAL;Helyi szerkesztés
-MAIN_TAB_LOCAL_TOOLTIP;Gyorsbillentyű: <b>Alt-x</b>
+MAIN_TAB_LOCAL_TOOLTIP;Gyorsbillentyű: <b>%shortcut(toolpanel.tab_local)%</b>
 MAIN_TAB_METADATA;Metaadat
-MAIN_TAB_METADATA_TOOLTIP;Gyorsbillentyű: <b>Alt-m</b>
+MAIN_TAB_METADATA_TOOLTIP;Gyorsbillentyű: <b>%shortcut(toolpanel.tab_metadata)%</b>
 MAIN_TAB_RAW;Raw
-MAIN_TAB_RAW_TOOLTIP;Gyorsbillentyű: <b>Alt-r</b>
+MAIN_TAB_RAW_TOOLTIP;Gyorsbillentyű: <b>%shortcut(toolpanel.tab_raw)%</b>
 MAIN_TAB_TRANSFORM;Átalakítás
-MAIN_TAB_TRANSFORM_TOOLTIP;Gyorsbillentyű: <b>Alt-t</b>
-MAIN_TOOLTIP_BACKCOLOR0;Az előnézet háttérszíne: <b>téma alapú</b>\nGyorsbillentyű: <b>9</b>
-MAIN_TOOLTIP_BACKCOLOR1;Az előnézet háttérszíne: <b>fekete</b>\nGyorsbillentyű: <b>9</b>
-MAIN_TOOLTIP_BACKCOLOR2;Az előnézet háttérszíne: <b>fehér</b>\nGyorsbillentyű: <b>9</b>
-MAIN_TOOLTIP_BACKCOLOR3;Az előnézet háttérszíne: <b>középszürke</b>\nGyorsbillentyű: <b>9</b>
+MAIN_TAB_TRANSFORM_TOOLTIP;Gyorsbillentyű: <b>%shortcut(toolpanel.tab_transform)%</b>
+MAIN_TOOLTIP_BACKCOLOR0;Az előnézet háttérszíne: <b>téma alapú</b>\nGyorsbillentyű: <b>%shortcut(editor.toggle_preview_background)%</b>
+MAIN_TOOLTIP_BACKCOLOR1;Az előnézet háttérszíne: <b>fekete</b>\nGyorsbillentyű: <b>%shortcut(editor.toggle_preview_background)%</b>
+MAIN_TOOLTIP_BACKCOLOR2;Az előnézet háttérszíne: <b>fehér</b>\nGyorsbillentyű: <b>%shortcut(editor.toggle_preview_background)%</b>
+MAIN_TOOLTIP_BACKCOLOR3;Az előnézet háttérszíne: <b>középszürke</b>\nGyorsbillentyű: <b>%shortcut(editor.toggle_preview_background)%</b>
 MAIN_TOOLTIP_BEFOREAFTERLOCK;Az <b>Előtte</b> nézet<b>Zárolása</b> / <b>Feloldása</b>n\n<b>Zárolás</b>:az <b>Előtte</b> nézet nem változik.\n<b>Feloldása</b>: az <b>Előtte</b> nézet szinkronban van az <b>Utána</b> nézettel.
-MAIN_TOOLTIP_FALSECOLORS;Expozíció megjelenítése hamis színekkel.\nGyorsbillentyű: <b>Shift-e</b>\n\nKulcs (IRE tartomány):\n%1
-MAIN_TOOLTIP_HIDEHP;A bal oldali panel megjelenítése/elrejtése (beleértve az előzményeket).\nGyorsbillentyű: <b>l</b>
-MAIN_TOOLTIP_INDCLIPPEDH;Vágott csúcsfények jelzése.\nGyorsbillentyű: <b>&gt;</b>
-MAIN_TOOLTIP_INDCLIPPEDS;Vágott árnyékok jelzése.\nGyorsbillentyű: <b>&lt;</b>
-MAIN_TOOLTIP_PREVIEWB;A <b>kék csatorna</b> megjelenítése.\nGyorsbillentyű: <b>Shift-b</b>
-MAIN_TOOLTIP_PREVIEWFOCUSMASK;A <b>fókusz maszk megjelenítése</b>.\nGyorsbillentyű: <b>Shift-f</b>\n\nPontosabb a kis mélységélességű, alacsony zajszintű és magasabb zoomszintű képeken.\nKicsinyítse 10-30%-ra, hogy javítsa az észlelés pontosságát a zajos képeken.
-MAIN_TOOLTIP_PREVIEWG;A <b>zöld csatorna</b> megjelenítése.\nGyorsbillentyű: <b>Shift-g</b>
-MAIN_TOOLTIP_PREVIEWL;A <b>világosság</b> megjelenítése.\nGyorsbillentyű: <b>Shift-v</b>\n\n0.299*R + 0.587*G + 0.114*B
-MAIN_TOOLTIP_PREVIEWR;A <b>vörös csatorna</b> megjelenítése.\nGyorsbillentyű: <b>Shift-r</b>
-MAIN_TOOLTIP_PREVIEWSHARPMASK;<b>Élesítés kontraszt maszk</b> megjelenítése.\nGyorsbillentyű: <b>Shift-o</b>\n\nCsak akkor működik, ha az élesítés engedélyezve van, és csak akkor pontos, ha a zoom >= 100%.
-MAIN_TOOLTIP_QINFO;Gyors információ a képről.\nGyorsbillentyű: <b>Shift-i</b>
-MAIN_TOOLTIP_SHOWHIDELP1;A bal oldali panel megjelenítése/elrejtése.\nGyorsbillentyű: <b>l</b>
-MAIN_TOOLTIP_SHOWHIDERP1;A jobb oldali panel megjelenítése/elrejtése.\nGyorsbillentyű: <b>Ctrl-l</b>
-MAIN_TOOLTIP_SHOWHIDETP1;A filmszalag panel megjelenítése/elrejtése.\nGyorsbillentyű: <b>Shift-l</b>
+MAIN_TOOLTIP_FALSECOLORS;Expozíció megjelenítése hamis színekkel.\nGyorsbillentyű: <b>%shortcut(editor.toggle_false_colors)%</b>\n\nKulcs (IRE tartomány):\n%1
+MAIN_TOOLTIP_HIDEHP;A bal oldali panel megjelenítése/elrejtése (beleértve az előzményeket).\nGyorsbillentyű: <b>%shortcut(editor.toggle_history_panel)%</b>
+MAIN_TOOLTIP_INDCLIPPEDH;Vágott csúcsfények jelzése.\nGyorsbillentyű: <b>%shortcut(editor.toggle_highlight_clipping)%</b>
+MAIN_TOOLTIP_INDCLIPPEDS;Vágott árnyékok jelzése.\nGyorsbillentyű: <b>%shortcut(editor.toggle_shadow_clipping)%</b>
+MAIN_TOOLTIP_PREVIEWB;A <b>kék csatorna</b> megjelenítése.\nGyorsbillentyű: <b>%shortcut(editor.toggle_blue_preview)%</b>
+MAIN_TOOLTIP_PREVIEWFOCUSMASK;A <b>fókusz maszk megjelenítése</b>.\nGyorsbillentyű: <b>%shortcut(editor.toggle_focus_mask)%</b>\n\nPontosabb a kis mélységélességű, alacsony zajszintű és magasabb zoomszintű képeken.\nKicsinyítse 10-30%-ra, hogy javítsa az észlelés pontosságát a zajos képeken.
+MAIN_TOOLTIP_PREVIEWG;A <b>zöld csatorna</b> megjelenítése.\nGyorsbillentyű: <b>%shortcut(editor.toggle_green_preview)%</b>
+MAIN_TOOLTIP_PREVIEWL;A <b>világosság</b> megjelenítése.\nGyorsbillentyű: <b>%shortcut(editor.toggle_luminosity_preview)%</b>\n\n0.299*R + 0.587*G + 0.114*B
+MAIN_TOOLTIP_PREVIEWR;A <b>vörös csatorna</b> megjelenítése.\nGyorsbillentyű: <b>%shortcut(editor.toggle_red_preview)%</b>
+MAIN_TOOLTIP_PREVIEWSHARPMASK;<b>Élesítés kontraszt maszk</b> megjelenítése.\nGyorsbillentyű: <b>%shortcut(editor.toggle_sharpening_mask)%</b>\n\nCsak akkor működik, ha az élesítés engedélyezve van, és csak akkor pontos, ha a zoom >= 100%.
+MAIN_TOOLTIP_QINFO;Gyors információ a képről.\nGyorsbillentyű: <b>%shortcut(editor.toggle_info)%</b>
+MAIN_TOOLTIP_SHOWHIDELP1;A bal oldali panel megjelenítése/elrejtése.\nGyorsbillentyű: <b>%shortcut(editor.toggle_history_panel)%</b>
+MAIN_TOOLTIP_SHOWHIDERP1;A jobb oldali panel megjelenítése/elrejtése.\nGyorsbillentyű: <b>%shortcut(editor.toggle_right_panel)%</b>
+MAIN_TOOLTIP_SHOWHIDETP1;A filmszalag panel megjelenítése/elrejtése.\nGyorsbillentyű: <b>%shortcut(editor.toggle_top_panel)%</b>
 MAIN_TOOLTIP_THRESHOLD;Küszöb
-MAIN_TOOLTIP_TOGGLE;Az <b>Előtte</b>/<b>Utána</b> nézet be/kikapcsolása.\nGyorsbillentyű: <b>Shift-a</b>
+MAIN_TOOLTIP_TOGGLE;Az <b>Előtte</b>/<b>Utána</b> nézet be/kikapcsolása.\nGyorsbillentyű: <b>%shortcut(editor.toggle_before_after)%</b>
 METADATA_LOAD_ERROR;Hiba a metaadatok innen történő betöltése során %1: %2
 METADATA_SAVE_ERROR;Hiba a metaadatok ide történő mentése során: %1: %2
 MONITOR_PROFILE_SYSTEM;Rendszer alapértelmezett
@@ -928,6 +928,7 @@ OPTIONS_BUNDLED_MISSING;A(z) "<b>%1</b>" csomagban lévő profil nem található
 OPTIONS_DEFIMG_MISSING;A <b>nem nyers fotók</b> alapértelmezett profilja nem található, vagy nincs beállítva.\n\nKérjük, ellenőrizze profilja könyvtárát, lehet, hogy hiányzik vagy sérült.\n\n"<b>% 1</b>" lesz helyette alkalmazva.
 OPTIONS_DEFRAW_MISSING;A <b>nyers fotók</b> alapértelmezett profilja nem található, vagy nincs beállítva.\n\nKérjük, ellenőrizze a profilok könyvtárát, lehet, hogy hiányzik vagy sérült.\n\n"<b>%1< /b>" lesz helyette alkalmazva.
 PARTIALPASTE_ADVANCEDGROUP;Haladó beállítások
+PARTIALPASTE_DRCOMPRESSION;Dinamikus tartomány tömörítése
 PARTIALPASTE_EFFECTSGROUP;Speciális effektusok beállításai
 PARTIALPASTE_EXPOSUREGROUP;Expozíció beállításai
 PARTIALPASTE_SATURATION;Telítettség/Élénkség
@@ -1005,7 +1006,6 @@ PARTIALPASTE_SHARPENMICRO;Mikrokontraszt
 PARTIALPASTE_SMOOTHING;Simítás
 PARTIALPASTE_SOFTLIGHT;Lágy fény
 PARTIALPASTE_SPOT;Foltok eltávolítása
-PARTIALPASTE_TM_FATTAL;Dinamikus tartomány tömörítése
 PARTIALPASTE_TM_LOG;Logaritmikus tónusleképezés
 PARTIALPASTE_TONE_EQUALIZER;Tónuskiegyenlítő
 PARTIALPASTE_VIBRANCE;Élénkség
@@ -1250,9 +1250,9 @@ PROFILEPANEL_PLASTSAVED;Utoljára mentett
 PROFILEPANEL_SAVEDLGLABEL;Feldolgozási paraméterek mentése...
 PROFILEPANEL_SAVEPPASTE;Mentendő paraméterek
 PROFILEPANEL_TOOLTIPCOPY;Aktuális feldolgozási profil másolása a vágólapra.\n<b>Ctrl-click</b> a másolandó paraméterek kiválasztásához.
-PROFILEPANEL_TOOLTIPLOAD;Profil betöltése fájlból.\n<b>Ctrl-click</b> a betöltendő paraméterek kiválasztásához.
-PROFILEPANEL_TOOLTIPPASTE;Profil beillesztése a vágólapról.\n<b>Ctrl-click</b> a beillesztendő paraméterek kiválasztásához.
-PROFILEPANEL_TOOLTIPSAVE;Aktuális profil mentése.\n<b>Ctrl-click</b> a mentendő paraméterek kiválasztásához.
+PROFILEPANEL_TOOLTIPLOAD;Profil betöltése fájlból.\n<b>%mouse_primary%-click</b> a betöltendő paraméterek kiválasztásához.
+PROFILEPANEL_TOOLTIPPASTE;Profil beillesztése a vágólapról.\n<b>%mouse_primary%-click</b> a beillesztendő paraméterek kiválasztásához.
+PROFILEPANEL_TOOLTIPSAVE;Aktuális profil mentése.\n<b>%mouse_primary%-click</b> a mentendő paraméterek kiválasztásához.
 PROGRESSBAR_DENOISING;Zajcsökkentés...
 PROGRESSBAR_HLREC;Csúcsfény rekonstrukció...
 PROGRESSBAR_LOADING;Kép betöltése...
@@ -1336,7 +1336,7 @@ SESSION_LABEL;Munkamenet
 SHCSELECTOR_TOOLTIP;Kattintson a jobb egérgombbal a 3 csúszka pozíciójának visszaállításához.
 SOFTPROOF_GAMUTCHECK_MONITOR_TOOLTIP;Emelje ki a tartományon (gamuton) kívüli képpontokat a monitorprofilhoz képest.
 SOFTPROOF_GAMUTCHECK_TOOLTIP;Emelje ki a gamuton kívüli színekkel rendelkező pixeleket a következők tekintetében:\n- a Soft-proofing profilt használja, ha az be van állítva és a Soft-proofing engedélyezve van,\n- a kimeneti profilt használja, ha a Soft-proofing le van tiltva.
-SOFTPROOF_TOOLTIP;A Soft-proofing szimulálja a kép megjelenését egy adott nyomtatón vagy monitoron, ha megfelelő profil van beállítva a Beállítások > Színkezelés menüpontban.\n(A <b>Ctrl</b> nyomva tartása mellett kattintson a Soft-proofing profil módosításához.)
+SOFTPROOF_TOOLTIP;A Soft-proofing szimulálja a kép megjelenését egy adott nyomtatón vagy monitoron, ha megfelelő profil van beállítva a Beállítások > Színkezelés menüpontban.\n(A <b>%mouse_primary%</b> nyomva tartása mellett kattintson a Soft-proofing profil módosításához.)
 THRESHOLDSELECTOR_B;Alsó
 THRESHOLDSELECTOR_BL;Bal alsó
 THRESHOLDSELECTOR_BR;Jobb alsó
@@ -1345,12 +1345,16 @@ THRESHOLDSELECTOR_T;Felső
 THRESHOLDSELECTOR_TL;Bal felső
 THRESHOLDSELECTOR_TR;Jobb felső
 TOOL_SHORTCUT_HELP_HEADER;Az eszköz gyorsbillentyűi:\n(tartsa lenyomva az adott billentyűt, és állítsa be a csúszkát a +/- gombbal vagy a görgővel)\n
-TOOLBAR_TOOLTIP_COLORPICKER;Zárolható színválasztó\n\nHa az eszköz aktív:\n- Kiválasztó hozzáadása: <b>bal gombbal</b>.\n- Kiválasztó húzása: <b>bal kattintás és húzás</b>. \n- Kiválasztó törlése: <b>jobb gombbal</b>.\n- Az összes kiválasztó törlése: <b>Ctrl</b>+<b>Shift</b>+<b>jobb gombbal kattintva</b>.\n- Visszatérés a kéz eszközhöz: <b>kattintson a jobb gombbal</b> bármely választón kívül.
-TOOLBAR_TOOLTIP_CROP;<b>Kivágás</b> kijelölés.\nGyorsbillentyű: <b>Shift-c</b>\nMozgassa a kivágást az <b>egér húzásával</b>\nÁtméretezze a kivágást a kivágási szegélyek mozgatásával.
-TOOLBAR_TOOLTIP_HAND;Kéz eszköz.\nGyorsbillentyű: <b>h</b>
-TOOLBAR_TOOLTIP_PERSPECTIVE;<b>Perspektívakorrekció</b>.\nGyorsbillentyű: <b>Shift-p</b>\n\nSzerkessze a vezérlővonalakat a perspektivikus torzítás javításához. Kattintson ismét erre a gombra a javítás alkalmazásához.
-TOOLBAR_TOOLTIP_STRAIGHTEN;<b>Egyenesítés</b> / <b>Finom elforgatás</b>.\nGyors gomb: <b>Shift-s</b>\n\nJelölje meg a függőleges vagy vízszintes irányt úgy, hogy egy vezetővonalat húz a kép előnézetére. Az elforgatási szög a vezetővonal mellett jelenik meg. A forgatás középpontja a kép geometriai középpontja.
-TOOLBAR_TOOLTIP_WB;Fehéregyensúly kijelölés.\nGyorsbillentyű: <b>Shift-w</b>
+TOOLBAR_TOOLTIP_COLORPICKER;Zárolható színválasztó\n\nHa az eszköz aktív:\n- Kiválasztó hozzáadása: <b>bal gombbal</b>.\n- Kiválasztó húzása: <b>bal kattintás és húzás</b>. \n- Kiválasztó törlése: <b>jobb gombbal</b>.\n- Az összes kiválasztó törlése: <b>%mouse_primary%</b>+<b>Shift</b>+<b>jobb gombbal kattintva</b>.\n- Visszatérés a kéz eszközhöz: <b>kattintson a jobb gombbal</b> bármely választón kívül.
+TOOLBAR_TOOLTIP_CROP;<b>Kivágás</b> kijelölés.\nGyorsbillentyű: <b>%shortcut(toolbar.crop)%</b>\nMozgassa a kivágást az <b>egér húzásával</b>\nÁtméretezze a kivágást a kivágási szegélyek mozgatásával.
+TOOLBAR_TOOLTIP_HAND;Kéz eszköz.\nGyorsbillentyű: <b>%shortcut(toolbar.hand)%</b>
+TOOLBAR_TOOLTIP_PERSPECTIVE;<b>Perspektívakorrekció</b>.\nGyorsbillentyű: <b>%shortcut(toolbar.perspective)%</b>\n\nSzerkessze a vezérlővonalakat a perspektivikus torzítás javításához. Kattintson ismét erre a gombra a javítás alkalmazásához.
+TOOLBAR_TOOLTIP_STRAIGHTEN;<b>Egyenesítés</b> / <b>Finom elforgatás</b>.\nGyors gomb: <b>%shortcut(toolbar.straighten)%</b>\n\nJelölje meg a függőleges vagy vízszintes irányt úgy, hogy egy vezetővonalat húz a kép előnézetére. Az elforgatási szög a vezetővonal mellett jelenik meg. A forgatás középpontja a kép geometriai középpontja.
+TOOLBAR_TOOLTIP_WB;Fehéregyensúly kijelölés.\nGyorsbillentyű: <b>%shortcut(toolbar.white_balance_picker)%</b>
+TP_DRCOMPRESSION_AMOUNT;Mérték
+TP_DRCOMPRESSION_LABEL;Dinamikus tartomány tömörítése
+TP_DRCOMPRESSION_SATCONTROL;Telítettség szabályozása 
+TP_DRCOMPRESSION_THRESHOLD;Részletek
 TP_SATURATION_LABEL;Telítettség/Élénkség
 TP_BRIGHTCONTRSAT_CONTRAST;Kontraszt
 TP_SATURATION_SATURATION;Telítettség
@@ -1715,7 +1719,7 @@ TP_LABMASKS_DELTAE_PICK;Kiválaszt
 TP_LABMASKS_DELTAE_CHAN_WEIGHT;Súly a ΔE számításban
 TP_LABMASKS_DELTAE_TOOLTIP;Válasszon ki hasonló színű régiókat\n(a CIELAB ΔE* mérőszáma szerint)
 TP_LABMASKS_DRAWNMASK;Ecsetmaszk
-TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;Vászonra festést válthat az ecsettel.\n\n<i>Egér használatakor:</i>\n- Tartsa lenyomva az <b>Alt</b> billentyűt a „Ragyó mód” ideiglenes váltásához;\n- Tartsa lenyomva a <b> gombot. b>Shift</b> egy egyenes vonal rajzolásához;\n- A <b>Ctrl+görgő</b> használatával módosíthatja az ecset sugarát,\n- <b>Ctrl+Shift+görgő</b> az ecset keménységének módosításához,\n- és <b>Ctrl+kattintás</b> új vonáscsoport indításához a paraméterek megváltoztatása nélkül\n(így ugyanazon a területen több vonás összeadódik);\n- Használja a <b>harmadik gomb</b> a vászonra festés kikapcsolásához.\n\n<i>Nyomásérzékeny eszköz használata esetén:</i>\n- Használja az <b>első gombot</b> a "radír mód" váltásához;\n- Tartsa lenyomva a <b>Shift</b> billentyűt egyenes vonal rajzolásához;\n- Az <b>Alt+első gomb</b> használatával növelheti az ecset sugarát, és\n- <b>Alt+másodperc gomb</b> a csökkentéséhez;\n- A <b>második gomb</b> segítségével válthat a rendelkezésre álló nyomásérzékenységi módok között: ki, keménység, sugár (tartsa lenyomva a <b>Shift< billentyűt /b> az irány megfordításához);\n- A <b>Ctrl+második gomb</b> használatával kapcsolja ki a vászonra festést.
+TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;Vászonra festést válthat az ecsettel.\n\n<i>Egér használatakor:</i>\n- Tartsa lenyomva az <b>Alt</b> billentyűt a „Ragyó mód” ideiglenes váltásához;\n- Tartsa lenyomva a <b> gombot. b>Shift</b> egy egyenes vonal rajzolásához;\n- A <b>%mouse_primary%+görgő</b> használatával módosíthatja az ecset sugarát,\n- <b>%mouse_primary%+Shift+görgő</b> az ecset keménységének módosításához,\n- és <b>%mouse_primary%+kattintás</b> új vonáscsoport indításához a paraméterek megváltoztatása nélkül\n(így ugyanazon a területen több vonás összeadódik);\n- Használja a <b>harmadik gomb</b> a vászonra festés kikapcsolásához.\n\n<i>Nyomásérzékeny eszköz használata esetén:</i>\n- Használja az <b>első gombot</b> a "radír mód" váltásához;\n- Tartsa lenyomva a <b>Shift</b> billentyűt egyenes vonal rajzolásához;\n- Az <b>Alt+első gomb</b> használatával növelheti az ecset sugarát, és\n- <b>Alt+másodperc gomb</b> a csökkentéséhez;\n- A <b>második gomb</b> segítségével válthat a rendelkezésre álló nyomásérzékenységi módok között: ki, keménység, sugár (tartsa lenyomva a <b>Shift< billentyűt /b> az irány megfordításához);\n- A <b>%mouse_primary%+második gomb</b> használatával kapcsolja ki a vászonra festést.
 TP_LABMASKS_DRAWNMASK_PEN_SETTINGS;Ecset beállításai
 TP_LABMASKS_DRAWNMASK_RESET_TIP;Törölje az összes ecsetvonást
 TP_LABMASKS_DRAWNMASK_UNDO_TIP;Távolítsa el az utolsó vonáscsoportot
@@ -1781,7 +1785,7 @@ TP_PERSPECTIVE_AUTO_BOTH_TOOLTIP;Vízszintes és függőleges
 TP_PERSPECTIVE_AUTO_HORIZONTAL_TOOLTIP;Vízszintes
 TP_PERSPECTIVE_AUTO_VERTICAL_TOOLTIP;Függőleges
 TP_PERSPECTIVE_CONTROL_LINES;Vezérlővonalak
-TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>Ctrl</b>+<b>húzás</b>: Új vonal rajzolása\n<b>Jobb gombbal</b>: Sor törlése
+TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>%mouse_primary%</b>+<b>húzás</b>: Új vonal rajzolása\n<b>Jobb gombbal</b>: Sor törlése
 TP_PERSPECTIVE_CROPFACTOR;Vágási tényező
 TP_PERSPECTIVE_FLENGTH;Fókusztávolság
 TP_PERSPECTIVE_HORIZONTAL;Vízszintes
@@ -1926,7 +1930,7 @@ TP_RGBCURVES_RED;R
 TP_ROTATE_DEGREE;Fok
 TP_ROTATE_LABEL;Forgatás
 TP_ROTATE_SELECTLINE;Vízszintes vonal kijelölése
-TP_SAVEDIALOG_OK_TIP;Gyorsbillentyű: <b>Ctrl-Enter</b>
+TP_SAVEDIALOG_OK_TIP;Gyorsbillentyű: <b>%shortcut(saveas.ok)%</b>
 TP_SHARPENING_AMOUNT;Mérték
 TP_SHARPENING_BLUR;Elmosási sugár
 TP_SHARPENING_CONTRAST;Kontrasztküszöb
@@ -1983,7 +1987,7 @@ TP_SOFTLIGHT_LABEL;Lágy fény
 TP_SOFTLIGHT_STRENGTH;Erősség
 TP_SPOT_COUNTLABEL;%1 folt
 TP_SPOT_ENTRYCHANGED;Folt megváltozott
-TP_SPOT_HINT;Kattintson erre a gombra az előnézeti terület kezeléséhez.\n\nEgy folt szerkesztéséhez vigye az egérmutatót a szerkesztett terület fehér jelére, így megjelenik a szerkesztési geometria.\n\nFolt hozzáadásához nyomja meg a Ctrl-t és a bal egérgombot gombot, húzza a kört (a Ctrl billentyű felengedhető) a forrás helyére, majd engedje fel az egérgombot.\n\nA forrás vagy a célhely mozgatásához vigye az egérmutatót a közepére, majd húzza el.\n\nA belső kör (maximális hatás területe) és a "tollazat" köre átméretezhető úgy, hogy rámutat (a kör narancssárgává válik), majd húzza (a kör vörös lesz) az egérrel.\n\nHa a módosítások készen vannak, kattintson a jobb gombbal bármelyik folton kívüli területre a Folt szerkesztési mód befejezéséhez, vagy kattintson újra erre a gombra.
+TP_SPOT_HINT;Kattintson erre a gombra az előnézeti terület kezeléséhez.\n\nEgy folt szerkesztéséhez vigye az egérmutatót a szerkesztett terület fehér jelére, így megjelenik a szerkesztési geometria.\n\nFolt hozzáadásához nyomja meg a %mouse_primary%-t és a bal egérgombot gombot, húzza a kört (a %mouse_primary% billentyű felengedhető) a forrás helyére, majd engedje fel az egérgombot.\n\nA forrás vagy a célhely mozgatásához vigye az egérmutatót a közepére, majd húzza el.\n\nA belső kör (maximális hatás területe) és a "tollazat" köre átméretezhető úgy, hogy rámutat (a kör narancssárgává válik), majd húzza (a kör vörös lesz) az egérrel.\n\nHa a módosítások készen vannak, kattintson a jobb gombbal bármelyik folton kívüli területre a Folt szerkesztési mód befejezéséhez, vagy kattintson újra erre a gombra.
 TP_SPOT_LABEL;Folt eltávolítása
 TP_SPOT_LIGHTPIPELINE_HINT;Kattintson erre a gombra a foltok módosításához, miközben egy egyszerűsített kép előnézetét tekinti meg a sok erőforrást igénylő eszközök letiltásával (teljesítmény opció).\n\nCsak akkor van hatása, ha az előnézeti szerkesztés aktív.
 TP_SPOT_CUR_SPOT_LABEL;Aktuális folt
@@ -1995,10 +1999,6 @@ TP_SPOT_RADIUS;Sugár
 TP_SPOT_FEATHER;Tollazat
 TP_SPOT_OPACITY;Átlátszatlanság
 TP_SPOT_DETAIL;Részletek védelme
-TP_TM_FATTAL_AMOUNT;Mérték
-TP_TM_FATTAL_LABEL;Dinamikus tartomány tömörítése
-TP_TM_FATTAL_THRESHOLD;Részletek
-TP_TM_FATTAL_SATCONTROL;Telítettség szabályozása 
 TP_TONECURVE_BASECURVE;Alapgörbe
 TP_TONECURVE_BASECURVE_LINEAR;Lineáris
 TP_TONECURVE_BASECURVE_ROLLOFF;Fokozatos átmenet a csúcsfényekhez

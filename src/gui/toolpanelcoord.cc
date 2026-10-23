@@ -1,20 +1,21 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "toolpanelcoord.h"
 #include "../engine/dfmanager.h"
@@ -27,6 +28,7 @@
 #include "../engine/refreshmap.h"
 #include "../utils/multilangmgr.h"
 #include "options.h"
+#include "shortcutsmanager.h"
 
 namespace art { namespace gui {
 using namespace utils;
@@ -40,7 +42,7 @@ class TPScrolledWindow: public MyScrolledWindow {
 public:
     TPScrolledWindow(): mgr_(nullptr) {}
 
-    void setToolShortcutManager(ToolShortcutManager *mgr) { mgr_ = mgr; }
+    void setToolShortcutsManager(ToolShortcutsManager *mgr) { mgr_ = mgr; }
 
     bool on_scroll_event(GdkEventScroll *event) override
     {
@@ -51,7 +53,7 @@ public:
     }
 
 private:
-    ToolShortcutManager *mgr_;
+    ToolShortcutsManager *mgr_;
 };
 
 } // namespace
@@ -60,6 +62,7 @@ ToolPanelCoordinator::ToolPanelCoordinator(bool batch)
     : ipc(nullptr), favoritePanelSW(nullptr), hasChanged(false),
       editDataProvider(nullptr)
 {
+    bindShortcuts();
 
     favoritePanel = Gtk::manage(new ToolVBox());
     exposurePanel = Gtk::manage(new ToolVBox());
@@ -119,7 +122,7 @@ ToolPanelCoordinator::ToolPanelCoordinator(bool batch)
     rawexposure = Gtk::manage(new RAWExposure());
     bayerrawexposure = Gtk::manage(new BayerRAWExposure());
     xtransrawexposure = Gtk::manage(new XTransRAWExposure());
-    fattal = Gtk::manage(new FattalToneMapping());
+    drcompression = Gtk::manage(new DynamicRangeCompression());
     logenc = Gtk::manage(new LogEncoding());
     colorcorrection = Gtk::manage(new ColorCorrection());
     smoothing = Gtk::manage(new Smoothing());
@@ -143,7 +146,7 @@ ToolPanelCoordinator::ToolPanelCoordinator(bool batch)
     addfavoritePanel(exposurePanel, exposure);
     addfavoritePanel(exposurePanel, toneEqualizer);
     addfavoritePanel(exposurePanel, toneCurve);
-    addfavoritePanel(exposurePanel, fattal);
+    addfavoritePanel(exposurePanel, drcompression);
     addfavoritePanel(exposurePanel, logenc);
 
     // details
@@ -394,6 +397,7 @@ void ToolPanelCoordinator::addfavoritePanel(Gtk::Box *where,
 
 ToolPanelCoordinator::~ToolPanelCoordinator()
 {
+    ShortcutsManager::getInstance()->unbindOwner(this);
     idle_register.destroy();
 
     closeImage();
@@ -1067,66 +1071,30 @@ void ToolPanelCoordinator::foldAllButOne(Gtk::Box *parent,
     }
 }
 
-bool ToolPanelCoordinator::handleShortcutKey(GdkEventKey *event)
+void ToolPanelCoordinator::bindShortcuts()
 {
-
-    // bool ctrl = event->state & GDK_CONTROL_MASK;  temporarily removed because
-    // unused bool shift = event->state & GDK_SHIFT_MASK;   temporarily removed
-    // because unused
-    bool alt = event->state & GDK_MOD1_MASK;
-
-    if (alt) {
-        switch (getKeyval(event)) {
-        case GDK_KEY_u:
-            if (favoritePanelSW) {
+    auto sm = ShortcutsManager::getInstance();
+    const auto tab = [this, sm](const char *id, Gtk::ScrolledWindow *const *sw) {
+        sm->bind(this, id, [this, sw](GdkEventKey *) {
+            if (*sw) {
                 toolPanelNotebook->set_current_page(
-                    toolPanelNotebook->page_num(*favoritePanelSW));
+                    toolPanelNotebook->page_num(**sw));
             }
             return true;
-
-        case GDK_KEY_e:
-            toolPanelNotebook->set_current_page(
-                toolPanelNotebook->page_num(*exposurePanelSW));
-            return true;
-
-        case GDK_KEY_d:
-            toolPanelNotebook->set_current_page(
-                toolPanelNotebook->page_num(*detailsPanelSW));
-            return true;
-
-        case GDK_KEY_c:
-            toolPanelNotebook->set_current_page(
-                toolPanelNotebook->page_num(*colorPanelSW));
-            return true;
-
-        case GDK_KEY_t:
-            toolPanelNotebook->set_current_page(
-                toolPanelNotebook->page_num(*transformPanelSW));
-            return true;
-
-        case GDK_KEY_r:
-            toolPanelNotebook->set_current_page(
-                toolPanelNotebook->page_num(*rawPanelSW));
-            return true;
-
-        case GDK_KEY_f:
-            toolPanelNotebook->set_current_page(
-                toolPanelNotebook->page_num(*effectsPanelSW));
-            return true;
-
-        case GDK_KEY_x:
-            toolPanelNotebook->set_current_page(
-                toolPanelNotebook->page_num(*localPanelSW));
-            return true;
-
-        case GDK_KEY_m:
-            toolPanelNotebook->set_current_page(
-                toolPanelNotebook->page_num(*metadata));
-            return true;
-        }
-    }
-
-    return false;
+        });
+    };
+    tab("toolpanel.tab_favorites", &favoritePanelSW);
+    tab("toolpanel.tab_exposure", &exposurePanelSW);
+    tab("toolpanel.tab_details", &detailsPanelSW);
+    tab("toolpanel.tab_color", &colorPanelSW);
+    tab("toolpanel.tab_transform", &transformPanelSW);
+    tab("toolpanel.tab_raw", &rawPanelSW);
+    tab("toolpanel.tab_effects", &effectsPanelSW);
+    tab("toolpanel.tab_local", &localPanelSW);
+    sm->bind(this, "toolpanel.tab_metadata", [this](GdkEventKey *) {
+        toolPanelNotebook->set_current_page(toolPanelNotebook->page_num(*metadata));
+        return true;
+    });
 }
 
 void ToolPanelCoordinator::updateVScrollbars(bool hide)
@@ -1292,11 +1260,11 @@ void ToolPanelCoordinator::setAreaDrawListener(AreaDrawListener *listener)
 }
 
 bool ToolPanelCoordinator::getDeltaELCH(EditUniqueID id, art::engine::Coord pos,
-                                        float &L, float &C, float &H)
+                                        int size, float &L, float &C, float &H)
 {
     if (ipc) {
         GThreadUnLock unlock;
-        return ipc->getDeltaELCH(id, pos.x, pos.y, L, C, H);
+        return ipc->getDeltaELCH(id, pos.x, pos.y, size, L, C, H);
     }
     return false;
 }
@@ -1306,25 +1274,25 @@ void ToolPanelCoordinator::setProgressListener(art::engine::ProgressListener *pl
     metadata->setProgressListener(pl);
 }
 
-void ToolPanelCoordinator::setToolShortcutManager(ToolShortcutManager *mgr)
+void ToolPanelCoordinator::setToolShortcutsManager(ToolShortcutsManager *mgr)
 {
     for (auto p : toolPanels) {
         p->registerShortcuts(mgr);
     }
 
     // static_cast<TPScrolledWindow
-    // *>(favoritePanelSW)->setToolShortcutManager(mgr);
+    // *>(favoritePanelSW)->setToolShortcutsManager(mgr);
     static_cast<TPScrolledWindow *>(exposurePanelSW)
-        ->setToolShortcutManager(mgr);
+        ->setToolShortcutsManager(mgr);
     static_cast<TPScrolledWindow *>(detailsPanelSW)
-        ->setToolShortcutManager(mgr);
-    static_cast<TPScrolledWindow *>(colorPanelSW)->setToolShortcutManager(mgr);
+        ->setToolShortcutsManager(mgr);
+    static_cast<TPScrolledWindow *>(colorPanelSW)->setToolShortcutsManager(mgr);
     static_cast<TPScrolledWindow *>(transformPanelSW)
-        ->setToolShortcutManager(mgr);
-    static_cast<TPScrolledWindow *>(rawPanelSW)->setToolShortcutManager(mgr);
-    static_cast<TPScrolledWindow *>(localPanelSW)->setToolShortcutManager(mgr);
+        ->setToolShortcutsManager(mgr);
+    static_cast<TPScrolledWindow *>(rawPanelSW)->setToolShortcutsManager(mgr);
+    static_cast<TPScrolledWindow *>(localPanelSW)->setToolShortcutsManager(mgr);
     static_cast<TPScrolledWindow *>(effectsPanelSW)
-        ->setToolShortcutManager(mgr);
+        ->setToolShortcutsManager(mgr);
 }
 
 bool ToolPanelCoordinator::getFilmNegativeSpot(art::engine::Coord spot,

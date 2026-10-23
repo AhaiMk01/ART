@@ -2,7 +2,7 @@
  *
  *  This file is part of ART.
  *
- *  Copyright (c) 2020 Alberto Griggio <alberto.griggio@gmail.com>
+ *  Copyright (c) 2020-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
  *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -1065,6 +1065,10 @@ void run_with_progress(const std::vector<FileBrowserEntry *> &args, Func func,
 void FileCatalog::copyMoveRequested(const std::vector<FileBrowserEntry *> &args,
                                     bool move)
 {
+    // sidecars written in the background must be on disk before they are
+    // moved or deleted
+    Thumbnail::flushPendingWrites();
+
     const auto doit = [&](const Glib::ustring &s,
                           const Glib::ustring &d) -> bool {
         if (move) {
@@ -1155,9 +1159,20 @@ void FileCatalog::copyMoveRequested(const std::vector<FileBrowserEntry *> &args,
 void FileCatalog::deleteRequested(const std::vector<FileBrowserEntry *> &tbe,
                                   bool onlySelected)
 {
+    // sidecars written in the background must be on disk before they are
+    // moved or deleted
+    Thumbnail::flushPendingWrites();
+
     if (tbe.empty()) {
         return;
     }
+
+    // After the deletion the browser must still be usable with the keyboard:
+    // if it has the focus now (or is the file browser proper, not the filmstrip
+    // of the editor), it must have it afterwards too
+    const bool keep_focus =
+        fileBrowser->hasFocus() ||
+        fileBrowser->getLocation() == ThumbBrowserBase::THLOC_FILEBROWSER;
 
     Gtk::MessageDialog msd(getToplevelWindow(this),
                            M("FILEBROWSER_DELETEDIALOG_HEADER"), true,
@@ -1203,6 +1218,10 @@ void FileCatalog::deleteRequested(const std::vector<FileBrowserEntry *> &tbe,
             std::vector<Glib::ustring> session_rem;
 
             options.renaming.sidecars = sidecars.get_text();
+
+            // the entry to select when the ones to delete are gone (must be
+            // found now, while they are still there)
+            const Glib::ustring neighbour = fileBrowser->getNeighbourOf(tbe);
 
             // for (unsigned int i = 0; i < tbe.size(); i++) {
             const auto func = [&](FileBrowserEntry *e) -> void {
@@ -1251,11 +1270,21 @@ void FileCatalog::deleteRequested(const std::vector<FileBrowserEntry *> &tbe,
             } else {
                 redrawAll();
             }
+
+            // select the entry next to the deleted ones, so that the keyboard
+            // navigation goes on from there
+            fileBrowser->selectByName(neighbour, keep_focus);
         } else {
             Gtk::MessageDialog errd(getToplevelWindow(this), errmsg, true,
                                     Gtk::MESSAGE_ERROR, Gtk::BUTTONS_OK, true);
             errd.run();
         }
+    }
+
+    // whatever the answer was, the keyboard must keep working in the browser
+    // (a no-op after the selection has been moved above)
+    if (keep_focus) {
+        fileBrowser->selectOnly(nullptr, true);
     }
 }
 

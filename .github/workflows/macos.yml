@@ -16,11 +16,11 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-15-intel, macos-14]
+        os: [macos-15-intel, macos-15]
         include:
           - os: macos-15-intel
             arch: x64
-          - os: macos-14
+          - os: macos-15
             arch: arm64
       fail-fast: false
         

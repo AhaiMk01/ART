@@ -1,22 +1,24 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2018-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "adjuster.h"
+#include "shortcutsmanager.h"
 #include "../engine/rtengine.h"
 #include "guiutils.h"
 #include "../utils/multilangmgr.h"
@@ -117,7 +119,7 @@ Adjuster::Adjuster(Glib::ustring vlabel, double vmin, double vmax, double vstep,
 
     const auto on_double_click = [this](GdkEventButton *event) -> bool {
         if (event->button == 1 && event->type == GDK_2BUTTON_PRESS) {
-            resetValue(event->state & GDK_CONTROL_MASK);
+            resetValue(event->state & ShortcutsManager::mousePrimaryMask());
             return false;
         }
         return true;
@@ -393,7 +395,7 @@ void Adjuster::resetValue(bool toInitial)
 void Adjuster::resetPressed(GdkEventButton *event)
 {
 
-    if ((event != nullptr) && (event->state & GDK_CONTROL_MASK) &&
+    if ((event != nullptr) && (event->state & ShortcutsManager::mousePrimaryMask()) &&
         (event->button == 1)) {
         resetValue(true);
     } else {

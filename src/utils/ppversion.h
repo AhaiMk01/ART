@@ -1,3 +1,24 @@
+/* -*- C++ -*-
+ *
+ *  This file is part of ART.
+ *
+ *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
+ *
+ *  ART is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  ART is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #pragma once
 
 namespace art { namespace utils {
@@ -5,10 +26,14 @@ namespace art { namespace utils {
 
 // This number has to be incremented whenever the ARP file format is modified or
 // the behaviour of a tool changes
-#define PPVERSION 1045
+#define PPVERSION 1047
 
 /*
   Log of version changes
+  1047  2026-10-22
+        adjuted coarseness coefficient for Smoothing in NOISE mode
+  1046  2026-10-17
+        renamed FattalToneMapping to DynamicRangeCompression
   1045  2026-05-25
         improve feathering formula for external masks
   1044  2025-11-11

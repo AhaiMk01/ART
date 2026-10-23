@@ -2,7 +2,7 @@
  *
  *  This file is part of ART.
  *
- *  Copyright 2025 Alberto Griggio <alberto.griggio@gmail.com>
+ *  Copyright (c) 2025-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
  *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -360,12 +360,18 @@ void ExternalLUT3D::init()
         art::gui::options.clutCacheSize * 4));
 }
 
-void ExternalLUT3D::cleanup() { cache_.reset(nullptr); }
+void ExternalLUT3D::cleanup()
+{
+    cache_.reset(nullptr);
+}
 
-ExternalLUT3D::ExternalLUT3D(): ok_(false), is_server_(false) {}
+ExternalLUT3D::ExternalLUT3D():
+    ok_(false), is_server_(false), use_cache_(true)
+{
+}
 
 ExternalLUT3D::ExternalLUT3D(const Glib::ustring &filename)
-    : ok_(false), is_server_(false), filename_(filename)
+    : ok_(false), is_server_(false), use_cache_(true), filename_(filename)
 {
     init(filename);
 }
@@ -374,6 +380,7 @@ bool ExternalLUT3D::init(const Glib::ustring &filename)
 {
     ok_ = false;
     is_server_ = false;
+    use_cache_ = true;
     filename_ = filename;
 
     const std::unique_ptr<FILE, std::function<void(FILE *)>> file(
@@ -471,8 +478,17 @@ bool ExternalLUT3D::init(const Glib::ustring &filename)
         is_server_ = cJSON_IsTrue(is_server);
     }
 
+    cJSON *use_cache = cJSON_GetObjectItem(root, "cache");
+    if (use_cache) {
+        if (!cJSON_IsBool(use_cache)) {
+            return with_error_msg(filename, "invalid \"cache\" entry");
+        }
+        use_cache_ = cJSON_IsTrue(use_cache);
+    }
+    
     if (gui_name_.empty()) {
-        gui_name_ = art::utils::removeExtension(Glib::path_get_basename(filename_));
+        gui_name_ =
+            art::utils::removeExtension(Glib::path_get_basename(filename_));
     }
 
     ok_ = true;
@@ -494,10 +510,11 @@ bool ExternalLUT3D::set_param_values(const CLUTParamValueMap &values)
             std::cout << "computing 3dlut for " << filename_ << std::endl;
         }
         std::string pn = generate_params(params_, values);
-        std::string fn = find_in_cache(disk_cache_mutex_, key.second);
+        std::string fn =
+            use_cache_ ? find_in_cache(disk_cache_mutex_, key.second) : "";
         if (fn.empty()) {
             fn = recompute_lut(pn);
-            if (!fn.empty()) {
+            if (use_cache_ && !fn.empty()) {
                 store_in_cache(disk_cache_mutex_, key.second, fn);
             }
         }

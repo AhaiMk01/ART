@@ -1,6 +1,8 @@
 /* -*- C++ -*-
  *
- *  This file is part of RawTherapee.
+ *  This file is part of ART.
+ *
+ *  Copyright (c) 2004-2018 the RawTherapee developers
  */
 #pragma once
 
@@ -47,6 +49,7 @@ public:
     void
     setDefaults(const art::engine::procparams::ProcParams *defParams) override;
     void adjusterChanged(Adjuster *a, double newval) override;
+    void registerShortcuts(ToolShortcutsManager *mgr) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
     void enabledChanged() override;
     void trimValues(art::engine::procparams::ProcParams *pp) override;

@@ -1,3 +1,4 @@
+// -*- C++ -*-
 /*
 lj92.h
 (c) Andrew Baldwin 2014

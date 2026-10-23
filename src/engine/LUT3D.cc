@@ -2,7 +2,7 @@
  *
  *  This file is part of ART.
  *
- *  Copyright 2023 Alberto Griggio <alberto.griggio@gmail.com>
+ *  Copyright (c) 2023-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
  *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -123,9 +123,6 @@ inline void LUT3D::apply_tetra(float &r, float &g, float &b) const
     constexpr int m_components = 3;
     const int m_dim = dim_;
     const float *m_optLut = lut_.data;
-#ifndef ART_SIMD
-    float out[3];
-#endif
 
     float idx[3];
     idx[0] = r * m_step;

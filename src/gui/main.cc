@@ -1,7 +1,8 @@
-/*
+/* -*- C++ -*-
  *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
  *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -32,6 +33,7 @@
 #include "rtimage.h"
 #include "rtwindow.h"
 #include "session.h"
+#include "shortcutsmanager.h"
 #include "soundman.h"
 #include "../utils/version.h"
 #include "wbprovider.h"
@@ -233,6 +235,8 @@ bool init_rt()
         Glib::build_filename(options.user_config_dir, "usercommands"));
     SoundManager::init();
     wb_presets::init(options.ART_base_dir, options.user_config_dir);
+    ShortcutsManager::getInstance()->init(options.ART_base_dir,
+                                          options.user_config_dir);
 
     if (!options.rtSettings.verbose) {
         TIFFSetWarningHandler(nullptr); // avoid annoying message boxes
@@ -297,6 +301,7 @@ public:
             rtWindow->setLiveControl(false);
             art::gui::session::save(art::gui::session::filename() + ".last");
             art::gui::session::clear();
+            art::gui::Thumbnail::flushPendingWrites();
             cleanup_rt();
         }
 #ifdef __APPLE__

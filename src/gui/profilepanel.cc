@@ -1,22 +1,24 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2019-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "profilepanel.h"
+#include "shortcutsmanager.h"
 #include "clipboard.h"
 #include "../utils/multilangmgr.h"
 #include "options.h"
@@ -394,7 +396,7 @@ void ProfilePanel::save_clicked(GdkEventButton *event)
             // }
 
             if (toSave) {
-                if (event->state & Gdk::CONTROL_MASK) {
+                if (event->state & ShortcutsManager::mousePrimaryMask()) {
                     // opening the partial paste dialog window
                     if (!partialProfileDlg) {
                         partialProfileDlg =
@@ -533,7 +535,7 @@ void ProfilePanel::load_clicked(GdkEventButton *event)
     if (result == Gtk::RESPONSE_OK) {
         Glib::ustring fname = dialog.get_filename();
 
-        if (event->state & Gdk::CONTROL_MASK) {
+        if (event->state & ShortcutsManager::mousePrimaryMask()) {
             // opening the partial paste dialog window
             if (!partialProfileDlg) {
                 partialProfileDlg =
@@ -560,7 +562,7 @@ void ProfilePanel::load_clicked(GdkEventButton *event)
 
         if (!err) {
             auto pl = dynamic_cast<art::engine::ProgressListener *>(parent);
-            if (event->state & Gdk::CONTROL_MASK) {
+            if (event->state & ShortcutsManager::mousePrimaryMask()) {
                 if (!partialProfileDlg) {
                     partialProfileDlg =
                         new PartialPasteDlg(Glib::ustring(), parent);
@@ -599,7 +601,7 @@ void ProfilePanel::paste_clicked(GdkEventButton *event)
         return;
     }
 
-    if (event->state & Gdk::CONTROL_MASK) {
+    if (event->state & ShortcutsManager::mousePrimaryMask()) {
         if (!partialProfileDlg) {
             partialProfileDlg = new PartialPasteDlg(Glib::ustring(), parent);
         }
@@ -627,7 +629,7 @@ void ProfilePanel::paste_clicked(GdkEventButton *event)
 
     changeconn.block(prevState);
 
-    if ((event->state & Gdk::CONTROL_MASK) && partialProfileDlg) {
+    if ((event->state & ShortcutsManager::mousePrimaryMask()) && partialProfileDlg) {
         auto pe = partialProfileDlg->getParamsEdited();
         custom = new PEditedPartialProfile(pp, pe);
     } else {

@@ -1,20 +1,21 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include <cmath>
 #include <glib.h>
@@ -632,6 +633,13 @@ Ret ImProcFunctions::apply(const char *name, Method op, Imagefloat *img, bool ca
     return (this->*op)(img);
 }
 
+// The STAGE_0 tools work on the whole image: with one of them enabled, a crop
+// must not restrict their input
+bool ImProcFunctions::stage0NeedsFullImage()
+{
+    return params->dehaze.enabled || params->drcompression.enabled;
+}
+
 bool ImProcFunctions::process(Stage stage, Imagefloat *img)
 {
     bool stop = false;
@@ -640,9 +648,10 @@ bool ImProcFunctions::process(Stage stage, Imagefloat *img)
 #define STEP_s_(op, s) apply<bool>(#op, &ImProcFunctions::op, img, s)
 
     switch (stage) {
+    // a tool added to STAGE_0 must also be added to stage0NeedsFullImage()
     case Stage::STAGE_0:
         STEP_(dehaze, !params->dehaze.enabled);
-        STEP_(dynamicRangeCompression, !params->fattal.enabled);
+        STEP_(dynamicRangeCompression, !params->drcompression.enabled);
         break;
     case Stage::STAGE_1:
         STEP_(channelMixer, !params->chmixer.enabled);
@@ -710,8 +719,10 @@ bool ImProcFunctions::process(Stage stage, Imagefloat *img)
     return stop;
 }
 
-int ImProcFunctions::setDeltaEData(art::utils::EditUniqueID id, double x, double y)
+int ImProcFunctions::setDeltaEData(art::utils::EditUniqueID id, double x,
+                                   double y, int size)
 {
+    deltaE.size = size;
     deltaE.ok = false;
     deltaE.x = x;
     deltaE.y = y;

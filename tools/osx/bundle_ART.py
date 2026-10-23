@@ -444,13 +444,18 @@ def launcher_build_flags(binary):
     return flags
 
 
-def build_launcher(opts, prog):
+def build_launcher(opts, prog, dialogs=False):
     src = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                        'launcher.c')
     binary = os.path.join(opts.outdir, 'Contents/MacOS', prog)
     dest = os.path.join(opts.outdir, f'Contents/MacOS/{prog}_launch')
     flags = launcher_build_flags(binary)
-    if opts.debug:
+    if dialogs:
+        # the lighter variant (no private session bus, shared module caches).
+        # User commands capture the stdout of ART-dialogs, so it must never
+        # get the debug log redirection either
+        flags.append('-DART_LAUNCHER_DIALOGS=1')
+    elif opts.debug:
         flags.append('-DART_LAUNCHER_DEBUG=1')
     if opts.verbose:
         print(f'building launcher for {prog}...')
@@ -524,6 +529,7 @@ def main():
         make_icns(opts)
 
         build_launcher(opts, 'ART')
+        build_launcher(opts, 'ART-dialogs', dialogs=True)
 
     os.makedirs(os.path.join(opts.outdir, 'Contents/Resources/share/gtk-3.0'))
     with open(os.path.join(opts.outdir,
@@ -534,7 +540,7 @@ def main():
     with open(os.path.join(opts.outdir, 'Contents/Resources/options'),
               'a') as out:
         out.write('\n[Lensfun]\nDBDirectory=lensfun\n')
-    for name in ('ART', 'ART-cli'):
+    for name in ('ART', 'ART-cli', 'ART-dialogs'):
         shutil.move(os.path.join(opts.outdir, 'Contents/MacOS', name),
                     os.path.join(opts.outdir, 'Contents/MacOS',
                                  '.' + name + '.bin'))
@@ -542,8 +548,14 @@ def main():
     # LaunchServices starts, and it execv's .ART.bin (see tools/osx/launcher.c)
     shutil.move(os.path.join(opts.outdir, 'Contents/MacOS', 'ART_launch'),
                 os.path.join(opts.outdir, 'Contents/MacOS', 'ART'))
+    # ART-dialogs is a GTK program that user commands run with the environment
+    # restored to what it was before ART's launcher changed it (see
+    # engine/subprocess.cc:get_env), so it needs the launcher too
+    shutil.move(os.path.join(opts.outdir, 'Contents/MacOS',
+                             'ART-dialogs_launch'),
+                os.path.join(opts.outdir, 'Contents/MacOS', 'ART-dialogs'))
     write_launcher_script_cli(opts)
-    for name in ('ART', 'ART-cli'):
+    for name in ('ART', 'ART-cli', 'ART-dialogs'):
         os.chmod(os.path.join(opts.outdir, 'Contents/MacOS', name), 0o755)
     if not opts.no_dmg:
         make_dmg(opts)

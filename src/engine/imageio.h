@@ -1,20 +1,20 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #pragma once
 
@@ -102,7 +102,13 @@ public:
                                    IIOSampleFormat &sFormat,
                                    IIOSampleArrangement &sArrangement);
 
-    int loadJPEGFromMemory(const char *buffer, int bufsize);
+    // If maxw_hint and maxh_hint are > 0, the image may be decoded at a
+    // reduced size (1/2, 1/4 or 1/8, via libjpeg's scaled IDCT) as long as it
+    // stays at least maxw_hint x maxh_hint pixels.
+    // If scale_denom is not null, it gets the reduction factor used (1 if the
+    // image was decoded at full size).
+    int loadJPEGFromMemory(const char *buffer, int bufsize, int maxw_hint = 0,
+                           int maxh_hint = 0, int *scale_denom = nullptr);
     int loadPPMFromMemory(const char *buffer, int width, int height, bool swap,
                           int bps);
 

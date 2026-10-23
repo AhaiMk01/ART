@@ -1,24 +1,26 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2020 Lawrence Lee <billee@ucdavis.edu>
+ *  Copyright (c) 2020-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <https://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <memory>
 
 #include "controllines.h"
+#include "shortcutsmanager.h"
 #include "edit.h"
 #include "rtsurface.h"
 
@@ -95,7 +97,7 @@ bool ControlLineManager::button1Pressed(int modifierKey)
             selected_object = object;
             action = ES_ACTION_DRAGGING;
         }
-    } else if (draw_mode && (modifierKey & GDK_CONTROL_MASK)) { // Add new line.
+    } else if (draw_mode && (modifierKey & ShortcutsManager::mousePrimaryMask())) { // Add new line.
         addLine(dataProvider->posImage, dataProvider->posImage);
         drawing_line = true;
         selected_object = mouseOverGeometry.size() - 1; // Select endpoint.
@@ -270,7 +272,7 @@ bool ControlLineManager::mouseOver(int modifierKey)
     int cur_obj = provider->getObject();
 
     if (cur_obj == 0) { // Canvas
-        if (draw_mode && modifierKey & GDK_CONTROL_MASK) {
+        if (draw_mode && modifierKey & ShortcutsManager::mousePrimaryMask()) {
             cursor = CSCrosshair;
         } else {
             cursor = CSArrow;

@@ -1,20 +1,21 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2012 Oliver Duis <www.oliverduis.de>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <cstdio>
@@ -715,13 +716,20 @@ private:
     FILE *file_;
 };
 
+// fmod() is slow, and hue shifts are nearly always within +-360 degrees,
+// where it returns its argument unchanged
+inline float wrap_360(float hue)
+{
+    return std::abs(hue) < 360.f ? hue : fmod(hue, 360.f);
+}
+
 // avoid hue shift discontinuity
 // (see https://torger.se/anders/dcamprof.html#dcp_hue_shift_discontinuity).
 // Adapted from dcamprof, Copyright 2015 Anders Torger, released under GPLv3
 inline float hue_interpolate(float f0, float hue0, float f1, float hue1)
 {
-    float h1 = fmod(hue0, 360.f);
-    float h2 = fmod(hue1, 360.f);
+    float h1 = wrap_360(hue0);
+    float h2 = wrap_360(hue1);
     float d = h2 - h1;
     float res = 0.f;
     if (h1 > h2) {

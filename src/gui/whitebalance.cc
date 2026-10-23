@@ -1,20 +1,21 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "whitebalance.h"
 #include "../engine/colortemp.h"
@@ -741,10 +742,14 @@ void WhiteBalance::fillMethods()
     }
 }
 
-void WhiteBalance::registerShortcuts(ToolShortcutManager *mgr)
+void WhiteBalance::registerShortcuts(ToolShortcutsManager *mgr)
 {
-    mgr->addShortcut(GDK_KEY_t, this, temp);
-    mgr->addShortcut(GDK_KEY_i, this, green);
+    mgr->addShortcut("tool.whitebalance.temperature", this, temp);
+    mgr->addShortcut("tool.whitebalance.tint", this, green);
+    mgr->addShortcut("tool.whitebalance.equalizer", this, equal);
+    mgr->addShortcut("tool.whitebalance.multiplier_red", this, mult[0]);
+    mgr->addShortcut("tool.whitebalance.multiplier_green", this, mult[1]);
+    mgr->addShortcut("tool.whitebalance.multiplier_blue", this, mult[2]);
 }
 
 

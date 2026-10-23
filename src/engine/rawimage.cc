@@ -1,5 +1,9 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *
+ *  This file is part of ART.
+ *
+ *  Copyright (c) 2004-2019 the RawTherapee developers
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
  *  Created on: 20/nov/2010
  */
@@ -21,7 +25,14 @@
 #include "utils.h"
 
 #ifdef ART_USE_LIBRAW
+// ART_LIBRAW_LIB_HAS_OPENMP (set by CMake) records whether the LibRaw
+// *library* was built with OpenMP. The LIBRAW_USE_OPENMP that libraw_types.h
+// defines can't be used for that: it depends on the flags of whoever includes
+// it (ART is always built with -fopenmp), not on the library.
 #include <libraw.h>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 #endif // ART_USE_LIBRAW
 
 namespace art { namespace engine {
@@ -31,6 +42,60 @@ namespace art { namespace engine {
 
 extern const Settings *settings;
 extern art::utils::MyMutex *librawMutex;
+
+#ifdef ART_USE_LIBRAW
+namespace {
+// Serialises LibRaw's unpack()/raw2image() where that is needed.
+//
+// A LibRaw built with OpenMP has unnamed `#pragma omp critical` sections in its
+// decoders' inner loops (e.g. CR3). Those are process-wide locks, so several
+// concurrent multi-threaded decodes all spin on one lock: measured ~40x slower
+// than serial, with a single CR3 taking 81 s. So, with an OpenMP LibRaw:
+//  - ordinary loads take librawMutex: one decode at a time, parallel inside;
+//  - loads with multithread == false (many files at once, e.g. thumbnails)
+//    skip the mutex and decode with a single OpenMP thread instead, so that
+//    images are decoded in parallel rather than pixels.
+// A LibRaw without OpenMP has nothing to protect against (separate instances
+// are independent), so no lock is taken at all.
+class LibrawLock {
+public:
+    explicit LibrawLock(bool multithread): locked_(false), saved_threads_(0)
+    {
+#ifdef ART_LIBRAW_LIB_HAS_OPENMP
+#ifdef _OPENMP
+        if (!multithread) {
+            saved_threads_ = omp_get_max_threads(); // this thread's setting
+            omp_set_num_threads(1);
+        } else {
+            librawMutex->lock();
+            locked_ = true;
+        }
+#else
+        librawMutex->lock();
+        locked_ = true;
+#endif
+#endif // ART_LIBRAW_LIB_HAS_OPENMP
+    }
+    ~LibrawLock()
+    {
+        if (locked_) {
+            librawMutex->unlock();
+        }
+#ifdef _OPENMP
+        if (saved_threads_ > 0) {
+            omp_set_num_threads(saved_threads_);
+        }
+#endif
+    }
+    LibrawLock(const LibrawLock &) = delete;
+    LibrawLock &operator=(const LibrawLock &) = delete;
+
+private:
+    bool locked_;
+    int saved_threads_;
+};
+} // namespace
+#endif // ART_USE_LIBRAW
 
 RawImage::RawImage(const Glib::ustring &name)
     : DCraw(), data(nullptr), prefilters(0), filename(name), rotate_deg(0),
@@ -521,7 +586,7 @@ void RawImage::get_colorsCoeff(float *pre_mul_, float *scale_mul_,
 int RawImage::do_loadRaw(const Glib::ustring &fname, bool loadData,
                          unsigned int imageNum, bool closeFile,
                          ProgressListener *plistener, double progressRange,
-                         bool apply_corrections)
+                         bool apply_corrections, bool multithread)
 {
     ifname = fname.c_str(); // filename.c_str();
     image = nullptr;
@@ -529,7 +594,10 @@ int RawImage::do_loadRaw(const Glib::ustring &fname, bool loadData,
     oprof = nullptr;
 
     if (!ifp) {
-        ifp = gfopen(ifname); // Maps to either file map or direct fopen
+        // Only the metadata and/or embedded preview are needed if loadData is
+        // false: don't read the whole (possibly huge) file for that. The
+        // mapping is read-only, which is fine as nothing writes to ifp->data.
+        ifp = loadData ? gfopen(ifname) : gfopen_mapped(ifname);
     } else {
         fseek(ifp, 0, SEEK_SET);
     }
@@ -821,9 +889,7 @@ int RawImage::do_loadRaw(const Glib::ustring &fname, bool loadData,
                 return err;
             }
             {
-#ifdef LIBRAW_USE_OPENMP
-                art::utils::MyMutex::MyLock lock(*librawMutex);
-#endif
+                LibrawLock lock(multithread);
                 err = libraw_->unpack();
             }
             if (err) {
@@ -841,9 +907,7 @@ int RawImage::do_loadRaw(const Glib::ustring &fname, bool loadData,
                     }
                 }
             } else {
-#ifdef LIBRAW_USE_OPENMP
-                art::utils::MyMutex::MyLock lock(*librawMutex);
-#endif
+                LibrawLock lock(multithread);
                 float_raw_image = nullptr;
                 err = libraw_->raw2image();
                 if (err) {
@@ -1223,15 +1287,16 @@ int RawImage::do_loadRaw(const Glib::ustring &fname, bool loadData,
 
 int RawImage::loadRaw(bool loadData, unsigned int imageNum, bool closeFile,
                       ProgressListener *plistener, double progressRange,
-                      bool apply_corrections)
+                      bool apply_corrections, bool multithread)
 {
     switch (use_imgio_) {
     case ThreeValBool::F:
         return do_loadRaw(filename, loadData, imageNum, closeFile, plistener,
-                          progressRange, apply_corrections);
+                          progressRange, apply_corrections, multithread);
     case ThreeValBool::T:
         return do_loadRaw(imgio_filename_, loadData, imageNum, closeFile,
-                          plistener, progressRange, apply_corrections);
+                          plistener, progressRange, apply_corrections,
+                          multithread);
     default: {
         FramesData md(filename, true);
         use_imgio_ = ImageIOManager::getInstance()->loadRaw(
@@ -1240,10 +1305,12 @@ int RawImage::loadRaw(bool loadData, unsigned int imageNum, bool closeFile,
                          : ThreeValBool::F;
         if (use_imgio_ == ThreeValBool::T) {
             return do_loadRaw(imgio_filename_, loadData, imageNum, closeFile,
-                              plistener, progressRange, apply_corrections);
+                              plistener, progressRange, apply_corrections,
+                              multithread);
         } else {
             return do_loadRaw(filename, loadData, imageNum, closeFile,
-                              plistener, progressRange, apply_corrections);
+                              plistener, progressRange, apply_corrections,
+                              multithread);
         }
     }
     }
@@ -1479,8 +1546,11 @@ float RawImage::get_optical_black(int row, int col) const
     return raw_optical_black_med_[row][c];
 }
 
-Image8 *RawImage::getThumbnail()
+Image8 *RawImage::getThumbnail(int maxw_hint, int maxh_hint, int *scale_denom)
 {
+    if (scale_denom) {
+        *scale_denom = 1;
+    }
     if (use_internal_decoder_) {
         if (!checkThumbOk()) {
             return nullptr;
@@ -1495,7 +1565,8 @@ Image8 *RawImage::getThumbnail()
 
         int err = 1;
         if ((unsigned char)data[1] == 0xd8) {
-            err = img->loadJPEGFromMemory(data, get_thumbLength());
+            err = img->loadJPEGFromMemory(data, get_thumbLength(), maxw_hint,
+                                          maxh_hint, scale_denom);
         } else if (is_ppmThumb()) {
             err = img->loadPPMFromMemory(data, get_thumbWidth(),
                                          get_thumbHeight(), get_thumbSwap(),
@@ -1529,7 +1600,8 @@ Image8 *RawImage::getThumbnail()
             img->setSampleFormat(IIOSF_UNSIGNED_CHAR);
             img->setSampleArrangement(IIOSA_CHUNKY);
             if (t.tformat == LIBRAW_THUMBNAIL_JPEG) {
-                err = img->loadJPEGFromMemory(t.thumb, t.tlength);
+                err = img->loadJPEGFromMemory(t.thumb, t.tlength, maxw_hint,
+                                              maxh_hint, scale_denom);
             } else {
                 err = img->loadPPMFromMemory(t.thumb, t.twidth, t.theight,
                                              false, 8);

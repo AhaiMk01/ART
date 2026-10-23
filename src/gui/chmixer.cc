@@ -1,20 +1,21 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "chmixer.h"
 #include "eventmapper.h"
@@ -310,6 +311,26 @@ void ChMixer::modeChanged()
     if (listener && getEnabled()) {
         listener->panelChanged(EvMode, M("GENERAL_CHANGED"));
     }
+}
+
+
+void ChMixer::registerShortcuts(ToolShortcutsManager *mgr)
+{
+    mgr->addShortcut("tool.chmixer.red_red", this, red[0]);
+    mgr->addShortcut("tool.chmixer.red_green", this, red[1]);
+    mgr->addShortcut("tool.chmixer.red_blue", this, red[2]);
+    mgr->addShortcut("tool.chmixer.green_red", this, green[0]);
+    mgr->addShortcut("tool.chmixer.green_green", this, green[1]);
+    mgr->addShortcut("tool.chmixer.green_blue", this, green[2]);
+    mgr->addShortcut("tool.chmixer.blue_red", this, blue[0]);
+    mgr->addShortcut("tool.chmixer.blue_green", this, blue[1]);
+    mgr->addShortcut("tool.chmixer.blue_blue", this, blue[2]);
+    mgr->addShortcut("tool.chmixer.hue_tweak_red", this, hue_tweak[0]);
+    mgr->addShortcut("tool.chmixer.hue_tweak_green", this, hue_tweak[1]);
+    mgr->addShortcut("tool.chmixer.hue_tweak_blue", this, hue_tweak[2]);
+    mgr->addShortcut("tool.chmixer.sat_tweak_red", this, sat_tweak[0]);
+    mgr->addShortcut("tool.chmixer.sat_tweak_green", this, sat_tweak[1]);
+    mgr->addShortcut("tool.chmixer.sat_tweak_blue", this, sat_tweak[2]);
 }
 
 
