@@ -97,10 +97,6 @@ void CLASS fuji_fill_buffer(struct fuji_compressed_block *info)
     if (info->cur_pos >= info->cur_buf_size) {
         info->cur_pos = 0;
         info->cur_buf_offset += info->cur_buf_size;
-#ifdef MYFILE_MMAP
-        info->cur_buf_size = info->max_read_size;
-        info->cur_buf = fdata(info->cur_buf_offset, info->input);
-#else
 #ifdef _OPENMP
 #pragma omp critical
 #endif
@@ -110,7 +106,6 @@ void CLASS fuji_fill_buffer(struct fuji_compressed_block *info)
                 info->cur_buf, 1, std::min(info->max_read_size, FUJI_BUF_SIZE),
                 info->input);
         }
-#endif
         if (info->cur_buf_size < 1) { // nothing read
             if (info->fillbytes > 0) {
                 int ls =
@@ -145,10 +140,8 @@ void CLASS init_fuji_block(struct fuji_compressed_block *info,
     }
 
     // init buffer
-#ifndef MYFILE_MMAP
     info->cur_buf = (uchar *)malloc(FUJI_BUF_SIZE);
     merror(info->cur_buf, "init_fuji_block()");
-#endif
     info->cur_bit = 0;
     info->cur_pos = 0;
     info->cur_buf_offset = raw_offset;
@@ -291,9 +284,7 @@ inline void CLASS fuji_zerobits(struct fuji_compressed_block *info, int *count)
 
         if (!info->cur_bit) {
             ++info->cur_pos;
-#ifndef MYFILE_MMAP
             fuji_fill_buffer(info);
-#endif
         }
 
         if (zero) {
@@ -323,9 +314,7 @@ inline void CLASS fuji_read_code(struct fuji_compressed_block *info, int *data,
             *data |=
                 info->cur_buf[info->cur_pos] & ((1 << bits_left_in_byte) - 1);
             ++info->cur_pos;
-#ifndef MYFILE_MMAP
             fuji_fill_buffer(info);
-#endif
             bits_left_in_byte = 8;
         } while (bits_left >= 8);
     }
@@ -1006,9 +995,7 @@ void CLASS fuji_decode_strip(const struct fuji_compressed_params *info_common,
 
     // release data
     free(info.linealloc);
-#ifndef MYFILE_MMAP
     free(info.cur_buf);
-#endif
 }
 
 static unsigned sgetn(int n, uchar *s)

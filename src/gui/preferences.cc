@@ -1,21 +1,22 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>, Oliver Duis
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  * <www.oliverduis.de>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "preferences.h"
 #include "../engine/dfmanager.h"
@@ -123,6 +124,8 @@ Preferences::Preferences(RTWindow *rtwindow)
     nb->append_page(*getDynamicProfilePanel(),
                     M("PREFERENCES_TAB_DYNAMICPROFILE"));
     nb->append_page(*getFileBrowserPanel(), M("PREFERENCES_TAB_BROWSER"));
+    shortcutsEditor_ = Gtk::manage(new ShortcutsEditor());
+    nb->append_page(*shortcutsEditor_, M("PREFERENCES_TAB_SHORTCUTS"));
     nb->append_page(*getColorManPanel(), M("PREFERENCES_TAB_COLORMGR"));
     nb->append_page(*getPerformancePanel(), M("PREFERENCES_TAB_PERFORMANCE"));
     // Sounds only on Windows and Linux
@@ -2827,6 +2830,16 @@ void Preferences::okPressed()
     }
 
     dynProfilePanel->save();
+
+    std::string shortcuts_err;
+    if (!shortcutsEditor_->save(shortcuts_err)) {
+        Gtk::MessageDialog msgd(
+            getToplevelWindow(this),
+            Glib::ustring::compose(M("PREFERENCES_SHORTCUTS_SAVEERROR"),
+                                   shortcuts_err),
+            true, Gtk::MESSAGE_WARNING, Gtk::BUTTONS_CLOSE, true);
+        msgd.run();
+    }
     hide();
 }
 

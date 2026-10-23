@@ -73,6 +73,7 @@ Name: regOpenFile; Description: "Add ""Open with ART"" option to context menu wh
 [Files]
 Source: "{#MyBuildBasePath}\ART.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#MyBuildBasePath}\ART-cli.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#MyBuildBasePath}\ART-dialogs.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#MyBuildBasePath}\*.json"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#MyBuildBasePath}\dynamicprofile.cfg"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#MyBuildBasePath}\exiftool.exe"; DestDir: "{app}"; Flags: skipifsourcedoesntexist ignoreversion

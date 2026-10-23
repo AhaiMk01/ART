@@ -1,21 +1,21 @@
 /** -*- C++ -*-
  *
- *  This file is part of RawTherapee.
+ *  This file is part of ART.
  *
- *  Copyright (c) 2017 Alberto Griggio <alberto.griggio@gmail.com>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 // adapted from the "color correction" module of Darktable. Original copyright
@@ -38,6 +38,7 @@
 */
 
 #include "colorwheel.h"
+#include "shortcutsmanager.h"
 #include "../engine/coord.h"
 #include "../engine/iccstore.h"
 #include "guiutils.h"
@@ -299,7 +300,7 @@ bool ColorWheelArea::on_button_press_event(GdkEventButton *event)
             queue_draw();
         } else if (event->type == GDK_BUTTON_PRESS && point_active_) {
             is_dragged_ = true;
-            lock_angle_ = event->state & GDK_CONTROL_MASK;
+            lock_angle_ = event->state & ShortcutsManager::mousePrimaryMask();
             lock_radius_ = event->state & GDK_SHIFT_MASK;
         }
         return false;
@@ -497,7 +498,7 @@ ColorWheel::ColorWheel(bool use_scale)
 
 bool ColorWheel::resetPressed(GdkEventButton *event)
 {
-    grid.reset(event->state & GDK_CONTROL_MASK);
+    grid.reset(event->state & ShortcutsManager::mousePrimaryMask());
     if (scale) {
         ConnectionBlocker sb(scaleconn);
         scale->set_value(grid.getScale());

@@ -1,22 +1,23 @@
 /* -*- C++ -*-
  *
- *  This file is part of RawTherapee.
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
  *  Copyright (c) 2010 Oliver Duis <www.oliverduis.de>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #pragma once
 
@@ -153,7 +154,12 @@ public:
     void toggleSidePanels();
     void toggleSidePanelsZoomFit();
 
-    void saveProfile();
+    // Saves the processing parameters of the image being edited (nothing is
+    // written if they did not change and the files exist). With async the files
+    // are written by a background thread, which is what to use when the caller
+    // must not wait for the file system (see Thumbnail::saveProcParams()); the
+    // callers that need the files to be there right away must not.
+    void saveProfile(bool async = false);
     Glib::ustring getShortName();
     Glib::ustring getFileName();
     // The open image's size as the editor processes it (before cropping);
@@ -177,6 +183,7 @@ public:
     // Undo (or redo, if `forward`) one History step; then the selected row.
     bool stepHistory(bool forward, int &history_position);
     bool handleShortcutKey(GdkEventKey *event);
+    void bindShortcuts();
     bool keyPressedBefore(GdkEventKey *event);
     bool keyReleased(GdkEventKey *event);
     bool scrollPressed(GdkEventScroll *event);
@@ -335,7 +342,7 @@ private:
 
     sigc::connection autosave_conn_;
 
-    std::unique_ptr<ToolShortcutManager> shortcut_mgr_;
+    std::unique_ptr<ToolShortcutsManager> shortcut_mgr_;
 };
 
 

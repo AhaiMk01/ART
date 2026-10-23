@@ -31,7 +31,7 @@ ABOUT_TAB_CREDITS;Crèdits
 ABOUT_TAB_LICENSE;Llicència
 ABOUT_TAB_RELEASENOTES;Notes de la versió
 ABOUT_TAB_SPLASH;Splash
-ADJUSTER_RESET_TO_DEFAULT;<b>Clic</b> - restableix al valor predeterminat.\n<b>Ctrl</b>+<b>clic</b> - restableix a l'últim valor desat.
+ADJUSTER_RESET_TO_DEFAULT;<b>Clic</b> - restableix al valor predeterminat.\n<b>%mouse_primary%</b>+<b>clic</b> - restableix a l'últim valor desat.
 CTL_SIGMOID;Mapejador de tons sigmoide
 CTL_SIGMOID_BASE_PRIMARIES;Primaris base
 CTL_SIGMOID_INSET;Atenuació
@@ -83,7 +83,7 @@ DYNPROFILEEDITOR_CUSTOMDATA_TAGS;Etiqueta(es)
 DYNPROFILEEDITOR_CUSTOMDATA_TOOLTIP;Llista de parells <i>clau=valor</i> d'etiquetes de metadades addicionals per fer coincidir, una per línia, on <b>clau</b> és el nom d'una etiqueta en la sintaxi d'Exiv2 i <b>valor</b> és el valor a fer coincidir (utilitzeu el prefix "re:" per introduir una expressió regular).
 EDITWINDOW_TITLE;Edició d'imatge
 EDIT_OBJECT_TOOLTIP;Mostra un giny a la finestra de vista prèvia que us permetrà ajustar aquesta eina.
-EDIT_PIPETTE_TOOLTIP;Per afegir un punt d'ajust a la corba, mantingueu la tecla Ctrl pressionada mentre premeu el botó esquerre del ratolí sobre el punt desitjat a la vista prèvia de la imatge.\nPer ajustar el punt, mantingueu la tecla Ctrl pressionada mentre premeu el botó esquerre del ratolí sobre l'àrea corresponent a la vista prèvia, llavors deixeu anar la tecla Ctrl (a menys que desitgeu un control més precís) i mentre manteniu premut el botó esquerre del ratolí moveu el ratolí cap amunt o cap avall per moure aquest punt cap amunt o cap avall a la corba.
+EDIT_PIPETTE_TOOLTIP;Per afegir un punt d'ajust a la corba, mantingueu la tecla %mouse_primary% pressionada mentre premeu el botó esquerre del ratolí sobre el punt desitjat a la vista prèvia de la imatge.\nPer ajustar el punt, mantingueu la tecla %mouse_primary% pressionada mentre premeu el botó esquerre del ratolí sobre l'àrea corresponent a la vista prèvia, llavors deixeu anar la tecla %mouse_primary% (a menys que desitgeu un control més precís) i mentre manteniu premut el botó esquerre del ratolí moveu el ratolí cap amunt o cap avall per moure aquest punt cap amunt o cap avall a la corba.
 ERROR_MSG_FILE_READ;Error de lectura del fitxer: %1
 ERROR_MSG_MAXERRORS;... (%1 error(s) anterior(s) no mostrat(s))
 ERROR_MSG_METADATA_VALUE;Metadades: error en establir %1 a %2
@@ -149,8 +149,8 @@ FILEBROWSER_APPLYPROFILE;Aplica
 FILEBROWSER_APPLYPROFILE_PARTIAL;Aplica - parcial
 FILEBROWSER_AUTODARKFRAME;Presa negra automàtica
 FILEBROWSER_AUTOFLATFIELD;Camp pla automàtic
-FILEBROWSER_BROWSEPATHBUTTONHINT;Refresca la llista de miniatures.\nDrecera: <b>F5</b>
-FILEBROWSER_BROWSEPATHHINT;Escriviu una ruta a explorar.\n\nDreceres:\n<b>Ctrl-o</b> per posar el focus en el camp de la ruta.\n<b>Entrar</b> / <b>Ctrl-Entrar</b> per explorar allà;\n<b>Esc</b> per treure els canvis.\n<b>Majús-Esc</b> per treure el focus.\n\nAbreviacions de ruta:\n<b>~</b>	- carpeta de l'usuari.\n<b>!</b>	- carpeta d'imatges de l'usuari
+FILEBROWSER_BROWSEPATHBUTTONHINT;Refresca la llista de miniatures.\nDrecera: <b>%shortcut(filecatalog.refresh)%</b>
+FILEBROWSER_BROWSEPATHHINT;Escriviu una ruta a explorar.\n\nDreceres:\n<b>%shortcut(filecatalog.focus_path)%</b> per posar el focus en el camp de la ruta.\n<b>Entrar</b> / <b>Ctrl-Entrar</b> per explorar allà;\n<b>Esc</b> per treure els canvis.\n<b>Majús-Esc</b> per treure el focus.\n\nAbreviacions de ruta:\n<b>~</b>	- carpeta de l'usuari.\n<b>!</b>	- carpeta d'imatges de l'usuari
 FILEBROWSER_CACHE;Memòria cau
 FILEBROWSER_CACHECLEARFROMFULL;Esborra tot incloent els perfils emmagatzemats a la memòria cau
 FILEBROWSER_CACHECLEARFROMPARTIAL;Esborra tot excepte els perfils emmagatzemats a la memòria cau
@@ -209,7 +209,7 @@ FILEBROWSER_POPUPTRASH;Mou a la paperera
 FILEBROWSER_POPUPUNRANK;Treu puntuació
 FILEBROWSER_POPUPUNTRASH;Treu de la paperera
 FILEBROWSER_QUERYBUTTONHINT;Neteja la cerca
-FILEBROWSER_QUERYHINT;Escriviu noms de fitxer a cercar. Suporta noms de fitxer parcials. Separeu els termes de cerca amb comes, p. ex.\n<i>1001,1004,1199</i>\n\nExcloeu termes de cerca anteposant-los el prefix <i>!=</i>\np. ex.\n<i>!=1001,1004,1199</i>\n\nDreceres:\n<b>Ctrl-f</b> - posa el focus en el camp de cerca,\n<b>Entrar</b> - inicia la cerca,\n<b>Majús-Esc</b> - neteja el camp de cerca,\n<b>Esc</b> - treu el focus del camp de cerca.
+FILEBROWSER_QUERYHINT;Escriviu noms de fitxer a cercar. Suporta noms de fitxer parcials. Separeu els termes de cerca amb comes, p. ex.\n<i>1001,1004,1199</i>\n\nExcloeu termes de cerca anteposant-los el prefix <i>!=</i>\np. ex.\n<i>!=1001,1004,1199</i>\n\nDreceres:\n<b>%shortcut(filecatalog.focus_query)%</b> - posa el focus en el camp de cerca,\n<b>Entrar</b> - inicia la cerca,\n<b>Majús-Esc</b> - neteja el camp de cerca,\n<b>Esc</b> - treu el focus del camp de cerca.
 FILEBROWSER_QUERYLABEL; Troba:
 FILEBROWSER_RANK1_TOOLTIP;Puntuació 1 *\nDrecera: <b>Majús-1</b>
 FILEBROWSER_RANK2_TOOLTIP;Puntuació 2 *\nDrecera: <b>Majús-2</b>
@@ -229,27 +229,27 @@ FILEBROWSER_SESSION_REMOVE_LABEL;Elimina els seleccionats de la sessió
 FILEBROWSER_SESSION_LOAD_LABEL;Carrega la sessió d'un fitxer
 FILEBROWSER_SESSION_SAVE_LABEL;Desa la sessió a un fitxer
 FILECHOOSER_FILTER_ARS;Fitxers de sessió d'ART (*.ars)
-FILEBROWSER_SHOWCOLORLABEL1HINT;Mostra imatges etiquetades amb vermell.\nDrecera: <b>Alt-1</b>
-FILEBROWSER_SHOWCOLORLABEL2HINT;Mostra imatges etiquetades amb groc.\nDrecera: <b>Alt-2</b>
-FILEBROWSER_SHOWCOLORLABEL3HINT;Mostra imatges etiquetades amb verd.\nDrecera: <b>Alt-3</b>
-FILEBROWSER_SHOWCOLORLABEL4HINT;Mostra imatges etiquetades amb blau.\nDrecera: <b>Alt-4</b>
-FILEBROWSER_SHOWCOLORLABEL5HINT;Mostra imatges etiquetades amb púrpura.\nDrecera: <b>Alt-5</b>
-FILEBROWSER_SHOWDIRHINT;Treu tots els filtres.\nDrecera: <b>d</b>
-FILEBROWSER_SHOWEDITEDHINT;Mostra imatges editades.\nDrecera: <b>7</b>
-FILEBROWSER_SHOWEDITEDNOTHINT;Mostra imatges no editades.\nDrecera: <b>6</b>
+FILEBROWSER_SHOWCOLORLABEL1HINT;Mostra imatges etiquetades amb vermell.\nDrecera: <b>%shortcut(filecatalog.filter_label.1)%</b>
+FILEBROWSER_SHOWCOLORLABEL2HINT;Mostra imatges etiquetades amb groc.\nDrecera: <b>%shortcut(filecatalog.filter_label.2)%</b>
+FILEBROWSER_SHOWCOLORLABEL3HINT;Mostra imatges etiquetades amb verd.\nDrecera: <b>%shortcut(filecatalog.filter_label.3)%</b>
+FILEBROWSER_SHOWCOLORLABEL4HINT;Mostra imatges etiquetades amb blau.\nDrecera: <b>%shortcut(filecatalog.filter_label.4)%</b>
+FILEBROWSER_SHOWCOLORLABEL5HINT;Mostra imatges etiquetades amb púrpura.\nDrecera: <b>%shortcut(filecatalog.filter_label.5)%</b>
+FILEBROWSER_SHOWDIRHINT;Treu tots els filtres.\nDrecera: <b>%shortcut(filecatalog.filter_clear)%</b>
+FILEBROWSER_SHOWEDITEDHINT;Mostra imatges editades.\nDrecera: <b>%shortcut(filecatalog.filter_edited)%</b>
+FILEBROWSER_SHOWEDITEDNOTHINT;Mostra imatges no editades.\nDrecera: <b>%shortcut(filecatalog.filter_not_edited)%</b>
 FILEBROWSER_SHOWEXIFINFO;Mostra dades Exif.\n\nDrecera:\n<b>i</b> - Mode de pestanyes d'editor múltiple,\n<b>Alt-i</b> - Mode de pestanyes d'un sol editor.
 FILEBROWSER_SHOWNOTTRASHHINT;Mostra només imatges no esborrades.
 FILEBROWSER_SHOWORIGINALHINT;Mostra només imatges originals.\n\nQuan hi ha diverses imatges amb el mateix nom de fitxer però amb diferents extensions, la que es considera original és aquella l'extensió de la qual està més a prop de la part superior de la llista d'extensions analitzades a Preferències > Explorador de fitxers > Extensions analitzades.
-FILEBROWSER_SHOWRANK1HINT;Mostra imatges amb 1 estrella.\nDrecera: <b>1</b>
-FILEBROWSER_SHOWRANK2HINT;Mostra imatges amb 2 estrelles.\nDrecera: <b>2</b>
-FILEBROWSER_SHOWRANK3HINT;Mostra imatges amb 3 estrelles.\nDrecera: <b>3</b>
-FILEBROWSER_SHOWRANK4HINT;Mostra imatges amb 4 estrelles.\nDrecera: <b>4</b>
-FILEBROWSER_SHOWRANK5HINT;Mostra imatges amb 5 estrelles.\nDrecera: <b>5</b>
-FILEBROWSER_SHOWRECENTLYSAVEDHINT;Mostra imatges desades.\nDrecera: <b>Alt-7</b>
-FILEBROWSER_SHOWRECENTLYSAVEDNOTHINT;Mostra imatges no desades.\nDrecera: <b>Alt-6</b>
-FILEBROWSER_SHOWTRASHHINT;Mostra el contingut de la paperera.\nDrecera: <b>Ctrl-t</b>
-FILEBROWSER_SHOWUNCOLORHINT;Mostra imatges sense etiqueta de color.\nDrecera: <b>Alt-0</b>
-FILEBROWSER_SHOWUNRANKHINT;Mostra imatges sense puntuació.\nDrecera: <b>0</b>
+FILEBROWSER_SHOWRANK1HINT;Mostra imatges amb 1 estrella.\nDrecera: <b>%shortcut(filecatalog.filter_rank.1)%</b>
+FILEBROWSER_SHOWRANK2HINT;Mostra imatges amb 2 estrelles.\nDrecera: <b>%shortcut(filecatalog.filter_rank.2)%</b>
+FILEBROWSER_SHOWRANK3HINT;Mostra imatges amb 3 estrelles.\nDrecera: <b>%shortcut(filecatalog.filter_rank.3)%</b>
+FILEBROWSER_SHOWRANK4HINT;Mostra imatges amb 4 estrelles.\nDrecera: <b>%shortcut(filecatalog.filter_rank.4)%</b>
+FILEBROWSER_SHOWRANK5HINT;Mostra imatges amb 5 estrelles.\nDrecera: <b>%shortcut(filecatalog.filter_rank.5)%</b>
+FILEBROWSER_SHOWRECENTLYSAVEDHINT;Mostra imatges desades.\nDrecera: <b>%shortcut(filecatalog.filter_recently_saved)%</b>
+FILEBROWSER_SHOWRECENTLYSAVEDNOTHINT;Mostra imatges no desades.\nDrecera: <b>%shortcut(filecatalog.filter_not_recently_saved)%</b>
+FILEBROWSER_SHOWTRASHHINT;Mostra el contingut de la paperera.\nDrecera: <b>%shortcut(filecatalog.toggle_trash)%</b>
+FILEBROWSER_SHOWUNCOLORHINT;Mostra imatges sense etiqueta de color.\nDrecera: <b>%shortcut(filecatalog.filter_no_label)%</b>
+FILEBROWSER_SHOWUNRANKHINT;Mostra imatges sense puntuació.\nDrecera: <b>%shortcut(filecatalog.filter_unranked)%</b>
 FILEBROWSER_SORT_LABEL;Ordre de les miniatures
 FILEBROWSER_SORT_FILENAME;Nom del fitxer
 FILEBROWSER_SORT_FILENAME_REV;Nom del fitxer (invers)
@@ -555,6 +555,7 @@ HISTORY_MSG_491;Balanç de blancs
 HISTORY_MSG_492;Corbes RGB
 HISTORY_MSG_493;Configuració L*a*b*
 HISTORY_MSG_BWMIX_COLORCAST;B & N - Tint
+HISTORY_MSG_DRCOMPRESSION_SATCONTROL;CRD - Control de saturació
 HISTORY_MSG_SATURATION_VIBRANCE;S/V - Vivacitat
 HISTORY_MSG_LOCALCONTRAST_LIST;Contrast local - regions
 HISTORY_MSG_LOCALCONTRAST_HUEMASK;Contrast local - màscara T
@@ -746,7 +747,6 @@ HISTORY_MSG_SOFTLIGHT_ENABLED;Llum tènue
 HISTORY_MSG_SOFTLIGHT_STRENGTH;Llum tènue - Intensitat
 HISTORY_MSG_SPOT;Eliminació de taques
 HISTORY_MSG_SPOT_ENTRY;Eliminació de taques - Modificació de punts
-HISTORY_MSG_TM_FATTAL_SATCONTROL;CRD - Control de saturació
 HISTORY_MSG_TONE_EQUALIZER_ENABLED;Equalitzador tonal
 HISTORY_MSG_TONE_EQUALIZER_BANDS;Equalitzador tonal - Bandes
 HISTORY_MSG_TONE_EQUALIZER_REGULARIZATION;Equalitzador tonal - Regularització
@@ -760,7 +760,7 @@ HISTORY_MSG_TONECURVE_MODE;Corba tonal - Mode
 HISTORY_MSG_TONECURVE_WHITEPOINT;Corba tonal - Punt blanc
 HISTORY_MSG_WBALANCE_MULT;BB - multiplicadors
 HISTORY_NEWSNAPSHOT;Afegeix
-HISTORY_NEWSNAPSHOT_TOOLTIP;Drecera: <b>Alt-s</b>
+HISTORY_NEWSNAPSHOT_TOOLTIP;Drecera: <b>%shortcut(editor.add_snapshot)%</b>
 HISTORY_SNAPSHOT;Instantània
 HISTORY_SNAPSHOTS;Instantànies
 HISTORY_SNAPSHOT_CONFIRM_UPDATE;Voleu sobreescriure la instantània actual?
@@ -807,16 +807,16 @@ ICCPROFCREATOR_SLOPE;Pendent
 ICCPROFCREATOR_TRC_PRESET;La corba de resposta del to:
 INSPECTOR_ENABLE_CMS;Activa la gestió del color.
 INSPECTOR_FOCUS_MASK;Màscara de focus.\nDrecera: <b>Majús-f</b>.
-INSPECTOR_HISTOGRAM;Histograma.\nDrecera: <b>h</b>.
+INSPECTOR_HISTOGRAM;Histograma.\nDrecera: <b>%shortcut(inspector.toggle_histogram)%</b>.
 INSPECTOR_INFO;Informació breu.\nDrecera: <b>Majús-i</b>.
-INSPECTOR_PREVIEW;Vista prèvia de la imatge incrustada.\nDrecera: <b>j</b>.
-INSPECTOR_RAW_LINEAR;Renderitzat ràpid de raw amb una corba tonal lineal.\nDrecera: <b>r</b>.
-INSPECTOR_RAW_FILM;Renderitzat ràpid de raw amb una corba tonal similar a la d'una pel·lícula.\nDrecera: <b>f</b>.
-INSPECTOR_RAW_CLIP;Píxels retallats raw.\nDrecera: <b>w</b>.
-INSPECTOR_RAW_SHADOW;Renderitzat ràpid de raw amb una corba tonal que amplifica les ombres.\nDrecera: <b>s</b>.
-INSPECTOR_SPLIT;Vista partida.\nDrecera: <b>y</b>.
-INSPECTOR_ZOOM_FIT;Ajusta a la finestra.\nDrecera: <b>x</b>.
-INSPECTOR_ZOOM_11;Zoom al 100%.\nDrecera: <b>z</b>.
+INSPECTOR_PREVIEW;Vista prèvia de la imatge incrustada.\nDrecera: <b>%shortcut(inspector.mode_jpeg)%</b>.
+INSPECTOR_RAW_LINEAR;Renderitzat ràpid de raw amb una corba tonal lineal.\nDrecera: <b>%shortcut(inspector.mode_raw_linear)%</b>.
+INSPECTOR_RAW_FILM;Renderitzat ràpid de raw amb una corba tonal similar a la d'una pel·lícula.\nDrecera: <b>%shortcut(inspector.mode_raw_film_curve)%</b>.
+INSPECTOR_RAW_CLIP;Píxels retallats raw.\nDrecera: <b>%shortcut(inspector.mode_raw_clip_warning)%</b>.
+INSPECTOR_RAW_SHADOW;Renderitzat ràpid de raw amb una corba tonal que amplifica les ombres.\nDrecera: <b>%shortcut(inspector.mode_raw_shadow_boost)%</b>.
+INSPECTOR_SPLIT;Vista partida.\nDrecera: <b>%shortcut(inspector.toggle_split)%</b>.
+INSPECTOR_ZOOM_FIT;Ajusta a la finestra.\nDrecera: <b>%shortcut(inspector.zoom_fit)%</b>.
+INSPECTOR_ZOOM_11;Zoom al 100%.\nDrecera: <b>%shortcut(inspector.zoom_100)%</b>.
 IPTCPANEL_CATEGORY;Categoria
 IPTCPANEL_CATEGORYHINT;Identifica el tema de la imatge en l'opinió del proveïdor.
 IPTCPANEL_CITY;Ciutat
@@ -863,25 +863,25 @@ LABMASKS_AREA_MASK_EMPTY_WARNING;Advertiment: la combinació actual de formes d'
 LINKED_MASK_NOT_FOUND_WARNING;Advertiment: no s'ha trobat la màscara enllaçada "%1->%2"
 MAIN_BUTTON_FULLSCREEN;Pantalla completa
 MAIN_BUTTON_ICCPROFCREATOR;Creador del perfil ICC
-MAIN_BUTTON_NAVNEXT_TOOLTIP;Navega a la següent imatge relativa a la imatge oberta a l'editor.\nDrecera: <b>Majús-F4</b>\n\nNavega a la següent imatge relativa a la miniatura seleccionada actualment a l'explorador de fitxers o la tira de pel·lícula:\nDrecera: <b>F4</b>
-MAIN_BUTTON_NAVPREV_TOOLTIP;Navega a l'anterior imatge relativa a la imatge oberta a l'editor.\nDrecera: <b>Majús-F3</b>\n\nNavega a l'anterior imatge relativa a la miniatura seleccionada actualment a l'explorador de fitxers o la tira de pel·lícula:\nDrecera: <b>F3</b>
-MAIN_BUTTON_NAVSYNC_TOOLTIP;Sincronitza l'explorador de fitxers o la tira de pel·lícula amb l'editor per mostrar la miniatura de la imatge oberta actualment i treure qualsevol filtre actiu.\nDrecera: <b>x</b>\n\nPer fer el que s'ha dit anteriorment, però sense treure els filtres actius.\nDrecera: <b>y</b>\n(Tingueu en compte que la miniatura de la imatge oberta no es mostrarà si els filtres l'exclouen).
+MAIN_BUTTON_NAVNEXT_TOOLTIP;Navega a la següent imatge relativa a la imatge oberta a l'editor.\nDrecera: <b>Majús-F4</b>\n\nNavega a la següent imatge relativa a la miniatura seleccionada actualment a l'explorador de fitxers o la tira de pel·lícula:\nDrecera: <b>%shortcut(filebrowser.open_next)%</b>
+MAIN_BUTTON_NAVPREV_TOOLTIP;Navega a l'anterior imatge relativa a la imatge oberta a l'editor.\nDrecera: <b>Majús-F3</b>\n\nNavega a l'anterior imatge relativa a la miniatura seleccionada actualment a l'explorador de fitxers o la tira de pel·lícula:\nDrecera: <b>%shortcut(filebrowser.open_previous)%</b>
+MAIN_BUTTON_NAVSYNC_TOOLTIP;Sincronitza l'explorador de fitxers o la tira de pel·lícula amb l'editor per mostrar la miniatura de la imatge oberta actualment i treure qualsevol filtre actiu.\nDrecera: <b>%shortcut(editor.sync_file_browser_clear_filters)%</b>\n\nPer fer el que s'ha dit anteriorment, però sense treure els filtres actius.\nDrecera: <b>%shortcut(editor.sync_file_browser)%</b>\n(Tingueu en compte que la miniatura de la imatge oberta no es mostrarà si els filtres l'exclouen).
 MAIN_BUTTON_PREFERENCES;Preferències
-MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;Afegeix la imatge actual a la cua de processament (Ctrl-clic per a una exportació ràpida).\nDrecera: <b>Ctrl-b</b> (<b>Ctrl-Majús-b</b> per a una exportació ràpida)
-MAIN_BUTTON_SAVE_TOOLTIP;Desa la imatge actual (Ctrl-clic per a exportació ràpida.)\nDrecera: <b>Ctrl-s</b> (<b>Ctrl-Majús-s</b> per a exportació ràpida)
+MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;Afegeix la imatge actual a la cua de processament (%mouse_primary%-clic per a una exportació ràpida).\nDrecera: <b>%shortcut(editor.queue)%</b> (<b>%mouse_primary%-Majús-b</b> per a una exportació ràpida)
+MAIN_BUTTON_SAVE_TOOLTIP;Desa la imatge actual (%mouse_primary%-clic per a exportació ràpida.)\nDrecera: <b>%shortcut(editor.save)%</b> (<b>%mouse_primary%-Majús-s</b> per a exportació ràpida)
 MAIN_BUTTON_SENDTOEDITOR;Edita la imatge en un editor extern
-MAIN_BUTTON_SENDTOEDITOR_TOOLTIP;Edita la imatge actual en un editor extern.\nDrecera: <b>Ctrl-e</b> (<b>Ctrl-Majús-e</b> per a exportació ràpida)
-MAIN_BUTTON_SHOWHIDESIDEPANELS_TOOLTIP;Mostra/Oculta tots els panells laterals.\nDrecera: <b>m</b>
+MAIN_BUTTON_SENDTOEDITOR_TOOLTIP;Edita la imatge actual en un editor extern.\nDrecera: <b>%shortcut(editor.send_to_external_editor)%</b> (<b>Ctrl-Majús-e</b> per a exportació ràpida)
+MAIN_BUTTON_SHOWHIDESIDEPANELS_TOOLTIP;Mostra/Oculta tots els panells laterals.\nDrecera: <b>%shortcut(editor.maximize_preview)%</b>
 MAIN_BUTTON_UNFULLSCREEN;Surt de la pantalla completa
 MAIN_FRAME_EDITOR;Editor
-MAIN_FRAME_EDITOR_TOOLTIP;Editor.\nDrecera: <b>Ctrl-F4</b>
+MAIN_FRAME_EDITOR_TOOLTIP;Editor.\nDrecera: <b>%shortcut(window.show_editor)%</b>
 MAIN_FRAME_FILEBROWSER;Explorador de fitxers
-MAIN_FRAME_FILEBROWSER_TOOLTIP;Explorador de fitxers.\nDrecera: <b>Ctrl-F2</b>
+MAIN_FRAME_FILEBROWSER_TOOLTIP;Explorador de fitxers.\nDrecera: <b>%shortcut(window.show_file_browser)%</b>
 MAIN_FRAME_PLACES;Ubicacions
 MAIN_FRAME_PLACES_ADD;Afegeix
 MAIN_FRAME_PLACES_DEL;Esborra
 MAIN_FRAME_QUEUE;Cua
-MAIN_FRAME_QUEUE_TOOLTIP;Cua de processament.\nDrecera: <b>Ctrl-F3</b>
+MAIN_FRAME_QUEUE_TOOLTIP;Cua de processament.\nDrecera: <b>%shortcut(window.show_queue)%</b>
 MAIN_FRAME_RECENT;Carpetes recents
 MAIN_MSG_ALREADYEXISTS;Aquest fitxer ja existeix.
 MAIN_MSG_AUTOSAVING;Desant automàticament...
@@ -901,40 +901,40 @@ MAIN_MSG_WRITEFAILED;No s'ha pogut escriure\n<b>"%1"</b>\n\nAssegureu-vos que la
 MAIN_TAB_ADVANCED;Avançat
 MAIN_TAB_ADVANCED_TOOLTIP;Drecera: <b>Alt-w</b>
 MAIN_TAB_COLOR;Color
-MAIN_TAB_COLOR_TOOLTIP;Drecera: <b>Alt-c</b>
+MAIN_TAB_COLOR_TOOLTIP;Drecera: <b>%shortcut(toolpanel.tab_color)%</b>
 MAIN_TAB_DETAIL;Detall
-MAIN_TAB_DETAIL_TOOLTIP;Drecera: <b>Alt-d</b>
+MAIN_TAB_DETAIL_TOOLTIP;Drecera: <b>%shortcut(toolpanel.tab_details)%</b>
 MAIN_TAB_DEVELOP; Edició per lots
 MAIN_TAB_EFFECTS;Efectes especials
-MAIN_TAB_EFFECTS_TOOLTIP;Drecera: <b>Alt-f</b>
+MAIN_TAB_EFFECTS_TOOLTIP;Drecera: <b>%shortcut(toolpanel.tab_effects)%</b>
 MAIN_TAB_EXIF;Exif
 MAIN_TAB_EXPORT; Exportació ràpida
 MAIN_TAB_EXPOSURE;Exposició
-MAIN_TAB_EXPOSURE_TOOLTIP;Drecera: <b>Alt-e</b>
+MAIN_TAB_EXPOSURE_TOOLTIP;Drecera: <b>%shortcut(toolpanel.tab_exposure)%</b>
 MAIN_TAB_FAVORITES;Favorits
-MAIN_TAB_FAVORITES_TOOLTIP;Drecera: <b>Alt-u</b>
+MAIN_TAB_FAVORITES_TOOLTIP;Drecera: <b>%shortcut(toolpanel.tab_favorites)%</b>
 MAIN_TAB_FILTER; Filtre
 MAIN_TAB_INSPECT; Inspecciona
-MAIN_TAB_INSPECT_TOOLTIP;Activa l'inspector.\nDrecera: <b>Ctrl-i</b>
+MAIN_TAB_INSPECT_TOOLTIP;Activa l'inspector.\nDrecera: <b>%shortcut(filepanel.toggle_right_notebook)%</b>
 MAIN_TAB_IPTC;IPTC
 MAIN_TAB_LOCAL;Edició local
-MAIN_TAB_LOCAL_TOOLTIP;Drecera: <b>Alt-x</b>
+MAIN_TAB_LOCAL_TOOLTIP;Drecera: <b>%shortcut(toolpanel.tab_local)%</b>
 MAIN_TAB_METADATA;Metadades
-MAIN_TAB_METADATA_TOOLTIP;Drecera: <b>Alt-m</b>
+MAIN_TAB_METADATA_TOOLTIP;Drecera: <b>%shortcut(toolpanel.tab_metadata)%</b>
 MAIN_TAB_RAW;Raw
-MAIN_TAB_RAW_TOOLTIP;Drecera: <b>Alt-r</b>
+MAIN_TAB_RAW_TOOLTIP;Drecera: <b>%shortcut(toolpanel.tab_raw)%</b>
 MAIN_TAB_TRANSFORM;Transforma
-MAIN_TAB_TRANSFORM_TOOLTIP;Drecera: <b>Alt-t</b>
-MAIN_TOOLTIP_BACKCOLOR0;Color de fons de la vista prèvia: <b>basat en el tema</b>\nDrecera: <b>9</b>
-MAIN_TOOLTIP_BACKCOLOR1;Color de fons de la vista prèvia: <b>negre</b>\nDrecera: <b>9</b>
-MAIN_TOOLTIP_BACKCOLOR2;Color de fons de la vista prèvia: <b>blanc</b>\nDrecera: <b>9</b>
-MAIN_TOOLTIP_BACKCOLOR3;Color de fons de la vista prèvia: <b>gris mitjà</b>\nDrecera: <b>9</b>
+MAIN_TAB_TRANSFORM_TOOLTIP;Drecera: <b>%shortcut(toolpanel.tab_transform)%</b>
+MAIN_TOOLTIP_BACKCOLOR0;Color de fons de la vista prèvia: <b>basat en el tema</b>\nDrecera: <b>%shortcut(editor.toggle_preview_background)%</b>
+MAIN_TOOLTIP_BACKCOLOR1;Color de fons de la vista prèvia: <b>negre</b>\nDrecera: <b>%shortcut(editor.toggle_preview_background)%</b>
+MAIN_TOOLTIP_BACKCOLOR2;Color de fons de la vista prèvia: <b>blanc</b>\nDrecera: <b>%shortcut(editor.toggle_preview_background)%</b>
+MAIN_TOOLTIP_BACKCOLOR3;Color de fons de la vista prèvia: <b>gris mitjà</b>\nDrecera: <b>%shortcut(editor.toggle_preview_background)%</b>
 MAIN_TOOLTIP_BEFOREAFTERLOCK;<b>Bloqueja</b> / <b>Desbloqueja</b> la vista <b>Abans</b>\n\n<b>Bloqueja</b>: manté la vista <b>Abans</b> inalterada.\n<b>Desbloqueja</b>: la vista <b>Abans</b> es manté sincronitzada amb la vista <b>Després</b>.
 MAIN_TOOLTIP_FALSECOLORS;Alterna la indicació de l'exposició mitjançant color fals.\nDrecera: <b>Majús-e</b>\n\nClau (Rang IRE):\n%1
-MAIN_TOOLTIP_GRIDOVERLAY;Mostra/amaga la superposició de graella.\nDrecera: <b>Ctrl-g</b>
-MAIN_TOOLTIP_HIDEHP;Mostra/Oculta el panell esquerre (incloent la història).\nDrecera: <b>l</b>
-MAIN_TOOLTIP_INDCLIPPEDH;Indicació d'altes llums retallades.\nDrecera: <b>&gt;</b>
-MAIN_TOOLTIP_INDCLIPPEDS;Indicació d'ombres retallades.\nDrecera: <b>&lt;</b>
+MAIN_TOOLTIP_GRIDOVERLAY;Mostra/amaga la superposició de graella.\nDrecera: <b>%shortcut(editor.toggle_grid)%</b>
+MAIN_TOOLTIP_HIDEHP;Mostra/Oculta el panell esquerre (incloent la història).\nDrecera: <b>%shortcut(editor.toggle_history_panel)%</b>
+MAIN_TOOLTIP_INDCLIPPEDH;Indicació d'altes llums retallades.\nDrecera: <b>%shortcut(editor.toggle_highlight_clipping)%</b>
+MAIN_TOOLTIP_INDCLIPPEDS;Indicació d'ombres retallades.\nDrecera: <b>%shortcut(editor.toggle_shadow_clipping)%</b>
 MAIN_TOOLTIP_PREVIEWB;Vista prèvia del <b>canal blau</b>.\nDrecera: <b>Majús-b</b>
 MAIN_TOOLTIP_PREVIEWFOCUSMASK;Vista prèvia de la <b>màscara de focus</b>.\nDrecera: <b>Majús-f</b>\n\nMés precís en imatges amb poca profunditat de camp, poc soroll i a majors nivells de zoom.\nAmplieu el zoom al 10-30% per millorar la precisió de la detecció en imatges amb soroll.
 MAIN_TOOLTIP_PREVIEWG;Vista prèvia del <b>canal verd</b>.\nDrecera: <b>Majús-g</b>
@@ -942,8 +942,8 @@ MAIN_TOOLTIP_PREVIEWL;Vista prèvia de la <b>lluminositat</b>.\nDrecera: <b>Maj�
 MAIN_TOOLTIP_PREVIEWR;Vista prèvia del <b>canal vermell</b>.\nDrecera: <b>Majús-r</b>
 MAIN_TOOLTIP_PREVIEWSHARPMASK;Vista prèvia de la <b>màscara de contrast d'enfocament</b>.\nDrecera: <b>Majús-o</b>\n\nNomés funciona quan s'activa l'enfocament, i és precisa només quan el zoom >= 100%.
 MAIN_TOOLTIP_QINFO;Informació breu sobre la imatge.\nDrecera: <b>Majús-i</b>
-MAIN_TOOLTIP_SHOWHIDELP1;Mostra/Oculta el panell esquerre.\nDrecera: <b>l</b>
-MAIN_TOOLTIP_SHOWHIDERP1;Mostra/Oculta el panell dret.\nDrecera: <b>Ctrl-l</b>
+MAIN_TOOLTIP_SHOWHIDELP1;Mostra/Oculta el panell esquerre.\nDrecera: <b>%shortcut(editor.toggle_history_panel)%</b>
+MAIN_TOOLTIP_SHOWHIDERP1;Mostra/Oculta el panell dret.\nDrecera: <b>%shortcut(editor.toggle_right_panel)%</b>
 MAIN_TOOLTIP_SHOWHIDETP1;Mostra/Oculta el panell de tira de pel·lícula.\nDrecera: <b>Majús-l</b>
 MAIN_TOOLTIP_THRESHOLD;Llindar
 MAIN_TOOLTIP_TOGGLE;Canvia la vista <b>abans</b>/<b>després</b>.\nDrecera: <b>Majús-a</b>
@@ -966,6 +966,7 @@ OPTIONS_BUNDLED_MISSING;No s'ha pogut trobar el perfil "<b>%1</b>" inclòs!\n\nE
 OPTIONS_DEFIMG_MISSING;No s'ha trobat o no s'ha establert el perfil predeterminat per a <b>fotos no raw</b>.\n\nComproveu la vostra carpeta de perfils, pot ser que falti o estigui danyada.\n\nEs farà servir "<b>%1</b>" en el seu lloc.
 OPTIONS_DEFRAW_MISSING;No s'ha trobat o no s'ha establert el perfil predeterminat per a <b>fotos raw</b>.\n\nComproveu la vostra carpeta de perfils, pot ser que falti o estigui danyada.\n\nEs farà servir "<b>%1</b>" en el seu lloc.
 PARTIALPASTE_ADVANCEDGROUP;Configuració avançada
+PARTIALPASTE_DRCOMPRESSION;Compressió de rang dinàmic
 PARTIALPASTE_EFFECTSGROUP;Configuració d'efectes especials
 PARTIALPASTE_EXPOSUREGROUP;Configuració d'exposició
 PARTIALPASTE_SATURATION;Saturació/Vivacitat
@@ -1043,7 +1044,6 @@ PARTIALPASTE_SHARPENMICRO;Micro-contrast
 PARTIALPASTE_SMOOTHING;Suavitzat
 PARTIALPASTE_SOFTLIGHT;Llum tènue
 PARTIALPASTE_SPOT;Eliminació de taques
-PARTIALPASTE_TM_FATTAL;Compressió de rang dinàmic
 PARTIALPASTE_TM_LOG;Assignació de tons log
 PARTIALPASTE_TONE_EQUALIZER;Equalitzador tonal
 PARTIALPASTE_VIBRANCE;Vivacitat
@@ -1285,9 +1285,9 @@ PROFILEPANEL_PLASTSAVED;Últim desat
 PROFILEPANEL_SAVEDLGLABEL;Desa els paràmetres de processament...
 PROFILEPANEL_SAVEPPASTE;Paràmetres a desar
 PROFILEPANEL_TOOLTIPCOPY;Copia els paràmetres de processament al porta-retalls.
-PROFILEPANEL_TOOLTIPLOAD;Carrega el perfil d'un fitxer.\n<b>Ctrl-clic</b> per seleccionar els paràmetres a carregar.
-PROFILEPANEL_TOOLTIPPASTE;Enganxa el perfil del porta-retalls.\n<b>Ctrl-clic</b> per seleccionar els paràmetres a enganxar.
-PROFILEPANEL_TOOLTIPSAVE;Desa el perfil actual.\n<b>Ctrl-clic</b> per seleccionar els paràmetres a desar.
+PROFILEPANEL_TOOLTIPLOAD;Carrega el perfil d'un fitxer.\n<b>%mouse_primary%-clic</b> per seleccionar els paràmetres a carregar.
+PROFILEPANEL_TOOLTIPPASTE;Enganxa el perfil del porta-retalls.\n<b>%mouse_primary%-clic</b> per seleccionar els paràmetres a enganxar.
+PROFILEPANEL_TOOLTIPSAVE;Desa el perfil actual.\n<b>%mouse_primary%-clic</b> per seleccionar els paràmetres a desar.
 PROGRESSBAR_DENOISING;Reducció de soroll...
 PROGRESSBAR_HLREC;Recuperació d'altes llums...
 PROGRESSBAR_LOADING;Carregant imatge...
@@ -1369,7 +1369,7 @@ SESSION_LABEL;Sessió
 SHCSELECTOR_TOOLTIP;Cliqueu amb el botó dret del ratolí per restablir la posició d'aquests 3 controls lliscants.
 SOFTPROOF_GAMUTCHECK_MONITOR_TOOLTIP;Ressalta els píxels amb colors fora de rang pel que fa al perfil del monitor.
 SOFTPROOF_GAMUTCHECK_TOOLTIP;Ressalta els píxels amb colors fora de rang pel que fa a:\n- el perfil de prova en pantalla, si està establert i la prova en pantalla està activada,\n- el perfil de sortida, si la prova en pantalla està desactivada.
-SOFTPROOF_TOOLTIP;La prova en pantalla simula l'aparença de la imatge quan la reprodueix una impressora o monitor específic, si s'ha establert un perfil adequat a Preferències > Gestió de color.\n(Manteniu premuda la tecla <b>Ctrl</b> mentre feu clic per canviar el perfil de la prova en pantalla.)
+SOFTPROOF_TOOLTIP;La prova en pantalla simula l'aparença de la imatge quan la reprodueix una impressora o monitor específic, si s'ha establert un perfil adequat a Preferències > Gestió de color.\n(Manteniu premuda la tecla <b>%mouse_primary%</b> mentre feu clic per canviar el perfil de la prova en pantalla.)
 THRESHOLDSELECTOR_B;Inferior
 THRESHOLDSELECTOR_BL;Inferior esquerre
 THRESHOLDSELECTOR_BR;Inferior dret
@@ -1378,12 +1378,16 @@ THRESHOLDSELECTOR_T;Superior
 THRESHOLDSELECTOR_TL;Superior esquerre
 THRESHOLDSELECTOR_TR;Superior dret
 TOOL_SHORTCUT_HELP_HEADER;Dreceres d'eina:\n(manteniu premuda la tecla indicada i ajusteu el control lliscant mitjançant +/- o la roda del ratolí)\n
-TOOLBAR_TOOLTIP_COLORPICKER;Selector de color bloquejablee\n\nQuan l'eina està activa:\n- Afegeix un selector: <b>clic amb el botó esquerre del ratolí</b>.\n- Arrossega un selector: <b>clic amb el botó esquerre del ratolí i arrossegar</b>.\n- Elimina un selector: <b>clic amb el botó dret de ratolí</b>.\n- Elimina tots els selectors: <b>Ctrl</b>+<b>Majús</b>+<b>clic amb el botó dret del ratolí</b>.\n- Torna a l'eina mà: <b>clic amb el botó dret del ratolí</b> fora de qualsevol selector.
+TOOLBAR_TOOLTIP_COLORPICKER;Selector de color bloquejablee\n\nQuan l'eina està activa:\n- Afegeix un selector: <b>clic amb el botó esquerre del ratolí</b>.\n- Arrossega un selector: <b>clic amb el botó esquerre del ratolí i arrossegar</b>.\n- Elimina un selector: <b>clic amb el botó dret de ratolí</b>.\n- Elimina tots els selectors: <b>%mouse_primary%</b>+<b>Majús</b>+<b>clic amb el botó dret del ratolí</b>.\n- Torna a l'eina mà: <b>clic amb el botó dret del ratolí</b> fora de qualsevol selector.
 TOOLBAR_TOOLTIP_CROP;Selecció de <b>retallada</b>.\nDrecera: <b>Majús-c</b>\nMoveu la retallada <b>arrossegant el ratolí</b>\nCanvieu la mida de la retallada movent les vores de la retallada.
-TOOLBAR_TOOLTIP_HAND;Eina mà.\nDrecera: <b>h</b>
+TOOLBAR_TOOLTIP_HAND;Eina mà.\nDrecera: <b>%shortcut(toolbar.hand)%</b>
 TOOLBAR_TOOLTIP_PERSPECTIVE;<b>Correcció de perspectiva</b>.\nDrecera: <b>Majús-p</b>\n\nEditeu les línies de control per corregir la distorsió de la perspectiva. Cliqueu aquest botó de nou per aplicar la correcció.
 TOOLBAR_TOOLTIP_STRAIGHTEN;<b>Redreça</b> / <b>Rotació precisa</b>.\nDrecera: <b>Majús-s</b>\n\nIndiqueu la vertical o horitzontal dibuixant una línia guia sobre la vista prèvia de la imatge. L'angle de rotació es mostrarà al costat de la línia guia. El centre de rotació és el centre geomètric de la imatge.
 TOOLBAR_TOOLTIP_WB;Balanç de blancs puntual.\nDrecera: <b>Majús-w</b>
+TP_DRCOMPRESSION_AMOUNT;Quantitat
+TP_DRCOMPRESSION_LABEL;Compressió de rang dinàmic
+TP_DRCOMPRESSION_SATCONTROL;Control de saturació
+TP_DRCOMPRESSION_THRESHOLD;Detall
 TP_SATURATION_LABEL;Saturació/Vivacitat
 TP_BRIGHTCONTRSAT_CONTRAST;Contrast
 TP_SATURATION_SATURATION;Saturació
@@ -1743,7 +1747,7 @@ TP_LABMASKS_DELTAE_PICK;Tria
 TP_LABMASKS_DELTAE_CHAN_WEIGHT;Pes en el càlcul ΔE
 TP_LABMASKS_DELTAE_TOOLTIP;Seleccioneu les regions de color similar\n(segons la mètrica CIELAB ΔE*)
 TP_LABMASKS_DRAWNMASK;Màscara de pinzell
-TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;Canvieu com pinta el pinzell en el llenç.\n\n<i>Si s'utilitza el ratolí:</i>\n- Premeu <b>Alt</b> per activar temporalment el "Mode esborrador";\n- Premeu <b>Majús</b> per traçar una línia recta;\n- Utilitzeu <b>Ctrl+roda del ratolí</b> per canviar el radi del pinzell,\n- <b>Ctrl+Majús+roda del ratolí</b> per canviar la duresa del pinzell,\n- i <b>Ctrl+clic</b> per començar un nou grup de traços sense canviar els paràmetres\n(de manera que se sumin diversos traços a la mateixa àrea);\n- Utilitzeu el <b>tercer botó</b> per desactivar la pintura en el llenç.\n\n<i>Si es fa servir un dispositiu sensible a la pressió:</i>n- Utilitzeu el <b>primer botó</b> per canviar al "Mode esborrador";\n- Premeu <b>Majús</b> per traçar una línia recta;\n- Utilitzeu <b>Alt+primer botó</b> per augmentar el radi del pinzell, i\n- <b>Alt+segon botó</b> per reduir-lo;\n- Utilitzeu el <b>segon botó</b> per recórrer els modes de sensibilitat a la pressió disponibles: inactiu, duresa, radi (premeu <b>Majús</b> per invertir la direcció);\n- Utilitzeu <b>Ctrl+segon botó</b> per desactivar la pintura en el llenç.
+TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;Canvieu com pinta el pinzell en el llenç.\n\n<i>Si s'utilitza el ratolí:</i>\n- Premeu <b>Alt</b> per activar temporalment el "Mode esborrador";\n- Premeu <b>Majús</b> per traçar una línia recta;\n- Utilitzeu <b>%mouse_primary%+roda del ratolí</b> per canviar el radi del pinzell,\n- <b>%mouse_primary%+Majús+roda del ratolí</b> per canviar la duresa del pinzell,\n- i <b>%mouse_primary%+clic</b> per començar un nou grup de traços sense canviar els paràmetres\n(de manera que se sumin diversos traços a la mateixa àrea);\n- Utilitzeu el <b>tercer botó</b> per desactivar la pintura en el llenç.\n\n<i>Si es fa servir un dispositiu sensible a la pressió:</i>n- Utilitzeu el <b>primer botó</b> per canviar al "Mode esborrador";\n- Premeu <b>Majús</b> per traçar una línia recta;\n- Utilitzeu <b>Alt+primer botó</b> per augmentar el radi del pinzell, i\n- <b>Alt+segon botó</b> per reduir-lo;\n- Utilitzeu el <b>segon botó</b> per recórrer els modes de sensibilitat a la pressió disponibles: inactiu, duresa, radi (premeu <b>Majús</b> per invertir la direcció);\n- Utilitzeu <b>%mouse_primary%+segon botó</b> per desactivar la pintura en el llenç.
 TP_LABMASKS_DRAWNMASK_PEN_SETTINGS;Configuració de pinzell
 TP_LABMASKS_DRAWNMASK_RESET_TIP;Esborra tots els traços
 TP_LABMASKS_DRAWNMASK_UNDO_TIP;Esborra l'últim grup de traços
@@ -1813,7 +1817,7 @@ TP_PERSPECTIVE_AUTO_BOTH_TOOLTIP;Horitzontal i vertical
 TP_PERSPECTIVE_AUTO_HORIZONTAL_TOOLTIP;Horitzontal
 TP_PERSPECTIVE_AUTO_VERTICAL_TOOLTIP;Vertical
 TP_PERSPECTIVE_CONTROL_LINES;Línies de control
-TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>Ctrl</b>+<b>arrossegar</b>: Dibuixa una nova línia\n<b>Clic dret del ratolí</b>: Esborra línia
+TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>%mouse_primary%</b>+<b>arrossegar</b>: Dibuixa una nova línia\n<b>Clic dret del ratolí</b>: Esborra línia
 TP_PERSPECTIVE_CROPFACTOR;Factor de retallada
 TP_PERSPECTIVE_FLENGTH;Distància focal
 TP_PERSPECTIVE_HORIZONTAL;Horitzontal
@@ -2016,7 +2020,7 @@ TP_SOFTLIGHT_LABEL;Llum tènue
 TP_SOFTLIGHT_STRENGTH;Intensitat
 TP_SPOT_COUNTLABEL;%1 punt(s)
 TP_SPOT_ENTRYCHANGED;Punt canviat
-TP_SPOT_HINT;Cliqueu aquest botó per poder operar a l'àrea de vista prèvia.\n\nPer editar un punt, passeu el cursor per la marca blanca que indica una àrea editada, fent aparèixer la geometria d'edició.\n\nPer afegir un punt, premeu Ctrl i el botó esquerre del ratolí, arrossegueu el cercle (podeu deixar anar la tecla Ctrl) a una ubicació d'origen, i tot seguit deixeu anar el botó del ratolí\n\nPer moure el punt d'origen o destí, passeu el cursor pel seu centre i arrossegueu-lo.\n\nEs pot canviar la mida del cercle interior (àrea d'efecte màxim) i el cercle de "difuminat" passant el cursor per sobre d'ells (el cercle es torna taronja) i arrossegant-los (el cercle es torna vermell).\n\nQuan els canvis estiguin fets, cliqueu amb el botó dret del ratolí fora de qualsevol punt per sortir del mode d'edició de punts, o cliqueu aquest botó de nou.
+TP_SPOT_HINT;Cliqueu aquest botó per poder operar a l'àrea de vista prèvia.\n\nPer editar un punt, passeu el cursor per la marca blanca que indica una àrea editada, fent aparèixer la geometria d'edició.\n\nPer afegir un punt, premeu %mouse_primary% i el botó esquerre del ratolí, arrossegueu el cercle (podeu deixar anar la tecla %mouse_primary%) a una ubicació d'origen, i tot seguit deixeu anar el botó del ratolí\n\nPer moure el punt d'origen o destí, passeu el cursor pel seu centre i arrossegueu-lo.\n\nEs pot canviar la mida del cercle interior (àrea d'efecte màxim) i el cercle de "difuminat" passant el cursor per sobre d'ells (el cercle es torna taronja) i arrossegant-los (el cercle es torna vermell).\n\nQuan els canvis estiguin fets, cliqueu amb el botó dret del ratolí fora de qualsevol punt per sortir del mode d'edició de punts, o cliqueu aquest botó de nou.
 TP_SPOT_LABEL;Eliminació de taques
 TP_SPOT_LIGHTPIPELINE_HINT;Feu clic en aquest botó per modificar els punts mentre previsualitzeu una imatge simplificada desactivant les eines que requereixen molts recursos (opció de rendiment).\n\nNomés té efecte quan l'edició de previsualització està activa.
 TP_SPOT_CUR_SPOT_LABEL;Punt actual
@@ -2028,10 +2032,6 @@ TP_SPOT_RADIUS;Radi
 TP_SPOT_FEATHER;Difuminat
 TP_SPOT_OPACITY;Opacitat
 TP_SPOT_DETAIL;Protecció de detalls
-TP_TM_FATTAL_AMOUNT;Quantitat
-TP_TM_FATTAL_LABEL;Compressió de rang dinàmic
-TP_TM_FATTAL_THRESHOLD;Detall
-TP_TM_FATTAL_SATCONTROL;Control de saturació
 TP_TONECURVE_BASECURVE;Corba base
 TP_TONECURVE_BASECURVE_LINEAR;Lineal
 TP_TONECURVE_BASECURVE_ROLLOFF;Atenuació suau de les altes llums

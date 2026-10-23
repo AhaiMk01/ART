@@ -1,21 +1,21 @@
 /* -*- C++ -*-
  *
- *  This file is part of RawTherapee.
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #pragma once
 
@@ -179,6 +179,7 @@ public:
     void rightClicked(ThumbBrowserEntryBase *entry) override;
     void doubleClicked(ThumbBrowserEntryBase *entry) override;
     bool keyPressed(GdkEventKey *event) override;
+    void bindShortcuts();
 
     void saveThumbnailHeight(int height) override;
     int getThumbnailHeight() override;
@@ -191,6 +192,8 @@ public:
     void pasteProfile();
     void partPasteProfile();
     void selectImage(const Glib::ustring &fname);
+    Glib::ustring getNeighbourOf(const std::vector<FileBrowserEntry *> &entries);
+    void selectByName(const Glib::ustring &fname, bool focus);
     void openNextPreviousEditorImage(Glib::ustring fname, eRTNav eNextPrevious);
 
     void thumbRearrangementNeeded() override;

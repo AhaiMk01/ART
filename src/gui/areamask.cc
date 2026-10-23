@@ -1,24 +1,25 @@
 /** -*- C++ -*-
  *
- *  This file is part of RawTherapee.
+ *  This file is part of ART.
  *
- *  Copyright (c) 2018 Alberto Griggio <alberto.griggio@gmail.com>
+ *  Copyright (c) 2018-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "areamask.h"
+#include "shortcutsmanager.h"
 #include "edit.h"
 
 namespace art { namespace gui {
@@ -487,7 +488,7 @@ bool AreaMask::button1Pressed(int modifierKey)
             return false;
         }
 
-        if (!(modifierKey & GDK_CONTROL_MASK)) {
+        if (!(modifierKey & ShortcutsManager::mousePrimaryMask())) {
             // button press is valid (no modifier key)
             PolarCoord pCoord;
             double halfSizeW = imW / 2.;
@@ -518,7 +519,7 @@ bool AreaMask::button1Pressed(int modifierKey)
         }
         break;
     case rteMaskShape::Type::GRADIENT: {
-        if (!(modifierKey & GDK_CONTROL_MASK)) {
+        if (!(modifierKey & ShortcutsManager::mousePrimaryMask())) {
             // button press is valid (no modifier key)
             PolarCoord pCoord;
             int imW, imH;
@@ -587,7 +588,7 @@ bool AreaMask::button1Pressed(int modifierKey)
         }
     }
     case rteMaskShape::Type::POLYGON:
-        if ((modifierKey & GDK_CONTROL_MASK) && sel_poly_knot_id_ == -1) {
+        if ((modifierKey & ShortcutsManager::mousePrimaryMask()) && sel_poly_knot_id_ == -1) {
             // add a new point
             rteMaskPoly::Knot newKnot;
             newKnot.x = rteMaskShape::toParamRange(provider->posImage.x, imW);
@@ -641,7 +642,7 @@ bool AreaMask::button1Pressed(int modifierKey)
             }
         } else if (hovered_line_id_ >= 0 && last_object_ != -1) {
             if ((modifierKey & GDK_SHIFT_MASK) &&
-                !(modifierKey & GDK_CONTROL_MASK)) {
+                !(modifierKey & ShortcutsManager::mousePrimaryMask())) {
                 dragged_element_ = DraggedElement::WHOLE;
                 art::engine::CoordD pt;
                 for (auto knot : poly_knots_) {
@@ -958,7 +959,7 @@ bool AreaMask::drag1(int modifierKey)
             double old_val = poly_knots_.at(sel_poly_knot_id_).roundness;
             double new_val =
                 old_val + provider->deltaPrevScreen.x /
-                              (modifierKey & GDK_CONTROL_MASK ? 10. : 2.);
+                              (modifierKey & ShortcutsManager::mousePrimaryMask() ? 10. : 2.);
             poly_knots_.at(sel_poly_knot_id_).roundness = new_val =
                 art::engine::LIM<double>(new_val, 0., 100.);
             moved = old_val != new_val;
@@ -993,7 +994,7 @@ bool AreaMask::drag1(int modifierKey)
 bool AreaMask::button3Pressed(int modifierKey)
 {
     if (geomType == rteMaskShape::Type::POLYGON &&
-        (modifierKey & GDK_CONTROL_MASK) && sel_poly_knot_id_ >= 0 &&
+        (modifierKey & ShortcutsManager::mousePrimaryMask()) && sel_poly_knot_id_ >= 0 &&
         (int)poly_knots_.size() > 3) {
         action = ES_ACTION_PICKING;
     }
@@ -1039,7 +1040,7 @@ bool AreaMask::scroll(int modifierKey, GdkScrollDirection direction,
     double delta = (direction == GDK_SCROLL_SMOOTH
                         ? deltaY
                         : (direction == GDK_SCROLL_UP ? 3. : -3.)) /
-                   (modifierKey & GDK_CONTROL_MASK ? 8. : 0.1);
+                   (modifierKey & ShortcutsManager::mousePrimaryMask() ? 8. : 0.1);
     double old_val = poly_knots_.at(sel_poly_knot_id_).roundness;
     double new_val = old_val - delta;
     poly_knots_.at(sel_poly_knot_id_).roundness = new_val =

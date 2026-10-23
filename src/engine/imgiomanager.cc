@@ -2,7 +2,7 @@
  *
  *  This file is part of ART.
  *
- *  Copyright 2020 Alberto Griggio <alberto.griggio@gmail.com>
+ *  Copyright (c) 2020-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
  *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
  *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <mutex>
 #include "imgiomanager.h"
 #include "../utils/config.h"
 #include "../utils/pathutils.h"
@@ -59,7 +60,6 @@ inline void exec_sync(const Glib::ustring &usrdir, const Glib::ustring &sysdir,
                       const std::vector<Glib::ustring> &argv,
                       bool search_in_path, std::string *out, std::string *err)
 {
-    auto pth = Glib::getenv("PATH");
     auto extrapath = Glib::build_filename(usrdir, "bin") +
                      G_SEARCHPATH_SEPARATOR_S +
                      Glib::build_filename(sysdir, "bin");
@@ -70,9 +70,24 @@ inline void exec_sync(const Glib::ustring &usrdir, const Glib::ustring &sysdir,
     if (!epth.empty()) {
         extrapath += G_SEARCHPATH_SEPARATOR_S + epth;
     }
+#ifdef WIN32
+    // No per-child environment on this path: change PATH for the whole
+    // process, but only one such call at a time (callers run on several
+    // threads, and an unserialised setenv() around the call races).
+    static std::mutex path_mutex;
+    std::lock_guard<std::mutex> lock(path_mutex);
+    auto pth = Glib::getenv("PATH");
     Glib::setenv("PATH", extrapath + G_SEARCHPATH_SEPARATOR_S + pth);
-    subprocess::exec_sync(workdir, argv, search_in_path, out, err);
+    try {
+        subprocess::exec_sync(workdir, argv, search_in_path, out, err);
+    } catch (...) {
+        Glib::setenv("PATH", pth);
+        throw;
+    }
     Glib::setenv("PATH", pth);
+#else
+    subprocess::exec_sync(workdir, argv, search_in_path, out, err, extrapath);
+#endif
 }
 
 } // namespace

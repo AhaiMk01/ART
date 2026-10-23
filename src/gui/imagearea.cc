@@ -1,27 +1,27 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "imagearea.h"
 #include "../engine/refreshmap.h"
 #include "cropwindow.h"
 #include "../utils/multilangmgr.h"
 #include "options.h"
-#include "shortcutmanager.h"
+#include "shortcutsmanager.h"
 #include <cmath>
 #include <ctime>
 
@@ -120,6 +120,12 @@ void ImageArea::on_resized(Gtk::Allocation &req)
             if (alp_) {
                 alp_->setAreaDrawListener(mainCropWindow);
             }
+        } else if (!get_mapped()) {
+            // The editor tab is hidden (in single tab mode the file browser
+            // is moved in and out of the editor, which resizes this area):
+            // don't reprocess for a size nobody sees. The real size comes
+            // with the next allocation once the tab is shown again, and
+            // CropHandler::setWSize ignores it if it is unchanged.
         } else {
             mainCropWindow->setSize(
                 get_width(), get_height()); // this execute the refresh itself
@@ -853,7 +859,7 @@ void ImageArea::setAreaDrawListenerProvider(AreaDrawListenerProvider *alp)
     }
 }
 
-void ImageArea::setToolShortcutManager(ToolShortcutManager *mgr)
+void ImageArea::setToolShortcutsManager(ToolShortcutsManager *mgr)
 {
     shortcut_mgr_ = mgr;
 }

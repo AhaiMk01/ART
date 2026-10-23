@@ -34,7 +34,7 @@ ABOUT_TAB_CREDITS;Créditos
 ABOUT_TAB_LICENSE;Licencia
 ABOUT_TAB_RELEASENOTES;Notas de la versión
 ABOUT_TAB_SPLASH;Splash
-ADJUSTER_RESET_TO_DEFAULT;<b>Clic</b> - restablecer al valor predeterminado.\n<b>Ctrl</b>+<b>clic</b> - restablecer al último valor guardado.
+ADJUSTER_RESET_TO_DEFAULT;<b>Clic</b> - restablecer al valor predeterminado.\n<b>%mouse_primary%</b>+<b>clic</b> - restablecer al último valor guardado.
 CTL_SIGMOID;Mapeador de tonos sigmoide
 CTL_SIGMOID_BASE_PRIMARIES;Primarios base
 CTL_SIGMOID_INSET;Atenuación
@@ -86,7 +86,7 @@ DYNPROFILEEDITOR_CUSTOMDATA_TAGS;Etiqueta(s)
 DYNPROFILEEDITOR_CUSTOMDATA_TOOLTIP;Lista de pares <i>clave=valor</i> de etiquetas de metadatos adicionales para hacer coincidir, una por línea, donde <b>clave</b> es el nombre de una etiqueta en la sintaxis de Exiv2 y <b>valor</b> es el valor que debe coincidir (usa el prefijo "re:" para introducir una expresión regular).
 EDITWINDOW_TITLE;Edición de imagen
 EDIT_OBJECT_TOOLTIP;Muestra un widget en la ventana de vista previa que le permitirá ajustar esta herramienta.
-EDIT_PIPETTE_TOOLTIP;Para añadir un punto de ajuste en la curva, mantenga la tecla Ctrl pulsada mientras pulsa el botón izquierdo del ratón sobre el punto deseado en la vista previa de la imagen.\nPara ajustar el punto, mantenga la tecla Ctrl pulsada mientras pulsa el botón izquierdo del ratón sobre el área correspondiente en la vista previa, entonces suelte la tecla Ctrl (a menos que desee un control más preciso) y mientras mantiene pulsado el botón izquierdo del ratón mueva el ratón hacia arriba o hacia abajo para mover ese punto hacia arriba o hacia abajo en la curva.
+EDIT_PIPETTE_TOOLTIP;Para añadir un punto de ajuste en la curva, mantenga la tecla %mouse_primary% pulsada mientras pulsa el botón izquierdo del ratón sobre el punto deseado en la vista previa de la imagen.\nPara ajustar el punto, mantenga la tecla %mouse_primary% pulsada mientras pulsa el botón izquierdo del ratón sobre el área correspondiente en la vista previa, entonces suelte la tecla %mouse_primary% (a menos que desee un control más preciso) y mientras mantiene pulsado el botón izquierdo del ratón mueva el ratón hacia arriba o hacia abajo para mover ese punto hacia arriba o hacia abajo en la curva.
 ERROR_MSG_FILE_READ;Error de lectura del archivo: %1
 ERROR_MSG_MAXERRORS;... (%1 error(es) anterior(es) no mostrado(s))
 ERROR_MSG_METADATA_VALUE;Metadatos: error al establecer %1 a %2
@@ -152,8 +152,8 @@ FILEBROWSER_APPLYPROFILE;Aplicar
 FILEBROWSER_APPLYPROFILE_PARTIAL;Aplicar - parcial
 FILEBROWSER_AUTODARKFRAME;Toma negra automática
 FILEBROWSER_AUTOFLATFIELD;Campo plano automático
-FILEBROWSER_BROWSEPATHBUTTONHINT;Refresca la lista de miniaturas.\nAtajo: <b>F5</b>
-FILEBROWSER_BROWSEPATHHINT;Escriba una ruta a explorar.\n\nAtajos:\n<b>Ctrl-o</b> para poner el foco en el campo de la ruta.\n<b>Entrar</b> / <b>Ctrl-Entrar</b> para explorar ahí;\n<b>Esc</b> para quitar los cambios.\n<b>Mayús-Esc</b> para quitar el foco.\n\nAbreviaturas de ruta:\n<b>~</b>	- carpeta del usuario.\n<b>!</b>	- carpeta de imágenes del usuario
+FILEBROWSER_BROWSEPATHBUTTONHINT;Refresca la lista de miniaturas.\nAtajo: <b>%shortcut(filecatalog.refresh)%</b>
+FILEBROWSER_BROWSEPATHHINT;Escriba una ruta a explorar.\n\nAtajos:\n<b>%shortcut(filecatalog.focus_path)%</b> para poner el foco en el campo de la ruta.\n<b>Entrar</b> / <b>Ctrl-Entrar</b> para explorar ahí;\n<b>Esc</b> para quitar los cambios.\n<b>Mayús-Esc</b> para quitar el foco.\n\nAbreviaturas de ruta:\n<b>~</b>	- carpeta del usuario.\n<b>!</b>	- carpeta de imágenes del usuario
 FILEBROWSER_CACHE;Caché
 FILEBROWSER_CACHECLEARFROMFULL;Borrar todo incluyendo los perfiles almacenados en la caché
 FILEBROWSER_CACHECLEARFROMPARTIAL;Borrar todo excepto los perfiles almacenados en la caché
@@ -212,7 +212,7 @@ FILEBROWSER_POPUPTRASH;Mover a la papelera
 FILEBROWSER_POPUPUNRANK;Quitar puntuación
 FILEBROWSER_POPUPUNTRASH;Sacar de la papelera
 FILEBROWSER_QUERYBUTTONHINT;Limpiar la búsqueda
-FILEBROWSER_QUERYHINT;Escriba nombres de archivo a buscar. Soporta nombres de archivo parciales. Separe los términos de búsqueda con comas, p. ej.\n<i>1001,1004,1199</i>\n\nExcluya términos de búsqueda anteponiéndoles el prefijo <i>!=</i>\np. ej.\n<i>!=1001,1004,1199</i>\n\nAtajos:\n<b>Ctrl-f</b> - poner el foco en el campo de búsqueda,\n<b>Entrar</b> - iniciar la búsqueda,\n<b>Mayús-Esc</b> - limpiar el campo de búsqueda,\n<b>Esc</b> - quitar el foco del campo de búsqueda.
+FILEBROWSER_QUERYHINT;Escriba nombres de archivo a buscar. Soporta nombres de archivo parciales. Separe los términos de búsqueda con comas, p. ej.\n<i>1001,1004,1199</i>\n\nExcluya términos de búsqueda anteponiéndoles el prefijo <i>!=</i>\np. ej.\n<i>!=1001,1004,1199</i>\n\nAtajos:\n<b>%shortcut(filecatalog.focus_query)%</b> - poner el foco en el campo de búsqueda,\n<b>Entrar</b> - iniciar la búsqueda,\n<b>Mayús-Esc</b> - limpiar el campo de búsqueda,\n<b>Esc</b> - quitar el foco del campo de búsqueda.
 FILEBROWSER_QUERYLABEL; Encontrar:
 FILEBROWSER_RANK1_TOOLTIP;Puntuación 1 *\nAtajo: <b>Mayús-1</b>
 FILEBROWSER_RANK2_TOOLTIP;Puntuación 2 *\nAtajo: <b>Mayús-2</b>
@@ -232,27 +232,27 @@ FILEBROWSER_SESSION_REMOVE_LABEL;Eliminar los seleccionados de la sesión
 FILEBROWSER_SESSION_LOAD_LABEL;Cargar la sesión de un archivo
 FILEBROWSER_SESSION_SAVE_LABEL;Guardar la sesión a un archivo
 FILECHOOSER_FILTER_ARS;Archivos de sesión de ART (*.ars)
-FILEBROWSER_SHOWCOLORLABEL1HINT;Mostrar imágenes etiquetadas con rojo.\nAtajo: <b>Alt-1</b>
-FILEBROWSER_SHOWCOLORLABEL2HINT;Mostrar imágenes etiquetadas con amarillo.\nAtajo: <b>Alt-2</b>
-FILEBROWSER_SHOWCOLORLABEL3HINT;Mostrar imágenes etiquetadas con verde.\nAtajo: <b>Alt-3</b>
-FILEBROWSER_SHOWCOLORLABEL4HINT;Mostrar imágenes etiquetadas con azul.\nAtajo: <b>Alt-4</b>
-FILEBROWSER_SHOWCOLORLABEL5HINT;Mostrar imágenes etiquetadas con púrpura.\nAtajo: <b>Alt-5</b>
-FILEBROWSER_SHOWDIRHINT;Quitar todos los filtros.\nAtajo: <b>d</b>
-FILEBROWSER_SHOWEDITEDHINT;Mostrar imágenes editadas.\nAtajo: <b>7</b>
-FILEBROWSER_SHOWEDITEDNOTHINT;Mostrar imágenes no editadas.\nAtajo: <b>6</b>
+FILEBROWSER_SHOWCOLORLABEL1HINT;Mostrar imágenes etiquetadas con rojo.\nAtajo: <b>%shortcut(filecatalog.filter_label.1)%</b>
+FILEBROWSER_SHOWCOLORLABEL2HINT;Mostrar imágenes etiquetadas con amarillo.\nAtajo: <b>%shortcut(filecatalog.filter_label.2)%</b>
+FILEBROWSER_SHOWCOLORLABEL3HINT;Mostrar imágenes etiquetadas con verde.\nAtajo: <b>%shortcut(filecatalog.filter_label.3)%</b>
+FILEBROWSER_SHOWCOLORLABEL4HINT;Mostrar imágenes etiquetadas con azul.\nAtajo: <b>%shortcut(filecatalog.filter_label.4)%</b>
+FILEBROWSER_SHOWCOLORLABEL5HINT;Mostrar imágenes etiquetadas con púrpura.\nAtajo: <b>%shortcut(filecatalog.filter_label.5)%</b>
+FILEBROWSER_SHOWDIRHINT;Quitar todos los filtros.\nAtajo: <b>%shortcut(filecatalog.filter_clear)%</b>
+FILEBROWSER_SHOWEDITEDHINT;Mostrar imágenes editadas.\nAtajo: <b>%shortcut(filecatalog.filter_edited)%</b>
+FILEBROWSER_SHOWEDITEDNOTHINT;Mostrar imágenes no editadas.\nAtajo: <b>%shortcut(filecatalog.filter_not_edited)%</b>
 FILEBROWSER_SHOWEXIFINFO;Mostrar datos Exif.\n\nAtajo:\n<b>i</b> - Modo de pestañas de editor múltiple,\n<b>Alt-i</b> - Modo de pestañas de un solo editor.
 FILEBROWSER_SHOWNOTTRASHHINT;Mostrar solo imágenes no borradas.
 FILEBROWSER_SHOWORIGINALHINT;Mostrar solo imágenes originales.\n\nCuando existen varias imágenes con el mismo nombre de archivo pero con diferentes extensiones, la que se considera original es aquella cuya extensión está más cerca de la parte superior de la lista de extensiones analizadas en Preferencias > Explorador de archivos > Extensiones analizadas.
-FILEBROWSER_SHOWRANK1HINT;Mostrar imágenes con 1 estrella.\nAtajo: <b>1</b>
-FILEBROWSER_SHOWRANK2HINT;Mostrar imágenes con 2 estrellas.\nAtajo: <b>2</b>
-FILEBROWSER_SHOWRANK3HINT;Mostrar imágenes con 3 estrellas.\nAtajo: <b>3</b>
-FILEBROWSER_SHOWRANK4HINT;Mostrar imágenes con 4 estrellas.\nAtajo: <b>4</b>
-FILEBROWSER_SHOWRANK5HINT;Mostrar imágenes con 5 estrellas.\nAtajo: <b>5</b>
-FILEBROWSER_SHOWRECENTLYSAVEDHINT;Mostrar imágenes guardadas.\nAtajo: <b>Alt-7</b>
-FILEBROWSER_SHOWRECENTLYSAVEDNOTHINT;Mostrar imágenes no guardadas.\nAtajo: <b>Alt-6</b>
-FILEBROWSER_SHOWTRASHHINT;Mostrar el contenido de la papelera.\nAtajo: <b>Ctrl-t</b>
-FILEBROWSER_SHOWUNCOLORHINT;Mostrar imágenes sin etiqueta de color.\nAtajo: <b>Alt-0</b>
-FILEBROWSER_SHOWUNRANKHINT;Mostrar imágenes sin puntuación.\nAtajo: <b>0</b>
+FILEBROWSER_SHOWRANK1HINT;Mostrar imágenes con 1 estrella.\nAtajo: <b>%shortcut(filecatalog.filter_rank.1)%</b>
+FILEBROWSER_SHOWRANK2HINT;Mostrar imágenes con 2 estrellas.\nAtajo: <b>%shortcut(filecatalog.filter_rank.2)%</b>
+FILEBROWSER_SHOWRANK3HINT;Mostrar imágenes con 3 estrellas.\nAtajo: <b>%shortcut(filecatalog.filter_rank.3)%</b>
+FILEBROWSER_SHOWRANK4HINT;Mostrar imágenes con 4 estrellas.\nAtajo: <b>%shortcut(filecatalog.filter_rank.4)%</b>
+FILEBROWSER_SHOWRANK5HINT;Mostrar imágenes con 5 estrellas.\nAtajo: <b>%shortcut(filecatalog.filter_rank.5)%</b>
+FILEBROWSER_SHOWRECENTLYSAVEDHINT;Mostrar imágenes guardadas.\nAtajo: <b>%shortcut(filecatalog.filter_recently_saved)%</b>
+FILEBROWSER_SHOWRECENTLYSAVEDNOTHINT;Mostrar imágenes no guardadas.\nAtajo: <b>%shortcut(filecatalog.filter_not_recently_saved)%</b>
+FILEBROWSER_SHOWTRASHHINT;Mostrar el contenido de la papelera.\nAtajo: <b>%shortcut(filecatalog.toggle_trash)%</b>
+FILEBROWSER_SHOWUNCOLORHINT;Mostrar imágenes sin etiqueta de color.\nAtajo: <b>%shortcut(filecatalog.filter_no_label)%</b>
+FILEBROWSER_SHOWUNRANKHINT;Mostrar imágenes sin puntuación.\nAtajo: <b>%shortcut(filecatalog.filter_unranked)%</b>
 FILEBROWSER_SORT_LABEL;Orden de las miniaturas
 FILEBROWSER_SORT_FILENAME;Nombre del archivo
 FILEBROWSER_SORT_FILENAME_REV;Nombre del archivo (inverso)
@@ -559,6 +559,7 @@ HISTORY_MSG_491;Balance de blancos
 HISTORY_MSG_492;Curvas RGB
 HISTORY_MSG_493;Ajustes L*a*b*
 HISTORY_MSG_BWMIX_COLORCAST;B & N - Tinte
+HISTORY_MSG_DRCOMPRESSION_SATCONTROL;CRD - Control de saturación
 HISTORY_MSG_SATURATION_VIBRANCE;S/V - Vivacidad
 HISTORY_MSG_LOCALCONTRAST_LIST;Contraste local - regiones
 HISTORY_MSG_LOCALCONTRAST_HUEMASK;Contraste local - máscara T
@@ -749,7 +750,6 @@ HISTORY_MSG_SOFTLIGHT_ENABLED;Luz tenue
 HISTORY_MSG_SOFTLIGHT_STRENGTH;Luz tenue - Intensidad
 HISTORY_MSG_SPOT;Eliminación de manchas
 HISTORY_MSG_SPOT_ENTRY;Eliminación de manchas - Modificación de puntos
-HISTORY_MSG_TM_FATTAL_SATCONTROL;CRD - Control de saturación
 HISTORY_MSG_TONE_EQUALIZER_ENABLED;Ecualizador tonal
 HISTORY_MSG_TONE_EQUALIZER_BANDS;Ecualizador tonal - Bandas
 HISTORY_MSG_TONE_EQUALIZER_REGULARIZATION;Ecualizador tonal - Regularización
@@ -763,7 +763,7 @@ HISTORY_MSG_TONECURVE_MODE;Curva tonal - Modo
 HISTORY_MSG_TONECURVE_WHITEPOINT;Curva tonal - Punto blanco
 HISTORY_MSG_WBALANCE_MULT;BB - multiplicadores
 HISTORY_NEWSNAPSHOT;Añadir
-HISTORY_NEWSNAPSHOT_TOOLTIP;Atajo: <b>Alt-s</b>
+HISTORY_NEWSNAPSHOT_TOOLTIP;Atajo: <b>%shortcut(editor.add_snapshot)%</b>
 HISTORY_SNAPSHOT;Instantánea
 HISTORY_SNAPSHOTS;Instantáneas
 HISTORY_SNAPSHOT_CONFIRM_UPDATE;¿Sobrescribir la instantánea actual?
@@ -810,16 +810,16 @@ ICCPROFCREATOR_SLOPE;Pendiente
 ICCPROFCREATOR_TRC_PRESET;La curva de respuesta del tono:
 INSPECTOR_ENABLE_CMS;Activar la gestión del color.
 INSPECTOR_FOCUS_MASK;Máscara de foco.\nAtajo: <b>Mayús-f</b>.
-INSPECTOR_HISTOGRAM;Histograma.\nAtajo: <b>h</b>.
+INSPECTOR_HISTOGRAM;Histograma.\nAtajo: <b>%shortcut(inspector.toggle_histogram)%</b>.
 INSPECTOR_INFO;Información breve.\nAtajo: <b>Mayús-i</b>.
-INSPECTOR_PREVIEW;Vista previa de imagen incrustada.\nAtajo: <b>j</b>.
-INSPECTOR_RAW_LINEAR;Renderizado rápido de raw con una curva tonal lineal.\nAtajo: <b>r</b>.
-INSPECTOR_RAW_FILM;Renderizado rápido de raw con una curva tonal similar a la de una película.\nAtajo: <b>f</b>.
-INSPECTOR_RAW_CLIP;Píxeles recortados raw.\nAtajo: <b>w</b>.
-INSPECTOR_RAW_SHADOW;Renderizado rápido de raw con una curva tonal que amplifica las sombras.\nAtajo: <b>s</b>.
-INSPECTOR_SPLIT;Vista partida.\nAtajo: <b>y</b>.
-INSPECTOR_ZOOM_FIT;Ajustar a la ventana.\nAtajo: <b>x</b>.
-INSPECTOR_ZOOM_11;Zoom al 100%.\nAtajo: <b>z</b>.
+INSPECTOR_PREVIEW;Vista previa de imagen incrustada.\nAtajo: <b>%shortcut(inspector.mode_jpeg)%</b>.
+INSPECTOR_RAW_LINEAR;Renderizado rápido de raw con una curva tonal lineal.\nAtajo: <b>%shortcut(inspector.mode_raw_linear)%</b>.
+INSPECTOR_RAW_FILM;Renderizado rápido de raw con una curva tonal similar a la de una película.\nAtajo: <b>%shortcut(inspector.mode_raw_film_curve)%</b>.
+INSPECTOR_RAW_CLIP;Píxeles recortados raw.\nAtajo: <b>%shortcut(inspector.mode_raw_clip_warning)%</b>.
+INSPECTOR_RAW_SHADOW;Renderizado rápido de raw con una curva tonal que amplifica las sombras.\nAtajo: <b>%shortcut(inspector.mode_raw_shadow_boost)%</b>.
+INSPECTOR_SPLIT;Vista partida.\nAtajo: <b>%shortcut(inspector.toggle_split)%</b>.
+INSPECTOR_ZOOM_FIT;Ajustar a la ventana.\nAtajo: <b>%shortcut(inspector.zoom_fit)%</b>.
+INSPECTOR_ZOOM_11;Zoom al 100%.\nAtajo: <b>%shortcut(inspector.zoom_100)%</b>.
 IPTCPANEL_CATEGORY;Categoría
 IPTCPANEL_CATEGORYHINT;Identifica el tema de la imagen en la opinión del proveedor.
 IPTCPANEL_CITY;Ciudad
@@ -866,25 +866,25 @@ LABMASKS_AREA_MASK_EMPTY_WARNING;Advertencia: la combinación actual de formas d
 LINKED_MASK_NOT_FOUND_WARNING;Advertencia: no se encontró la máscara enlazada "%1->%2"
 MAIN_BUTTON_FULLSCREEN;Pantalla completa
 MAIN_BUTTON_ICCPROFCREATOR;Creador del perfil ICC
-MAIN_BUTTON_NAVNEXT_TOOLTIP;Navegar a la siguiente imagen relativa a la imagen abierta en el editor.\nAtajo: <b>Mayús-F4</b>\n\nNavegar a la siguiente imagen relativa a la miniatura seleccionada actualmente en el explorador de archivos o la tira de película:\nAtajo: <b>F4</b>
-MAIN_BUTTON_NAVPREV_TOOLTIP;Navegar a la anterior imagen relativa a la imagen abierta en el editor.\nAtajo: <b>Mayús-F3</b>\n\nNavegar a la anterior imagen relativa a la miniatura seleccionada actualmente en el explorador de archivos o la tira de película:\nAtajo: <b>F3</b>
-MAIN_BUTTON_NAVSYNC_TOOLTIP;Sincronizar el explorador de archivos o la tira de película con el editor para mostrar la miniatura de la imagen abierta actualmente y quitar cualquier filtro activo.\nAtajo: <b>x</b>\n\nPara hacer lo dicho anteriormente, pero sin quitar los filtros activos.\nAtajo: <b>y</b>\n(Tenga en cuenta que la miniatura de la imagen abierta no se mostrará si los filtros la excluyen).
+MAIN_BUTTON_NAVNEXT_TOOLTIP;Navegar a la siguiente imagen relativa a la imagen abierta en el editor.\nAtajo: <b>Mayús-F4</b>\n\nNavegar a la siguiente imagen relativa a la miniatura seleccionada actualmente en el explorador de archivos o la tira de película:\nAtajo: <b>%shortcut(filebrowser.open_next)%</b>
+MAIN_BUTTON_NAVPREV_TOOLTIP;Navegar a la anterior imagen relativa a la imagen abierta en el editor.\nAtajo: <b>Mayús-F3</b>\n\nNavegar a la anterior imagen relativa a la miniatura seleccionada actualmente en el explorador de archivos o la tira de película:\nAtajo: <b>%shortcut(filebrowser.open_previous)%</b>
+MAIN_BUTTON_NAVSYNC_TOOLTIP;Sincronizar el explorador de archivos o la tira de película con el editor para mostrar la miniatura de la imagen abierta actualmente y quitar cualquier filtro activo.\nAtajo: <b>%shortcut(editor.sync_file_browser_clear_filters)%</b>\n\nPara hacer lo dicho anteriormente, pero sin quitar los filtros activos.\nAtajo: <b>%shortcut(editor.sync_file_browser)%</b>\n(Tenga en cuenta que la miniatura de la imagen abierta no se mostrará si los filtros la excluyen).
 MAIN_BUTTON_PREFERENCES;Preferencias
-MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;Añadir la imagen actual a la cola de procesamiento (Ctrl-clic para una exportación rápida).\nAtajo: <b>Ctrl-b</b> (<b>Ctrl-Mayús-b</b> para una exportación rápida)
-MAIN_BUTTON_SAVE_TOOLTIP;Guarda la imagen actual (Ctrl-clic para exportación rápida.)\nAtajo: <b>Ctrl-s</b> (<b>Ctrl-Mayús-s</b> para exportación rápida)
+MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;Añadir la imagen actual a la cola de procesamiento (%mouse_primary%-clic para una exportación rápida).\nAtajo: <b>%shortcut(editor.queue)%</b> (<b>%mouse_primary%-Mayús-b</b> para una exportación rápida)
+MAIN_BUTTON_SAVE_TOOLTIP;Guarda la imagen actual (%mouse_primary%-clic para exportación rápida.)\nAtajo: <b>%shortcut(editor.save)%</b> (<b>%mouse_primary%-Mayús-s</b> para exportación rápida)
 MAIN_BUTTON_SENDTOEDITOR;Editar la imagen en un editor externo
-MAIN_BUTTON_SENDTOEDITOR_TOOLTIP;Edita la imagen actual en un editor externo.\nAtajo: <b>Ctrl-e</b> (<b>Ctrl-Mayús-e</b> para exportación rápida)
-MAIN_BUTTON_SHOWHIDESIDEPANELS_TOOLTIP;Muestra/Oculta todos los paneles laterales.\nAtajo: <b>m</b>
+MAIN_BUTTON_SENDTOEDITOR_TOOLTIP;Edita la imagen actual en un editor externo.\nAtajo: <b>%shortcut(editor.send_to_external_editor)%</b> (<b>Ctrl-Mayús-e</b> para exportación rápida)
+MAIN_BUTTON_SHOWHIDESIDEPANELS_TOOLTIP;Muestra/Oculta todos los paneles laterales.\nAtajo: <b>%shortcut(editor.maximize_preview)%</b>
 MAIN_BUTTON_UNFULLSCREEN;Salir de la pantalla completa
 MAIN_FRAME_EDITOR;Editor
-MAIN_FRAME_EDITOR_TOOLTIP;Editor.\nAtajo: <b>Ctrl-F4</b>
+MAIN_FRAME_EDITOR_TOOLTIP;Editor.\nAtajo: <b>%shortcut(window.show_editor)%</b>
 MAIN_FRAME_FILEBROWSER;Explorador de archivos
-MAIN_FRAME_FILEBROWSER_TOOLTIP;Explorador de archivos.\nAtajo: <b>Ctrl-F2</b>
+MAIN_FRAME_FILEBROWSER_TOOLTIP;Explorador de archivos.\nAtajo: <b>%shortcut(window.show_file_browser)%</b>
 MAIN_FRAME_PLACES;Ubicaciones
 MAIN_FRAME_PLACES_ADD;Añadir
 MAIN_FRAME_PLACES_DEL;Borrar
 MAIN_FRAME_QUEUE;Cola
-MAIN_FRAME_QUEUE_TOOLTIP;Cola de procesamiento.\nAtajo: <b>Ctrl-F3</b>
+MAIN_FRAME_QUEUE_TOOLTIP;Cola de procesamiento.\nAtajo: <b>%shortcut(window.show_queue)%</b>
 MAIN_FRAME_RECENT;Carpetas recientes
 MAIN_MSG_ALREADYEXISTS;Este archivo ya existe.
 MAIN_MSG_AUTOSAVING;Guardando automáticamente...
@@ -904,40 +904,40 @@ MAIN_MSG_WRITEFAILED;No se ha podido escribir\n<b>"%1"</b>\n\nAsegúrese de que 
 MAIN_TAB_ADVANCED;Avanzado
 MAIN_TAB_ADVANCED_TOOLTIP;Atajo: <b>Alt-w</b>
 MAIN_TAB_COLOR;Color
-MAIN_TAB_COLOR_TOOLTIP;Atajo: <b>Alt-c</b>
+MAIN_TAB_COLOR_TOOLTIP;Atajo: <b>%shortcut(toolpanel.tab_color)%</b>
 MAIN_TAB_DETAIL;Detalle
-MAIN_TAB_DETAIL_TOOLTIP;Atajo: <b>Alt-d</b>
+MAIN_TAB_DETAIL_TOOLTIP;Atajo: <b>%shortcut(toolpanel.tab_details)%</b>
 MAIN_TAB_DEVELOP; Edición por lotes
 MAIN_TAB_EFFECTS;Efectos especiales
-MAIN_TAB_EFFECTS_TOOLTIP;Atajo: <b>Alt-f</b>
+MAIN_TAB_EFFECTS_TOOLTIP;Atajo: <b>%shortcut(toolpanel.tab_effects)%</b>
 MAIN_TAB_EXIF;Exif
 MAIN_TAB_EXPORT; Exportación Rápida
 MAIN_TAB_EXPOSURE;Exposición
-MAIN_TAB_EXPOSURE_TOOLTIP;Atajo: <b>Alt-e</b>
+MAIN_TAB_EXPOSURE_TOOLTIP;Atajo: <b>%shortcut(toolpanel.tab_exposure)%</b>
 MAIN_TAB_FAVORITES;Favoritos
-MAIN_TAB_FAVORITES_TOOLTIP;Atajo: <b>Alt-u</b>
+MAIN_TAB_FAVORITES_TOOLTIP;Atajo: <b>%shortcut(toolpanel.tab_favorites)%</b>
 MAIN_TAB_FILTER; Filtro
 MAIN_TAB_INSPECT; Inspeccionar
-MAIN_TAB_INSPECT_TOOLTIP;Activar el inspector.\nAtajo: <b>Ctrl-i</b>
+MAIN_TAB_INSPECT_TOOLTIP;Activar el inspector.\nAtajo: <b>%shortcut(filepanel.toggle_right_notebook)%</b>
 MAIN_TAB_IPTC;IPTC
 MAIN_TAB_LOCAL;Edición local
-MAIN_TAB_LOCAL_TOOLTIP;Atajo: <b>Alt-x</b>
+MAIN_TAB_LOCAL_TOOLTIP;Atajo: <b>%shortcut(toolpanel.tab_local)%</b>
 MAIN_TAB_METADATA;Metadatos
-MAIN_TAB_METADATA_TOOLTIP;Atajo: <b>Alt-m</b>
+MAIN_TAB_METADATA_TOOLTIP;Atajo: <b>%shortcut(toolpanel.tab_metadata)%</b>
 MAIN_TAB_RAW;Raw
-MAIN_TAB_RAW_TOOLTIP;Atajo: <b>Alt-r</b>
+MAIN_TAB_RAW_TOOLTIP;Atajo: <b>%shortcut(toolpanel.tab_raw)%</b>
 MAIN_TAB_TRANSFORM;Transformar
-MAIN_TAB_TRANSFORM_TOOLTIP;Atajo: <b>Alt-t</b>
-MAIN_TOOLTIP_BACKCOLOR0;Color de fondo de la vista previa: <b>basado en el tema</b>\nAtajo: <b>9</b>
-MAIN_TOOLTIP_BACKCOLOR1;Color de fondo de la vista previa: <b>negro</b>\nAtajo: <b>9</b>
-MAIN_TOOLTIP_BACKCOLOR2;Color de fondo de la vista previa: <b>blanco</b>\nAtajo: <b>9</b>
-MAIN_TOOLTIP_BACKCOLOR3;Color de fondo de la vista previa: <b>gris medio</b>\nAtajo: <b>9</b>
+MAIN_TAB_TRANSFORM_TOOLTIP;Atajo: <b>%shortcut(toolpanel.tab_transform)%</b>
+MAIN_TOOLTIP_BACKCOLOR0;Color de fondo de la vista previa: <b>basado en el tema</b>\nAtajo: <b>%shortcut(editor.toggle_preview_background)%</b>
+MAIN_TOOLTIP_BACKCOLOR1;Color de fondo de la vista previa: <b>negro</b>\nAtajo: <b>%shortcut(editor.toggle_preview_background)%</b>
+MAIN_TOOLTIP_BACKCOLOR2;Color de fondo de la vista previa: <b>blanco</b>\nAtajo: <b>%shortcut(editor.toggle_preview_background)%</b>
+MAIN_TOOLTIP_BACKCOLOR3;Color de fondo de la vista previa: <b>gris medio</b>\nAtajo: <b>%shortcut(editor.toggle_preview_background)%</b>
 MAIN_TOOLTIP_BEFOREAFTERLOCK;<b>Bloquear</b> / <b>Desbloquear</b> la vista <b>Antes</b>\n\n<b>Bloquear</b>: mantiene la vista <b>Antes</b> inalterada.\n<b>Desbloquear</b>: la vista <b>Antes</b> se mantiene sincronizada con la vista <b>Después</b>.
 MAIN_TOOLTIP_FALSECOLORS;Alternar la indicación de la exposición mediante color falso.\nAtajo: <b>Mayús-e</b>\n\nClave (Rango IRE):\n%1
-MAIN_TOOLTIP_GRIDOVERLAY;Mostrar/ocultar la superposición de cuadrícula.\nAtajo: <b>Ctrl-g</b>
-MAIN_TOOLTIP_HIDEHP;Mostrar/Ocultar el panel izquierdo (incluyendo la historia).\nAtajo: <b>l</b>
-MAIN_TOOLTIP_INDCLIPPEDH;Indicación de altas luces recortadas.\nAtajo: <b>&gt;</b>
-MAIN_TOOLTIP_INDCLIPPEDS;Indicación de sombras recortadas.\nAtajo: <b>&lt;</b>
+MAIN_TOOLTIP_GRIDOVERLAY;Mostrar/ocultar la superposición de cuadrícula.\nAtajo: <b>%shortcut(editor.toggle_grid)%</b>
+MAIN_TOOLTIP_HIDEHP;Mostrar/Ocultar el panel izquierdo (incluyendo la historia).\nAtajo: <b>%shortcut(editor.toggle_history_panel)%</b>
+MAIN_TOOLTIP_INDCLIPPEDH;Indicación de altas luces recortadas.\nAtajo: <b>%shortcut(editor.toggle_highlight_clipping)%</b>
+MAIN_TOOLTIP_INDCLIPPEDS;Indicación de sombras recortadas.\nAtajo: <b>%shortcut(editor.toggle_shadow_clipping)%</b>
 MAIN_TOOLTIP_PREVIEWB;Vista previa del <b>canal azul</b>.\nAtajo: <b>Mayús-b</b>
 MAIN_TOOLTIP_PREVIEWFOCUSMASK;Vista previa de la <b>máscara de foco</b>.\nAtajo: <b>Mayús-f</b>\n\nMás preciso en imágenes con poca profundidad de campo, poco ruido y a mayores niveles de zoom.\nAmplíe el zoom al 10-30% para mejorar la precisión de la detección en imágenes con ruido.
 MAIN_TOOLTIP_PREVIEWG;Vista previa del <b>canal verde</b>.\nAtajo: <b>Mayús-g</b>
@@ -945,8 +945,8 @@ MAIN_TOOLTIP_PREVIEWL;Vista previa de la <b>luminosidad</b>.\nAtajo: <b>Mayús-v
 MAIN_TOOLTIP_PREVIEWR;Vista previa del <b>canal rojo</b>.\nAtajo: <b>Mayús-r</b>
 MAIN_TOOLTIP_PREVIEWSHARPMASK;Vista previa de la <b>máscara de contraste de enfoque</b>.\nAtajo: <b>Mayús-o</b>\n\nSolo funciona cuando se activa el enfoque, y es precisa solo cuando el zoom >= 100%.
 MAIN_TOOLTIP_QINFO;Información breve sobre la imagen.\nAtajo: <b>Mayús-i</b>
-MAIN_TOOLTIP_SHOWHIDELP1;Mostrar/Ocultar el panel izquierdo.\nAtajo: <b>l</b>
-MAIN_TOOLTIP_SHOWHIDERP1;Mostrar/Ocultar el panel derecho.\nAtajo: <b>Ctrl-l</b>
+MAIN_TOOLTIP_SHOWHIDELP1;Mostrar/Ocultar el panel izquierdo.\nAtajo: <b>%shortcut(editor.toggle_history_panel)%</b>
+MAIN_TOOLTIP_SHOWHIDERP1;Mostrar/Ocultar el panel derecho.\nAtajo: <b>%shortcut(editor.toggle_right_panel)%</b>
 MAIN_TOOLTIP_SHOWHIDETP1;Mostrar/Ocultar el panel de tira de película.\nAtajo: <b>Mayús-l</b>
 MAIN_TOOLTIP_THRESHOLD;Umbral
 MAIN_TOOLTIP_TOGGLE;Cambiar la vista <b>antes</b>/<b>después</b>.\nAtajo: <b>Mayús-a</b>
@@ -969,6 +969,7 @@ OPTIONS_BUNDLED_MISSING;¡No se ha podido encontrar el perfil "<b>%1</b>" inclui
 OPTIONS_DEFIMG_MISSING;No se ha encontrado o no se ha establecido el perfil predeterminado para <b>fotos no raw</b>.\n\nPor favor, compruebe su carpeta de perfiles, puede que falte o esté dañada.\n\nSe usará "<b>%1</b>" en su lugar.
 OPTIONS_DEFRAW_MISSING;No se ha encontrado o no se ha establecido el perfil predeterminado para <b>fotos raw</b>.\n\nPor favor, compruebe su carpeta de perfiles, puede que falte o esté dañada.\n\nSe usará "<b>%1</b>" en su lugar.
 PARTIALPASTE_ADVANCEDGROUP;Ajustes avanzados
+PARTIALPASTE_DRCOMPRESSION;Compresión de rango dinámico
 PARTIALPASTE_EFFECTSGROUP;Ajustes de efectos especiales
 PARTIALPASTE_EXPOSUREGROUP;Ajustes de exposición
 PARTIALPASTE_SATURATION;Saturación/Vivacidad
@@ -1046,7 +1047,6 @@ PARTIALPASTE_SHARPENMICRO;Micro-contraste
 PARTIALPASTE_SMOOTHING;Suavizado
 PARTIALPASTE_SOFTLIGHT;Luz tenue
 PARTIALPASTE_SPOT;Eliminación de manchas
-PARTIALPASTE_TM_FATTAL;Compresión de rango dinámico
 PARTIALPASTE_TM_LOG;Asignación de tonos log
 PARTIALPASTE_TONE_EQUALIZER;Ecualizador tonal
 PARTIALPASTE_VIBRANCE;Vivacidad
@@ -1288,9 +1288,9 @@ PROFILEPANEL_PLASTSAVED;Último guardado
 PROFILEPANEL_SAVEDLGLABEL;Guardar parámetros de procesamiento...
 PROFILEPANEL_SAVEPPASTE;Parámetros a guardar
 PROFILEPANEL_TOOLTIPCOPY;Copiar parámetros de procesamiento al portapapeles.
-PROFILEPANEL_TOOLTIPLOAD;Cargar perfil de un archivo.\n<b>Ctrl-clic</b> para seleccionar los parámetros a cargar.
-PROFILEPANEL_TOOLTIPPASTE;Pegar perfil del portapapeles.\n<b>Ctrl-clic</b> para seleccionar los parámetros a pegar.
-PROFILEPANEL_TOOLTIPSAVE;Guardar perfil actual.\n<b>Ctrl-clic</b> para seleccionar los parámetros a guardar.
+PROFILEPANEL_TOOLTIPLOAD;Cargar perfil de un archivo.\n<b>%mouse_primary%-clic</b> para seleccionar los parámetros a cargar.
+PROFILEPANEL_TOOLTIPPASTE;Pegar perfil del portapapeles.\n<b>%mouse_primary%-clic</b> para seleccionar los parámetros a pegar.
+PROFILEPANEL_TOOLTIPSAVE;Guardar perfil actual.\n<b>%mouse_primary%-clic</b> para seleccionar los parámetros a guardar.
 PROGRESSBAR_DENOISING;Reducción de ruido...
 PROGRESSBAR_HLREC;Recuperación de altas luces...
 PROGRESSBAR_LOADING;Cargando imagen...
@@ -1372,7 +1372,7 @@ SESSION_LABEL;Sesión
 SHCSELECTOR_TOOLTIP;Haga clic con el botón derecho del ratón para restablecer la posición de esos 3 controles deslizantes.
 SOFTPROOF_GAMUTCHECK_MONITOR_TOOLTIP;Resaltar los píxeles con colores fuera de rango con respecto al perfil del monitor.
 SOFTPROOF_GAMUTCHECK_TOOLTIP;Resaltar los píxeles con colores fuera de rango con respecto a:\n- el perfil de prueba en pantalla, si se ha establecido uno y la prueba en pantalla está activada,\n- el perfil de salida, si la prueba en pantalla está desactivada.
-SOFTPROOF_TOOLTIP;La prueba en pantalla simula la apariencia de la imagen cuando la reproduce una impresora o monitor específico, si se ha establecido un perfil adecuado en Preferencias > Gestión de color.\n(Mantenga pulsada la tecla <b>Ctrl</b> mientras hace clic para cambiar el perfil de prueba en pantalla).
+SOFTPROOF_TOOLTIP;La prueba en pantalla simula la apariencia de la imagen cuando la reproduce una impresora o monitor específico, si se ha establecido un perfil adecuado en Preferencias > Gestión de color.\n(Mantenga pulsada la tecla <b>%mouse_primary%</b> mientras hace clic para cambiar el perfil de prueba en pantalla).
 THRESHOLDSELECTOR_B;Inferior
 THRESHOLDSELECTOR_BL;Inferior izquierdo
 THRESHOLDSELECTOR_BR;Inferior derecho
@@ -1381,12 +1381,16 @@ THRESHOLDSELECTOR_T;Superior
 THRESHOLDSELECTOR_TL;Superior izquierdo
 THRESHOLDSELECTOR_TR;Superior derecho
 TOOL_SHORTCUT_HELP_HEADER;Atajos de herramienta:\n(mantenga pulsada la tecla indicada y ajuste el control deslizante mediante +/- o la rueda del ratón)\n
-TOOLBAR_TOOLTIP_COLORPICKER;Selector de color bloqueable\n\nCuando la herramienta está activa:\n- Añadir un selector: <b>clic con el botón izquierdo del ratón</b>.\n- Arrastrar un selector: <b>clic con el botón izquierdo del ratón y arrastrar</b>.\n- Eliminar un selector: <b>clic con el botón derecho del ratón</b>.\n- Eliminar todos los selectores: <b>Ctrl</b>+<b>Mayús</b>+<b>clic con el botón derecho del ratón</b>.\n- Volver a la herramienta mano: <b>clic con el botón derecho del ratón</b> fuera de cualquier selector.
+TOOLBAR_TOOLTIP_COLORPICKER;Selector de color bloqueable\n\nCuando la herramienta está activa:\n- Añadir un selector: <b>clic con el botón izquierdo del ratón</b>.\n- Arrastrar un selector: <b>clic con el botón izquierdo del ratón y arrastrar</b>.\n- Eliminar un selector: <b>clic con el botón derecho del ratón</b>.\n- Eliminar todos los selectores: <b>%mouse_primary%</b>+<b>Mayús</b>+<b>clic con el botón derecho del ratón</b>.\n- Volver a la herramienta mano: <b>clic con el botón derecho del ratón</b> fuera de cualquier selector.
 TOOLBAR_TOOLTIP_CROP;Selección de <b>recorte</b>.\nAtajo: <b>Mayús-c</b>\nMueva el recorte <b>arrastrando el ratón</b>\nCambie el tamaño del recorte moviendo los bordes del recorte.
-TOOLBAR_TOOLTIP_HAND;Herramienta mano.\nAtajo: <b>h</b>
+TOOLBAR_TOOLTIP_HAND;Herramienta mano.\nAtajo: <b>%shortcut(toolbar.hand)%</b>
 TOOLBAR_TOOLTIP_PERSPECTIVE;<b>Corrección de perspectiva</b>.\nAtajo: <b>Mayús-p</b>\n\nEdite las líneas de control para corregir la distorsión de la perspectiva. Haga clic en este botón de nuevo para aplicar la corrección.
 TOOLBAR_TOOLTIP_STRAIGHTEN;<b>Enderezar</b> / <b>Rotación precisa</b>.\nAtajo: <b>Mayús-s</b>\n\nIndique la vertical u horizontal dibujando una línea guía sobre la vista previa de la imagen. El ángulo de rotación se mostrará junto a la línea guía. El centro de rotación es el centro geométrico de la imagen.
 TOOLBAR_TOOLTIP_WB;Balance de blancos puntual.\nAtajo: <b>Mayús-w</b>
+TP_DRCOMPRESSION_AMOUNT;Cantidad
+TP_DRCOMPRESSION_LABEL;Compresión de rango dinámico
+TP_DRCOMPRESSION_SATCONTROL;Control de saturación
+TP_DRCOMPRESSION_THRESHOLD;Detalle
 TP_SATURATION_LABEL;Saturación/Vivacidad
 TP_BRIGHTCONTRSAT_CONTRAST;Contraste
 TP_SATURATION_SATURATION;Saturación
@@ -1746,7 +1750,7 @@ TP_LABMASKS_DELTAE_PICK;Escoger
 TP_LABMASKS_DELTAE_CHAN_WEIGHT;Peso en el cálculo ΔE
 TP_LABMASKS_DELTAE_TOOLTIP;Seleccione las regiones de color similar\n(según la métrica CIELAB ΔE*)
 TP_LABMASKS_DRAWNMASK;Máscara de pincel
-TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;Cambie cómo pinta el pincel en el lienzo.\n\n<i>Si se usa el ratón:</i>\n- Mantenga pulsado <b>Alt</b> para activar temporalmente el "Modo borrador";\n- Mantenga pulsado <b>Mayús</b> para dibujar una línea recta;\n- Use <b>Ctrl+rueda del ratón</b> para cambiar el radio del pincel,\n- <b>Ctrl+Mayús+rueda del ratón</b> para cambiar la dureza del pincel,\n- y <b>Ctrl+clic</b> para comenzar un nuevo grupo de trazos sin cambiar los parámetros\n(de modo que se sumen varios trazos en la misma área);\n- Use el <b>tercer botón</b> para desactivar la pintura en el lienzo.\n\n<i>Si se usa un dispositivo sensible a la presión:</i>n- Use el <b>primer botón</b> para cambiar al "Modo borrador";\n- Mantenga pulsado <b>Mayús</b> para dibujar una línea recta;\n- Use <b>Alt+primer botón</b> para aumentar el radio del pincel, y\n- <b>Alt+segundo botón</b> para reducirlo;\n- Use el <b>segundo botón</b> para recorrer los modos de sensibilidad a la presión disponibles: inactivo, dureza, radio (mantenga pulsado <b>Mayús</b> para invertir la dirección);\n- Use <b>Ctrl+segundo botón</b> para desactivar la pintura en el lienzo.
+TP_LABMASKS_DRAWNMASK_TOGGLE_TIP;Cambie cómo pinta el pincel en el lienzo.\n\n<i>Si se usa el ratón:</i>\n- Mantenga pulsado <b>Alt</b> para activar temporalmente el "Modo borrador";\n- Mantenga pulsado <b>Mayús</b> para dibujar una línea recta;\n- Use <b>%mouse_primary%+rueda del ratón</b> para cambiar el radio del pincel,\n- <b>%mouse_primary%+Mayús+rueda del ratón</b> para cambiar la dureza del pincel,\n- y <b>%mouse_primary%+clic</b> para comenzar un nuevo grupo de trazos sin cambiar los parámetros\n(de modo que se sumen varios trazos en la misma área);\n- Use el <b>tercer botón</b> para desactivar la pintura en el lienzo.\n\n<i>Si se usa un dispositivo sensible a la presión:</i>n- Use el <b>primer botón</b> para cambiar al "Modo borrador";\n- Mantenga pulsado <b>Mayús</b> para dibujar una línea recta;\n- Use <b>Alt+primer botón</b> para aumentar el radio del pincel, y\n- <b>Alt+segundo botón</b> para reducirlo;\n- Use el <b>segundo botón</b> para recorrer los modos de sensibilidad a la presión disponibles: inactivo, dureza, radio (mantenga pulsado <b>Mayús</b> para invertir la dirección);\n- Use <b>%mouse_primary%+segundo botón</b> para desactivar la pintura en el lienzo.
 TP_LABMASKS_DRAWNMASK_PEN_SETTINGS;Ajustes de pincel
 TP_LABMASKS_DRAWNMASK_RESET_TIP;Borrar todos los trazos
 TP_LABMASKS_DRAWNMASK_UNDO_TIP;Borrar el último grupo de trazos
@@ -1816,7 +1820,7 @@ TP_PERSPECTIVE_AUTO_BOTH_TOOLTIP;Horizontal y vertical
 TP_PERSPECTIVE_AUTO_HORIZONTAL_TOOLTIP;Horizontal
 TP_PERSPECTIVE_AUTO_VERTICAL_TOOLTIP;Vertical
 TP_PERSPECTIVE_CONTROL_LINES;Líneas de control
-TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>Ctrl</b>+<b>arrastrar</b>: Dibujar una nueva línea\n<b>Clic derecho del ratón</b>: Borrar línea
+TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>%mouse_primary%</b>+<b>arrastrar</b>: Dibujar una nueva línea\n<b>Clic derecho del ratón</b>: Borrar línea
 TP_PERSPECTIVE_CROPFACTOR;Factor de recorte
 TP_PERSPECTIVE_FLENGTH;Distancia focal
 TP_PERSPECTIVE_HORIZONTAL;Horizontal
@@ -2019,7 +2023,7 @@ TP_SOFTLIGHT_LABEL;Luz tenue
 TP_SOFTLIGHT_STRENGTH;Intensidad
 TP_SPOT_COUNTLABEL;%1 punto(s)
 TP_SPOT_ENTRYCHANGED;Punto cambiado
-TP_SPOT_HINT;Haga clic en este botón para poder operar en el área de vista previa.\n\nPara editar un punto, pase el cursor por la marca blanca que indica un área editada, haciendo aparecer la geometría de edición.\n\nPara añadir un punto, pulse Ctrl y el botón izquierdo del ratón, arrastre el círculo (puede soltar la tecla Ctrl) a una ubicación de origen, y a continuación suelte el botón del ratón\n\nPara mover el punto de origen o destino, pase el cursor por su centro y arrástrelo.\n\nSe puede cambiar el tamaño del círculo interior (área de efecto máximo) y el círculo de "difuminado" pasando el cursor por encima de ellos (el círculo se vuelve naranja) y arrastrándolos (el círculo se vuelve rojo).\n\nCuando los cambios estén hechos, haga clic con el botón derecho del ratón fuera de cualquier punto para salir del modo de edición de puntos, o haga clic en este botón de nuevo.
+TP_SPOT_HINT;Haga clic en este botón para poder operar en el área de vista previa.\n\nPara editar un punto, pase el cursor por la marca blanca que indica un área editada, haciendo aparecer la geometría de edición.\n\nPara añadir un punto, pulse %mouse_primary% y el botón izquierdo del ratón, arrastre el círculo (puede soltar la tecla %mouse_primary%) a una ubicación de origen, y a continuación suelte el botón del ratón\n\nPara mover el punto de origen o destino, pase el cursor por su centro y arrástrelo.\n\nSe puede cambiar el tamaño del círculo interior (área de efecto máximo) y el círculo de "difuminado" pasando el cursor por encima de ellos (el círculo se vuelve naranja) y arrastrándolos (el círculo se vuelve rojo).\n\nCuando los cambios estén hechos, haga clic con el botón derecho del ratón fuera de cualquier punto para salir del modo de edición de puntos, o haga clic en este botón de nuevo.
 TP_SPOT_LABEL;Eliminación de manchas
 TP_SPOT_LIGHTPIPELINE_HINT;Haga clic en este botón para modificar los puntos mientras obtiene una vista previa de una imagen simplificada al desactivar las herramientas que requieren muchos recursos (opción de rendimiento).\n\nTiene efecto solo cuando la edición en vista previa está activa.
 TP_SPOT_CUR_SPOT_LABEL;Punto actual
@@ -2031,10 +2035,6 @@ TP_SPOT_RADIUS;Radio
 TP_SPOT_FEATHER;Difuminado
 TP_SPOT_OPACITY;Opacidad
 TP_SPOT_DETAIL;Protección de detalles
-TP_TM_FATTAL_AMOUNT;Cantidad
-TP_TM_FATTAL_LABEL;Compresión de rango dinámico
-TP_TM_FATTAL_THRESHOLD;Detalle
-TP_TM_FATTAL_SATCONTROL;Control de saturación
 TP_TONECURVE_BASECURVE;Curva base
 TP_TONECURVE_BASECURVE_LINEAR;Lineal
 TP_TONECURVE_BASECURVE_ROLLOFF;Atenuación suave de las altas luces

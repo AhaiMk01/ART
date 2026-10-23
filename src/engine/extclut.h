@@ -2,7 +2,7 @@
  *
  *  This file is part of ART.
  *
- *  Copyright 2025 Alberto Griggio <alberto.griggio@gmail.com>
+ *  Copyright (c) 2025 Alberto Griggio <alberto.griggio@gmail.com>
  *
  *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -70,6 +70,7 @@ private:
 
     bool ok_;
     bool is_server_;
+    bool use_cache_;
     Glib::ustring filename_;
     CLUTParamDescriptorList params_;
     OCIO::ConstCPUProcessorRcPtr proc_;

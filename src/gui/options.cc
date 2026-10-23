@@ -1,20 +1,21 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "options.h"
 #include "../engine/metadata.h"
@@ -583,6 +584,7 @@ void Options::setDefaults()
     FileBrowserToolbarSingleRow = false;
     hideTPVScrollbar = false;
     whiteBalanceSpotSize = 8;
+    deltaESpotSize = 32;
     showFilmStripToolBar = false;
     menuGroupRank = true;
     menuGroupLabel = true;
@@ -1904,6 +1906,11 @@ void Options::readFromFile(Glib::ustring fname)
                         "Color Management", "WhiteBalanceSpotSize");
                 }
 
+                if (keyFile.has_key("Color Management", "DeltaESpotSize")) {
+                    deltaESpotSize = keyFile.get_integer("Color Management",
+                                                         "DeltaESpotSize");
+                }
+
                 if (keyFile.has_key("Color Management", "ClutsDirectory")) {
                     clutsDir = keyFile.get_string("Color Management",
                                                   "ClutsDirectory");
@@ -2559,6 +2566,8 @@ void Options::saveToFile(Glib::ustring fname)
 
         keyFile.set_integer("Color Management", "WhiteBalanceSpotSize",
                             whiteBalanceSpotSize);
+        keyFile.set_integer("Color Management", "DeltaESpotSize",
+                            deltaESpotSize);
         keyFile.set_string("Color Management", "ClutsDirectory", clutsDir);
 
         Glib::ustring os_mon_prof = "";

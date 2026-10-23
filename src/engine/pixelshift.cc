@@ -1,3 +1,4 @@
+// -*- C++ -*-
 ////////////////////////////////////////////////////////////////
 //
 //  Algorithm for Pentax/Sony Pixel Shift raw files with motion detection

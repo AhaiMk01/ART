@@ -1,22 +1,24 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "filepanel.h"
+#include "shortcutsmanager.h"
 
 #include "inspector.h"
 #include "placesbrowser.h"
@@ -29,6 +31,12 @@ using namespace utils;
 
 FilePanel::FilePanel(): parent(nullptr), error(0), pane_pos_(-1)
 {
+    ShortcutsManager::getInstance()->bind(
+        this, "filepanel.toggle_right_notebook", [this](GdkEventKey *) {
+            rightNotebook->set_current_page(
+                (rightNotebook->get_current_page() + 1) % 2);
+            return true;
+        });
 
     // Contains everything except for the batch Tool Panel and tabs (Fast
     // Export, Inspect, etc)
@@ -156,6 +164,8 @@ FilePanel::FilePanel(): parent(nullptr), error(0), pane_pos_(-1)
 
 FilePanel::~FilePanel()
 {
+    ShortcutsManager::getInstance()->unbindOwner(this);
+
     idle_register.destroy();
 
     rightNotebookSwitchConn.disconnect();
@@ -464,28 +474,12 @@ void FilePanel::optionsChanged()
 
 bool FilePanel::handleShortcutKey(GdkEventKey *event)
 {
-
-    // if(tpc->getToolBar() && tpc->getToolBar()->handleShortcutKey(event)) {
-    //     return true;
-    // }
-
-    // if(tpc->handleShortcutKey(event)) {
-    //     return true;
-    // }
-
     if (fileCatalog->handleShortcutKey(event)) {
         return true;
     }
 
-    auto keyval = getKeyval(event);
-    if (event->state & GDK_CONTROL_MASK &&
-        (keyval == GDK_KEY_i || keyval == GDK_KEY_I)) {
-        rightNotebook->set_current_page(
-            (rightNotebook->get_current_page() + 1) % 2);
-        return true;
-    }
-
-    return false;
+    return ShortcutsManager::getInstance()->dispatch(
+        event, ShortcutPhase::After, {{"filepanel", this}});
 }
 
 void FilePanel::loadingThumbs(Glib::ustring str, double rate)

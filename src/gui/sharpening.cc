@@ -1,20 +1,21 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2018-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "sharpening.h"
 #include "eventmapper.h"
@@ -523,6 +524,22 @@ void Sharpening::toolReset(bool to_initial)
     }
     pp.sharpening.enabled = getEnabled();
     read(&pp);
+}
+
+
+void Sharpening::registerShortcuts(ToolShortcutsManager *mgr)
+{
+    mgr->addShortcut("tool.sharpening.contrast_threshold", this, contrast);
+    mgr->addShortcut("tool.sharpening.usm_radius", this, radius);
+    mgr->addShortcut("tool.sharpening.usm_amount", this, amount);
+    mgr->addShortcut("tool.sharpening.deconv_radius", this, dradius);
+    mgr->addShortcut("tool.sharpening.deconv_amount", this, damount);
+    mgr->addShortcut("tool.sharpening.deconv_corner_boost", this, deconvCornerBoost);
+    mgr->addShortcut("tool.sharpening.deconv_corner_latitude", this, deconvCornerLatitude);
+    mgr->addShortcut("tool.sharpening.psf_iterations", this, psf_iterations);
+    mgr->addShortcut("tool.sharpening.edges_radius", this, eradius);
+    mgr->addShortcut("tool.sharpening.edges_tolerance", this, etolerance);
+    mgr->addShortcut("tool.sharpening.halo_amount", this, hcamount);
 }
 
 

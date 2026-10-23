@@ -1,3 +1,24 @@
+/* -*- C++ -*-
+ *
+ *  This file is part of ART.
+ *
+ *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
+ *
+ *  ART is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  ART is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #pragma once
 
 namespace art { namespace utils {
@@ -5,10 +26,18 @@ namespace art { namespace utils {
 
 // This number has to be incremented whenever the ARP file format is modified or
 // the behaviour of a tool changes
-#define PPVERSION 1061
+#define PPVERSION 1063
 
 /*
   Log of version changes
+  1063  2026-10-23
+        upstream 1047: adjusted coarseness coefficient for Grain ISO and
+        Smoothing in NOISE mode (renumbered: fork versions 1046-1061 predate
+        it)
+  1062  2026-10-23
+        upstream 1046: renamed FattalToneMapping to DynamicRangeCompression
+        (renumbered; the group is looked up by name, so upstream 1046/1047
+        sidecars still load)
   1061  2026-10-12
         film negative: the print LUT (CineonLUT* keys, LegacyInputLUT), the
         paper target (PaperCurve, PaperBasis) and the Cineon TIFF export

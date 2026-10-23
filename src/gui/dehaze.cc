@@ -1,21 +1,21 @@
 /** -*- C++ -*-
  *
- *  This file is part of RawTherapee.
+ *  This file is part of ART.
  *
- *  Copyright (c) 2018 Alberto Griggio <alberto.griggio@gmail.com>
+ *  Copyright (c) 2018-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "dehaze.h"
 #include "eventmapper.h"
@@ -209,6 +209,13 @@ void Dehaze::toolReset(bool to_initial)
     read(&pp);
     depth->set_visible(depth->is_visible() || depth_visible);
     showDepthMap->set_visible(showDepthMap->is_visible() || dmap_visible);
+}
+
+
+void Dehaze::registerShortcuts(ToolShortcutsManager *mgr)
+{
+    mgr->addShortcut("tool.dehaze.depth", this, depth);
+    mgr->addShortcut("tool.dehaze.black_point", this, blackpoint);
 }
 
 

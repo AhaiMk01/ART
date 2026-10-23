@@ -139,7 +139,7 @@ set(NONCLISOURCEFILES
     xtransprocess.cc
     xtransrawexposure.cc
     zoompanel.cc
-    fattaltonemap.cc
+    drcompression.cc
     localcontrast.cc
     eventmapper.cc
     metadatapanel.cc
@@ -163,7 +163,11 @@ set(NONCLISOURCEFILES
     controllines.cc
     filecatalog_rename.cc
     focusmask.cc
-    shortcutmanager.cc
+    shortcutsmanager.cc
+    shortcutseditor.cc
+    shortcuttable.cc
+    systemshortcuts.cc
+    shortcutdefs.cc
     session.cc
     thumbimgcache.cc
     clutparamspanel.cc
@@ -274,10 +278,16 @@ endif()
 # Create new executables targets
 add_executable(art ${EXTRA_SRC_NONCLI} ${NONCLISOURCEFILES})
 add_executable(art-cli ${EXTRA_SRC_CLI} ${CLISOURCEFILES})
+# zenity-like dialogs for user commands; deliberately independent of art_engine
+add_executable(art-dialogs ${EXTRA_SRC_NONCLI}
+    dialogs/main.cc
+    dialogs/dialogs.cc
+    dialogs/theme.cc)
 
 # Add dependencies to executables targets
 add_dependencies(art UpdateInfo)
 add_dependencies(art-cli UpdateInfo)
+add_dependencies(art-dialogs UpdateInfo)
 
 #Define a target specific definition to use in code
 target_compile_definitions(art PUBLIC GUIVERSION)
@@ -287,9 +297,11 @@ target_compile_definitions(art-cli PUBLIC CLIVERSION)
 # for "Debug" builds, open a console in all cases for Windows version
 if((WIN32) AND NOT(UPPER_CMAKE_BUILD_TYPE STREQUAL "DEBUG"))
     set_target_properties(art PROPERTIES LINK_FLAGS "-mwindows")
+    set_target_properties(art-dialogs PROPERTIES LINK_FLAGS "-mwindows")
 endif()
 set_target_properties(art PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS}" OUTPUT_NAME ART)
 set_target_properties(art-cli PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS}" OUTPUT_NAME ART-cli)
+set_target_properties(art-dialogs PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS}" OUTPUT_NAME ART-dialogs)
 
 # Add linked libraries dependencies to executables targets
 target_link_libraries(art PUBLIC
@@ -340,22 +352,54 @@ target_link_libraries(art-cli PUBLIC
     ${EXIV2_LIBRARIES}
     )
 
+target_link_libraries(art-dialogs PUBLIC
+    art_utils
+    ${GIOMM_LIBRARIES}
+    ${GIO_LIBRARIES}
+    ${GLIB2_LIBRARIES}
+    ${GLIBMM_LIBRARIES}
+    ${GOBJECT_LIBRARIES}
+    ${GTHREAD_LIBRARIES}
+    ${GTKMM_LIBRARIES}
+    ${GTK_LIBRARIES}
+    )
+
 if(HAS_MIMALLOC)
     target_link_libraries(art PUBLIC mimalloc)
     target_link_libraries(art-cli PUBLIC mimalloc)
 endif()
 
 if(APPLE)
-    target_link_libraries(art PRIVATE "-framework ApplicationServices -framework Foundation")
+    target_link_libraries(art PRIVATE "-framework ApplicationServices -framework Carbon -framework Foundation")
     target_link_libraries(art-cli PRIVATE "-framework Foundation")
+    target_link_libraries(art-dialogs PRIVATE "-framework Foundation")
 endif()
+
+# Unit tests of the shortcut table (pure logic: needs GDK's keyval helpers but
+# no display); run with `ctest -R shortcuts`
+add_executable(art-shortcuts-test EXCLUDE_FROM_ALL
+    test_shortcuts.cc
+    shortcuttable.cc
+    systemshortcuts.cc
+    shortcutdefs.cc
+    ../engine/cJSON.c)
+target_link_libraries(art-shortcuts-test PRIVATE art_utils ${GTK_LIBRARIES} ${GLIB2_LIBRARIES} ${GLIBMM_LIBRARIES})
+if(APPLE)
+    target_link_libraries(art-shortcuts-test PRIVATE "-framework Carbon -framework Foundation")
+endif()
+target_compile_definitions(art-shortcuts-test PRIVATE
+    ART_LANGUAGES_DIR="${PROJECT_SOURCE_DIR}/data/languages"
+    ART_DATA_DIR="${PROJECT_SOURCE_DIR}/data")
+add_test(NAME shortcuts COMMAND art-shortcuts-test)
 
 # Install executables
 if(APPLE AND NOT APPLE_NEW_BUNDLE)
     install(TARGETS art DESTINATION "${PROJECT_SOURCE_DIR}/build/${CMAKE_BUILD_TYPE}/MacOS")
     install(TARGETS art-cli DESTINATION "${PROJECT_SOURCE_DIR}/build/${CMAKE_BUILD_TYPE}/MacOS")
+    install(TARGETS art-dialogs DESTINATION "${PROJECT_SOURCE_DIR}/build/${CMAKE_BUILD_TYPE}/MacOS")
 else()
     install(TARGETS art DESTINATION ${BINDIR})
     install(TARGETS art-cli DESTINATION ${BINDIR})
+    install(TARGETS art-dialogs DESTINATION ${BINDIR})
 endif()
 

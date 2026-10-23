@@ -1,3 +1,4 @@
+// -*- C -*-
 /*
 lj92.c
 (c) Andrew Baldwin 2014

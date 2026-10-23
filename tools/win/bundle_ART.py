@@ -108,7 +108,8 @@ def getdlls(opts):
     d = os.getcwd()
     seen = set()
     res = []
-    to_visit = [os.path.join(d, 'ART.exe'), os.path.join(d, 'ART-cli.exe')]
+    to_visit = [os.path.join(d, 'ART.exe'), os.path.join(d, 'ART-cli.exe'),
+                os.path.join(d, 'ART-dialogs.exe')]
     while to_visit:
         cur = to_visit.pop()
         for name in get_dll_imports(cur):

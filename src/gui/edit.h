@@ -1,21 +1,21 @@
 /* -*- C++ -*-
  *
- *  This file is part of RawTherapee.
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #pragma once
 #include <gtkmm.h>
@@ -648,7 +648,7 @@ public:
     /** @brief Triggered when the mouse is moving over an object
     This method is also triggered when the cursor is moving over the image in
     ET_PIPETTE mode
-    @param modifierKey Gtk's event modifier key (GDK_CONTROL_MASK |
+    @param modifierKey Gtk's event modifier key (ShortcutsManager::mousePrimaryMask() |
     GDK_SHIFT_MASK | ...)
     @return true if the preview has to be redrawn, false otherwise */
     virtual bool mouseOver(int modifierKey);
@@ -656,7 +656,7 @@ public:
     /** @brief Triggered when mouse button 1 is pressed, together with the CTRL
     modifier key if the subscriber is of type ET_PIPETTE Once the key is
     pressed, RT will enter in drag1 mode on subsequent mouse movements
-    @param modifierKey Gtk's event modifier key (GDK_CONTROL_MASK |
+    @param modifierKey Gtk's event modifier key (ShortcutsManager::mousePrimaryMask() |
     GDK_SHIFT_MASK | ...)
     @return true if the preview has to be redrawn, false otherwise */
     virtual bool button1Pressed(int modifierKey);
@@ -672,7 +672,7 @@ public:
     /** @brief Triggered when mouse button 2 is pressed (middle button)
     Once the key is pressed, RT will enter in drag2 mode on subsequent mouse
     movements
-    @param modifierKey Gtk's event modifier key (GDK_CONTROL_MASK |
+    @param modifierKey Gtk's event modifier key (ShortcutsManager::mousePrimaryMask() |
     GDK_SHIFT_MASK | ...)
     @return true if the preview has to be redrawn, false otherwise */
     virtual bool button2Pressed(int modifierKey);
@@ -688,7 +688,7 @@ public:
     /** @brief Triggered when mouse button 3 is pressed (right button)
     Once the key is pressed, RT will enter in drag3 mode on subsequent mouse
     movements
-    @param modifierKey Gtk's event modifier key (GDK_CONTROL_MASK |
+    @param modifierKey Gtk's event modifier key (ShortcutsManager::mousePrimaryMask() |
     GDK_SHIFT_MASK | ...)
     @return true if the preview has to be redrawn, false otherwise */
     virtual bool button3Pressed(int modifierKey);
@@ -703,7 +703,7 @@ public:
 
     /** @brief Triggered when the user is moving while holding down mouse button
     1
-    @param modifierKey Gtk's event modifier key (GDK_CONTROL_MASK |
+    @param modifierKey Gtk's event modifier key (ShortcutsManager::mousePrimaryMask() |
     GDK_SHIFT_MASK | ...)
     @return true if the preview has to be redrawn, false otherwise */
     virtual bool drag1(int modifierKey);
@@ -714,7 +714,7 @@ public:
 
     /** @brief Triggered when the user is moving while holding down mouse button
     2
-    @param modifierKey Gtk's event modifier key (GDK_CONTROL_MASK |
+    @param modifierKey Gtk's event modifier key (ShortcutsManager::mousePrimaryMask() |
     GDK_SHIFT_MASK | ...)
     @return true if the preview has to be redrawn, false otherwise */
     virtual bool drag2(int modifierKey);
@@ -725,7 +725,7 @@ public:
 
     /** @brief Triggered when the user is moving while holding down mouse button
     3
-    @param modifierKey Gtk's event modifier key (GDK_CONTROL_MASK |
+    @param modifierKey Gtk's event modifier key (ShortcutsManager::mousePrimaryMask() |
     GDK_SHIFT_MASK | ...)
     @return true if the preview has to be redrawn, false otherwise */
     virtual bool drag3(int modifierKey);
@@ -765,7 +765,7 @@ public:
     /**
      * triggered for scroll wheel events. Only for ET_OBJECTS types
      *
-     * @param modifierKey Gtk's event modifier key (GDK_CONTROL_MASK |
+     * @param modifierKey Gtk's event modifier key (ShortcutsManager::mousePrimaryMask() |
      * GDK_SHIFT_MASK | ...)
      * @param direction Direction of the scroll (see Gtk documentation for more
      * information)

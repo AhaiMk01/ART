@@ -1,20 +1,21 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <cstdint>
@@ -1856,20 +1857,20 @@ bool LogEncodingParams::operator!=(const LogEncodingParams &other) const
     return !(*this == other);
 }
 
-FattalToneMappingParams::FattalToneMappingParams()
+DynamicRangeCompressionParams::DynamicRangeCompressionParams()
     : enabled(false), threshold(30), amount(20), satcontrol(false)
 {
 }
 
-bool FattalToneMappingParams::operator==(
-    const FattalToneMappingParams &other) const
+bool DynamicRangeCompressionParams::operator==(
+    const DynamicRangeCompressionParams &other) const
 {
     return enabled == other.enabled && threshold == other.threshold &&
            amount == other.amount && satcontrol == other.satcontrol;
 }
 
-bool FattalToneMappingParams::operator!=(
-    const FattalToneMappingParams &other) const
+bool DynamicRangeCompressionParams::operator!=(
+    const DynamicRangeCompressionParams &other) const
 {
     return !(*this == other);
 }
@@ -3062,7 +3063,7 @@ void ProcParams::setDefaults()
     impulseDenoise = ImpulseDenoiseParams();
     denoise = DenoiseParams();
     textureBoost = TextureBoostParams();
-    fattal = FattalToneMappingParams();
+    drcompression = DynamicRangeCompressionParams();
     logenc = LogEncodingParams();
     toneEqualizer = ToneEqualizerParams();
     crop = CropParams();
@@ -3625,16 +3626,16 @@ int ProcParams::save(ProgressListener *pl, bool save_general, KeyFile &keyFile,
                           textureBoost.selectedRegion, keyFile);
         }
 
-        // Fattal
-        if (RELEVANT_(fattal)) {
-            saveToKeyfile("FattalToneMapping", "Enabled", fattal.enabled,
-                          keyFile);
-            saveToKeyfile("FattalToneMapping", "Threshold", fattal.threshold,
-                          keyFile);
-            saveToKeyfile("FattalToneMapping", "Amount", fattal.amount,
-                          keyFile);
-            saveToKeyfile("FattalToneMapping", "SaturationControl",
-                          fattal.satcontrol, keyFile);
+        // Dynamic range compression
+        if (RELEVANT_(drcompression)) {
+            saveToKeyfile("DynamicRangeCompression", "Enabled",
+                          drcompression.enabled, keyFile);
+            saveToKeyfile("DynamicRangeCompression", "Threshold",
+                          drcompression.threshold, keyFile);
+            saveToKeyfile("DynamicRangeCompression", "Amount",
+                          drcompression.amount, keyFile);
+            saveToKeyfile("DynamicRangeCompression", "SaturationControl",
+                          drcompression.satcontrol, keyFile);
         }
 
         // Log encoding
@@ -5221,15 +5222,21 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                               textureBoost.selectedRegion);
         }
 
-        if (keyFile.has_group("FattalToneMapping") && RELEVANT_(fattal)) {
-            assignFromKeyfile(keyFile, "FattalToneMapping", "Enabled",
-                              fattal.enabled);
-            assignFromKeyfile(keyFile, "FattalToneMapping", "Threshold",
-                              fattal.threshold);
-            assignFromKeyfile(keyFile, "FattalToneMapping", "Amount",
-                              fattal.amount);
-            assignFromKeyfile(keyFile, "FattalToneMapping", "SaturationControl",
-                              fattal.satcontrol);
+        // renamed in 1062 (upstream 1046, which the fork's film versions
+        // 1046-1061 collide with): look the group up by name
+        const auto drcomp_name =
+            keyFile.has_group("DynamicRangeCompression")
+                ? "DynamicRangeCompression"
+                : "FattalToneMapping";
+        if (keyFile.has_group(drcomp_name) && RELEVANT_(drcompression)) {
+            assignFromKeyfile(keyFile, drcomp_name, "Enabled",
+                              drcompression.enabled);
+            assignFromKeyfile(keyFile, drcomp_name, "Threshold",
+                              drcompression.threshold);
+            assignFromKeyfile(keyFile, drcomp_name, "Amount",
+                              drcompression.amount);
+            assignFromKeyfile(keyFile, drcomp_name, "SaturationControl",
+                              drcompression.satcontrol);
         }
 
         if (keyFile.has_group("LogEncoding") && RELEVANT_(logenc)) {
@@ -5801,6 +5808,9 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
         if (keyFile.has_group("Grain") && RELEVANT_(grain)) {
             assignFromKeyfile(keyFile, "Grain", "Enabled", grain.enabled);
             assignFromKeyfile(keyFile, "Grain", "ISO", grain.iso);
+            if (ppVersion < 1063) { // upstream 1047
+                grain.iso = std::min(int(grain.iso * 1.5 + 0.5), 6400);
+            }
             assignFromKeyfile(keyFile, "Grain", "Strength", grain.strength);
             int gscale = 100;
             if (assignFromKeyfile(keyFile, "Grain", "Scale", gscale)) {
@@ -5919,6 +5929,10 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                 if (assignFromKeyfile(keyFile, smoothing_group,
                                       Glib::ustring("NoiseCoarseness_") + n,
                                       cur.noise_coarseness)) {
+                    if (ppVersion < 1063) { // upstream 1047
+                        cur.noise_coarseness =
+                            std::min(int(cur.noise_coarseness * 1.5 + 0.5), 100);
+                    }
                     found = true;
                     done = false;
                 }
@@ -6966,7 +6980,7 @@ bool ProcParams::operator==(const ProcParams &other) const
     return ppEQ_(exposure) && ppEQ_(saturation) && ppEQ_(toneCurve) &&
            ppEQ_(localContrast) && ppEQ_(labCurve) && ppEQ_(sharpening) &&
            ppEQ_(prsharpening) && ppEQ_(wb) && ppEQ_(impulseDenoise) &&
-           ppEQ_(denoise) && ppEQ_(textureBoost) && ppEQ_(fattal) &&
+           ppEQ_(denoise) && ppEQ_(textureBoost) && ppEQ_(drcompression) &&
            ppEQ_(logenc) && ppEQ_(defringe) && ppEQ_(toneEqualizer) &&
            ppEQ_(crop) && ppEQ_(coarse) && ppEQ_(rotate) &&
            ppEQ_(commonTrans) && ppEQ_(distortion) && ppEQ_(lensProf) &&

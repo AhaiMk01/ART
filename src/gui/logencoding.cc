@@ -1,21 +1,21 @@
 /** -*- C++ -*-
  *
- *  This file is part of RawTherapee.
+ *  This file is part of ART.
  *
- *  Copyright (c) 2018 Alberto Griggio <alberto.griggio@gmail.com>
+ *  Copyright (c) 2018-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "logencoding.h"
 #include "eventmapper.h"
@@ -68,7 +68,7 @@ LogEncoding::LogEncoding()
     regularization =
         Gtk::manage(new Adjuster(M("TP_LOGENC_REGULARIZATION"), 0, 100, 1, 65));
     satcontrol =
-        Gtk::manage(new Gtk::CheckButton(M("TP_TM_FATTAL_SATCONTROL")));
+        Gtk::manage(new Gtk::CheckButton(M("TP_DRCOMPRESSION_SATCONTROL")));
     satcontrol->signal_toggled().connect(
         sigc::mem_fun(*this, &LogEncoding::satcontrolChanged), true);
 
@@ -265,13 +265,14 @@ void LogEncoding::toolReset(bool to_initial)
     read(&pp);
 }
 
-void LogEncoding::registerShortcuts(ToolShortcutManager *mgr)
+void LogEncoding::registerShortcuts(ToolShortcutsManager *mgr)
 {
-    mgr->addShortcut(GDK_KEY_g, this, gain);
-    mgr->addShortcut(GDK_KEY_b, this, targetGray);
-    mgr->addShortcut(GDK_KEY_w, this, whiteEv);
-    mgr->addShortcut(GDK_KEY_d, this, blackEv);
-    mgr->addShortcut(GDK_KEY_k, this, highlightCompression);
+    mgr->addShortcut("tool.logencoding.gain", this, gain);
+    mgr->addShortcut("tool.logencoding.target_gray", this, targetGray);
+    mgr->addShortcut("tool.logencoding.white_ev", this, whiteEv);
+    mgr->addShortcut("tool.logencoding.black_ev", this, blackEv);
+    mgr->addShortcut("tool.logencoding.highlight_compression", this, highlightCompression);
+    mgr->addShortcut("tool.logencoding.regularization", this, regularization);
 }
 
 

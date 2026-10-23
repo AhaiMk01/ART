@@ -1,20 +1,21 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <https://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "multilangmgr.h"
 
@@ -219,7 +220,35 @@ Glib::ustring MultiLangMgr::getStr(const std::string &key) const
     const auto iterator = translations.find(key);
 
     if (iterator != translations.end()) {
-        return iterator->second;
+        if (!shortcut_labeler_ && mouse_primary_name_.empty()) {
+            return iterator->second;
+        }
+        Glib::ustring res = iterator->second;
+        if (shortcut_labeler_) {
+            static const std::string open_tag = "%shortcut(";
+            std::string::size_type pos = 0;
+            while ((pos = res.find(open_tag, pos)) != Glib::ustring::npos) {
+                auto end = res.find(")%", pos);
+                if (end == Glib::ustring::npos) {
+                    break;
+                }
+                const std::string id =
+                    res.substr(pos + open_tag.size(),
+                               end - pos - open_tag.size());
+                const Glib::ustring label = shortcut_labeler_(id);
+                res.replace(pos, end + 2 - pos, label);
+                pos += label.size();
+            }
+        }
+        if (!mouse_primary_name_.empty()) {
+            static const std::string tag = "%mouse_primary%";
+            std::string::size_type pos = 0;
+            while ((pos = res.find(tag, pos)) != Glib::ustring::npos) {
+                res.replace(pos, tag.size(), mouse_primary_name_);
+                pos += mouse_primary_name_.size();
+            }
+        }
+        return res;
     }
 
     return key;

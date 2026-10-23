@@ -1,21 +1,22 @@
 /* -*- C++ -*-
  *
- *  This file is part of RawTherapee.
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #pragma once
 
@@ -56,6 +57,10 @@ class Thumbnail: public PParamsSnapshotListener {
     art::engine::procparams::ProcParamsWithSnapshots pparams;
 
     bool pparamsValid;
+    // The parameters in memory may differ from those on disk: set by every
+    // change (the editor pushes its changes here without writing them, see
+    // setProcParams()), cleared when they are written or loaded.
+    bool pparamsDirty_;
     bool needsReProcessing;
     bool imageLoading;
 
@@ -119,6 +124,12 @@ class Thumbnail: public PParamsSnapshotListener {
     void saveRating();
     void loadRating();
     void saveMetadata();
+
+    // true if the files that saveProcParams() would write already exist
+    bool paramFilesExist() const;
+    // like updateCache(), but the files are written by a background thread
+    // (from a copy of the data taken here); the mutex must be held
+    void updateCacheAsync();
 
 public:
     Thumbnail(CacheManager *cm, const Glib::ustring &fname, CacheImageData *cf);
@@ -230,6 +241,21 @@ public:
 
     void updateCache(bool updatePParams = true,
                      bool updateCacheImageData = true);
+
+    // Saves the processing parameters (sidecar, cache entries, XMP metadata)
+    // as setProcParams(pp, whoChangedIt) does, except that nothing is written
+    // (and the listeners are not notified) if the parameters did not change
+    // and the files already exist. If async is true, the files are written by
+    // a background thread, so that a slow file system (external drive, network
+    // share) does not block the caller; see flushPendingWrites().
+    void saveProcParams(const art::engine::procparams::PartialProfile &pp,
+                        int whoChangedIt = -1, bool async = false);
+
+    // Waits until all the writes started by saveProcParams(..., async=true)
+    // have completed. To be called before anything that renames, moves,
+    // deletes or reads those files by name, and before exiting. (updateCache()
+    // waits by itself for the pending write of its own file.)
+    static void flushPendingWrites();
     void saveThumbnail();
 
     bool imageLoad(bool loading);

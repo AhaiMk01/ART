@@ -1,20 +1,21 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2020-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include <functional>
 
@@ -23,6 +24,7 @@
 #include "guiutils.h"
 #include "../utils/multilangmgr.h"
 #include "rtimage.h"
+#include "shortcutsmanager.h"
 
 #include "../engine/imgiomanager.h"
 #include "../engine/utils.h"
@@ -51,6 +53,11 @@ Glib::ustring getCurrentFilename(const Gtk::FileChooserWidget *fchooser)
 }
 
 } // namespace
+
+SaveAsDialog::~SaveAsDialog()
+{
+    ShortcutsManager::getInstance()->unbindOwner(this);
+}
 
 SaveAsDialog::SaveAsDialog(const Glib::ustring &initialDir, Gtk::Window *parent)
     : Gtk::Dialog(M("GENERAL_SAVE"), *parent)
@@ -213,6 +220,12 @@ SaveAsDialog::SaveAsDialog(const Glib::ustring &initialDir, Gtk::Window *parent)
     formatOpts->setListener(this);
     formatOpts->init(options.saveFormat);
 
+    // Ctrl-Enter is equivalent to pressing the OK button
+    ShortcutsManager::getInstance()->bind(
+        this, "saveas.ok", [this](GdkEventKey *) {
+            SaveAsDialog::okPressed();
+            return true;
+        });
     signal_key_press_event().connect(
         sigc::mem_fun(*this, &SaveAsDialog::keyPressed));
 
@@ -414,19 +427,8 @@ void SaveAsDialog::setImagePath(const Glib::ustring &imagePath)
 
 bool SaveAsDialog::keyPressed(GdkEventKey *event)
 {
-
-    bool ctrl = event->state & GDK_CONTROL_MASK;
-
-    if (ctrl) {
-        switch (getKeyval(event)) {
-        case GDK_KEY_Return: // Ctrl-Enter equivalent to pressing OK button
-        case GDK_KEY_KP_Enter:
-            SaveAsDialog::okPressed();
-            return true;
-        }
-    }
-
-    return false;
+    return ShortcutsManager::getInstance()->dispatch(
+        event, ShortcutPhase::After, {{"saveas", this}});
 }
 
 const art::engine::procparams::PartialProfile *SaveAsDialog::getExportProfile()

@@ -1,26 +1,28 @@
 /* -*- C++ -*-
  *
- *  This file is part of RawTherapee.
+ *  This file is part of ART.
  *
- *  Copyright 2018 Alberto Griggio <alberto.griggio@gmail.com>
+ *  Copyright (c) 2018-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "maskspanel.h"
+#include <algorithm>
 #include "../engine/iccstore.h"
 #include "eventmapper.h"
+#include "shortcutsmanager.h"
 
 #include <iostream>
 #include <memory>
@@ -50,7 +52,7 @@ class DeltaEArea: public Gtk::DrawingArea,
 public:
     DeltaEArea()
         : Gtk::DrawingArea(), EditSubscriber(ET_OBJECTS), L_(0.f), C_(0.f),
-          H_(0.f)
+          H_(0.f), spot_size_(32)
     {
         // Editing geometry; create the spot rectangle
         Rectangle *spotRect = new Rectangle();
@@ -75,6 +77,9 @@ public:
             delete geometry;
         }
     }
+
+    void setSpotSize(int size) { spot_size_ = size; }
+    int getSpotSize() const { return spot_size_; }
 
     void setColor(float L, float C, float H)
     {
@@ -172,8 +177,9 @@ public:
     {
         auto provider = getEditProvider();
         Rectangle *spotRect = static_cast<Rectangle *>(visibleGeometry.at(0));
-        spotRect->setXYWH(provider->posImage.x - 16, provider->posImage.y - 16,
-                          32, 32);
+        spotRect->setXYWH(provider->posImage.x - spot_size_ / 2,
+                          provider->posImage.y - spot_size_ / 2, spot_size_,
+                          spot_size_);
 
         return true;
     }
@@ -222,6 +228,7 @@ private:
     float H_;
 
     SigSpotRequested sig_spot_requested_;
+    int spot_size_;
 };
 
 class DrawnMaskPanel: public MyExpander,
@@ -446,31 +453,26 @@ public:
             sigc::mem_fun(*this, &DrawnMaskPanel::on_hide));
 
         add_events(Gdk::KEY_PRESS_MASK);
-        const auto keypress = [this](GdkEventKey *evt) -> bool {
-            bool ctrl = evt->state & GDK_CONTROL_MASK;
-            bool shift = evt->state & GDK_SHIFT_MASK;
-            bool alt = evt->state & GDK_MOD1_MASK;
-
-            if (ctrl && !alt) {
-                switch (getKeyval(evt)) {
-                case GDK_KEY_z:
-                case GDK_KEY_Z:
-                    if (shift) {
-                        on_reset();
-                    } else {
-                        on_undo();
-                    }
-                    return true;
-                }
-            }
-            return false;
-        };
+        auto sm = ShortcutsManager::getInstance();
+        sm->bind(this, "drawnmask.undo", [this](GdkEventKey *) {
+            on_undo();
+            return true;
+        });
+        sm->bind(this, "drawnmask.reset", [this](GdkEventKey *) {
+            on_reset();
+            return true;
+        });
         signal_key_press_event().connect(
-            sigc::slot<bool, GdkEventKey *>(keypress), false);
+            [this](GdkEventKey *evt) -> bool {
+                return ShortcutsManager::getInstance()->dispatch(
+                    evt, ShortcutPhase::Before, {{"drawnmask", this}});
+            },
+            false);
     }
 
     ~DrawnMaskPanel()
     {
+        ShortcutsManager::getInstance()->unbindOwner(this);
         brush_preview_clear_conn_.disconnect();
         for (auto geometry : visibleGeometry) {
             delete geometry;
@@ -503,7 +505,7 @@ public:
     bool mouseOver(int modifierKey) override
     {
         if (pressure_mode_ == PRESSURE_OFF) {
-            bool ctrl = modifierKey & GDK_CONTROL_MASK;
+            bool ctrl = modifierKey & ShortcutsManager::mousePrimaryMask();
             bool alt = modifierKey & GDK_MOD1_MASK;
             if ((!ctrl && alt) != prev_erase_) {
                 prev_erase_ = (!ctrl && alt);
@@ -523,7 +525,7 @@ public:
         cur_pressure_ = pressure;
         EditSubscriber::action = ES_ACTION_DRAGGING;
         undo_stack_.push_back(mask_->strokes.size());
-        bool ctrl = modifierKey & GDK_CONTROL_MASK;
+        bool ctrl = modifierKey & ShortcutsManager::mousePrimaryMask();
         bool shift = modifierKey & GDK_SHIFT_MASK;
         bool alt = modifierKey & GDK_MOD1_MASK;
         bool dragging = shift && !mask_->strokes.empty();
@@ -561,7 +563,7 @@ public:
     bool button2Pressed(int modifierKey, double pressure) override
     {
         cur_pressure_ = pressure;
-        bool ctrl = modifierKey & GDK_CONTROL_MASK;
+        bool ctrl = modifierKey & ShortcutsManager::mousePrimaryMask();
         bool alt = modifierKey & GDK_MOD1_MASK;
         if (std::isnan(pressure)) {
             update_pressure(PRESSURE_OFF);
@@ -579,7 +581,7 @@ public:
     bool button3Pressed(int modifierKey, double pressure) override
     {
         cur_pressure_ = pressure;
-        bool ctrl = modifierKey & GDK_CONTROL_MASK;
+        bool ctrl = modifierKey & ShortcutsManager::mousePrimaryMask();
         bool alt = modifierKey & GDK_MOD1_MASK;
         bool shift = modifierKey & GDK_SHIFT_MASK;
         if (!std::isnan(pressure) && !ctrl) {
@@ -616,7 +618,7 @@ public:
                     (direction == GDK_SCROLL_SMOOTH && delta < 0.0);
         int incr = isUp ? 1 : -1;
 
-        bool ctrl = bstate & GDK_CONTROL_MASK;
+        bool ctrl = bstate & ShortcutsManager::mousePrimaryMask();
         bool shift = bstate & GDK_SHIFT_MASK;
 
         if (update_brush(ctrl, shift, incr)) {
@@ -987,10 +989,109 @@ bool on_release_event_ignore(GdkEventButton *event) { return true; }
 
 } // namespace
 
+namespace {
+
+// all the mask panels (those of the tools of every open editor)
+std::vector<MasksPanel *> &allMasksPanels()
+{
+    static std::vector<MasksPanel *> panels;
+    return panels;
+}
+
+unsigned long &masksActivationCounter()
+{
+    static unsigned long counter = 0;
+    return counter;
+}
+
+} // namespace
+
+
+void MasksPanel::markActive() { last_used_ = ++masksActivationCounter(); }
+
+
+// a panel that can show a mask: its tool is on (otherwise it has no listener
+// to tell) and it has a region selected
+bool MasksPanel::usable() const
+{
+    return cp_->listener() && selected_ < masks_.size();
+}
+
+
+// the tool is on screen: its header is shown, whether the tool is folded or
+// not (so not when another tab of the tool panel is shown, or the tool is
+// hidden)
+bool MasksPanel::toolVisible() const
+{
+    const Gtk::Widget *w = cp_->getToolWidget();
+    return (w ? w : this)->get_mapped();
+}
+
+
+MasksPanel *MasksPanel::lastActive(Gtk::Widget &editor)
+{
+    MasksPanel *res = nullptr;
+    for (auto p : allMasksPanels()) {
+        if (p->last_used_ && p->usable() && p->toolVisible() &&
+            p->is_ancestor(editor) &&
+            (!res || p->last_used_ > res->last_used_)) {
+            res = p;
+        }
+    }
+    return res;
+}
+
+
+bool MasksPanel::toggleShowLastActive(Gtk::Widget &editor)
+{
+    MasksPanel *target = lastActive(editor);
+    if (!target) {
+        return false;
+    }
+    const bool on = !target->showMask->get_active();
+    if (on) {
+        // only one mask is shown at a time
+        for (auto p : allMasksPanels()) {
+            if (p != target && p->is_ancestor(editor) &&
+                p->showMask->get_active()) {
+                p->showMask->set_active(false);
+            }
+        }
+    }
+    target->showMask->set_active(on);
+    return true;
+}
+
+
+bool MasksPanel::toggleSelectedEnabledLastActive(Gtk::Widget &editor)
+{
+    if (MasksPanel *target = lastActive(editor)) {
+        target->toggleSelectedEnabled();
+        return true;
+    }
+    return false;
+}
+
+
+void MasksPanel::toggleSelectedEnabled()
+{
+    if (selected_ < masks_.size()) {
+        listEdited = true;
+        auto it = list_model_->children().begin();
+        for (size_t i = 0; i < selected_; ++i) {
+            ++it;
+        }
+        onListEnabledToggled(Gtk::TreePath(it).to_string());
+        maskShow(selected_, true);
+    }
+}
+
+
 MasksPanel::MasksPanel(MasksContentProvider *cp)
     : Gtk::VBox(), cp_(cp), masks_(), selected_(0), area_shape_index_(0),
       listEdited(false), adl_(nullptr), deltaE_provider_(nullptr)
 {
+    allMasksPanels().push_back(this);
     Gtk::Container *child = cp_->getContainer();
     MasksContentProvider::Events events;
     cp_->getEvents(events);
@@ -1054,6 +1155,14 @@ MasksPanel::MasksPanel(MasksContentProvider *cp)
         list_enabled_column_.set_widget(*img);
     }
     list = Gtk::manage(new Gtk::TreeView());
+    // clicking the list (even on the region that is selected already) is
+    // working with this panel
+    list->signal_button_press_event().connect(
+        [this](GdkEventButton *) {
+            markActive();
+            return false;
+        },
+        false);
     list->set_model(list_model_);
     list->set_size_request(-1, 150);
     list->set_can_focus(false);
@@ -1273,6 +1382,12 @@ MasksPanel::MasksPanel(MasksContentProvider *cp)
     vb = Gtk::manage(new Gtk::VBox());
     deltaEPick = Gtk::manage(new Gtk::Button(M("TP_LABMASKS_DELTAE_PICK")));
     vb->pack_start(*deltaEPick, Gtk::PACK_SHRINK);
+    deltaESize = Gtk::manage(new SpotSizeCombo(
+        M("TP_WBALANCE_SIZE"), {2, 4, 8, 16, 32, 64}, options.deltaESpotSize));
+    static_cast<DeltaEArea *>(deltaEColor)->setSpotSize(deltaESize->getSize());
+    vb->pack_start(*deltaESize, Gtk::PACK_SHRINK);
+    deltaESize->signal_size_changed().connect(
+        sigc::mem_fun(*this, &MasksPanel::onDeltaESizeChanged));
     vb->pack_start(*deltaEColor, Gtk::PACK_EXPAND_WIDGET, 4);
     hb->pack_start(*vb, Gtk::PACK_SHRINK, 4);
     tb = Gtk::manage(new ToolParamBlock());
@@ -1652,38 +1767,23 @@ MasksPanel::MasksPanel(MasksContentProvider *cp)
     }
 
     add_events(Gdk::KEY_PRESS_MASK);
-    const auto keypress = [this](GdkEventKey *evt) -> bool {
-        bool ctrl = evt->state & GDK_CONTROL_MASK;
-        bool shift = evt->state & GDK_SHIFT_MASK;
-        bool alt = evt->state & GDK_MOD1_MASK;
-
-        if (ctrl && !shift && !alt) {
-            switch (getKeyval(evt)) {
-            case GDK_KEY_m:
-            case GDK_KEY_M:
-                showMask->set_active(!showMask->get_active());
-                return true;
-            case GDK_KEY_x:
-            case GDK_KEY_X:
-                if (selected_ < masks_.size()) {
-                    listEdited = true;
-                    auto it = list_model_->children().begin();
-                    for (size_t i = 0; i < selected_; ++i) {
-                        ++it;
-                    }
-                    onListEnabledToggled(Gtk::TreePath(it).to_string());
-                    maskShow(selected_, true);
-                }
-                return true;
-            }
-        }
-        return false;
-    };
-    signal_key_press_event().connect(sigc::slot<bool, GdkEventKey *>(keypress),
-                                     false);
+    auto sm = ShortcutsManager::getInstance();
+    // typing in this panel is working with it
+    signal_key_press_event().connect(
+        [this](GdkEventKey *) -> bool {
+            markActive();
+            return false;
+        },
+        false);
 }
 
-MasksPanel::~MasksPanel() { delete areaMaskToggle; }
+MasksPanel::~MasksPanel()
+{
+    auto &all = allMasksPanels();
+    all.erase(std::remove(all.begin(), all.end(), this), all.end());
+    ShortcutsManager::getInstance()->unbindOwner(this);
+    delete areaMaskToggle;
+}
 
 ToolPanelListener *MasksPanel::getListener()
 {
@@ -1713,6 +1813,7 @@ void MasksPanel::onSelectionChanged()
     auto s = list->get_selection()->get_selected_rows();
     if (!s.empty()) {
         int idx = s[0][0];
+        markActive();
         // update the selected values
         maskGet(selected_);
         cp_->selectionChanging(selected_);
@@ -1938,6 +2039,9 @@ void MasksPanel::onResetPressed()
 
 void MasksPanel::onShowMaskChanged()
 {
+    if (showMask->get_active()) {
+        markActive();
+    }
     auto l = getListener();
     if (l) {
         l->panelChanged(EvShowMask, showMask->get_active()
@@ -2399,7 +2503,7 @@ bool MasksPanel::scroll(int modifierKey, GdkScrollDirection direction,
     if (provider) {
         bool is_rectangle = getGeometryType() == Shape::Type::RECTANGLE;
         bool shift = modifierKey & GDK_SHIFT_MASK;
-        bool ctrl = modifierKey & GDK_CONTROL_MASK;
+        bool ctrl = modifierKey & ShortcutsManager::mousePrimaryMask();
         bool alt = modifierKey & GDK_MOD1_MASK;
 
         int imW, imH;
@@ -2573,6 +2677,7 @@ void MasksPanel::setMasks(const std::vector<art::engine::procparams::Mask> &mask
         selected_ = selected_idx;
         if (show_mask) {
             showMask->set_active(true);
+            markActive(); // its mask is on display: this is the one to toggle
         }
     }
     static_cast<DrawnMaskPanel *>(drawnMask)->setTargetMask(nullptr);
@@ -3296,6 +3401,12 @@ inline const art::engine::ProcEvent &MasksPanel::deltaEMaskEvent() const
     return deltaEMask->getEnabled() ? EvDeltaEMask : EvDeltaEMaskVoid;
 }
 
+void MasksPanel::onDeltaESizeChanged(int s)
+{
+    options.deltaESpotSize = s;
+    static_cast<DeltaEArea *>(deltaEColor)->setSpotSize(s);
+}
+
 void MasksPanel::onDeltaEPickClicked()
 {
     static_cast<DeltaEArea *>(deltaEColor)->activateSpot();
@@ -3307,7 +3418,8 @@ void MasksPanel::onDeltaESpotRequested(art::engine::Coord pos)
         deltaEMask->set_sensitive(false);
         float L, C, H;
         if (deltaE_provider_->getDeltaELCH(
-                static_cast<DeltaEArea *>(deltaEColor)->getEditID(), pos, L, C,
+                static_cast<DeltaEArea *>(deltaEColor)->getEditID(), pos,
+                static_cast<DeltaEArea *>(deltaEColor)->getSpotSize(), L, C,
                 H)) {
             double b, t;
             deltaEL->getValue(b, t);

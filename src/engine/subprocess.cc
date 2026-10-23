@@ -2,7 +2,7 @@
  *
  *  This file is part of ART.
  *
- *  Copyright (c) 2020 Alberto Griggio <alberto.griggio@gmail.com>
+ *  Copyright (c) 2020-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
  *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -479,6 +479,50 @@ void exec_sync(const Glib::ustring &workdir,
         std::string wd = Glib::filename_from_utf8(workdir);
         Glib::spawn_sync(wd, args, get_env(), flags,
                          Glib::SlotSpawnChildSetup(), out, err, &exit_status);
+        if (!(WIFEXITED(exit_status) && WEXITSTATUS(exit_status) == 0)) {
+            throw(error() << "exit status: " << exit_status);
+        }
+    } catch (Glib::Exception &e) {
+        throw(error() << e.what());
+    }
+}
+
+void exec_sync(const Glib::ustring &workdir,
+               const std::vector<Glib::ustring> &argv, bool search_in_path,
+               std::string *out, std::string *err,
+               const std::string &prepend_path)
+{
+    std::vector<std::string> args;
+    args.reserve(argv.size());
+    for (auto &s : argv) {
+        args.push_back(Glib::filename_from_utf8(s));
+    }
+    try {
+        // the child's environment, with the extended PATH
+        auto env = get_env();
+        bool have_path = false;
+        for (auto &e : env) {
+            if (e.compare(0, 5, "PATH=") == 0) {
+                e = "PATH=" + prepend_path + G_SEARCHPATH_SEPARATOR_S +
+                    e.substr(5);
+                have_path = true;
+                break;
+            }
+        }
+        if (!have_path) {
+            env.push_back("PATH=" + prepend_path);
+        }
+
+        int exit_status = -1;
+        auto flags = Glib::SPAWN_DEFAULT;
+        if (search_in_path) {
+            // look argv[0] up in the PATH of the child's environment, not in
+            // ours (which is left untouched)
+            flags |= Glib::SPAWN_SEARCH_PATH | Glib::SPAWN_SEARCH_PATH_FROM_ENVP;
+        }
+        std::string wd = Glib::filename_from_utf8(workdir);
+        Glib::spawn_sync(wd, args, env, flags, Glib::SlotSpawnChildSetup(), out,
+                         err, &exit_status);
         if (!(WIFEXITED(exit_status) && WEXITSTATUS(exit_status) == 0)) {
             throw(error() << "exit status: " << exit_status);
         }

@@ -1,20 +1,21 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "improccoordinator.h"
 #include "../utils/ppversion.h"
@@ -458,8 +459,7 @@ void ImProcCoordinator::updatePreviewImage(int todo, bool panningRelatedChange)
             // spotprev->copyData(orig_prev);
         }
 
-        if ((todo & M_HDR) &&
-            (params.fattal.enabled || params.dehaze.enabled)) {
+        if ((todo & M_HDR) && ipf.stage0NeedsFullImage()) {
             if (drcomp_11_dcrop_cache) {
                 delete drcomp_11_dcrop_cache;
                 drcomp_11_dcrop_cache = nullptr;
@@ -1671,10 +1671,10 @@ bool ImProcCoordinator::getHighQualComputed()
 
 void ImProcCoordinator::setHighQualComputed() { highQualityComputed = true; }
 
-bool ImProcCoordinator::getDeltaELCH(art::utils::EditUniqueID id, int x, int y, float &L,
-                                     float &C, float &H)
+bool ImProcCoordinator::getDeltaELCH(art::utils::EditUniqueID id, int x, int y,
+                                     int size, float &L, float &C, float &H)
 {
-    int change = ipf.setDeltaEData(id, x, y);
+    int change = ipf.setDeltaEData(id, x, y, size);
     if (!change) {
         return false;
     }

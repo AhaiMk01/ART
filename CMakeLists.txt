@@ -666,6 +666,31 @@ if(ENABLE_LIBRAW)
     if(LIBRAW_FOUND)
         message(STATUS "using libraw library ${LIBRAW_VERSION}")
         add_definitions(-DART_USE_LIBRAW)
+        # Find out whether the LibRaw library was built with OpenMP (see
+        # LibrawLock in rawimage.cc). The CMake build of LibRaw records it in
+        # libraw_config.h; the autotools one doesn't install that header, but
+        # adds the OpenMP flags to the Libs of libraw_r.pc.
+        if(NOT DEFINED LIBRAW_HAS_OPENMP)
+            find_file(LIBRAW_CONFIG_H libraw_config.h
+                PATHS ${LIBRAW_INCLUDE_DIRS} NO_DEFAULT_PATH)
+            if(LIBRAW_CONFIG_H)
+                file(STRINGS "${LIBRAW_CONFIG_H}" _libraw_omp
+                    REGEX "^[ \t]*#[ \t]*define[ \t]+LIBRAW_USE_OPENMP")
+            else()
+                string(REGEX MATCH "openmp" _libraw_omp "${LIBRAW_LDFLAGS_OTHER}")
+            endif()
+            if(_libraw_omp)
+                set(_libraw_omp ON)
+            else()
+                set(_libraw_omp OFF)
+            endif()
+            set(LIBRAW_HAS_OPENMP ${_libraw_omp} CACHE BOOL
+                "Whether the LibRaw library was built with OpenMP")
+        endif()
+        message(STATUS "libraw built with OpenMP: ${LIBRAW_HAS_OPENMP}")
+        if(LIBRAW_HAS_OPENMP)
+            add_definitions(-DART_LIBRAW_LIB_HAS_OPENMP)
+        endif()
     else()
         message(STATUS "libraw not found")
     endif()
@@ -948,6 +973,7 @@ int main() { return 0; }
     endif()
 endif()
 
+enable_testing()
 add_subdirectory(src/utils)
 add_subdirectory(src/engine)
 add_subdirectory(src/gui)

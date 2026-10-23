@@ -1,5 +1,9 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *
+ *  This file is part of ART.
+ *
+ *  Copyright (c) 2004-2018 the RawTherapee developers
+ *  Copyright (c) 2017-2024 Alberto Griggio <alberto.griggio@gmail.com>
  */
 #include "camconst.h"
 #include "rt_math.h"

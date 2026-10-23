@@ -1,20 +1,21 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "denoise.h"
 #include "edit.h"
@@ -410,6 +411,22 @@ void Denoise::toolReset(bool to_initial)
     }
     pp.denoise.enabled = getEnabled();
     read(&pp);
+}
+
+
+void Denoise::registerShortcuts(ToolShortcutsManager *mgr)
+{
+    mgr->addShortcut("tool.denoise.gamma", this, gamma);
+    mgr->addShortcut("tool.denoise.luminance", this, luminance);
+    mgr->addShortcut("tool.denoise.luminance_detail", this, luminanceDetail);
+    mgr->addShortcut("tool.denoise.luminance_detail_threshold", this, luminanceDetailThreshold);
+    mgr->addShortcut("tool.denoise.chrominance_auto_factor", this, chrominanceAutoFactor);
+    mgr->addShortcut("tool.denoise.chrominance", this, chrominance);
+    mgr->addShortcut("tool.denoise.chrominance_red_green", this, chrominanceRedGreen);
+    mgr->addShortcut("tool.denoise.chrominance_blue_yellow", this, chrominanceBlueYellow);
+    mgr->addShortcut("tool.denoise.guided_chrominance", this, guidedChromaRadius);
+    mgr->addShortcut("tool.denoise.nlmeans_detail", this, nlDetail);
+    mgr->addShortcut("tool.denoise.nlmeans_strength", this, nlStrength);
 }
 
 

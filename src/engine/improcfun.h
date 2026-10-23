@@ -1,21 +1,22 @@
 /* -*- C++ -*-
  *
- *  This file is part of RawTherapee.
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #pragma once
 
@@ -206,6 +207,7 @@ public:
     bool needsLuminanceOnly();
     bool needsTransform();
     bool needsPCVignetting();
+    bool stage0NeedsFullImage();
 
     float resizeScale(const ProcParams *params, int fw, int fh, int &imw,
                       int &imh);
@@ -232,11 +234,13 @@ public:
         float H;
         double x;
         double y;
+        int size;
 
-        DeltaEData(): ok(false), L(0), C(0), H(0), x(-1), y(-1) {}
+        DeltaEData(): ok(false), L(0), C(0), H(0), x(-1), y(-1), size(32) {}
     };
     DeltaEData deltaE;
-    int setDeltaEData(art::utils::EditUniqueID id, double x, double y);
+    int setDeltaEData(art::utils::EditUniqueID id, double x, double y,
+                      int size = 32);
 
     // Spot Removal Tool
     void removeSpots(art::engine::Imagefloat *img, art::engine::ImageSource *imgsrc,

@@ -1,3 +1,4 @@
+// -*- C++ -*-
 ////////////////////////////////////////////////////////////////
 //
 //  opthelper.h includes some #defines which help to make optimizations easier

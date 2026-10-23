@@ -1,7 +1,11 @@
-/*
- *  This file is part of RawTherapee.
+/* -*- C++ -*-
+ *
+ *  This file is part of ART.
+ *
+ *  Copyright (c) 2004-2019 the RawTherapee developers
  */
 #include "gradient.h"
+#include "shortcutsmanager.h"
 #include "../engine/rt_math.h"
 #include "eventmapper.h"
 #include "rtimage.h"
@@ -369,7 +373,7 @@ bool Gradient::button1Pressed(int modifierKey)
 
     EditDataProvider *provider = getEditProvider();
 
-    if (!(modifierKey & GDK_CONTROL_MASK)) {
+    if (!(modifierKey & ShortcutsManager::mousePrimaryMask())) {
         // button press is valid (no modifier key)
         PolarCoord pCoord;
         int imW, imH;
@@ -608,6 +612,16 @@ void Gradient::toolReset(bool to_initial)
     }
     pp.gradient.enabled = getEnabled();
     read(&pp);
+}
+
+
+void Gradient::registerShortcuts(ToolShortcutsManager *mgr)
+{
+    mgr->addShortcut("tool.gradient.angle", this, degree);
+    mgr->addShortcut("tool.gradient.feather", this, feather);
+    mgr->addShortcut("tool.gradient.strength", this, strength);
+    mgr->addShortcut("tool.gradient.center_x", this, centerX);
+    mgr->addShortcut("tool.gradient.center_y", this, centerY);
 }
 
 

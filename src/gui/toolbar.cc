@@ -1,24 +1,27 @@
+// -*- C++ -*-
 
 /*
- *  This file is part of RawTherapee.
+ *  This file is part of ART.
  *
  *  Copyright (c) 2004-2010 Gabor Horvath <hgabor@rawtherapee.com>
+ *  Copyright (c) 2017-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "toolbar.h"
 #include "guiutils.h"
+#include "shortcutsmanager.h"
 #include "../utils/multilangmgr.h"
 
 namespace art { namespace gui {
@@ -30,6 +33,7 @@ ToolBar::ToolBar()
 {
 
     editingMode = false;
+    bindShortcuts();
 
     handimg.reset(new RTImage("arrow-pointer.svg"));
     editinghandimg.reset(new RTImage("crosshair-adjust.svg"));
@@ -490,46 +494,38 @@ void ToolBar::persp_pressed()
     }
 }
 
-bool ToolBar::handleShortcutKey(GdkEventKey *event)
+void ToolBar::bindShortcuts()
 {
-
-    bool ctrl = event->state & GDK_CONTROL_MASK;
-    // bool shift = event->state & GDK_SHIFT_MASK;
-    bool alt = event->state & GDK_MOD1_MASK;
-
-    if (!ctrl && !alt) {
-        switch (getKeyval(event)) {
-        // case GDK_KEY_w:
-        case GDK_KEY_W:
-            if (wbTool) {
-                wb_pressed();
-                return true;
-            }
-
-            return false;
-
-        // case GDK_KEY_c:
-        case GDK_KEY_C:
-            crop_pressed();
-            return true;
-
-        // case GDK_KEY_s:
-        case GDK_KEY_S:
-            stra_pressed();
-            return true;
-
-        case GDK_KEY_h:
-        case GDK_KEY_H:
-            hand_pressed();
-            return true;
-
-        case GDK_KEY_P:
-            perspTool->set_active(!perspTool->get_active());
+    auto sm = ShortcutsManager::getInstance();
+    sm->bind(this, "toolbar.white_balance_picker", [this](GdkEventKey *) {
+        if (wbTool) {
+            wb_pressed();
             return true;
         }
-    }
+        return false;
+    });
+    sm->bind(this, "toolbar.crop", [this](GdkEventKey *) {
+        crop_pressed();
+        return true;
+    });
+    sm->bind(this, "toolbar.straighten", [this](GdkEventKey *) {
+        stra_pressed();
+        return true;
+    });
+    sm->bind(this, "toolbar.hand", [this](GdkEventKey *) {
+        hand_pressed();
+        return true;
+    });
+    sm->bind(this, "toolbar.perspective", [this](GdkEventKey *) {
+        perspTool->set_active(!perspTool->get_active());
+        return true;
+    });
+}
 
-    return false;
+
+ToolBar::~ToolBar()
+{
+    ShortcutsManager::getInstance()->unbindOwner(this);
 }
 
 

@@ -2,7 +2,7 @@
  *
  *  This file is part of ART.
  *
- *  Copyright (c) 2021 Alberto Griggio <alberto.griggio@gmail.com>
+ *  Copyright (c) 2020-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *  Copyright (c) 2012 Oliver Duis <www.oliverduis.de>
  *
  *  ART is free software: you can redistribute it and/or modify
@@ -34,6 +34,7 @@
 #include "../engine/utils.h"
 #include "../utils/config.h"
 #include "../utils/multilangmgr.h"
+#include "../utils/pathutils.h"
 #include "options.h"
 
 namespace art { namespace gui {
@@ -220,6 +221,10 @@ void UserCommandStore::init(const Glib::ustring &dirname)
 #else  // __APPLE__
     extrapath = options.ART_base_dir;
 #endif // __APPLE__
+#else  // BUILD_BUNDLE
+    // make sure that helpers installed next to the executable (ART-cli,
+    // ART-dialogs) can be found by user commands
+    extrapath = art::utils::getExecutablePath("");
 #endif // BUILD_BUNDLE
     auto epth = Glib::getenv("ART_EXIFTOOL_BASE_DIR");
     if (!epth.empty()) {

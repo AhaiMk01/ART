@@ -1,21 +1,21 @@
 /* -*- C++ -*-
  *
- *  This file is part of RawTherapee.
+ *  This file is part of ART.
  *
- *  Copyright 2018 Alberto Griggio <alberto.griggio@gmail.com>
+ *  Copyright (c) 2018-2026 Alberto Griggio <alberto.griggio@gmail.com>
  *
- *  RawTherapee is free software: you can redistribute it and/or modify
+ *  ART is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  RawTherapee is distributed in the hope that it will be useful,
+ *  ART is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with RawTherapee.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifdef _OPENMP
@@ -1621,15 +1621,15 @@ void fillPipetteMasks(Imagefloat *rgb, PlanarWhateverData<float> *editWhatever,
 }
 
 bool getDeltaEColor(Imagefloat *rgb, int x, int y, int offset_x, int offset_y,
-                    int full_width, int full_height, double scale, float &L,
-                    float &C, float &H)
+                    int full_width, int full_height, double scale, int size,
+                    float &L, float &C, float &H)
 {
     std::vector<float> med_L, med_a, med_b;
     TMatrix ws = ICCStore::getInstance()->workingSpaceMatrix(rgb->colorSpace());
     const auto mode = rgb->mode();
     x = x / scale - offset_x;
     y = y / scale - offset_y;
-    const int off = int(32.0 / scale + 0.5);
+    const int off = std::max(int(size / 2.0 / scale + 0.5), 1);
     if (x < 0 || x >= rgb->getWidth() || y < 0 || y >= rgb->getHeight()) {
         return false;
     }
