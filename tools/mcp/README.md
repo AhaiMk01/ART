@@ -89,29 +89,25 @@ Histograms support visual comparisons, not automatic quality verdicts.
 read at different points without extra tools:
 
 - `sample_spots(stage=...)`: `source` (default; linear 0..65535 before any
-  film inversion, in `space` working or input), `converted` (linear
-  working-space RGB right after film and colour conversion, before LUT,
-  exposure and grading; may be negative or above 65535) and `cineon` (those
-  pixels encoded per pixel to Cineon codes with the reference white `w`). The
-  result carries `stage`, `unit` (`linear_65535` or `cineon_code`) and, for a
-  staged read, `film` and `w`. `space` is for `source` only. Render uses
+  film inversion, in `space` working or input) or `converted` (linear
+  working-space RGB right after film and colour conversion, before exposure
+  and grading; may be negative or above 65535). The result carries `stage`,
+  `unit` (`linear_65535`) and, for `converted`, `film` and `w`. `space` is for `source` only. Render uses
   `art-cli -x size,<space|stage>,...`; Live passes `stage` to the editor's
   `sample_spots` op. An older `art-cli`/ART gives `unsupported`.
 - `image_stats(stage=...)` (Render): `display` (default, everything above) or
-  `converted` / `cineon`: `art-cli -X stage,bins,maxsize[,x0,y0,x1,y1]`
+  `converted`: `art-cli -X stage,bins,maxsize[,x0,y0,x1,y1]`
   returns per channel `min`, `max`, `mean`, `p01`, `p50`, `p99`, `below`,
   `above`, `nonfinite` and (with `histogram`) `bins` counts (2..1024, default
-  256) over the fixed `range` (converted [-6553.5, 131070], cineon
-  [-100, 1100]), plus `unit`, `w`, `width`/`height` (measured) and
-  `source_width`/`source_height`. `max_size` box-downscales in linear light
-  before the Cineon encode (0 = full size); `region` is fractions of the
+  256) over the fixed `range` [-6553.5, 131070], plus `unit`, `w`,
+  `width`/`height` (measured) and `source_width`/`source_height`. `max_size`
+  box-downscales in linear light (0 = full size); `region` is fractions of the
   cropped frame. `detail`, `lum_min` and `lum_max` are display-only.
-  `histogram_image` draws R/G/B over the stage range with the Cineon axis
-  marked at 95 / 470 / 685. Live `image_stats` refuses a stage other than
-  `display` (the editor has no full-resolution stage tap).
+  `histogram_image` draws R/G/B over the stage range. Live `image_stats`
+  refuses a stage other than `display` (the editor has no full-resolution
+  stage tap).
 
-The 8-bit display statistics are not a Cineon scope; see the film-negative
-skill's "Observing each stage".
+See the film-negative skill's "Observing each stage".
 
 A whole `get_profile` is about 15k tokens (over 500 keys), which adds up over a
 roll. `groups` returns only the named `[Group]`s (a curated tool is in when a
@@ -249,56 +245,35 @@ back to power-law makes its saved settings active again.
 ART decodes NamiColor's approximate Cineon code into its linear buffer using
 `b = 10^((95-685)/300)` and
 `L = cineon_reference_white * (10^((1023*q-685)/300)-b)/(1-b)`
-(`cineon_reference_white` W is shared by this decode, the print-LUT input
-encode and the integer Cineon export).
+(`cineon_reference_white`: 1e-6..1e6, default 0.9, so code 685 is 90%
+diffuse white; 1 when absent below version 1058).
 Code 95 therefore means linear zero and code 685 means reference white;
 these are encoding anchors, not measured film black/white or a promise that
 NamiColor's fitted code obeys a calibrated Cineon scan. Finite negative
-linear values below code 95 are retained through this conversion and can
-round-trip through NamiColor's Cineon encoding within its logarithm domain.
-A neutral Exposure adjustment leaves these signed values unchanged in this
-method. Active tonal tools, LUT domains and integer exports can still clip
-them; disable unwanted presentation tools when exporting a log intermediate.
+linear values below code 95 come out of the conversion; Exposure clamps
+them at zero, as for every other source.
 The selected input/working basis may not match the basis assumed by a
 NamiColor source preset; there is no custom DCP/ICC calibration or automatic
 camera-to-film characterization here. Capture shutter settings are not a
 mandatory compensation recipe or proof of the film's original exposure.
 
 The editor exposes the same controls under Film Negative → Method →
-NamiColor, including the LUT input transfer selector. Use the rebuilt ART
+NamiColor. Use the rebuilt ART
 and restart existing MCP server processes to load the updated typed schema;
 an already-running server does not acquire the new fields automatically.
 
 `input_gamma` (0.5..2.8, default 1) is a source decoding override for NamiColor: `sign(x)*abs(x)^input_gamma` before inversion. Only explicitly
 unprofiled non-RAW scans (`InputProfile=(none)`) may use a non-unity value;
-RAW and profile-linearized inputs require 1. It is not the LUT's gamma.
+RAW and profile-linearized inputs require 1.
 
-The common `target_mode` is `linear`, `paper` or `cineon`; the editor buffer
-stays linear. `cineon_primaries` (empty = working
-profile) and `cineon_reference_white` (1e-6..1e6, default 0.9: code 685 is 90% diffuse white; 1 when absent below version 1058) control Cineon
-16-bit integer TIFF exports, supported by NamiColor.
-
-`cineon_lut` (empty = none) selects an external `.cube`, paired with
-`cineon_lut_sha256`; changed LUT bytes fail rendering. The LUT is evaluated
-after input-to-working conversion, with linear primaries conversion to
-`cineon_lut_input_primaries` (empty = current working RGB) before the selected
-`cineon_lut_input_transfer` encoding: `cineon` (default), `linear`, `srgb`,
-`gamma_2_4`, `logc3` (EI800), `slog3` (standard normalized 10-bit) or
-`acescct`. This is the LUT input contract, independent of source `input_gamma`.
-Primaries may name built-in working spaces such as `sRGB`/`Rec2020` or a
-supported matrix ICC profile. Cineon LUT coordinates are clamped to the
-cube's declared domain; this includes finite gamut excursions below its
-lowest representable linear value, without forcing in-domain codes below
-95 up to 95. This is LUT-domain clipping, not colour recovery or gamut mapping.
-LUT output is decoded with `cineon_lut_output_transfer`
-(`linear`/`srgb`/`gamma_2_4`) and converted from
-`cineon_lut_output_primaries` (empty = working RGB) back to working linear.
-Declared incompatible log output is rejected, not treated as linear.
-For pre-1054
-sidecars using input-space conversion and a LUT, ART preserves the
-old pre-working-conversion LUT ordering via an internal compatibility key;
-new profiles and NamiColor use the corrected ordering. Power-law keeps LUT
-settings inactive.
+`flare` (`[r,g,b]`, each 0..0.5, default all 0) is a veiling-light
+transmission fraction of full scale subtracted per channel before the log.
+`matrix_preset` (`identity`, `status_m_reference` or `custom`, with
+`matrix`: nine row-major coefficients) mixes the channels in density before
+NamiColor's alignment. A non-identity matrix needs `matrix_basis`, the
+binding of the colour space it was made in (input/working profile, input
+gamma, camera); ART refuses to render when the current basis does not match.
+`calibration_note` is free text kept with it.
 
 `tone_curve` takes `mode`, `mode2` (omitted = same as `mode`; `get_profile`
 always reports the effective one), `histogram_matching`, `contrast` (-100..100: ART's
@@ -338,9 +313,10 @@ in the temp folder whose process is gone.
 
 Results of `get_profile`, `edit_profile` and `describe_adjustments` carry a
 `warnings` list when ART's profile version is newer than the schema's
-(`PPVERSION` 1064; 1055 added the active NamiColor matrix mask, 1056 the
-Cineon print-LUT order, 1057 `preserve_range`, 1058 the 0.9 reference white
-and `fit_base_anchor`, 1059 `denoise_before_inversion`, 1064 removed the Density method; `flare` is not version-gated); edits keep working. A film-negative
+(`PPVERSION` 1064; 1055 added the active NamiColor matrix mask, 1058 the 0.9
+reference white and `fit_base_anchor`, 1060 the transmission floor, 1061
+removed the print LUT, paper target and Cineon export, 1064 the Density
+method; `flare` is not version-gated); edits keep working. A film-negative
 edit never raises a sidecar's `[Version]`: one older than 1046 (matrix and film-type keys) or 1055
 (NamiColor mask) is refused until it has been opened and re-saved in ART; so is enabling
 `namicolor_fit_base` below 1058 without an explicit `fit_base_anchor`.
