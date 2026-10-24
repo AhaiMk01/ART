@@ -2905,6 +2905,7 @@ void Preferences::themeChanged()
         }
     }
     // RTImage::updateImages();
+    updateFolderIconTheme();
     switchThemeTo(moptions.theme, &moptions);
 }
 

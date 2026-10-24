@@ -80,7 +80,8 @@ Cairo::RefPtr<Cairo::ImageSurface> cache_get(const Glib::ustring &fname, int sca
 } // namespace
 
 Cairo::RefPtr<Cairo::ImageSurface>
-RTScalable::loadImage(const Glib::ustring &fname, int scale)
+RTScalable::loadImage(const Glib::ustring &fname, int scale,
+                      const std::string &color)
 {
     Glib::ustring imagesFolder =
         Glib::build_filename(options.ART_base_dir, "images");
@@ -89,7 +90,9 @@ RTScalable::loadImage(const Glib::ustring &fname, int scale)
         scale = getGlobalDisplayScale();
     }
 
-    auto res = cache_get(fname, scale);
+    // a color override is part of the cache key
+    const Glib::ustring key = color.empty() ? fname : fname + "@" + color;
+    auto res = cache_get(key, scale);
     if (res) {
         return res;
     }
@@ -98,7 +101,7 @@ RTScalable::loadImage(const Glib::ustring &fname, int scale)
     std::string svgFile;
 
     if (getExtension(fname) == "png") {
-        return cache_put(fname, scale, Cairo::ImageSurface::create_from_png(path));
+        return cache_put(key, scale, Cairo::ImageSurface::create_from_png(path));
     }
 
     // -------------------- Loading the SVG file --------------------
@@ -116,7 +119,8 @@ RTScalable::loadImage(const Glib::ustring &fname, int scale)
     // Magic color       : #2a7fff
 
     std::string updatedSVG = Glib::Regex::create("#2a7fff")->replace(
-        svgFile, 0, options.svg_color, Glib::RegexMatchFlags());
+        svgFile, 0, color.empty() ? options.svg_color : color,
+        Glib::RegexMatchFlags());
 
     // -------------------- Creating the rsvg handle --------------------
 
@@ -153,7 +157,7 @@ RTScalable::loadImage(const Glib::ustring &fname, int scale)
 
     setDisplayScale(surf, scale);
 
-    return cache_put(fname, scale, surf);
+    return cache_put(key, scale, surf);
 }
 
 void RTScalable::setDisplayScale(const Cairo::RefPtr<Cairo::Surface> &surface,

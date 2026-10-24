@@ -18,6 +18,7 @@
  */
 #include "dirbrowser.h"
 
+#include <cstdio>
 #include <cstring>
 #include <iostream>
 
@@ -125,6 +126,18 @@ DirBrowser::DirBrowser()
 
 DirBrowser::~DirBrowser() { idle_register.destroy(); }
 
+DirBrowser::IconSet DirBrowser::loadIcons(const std::string &color)
+{
+    IconSet res;
+    for (auto n : {"folder-open-small.svg", "folder-closed-small.svg",
+                   "device-optical.svg", "device-floppy.svg", "device-hdd.svg",
+                   "device-usb.svg", "device-network.svg"}) {
+        res.push_back(std::make_shared<RTSurface>(n, Glib::ustring(), color));
+    }
+    return res;
+}
+
+
 void DirBrowser::fillDirTree()
 {
 
@@ -135,13 +148,7 @@ void DirBrowser::fillDirTree()
     // ihdd = RTImage::createPixbufFromFile("device-hdd.svg");
     // iremovable = RTImage::createPixbufFromFile("device-usb.svg");
     // inetwork = RTImage::createPixbufFromFile("device-network.svg");
-    dir_icons_.push_back(std::make_shared<RTSurface>("folder-open-small.svg"));
-    dir_icons_.push_back(std::make_shared<RTSurface>("folder-closed-small.svg"));
-    dir_icons_.push_back(std::make_shared<RTSurface>("device-optical.svg"));
-    dir_icons_.push_back(std::make_shared<RTSurface>("device-floppy.svg"));
-    dir_icons_.push_back(std::make_shared<RTSurface>("device-hdd.svg"));
-    dir_icons_.push_back(std::make_shared<RTSurface>("device-usb.svg"));
-    dir_icons_.push_back(std::make_shared<RTSurface>("device-network.svg"));
+    dir_icons_ = loadIcons();
 
     // Create the Tree model:
     dirTreeModel = Gtk::TreeStore::create(dtColumns);
@@ -215,7 +222,25 @@ void DirBrowser::on_cell_data_icon(Gtk::CellRenderer *renderer,
     Gtk::CellRendererPixbuf *pr =
         dynamic_cast<Gtk::CellRendererPixbuf *>(renderer);
     if (pr) {
-        pr->property_surface() = Cairo::RefPtr<Cairo::Surface>(dir_icons_[idx]->surface);
+        const IconSet *icons = &dir_icons_;
+        if (dirtree->get_selection()->is_selected(iter)) {
+            // the theme color is unreadable on the selection background: use
+            // the foreground color that the selected text is drawn with
+            auto c = dirtree->get_style_context()->get_color(
+                Gtk::STATE_FLAG_SELECTED);
+            char buf[8];
+            snprintf(buf, sizeof(buf), "#%02x%02x%02x",
+                     int(c.get_red() * 255 + 0.5),
+                     int(c.get_green() * 255 + 0.5),
+                     int(c.get_blue() * 255 + 0.5));
+            auto it = selected_icons_.find(buf);
+            if (it == selected_icons_.end()) {
+                it = selected_icons_.emplace(buf, loadIcons(buf)).first;
+            }
+            icons = &it->second;
+        }
+        pr->property_surface() =
+            Cairo::RefPtr<Cairo::Surface>((*icons)[idx]->surface);
     }
 }
 

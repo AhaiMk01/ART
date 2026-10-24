@@ -44,7 +44,8 @@ RTSurface::RTSurface(const RTSurface &other): RTScalable()
     surface = other.surface;
 }
 
-RTSurface::RTSurface(Glib::ustring fileName, Glib::ustring rtlFileName)
+RTSurface::RTSurface(Glib::ustring fileName, Glib::ustring rtlFileName,
+                     const std::string &color)
     : RTScalable()
 {
     Cairo::RefPtr<Cairo::ImageSurface> imgSurf(
@@ -63,19 +64,20 @@ RTSurface::RTSurface(Glib::ustring fileName, Glib::ustring rtlFileName)
         imageName = fileName;
     }
 
-    changeImage(imageName);
+    changeImage(imageName, color);
 }
 
 
-void RTSurface::changeImage(Glib::ustring imageName)
+void RTSurface::changeImage(Glib::ustring imageName, const std::string &color)
 {
-    auto iterator = surfaceCache.find(imageName);
+    const std::string key = color.empty() ? imageName : imageName + "@" + color;
+    auto iterator = surfaceCache.find(key);
 
     if (iterator == surfaceCache.end()) {
         // for now, we hardcode the scale to 2 or more
         int scale = std::max(2, RTScalable::getGlobalDisplayScale());
-        surface = loadImage(imageName, scale);
-        iterator = surfaceCache.emplace(imageName, surface).first;
+        surface = loadImage(imageName, scale, color);
+        iterator = surfaceCache.emplace(key, surface).first;
     }
 
     surface = iterator->second;

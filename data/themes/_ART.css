@@ -1345,6 +1345,17 @@ filechooser placessidebar list row {
 filechooser placessidebar list row label{
     margin: 0 0 0 0.583333333333333333em;
 }
+filechooser placessidebar list row:selected,
+filechooser placessidebar list row:selected:hover,
+filechooser placessidebar list row:selected:focus {
+    background-color: @ART-hl;
+    background-image: none;
+    color: @ART-bg;
+}
+filechooser placessidebar list row:selected label,
+filechooser placessidebar list row:selected:hover label {
+    color: @ART-bg;
+}
 
 /*** end ***************************************************************************************/
 

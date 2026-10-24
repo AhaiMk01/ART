@@ -35,7 +35,8 @@ class RTScalable {
     
 protected:
     static Cairo::RefPtr<Cairo::ImageSurface>
-    loadImage(const Glib::ustring &fname, int scale=0);
+    loadImage(const Glib::ustring &fname, int scale=0,
+              const std::string &color="");
     static Gtk::TextDirection getDirection();
 
 public:
