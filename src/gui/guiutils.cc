@@ -1649,6 +1649,16 @@ void MyProgressBar::get_preferred_width_vfunc(int &minimum_width,
 {
     minimum_width = art::engine::max(w / 2, 50 * 1);
     natural_width = art::engine::max(w, 50 * 1);
+    // grow to fit the text, otherwise long strings (e.g. "Ready" with the
+    // CPU/GPU times) get truncated, especially with a scaled display
+    if (get_show_text()) {
+        auto layout = const_cast<MyProgressBar *>(this)->create_pango_layout(
+            get_text() + "x");
+        int tw = 0, th = 0;
+        layout->get_pixel_size(tw, th);
+        natural_width = art::engine::max(natural_width, tw);
+        minimum_width = art::engine::max(minimum_width, tw);
+    }
 }
 
 void MyProgressBar::get_preferred_width_for_height_vfunc(
