@@ -72,14 +72,15 @@ private:
 
     void fillRoot();
 
+    // the order must match the one in loadIcons()
     enum class DirIcon {
         OPENFOLDER,
         CLOSEDFOLDER,
         CDROM,
         FLOPPY,
         HDD,
-        NETWORK,
-        REMOVABLE
+        REMOVABLE,
+        NETWORK
     };
     typedef std::vector<std::shared_ptr<RTSurface>> IconSet;
     IconSet dir_icons_;
