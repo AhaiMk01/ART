@@ -233,6 +233,25 @@ void setWindowIcon(const Glib::ustring &base)
 #endif
 }
 
+// ART's own folder icons in place of the stock ones: reuse the theme that the
+// main application generates in the user config dir (see
+// updateFolderIconTheme), if there is one, otherwise leave the default icons
+void setIconTheme(const Glib::ustring &user_dir)
+{
+    const auto root = Glib::build_filename(user_dir, "icons");
+    if (!Glib::file_test(
+            Glib::build_filename(root, "ART-folders", "index.theme"),
+            Glib::FILE_TEST_IS_REGULAR)) {
+        return;
+    }
+    try {
+        Gtk::IconTheme::get_default()->append_search_path(root);
+        Gtk::Settings::get_default()->property_gtk_icon_theme_name() =
+            "ART-folders";
+    } catch (...) {
+    }
+}
+
 } // namespace
 
 
@@ -282,6 +301,7 @@ void applyTheme(const char *argv0)
             Glib::build_filename(base, "images"));
     } catch (...) {
     }
+    setIconTheme(userConfigDir(base, s.multi_user));
     setWindowIcon(base);
 }
 
