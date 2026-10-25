@@ -27,6 +27,8 @@
 #include "rtengine.h"
 #include "settings.h"
 #include <glibmm.h>
+#include <map>
+#include <mutex>
 
 #define BENCHMARK
 #include "StopWatch.h"
@@ -112,6 +114,38 @@ inline void copyAndClampRGB(Imagefloat *src, unsigned char *dst,
     }
 }
 
+/* cmsDetectDestinationBlackPoint() takes tens of milliseconds, and it used to
+ * be called every time an ARTOutputProfile was built, i.e. on each
+ * rgb2out()/rgb2monitor() (several times per preview update). Its answer only
+ * depends on the profile and the intent, so remember it.
+ *
+ * For a matrix/shaper profile the black point it reports is not exactly zero
+ * but numerical noise (~1e-9, and it varies from call to call), while a
+ * profile that really has one is orders of magnitude above that: compare
+ * with a tolerance, or the fast path is randomly refused.
+ *
+ * Returns true if the profile has no black point to compensate (or it cannot
+ * be detected). */
+bool dest_black_point_is_zero(cmsHPROFILE prof, int intent)
+{
+    static std::mutex mtx;
+    static std::map<std::pair<cmsHPROFILE, int>, bool> cache;
+
+    std::lock_guard<std::mutex> lock(mtx);
+    const auto key = std::make_pair(prof, intent);
+    const auto it = cache.find(key);
+    if (it != cache.end()) {
+        return it->second;
+    }
+    constexpr double eps = 1e-6;
+    cmsCIEXYZ bp;
+    const bool ret = !cmsDetectDestinationBlackPoint(&bp, prof, intent, 0) ||
+                     (std::abs(bp.X) < eps && std::abs(bp.Y) < eps &&
+                      std::abs(bp.Z) < eps);
+    cache[key] = ret;
+    return ret;
+}
+
 class ARTOutputProfile {
 public:
     ARTOutputProfile(cmsHPROFILE prof,
@@ -123,12 +157,10 @@ public:
         auto ws = ICCStore::getInstance()->workingSpaceMatrix(colorspace);
         Mat33<float> m, mi;
         float g = 0, s = 0;
-        cmsCIEXYZ bp;
         if (ICCStore::getProfileMatrix(prof, m) &&
             ICCStore::getProfileParametricTRC(prof, g, s) && inverse(m, mi) &&
             (!icm.outputBPC ||
-             !cmsDetectDestinationBlackPoint(&bp, prof, icm.outputIntent, 0) ||
-             (bp.X == 0 && bp.Y == 0 && bp.Z == 0))) {
+             dest_black_point_is_zero(prof, int(icm.outputIntent)))) {
             if (g == -2) {
                 mode_ = MODE_PQ;
             } else if (g == -1) {
