@@ -85,8 +85,8 @@ public:
     /* Same as operator(), but for linear working-space input: `a` is the
      * matrix from the working space to the (linear) output profile. Going
      * through the output profile's curve and back is the identity, so only
-     * its clipping of negative components is kept, to still show the image
-     * as the output profile can represent it. in: W RGB triplets, 0..1 */
+     * its clipping to the 0..1 range is kept, to still show the image as the
+     * output profile can represent it. in: W RGB triplets, 0..1 */
     void from_linear(const float *in, const Mat33<float> &a, float *out,
                      int W) const
     {
@@ -96,7 +96,7 @@ public:
             for (int c = 0; c < 3; ++c) {
                 const float l = a[c][0] * in[x] + a[c][1] * in[x + 1] +
                                 a[c][2] * in[x + 2];
-                v[c] = l > 0.f ? l : 0.f;
+                v[c] = LIM01(l);
             }
             for (int c = 0; c < 3; ++c) {
                 out[x + c] = encode(c, m_[c][0] * v[0] + m_[c][1] * v[1] +
