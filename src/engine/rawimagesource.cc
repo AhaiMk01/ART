@@ -1693,6 +1693,7 @@ void RawImageSource::preprocess(const RAWParams &raw,
                                 const CoarseTransformParams &coarse,
                                 bool prepareDenoise, const ColorTemp &wb)
 {
+    deconv_radius_valid_ = false;
     //    BENCHFUN
     MyTime t1, t2;
     t1.set();
@@ -2140,6 +2141,7 @@ void RawImageSource::preprocess(const RAWParams &raw,
 void RawImageSource::demosaic(const RAWParams &raw, bool autoContrast,
                               double &contrastThreshold)
 {
+    deconv_radius_valid_ = false;
     MyTime t1, t2;
     t1.set();
 
@@ -2261,6 +2263,7 @@ void RawImageSource::demosaic(const RAWParams &raw, bool autoContrast,
 
 void RawImageSource::flushRawData()
 {
+    deconv_radius_valid_ = false;
     if (rawData) {
         rawData(0, 0);
     }

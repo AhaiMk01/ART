@@ -84,6 +84,10 @@ protected:
     int flatFieldAutoClipValue = 0;
     array2D<float> rawData; // holds preprocessed pixel values, rowData[i][j]
                             // corresponds to the ith row and jth column
+    // getDeconvAutoRadius() scans all of rawData, which only changes in
+    // preprocess(), demosaic() and flushRawData(): cache the result in between
+    float deconv_radius_ = 0.f;
+    bool deconv_radius_valid_ = false;
     array2D<float> *rawDataFrames[6] = {nullptr};
     array2D<float> *rawDataBuffer[5] = {nullptr};
 
