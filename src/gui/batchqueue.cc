@@ -788,8 +788,15 @@ void BatchQueue::pipelineTimes(const art::engine::PipelineTimes &t)
 
 void BatchQueue::error(const Glib::ustring &descr)
 {
-    if (processing && processing->processing) {
-        // restore failed thumb
+    GThreadLock glock;
+
+    if (processing) {
+        // restore failed thumb. Note: by the time an error is reported here,
+        // processing->processing might already have been cleared by
+        // imageReady() (e.g. when the failure happens while saving the
+        // output file, after the actual pipeline processing is done), so we
+        // must key off the BatchQueue's own "processing" entry rather than
+        // the entry's own flag to make sure the queue UI is not left stuck.
         BatchQueueButtonSet *bqbs = new BatchQueueButtonSet(processing);
         bqbs->setButtonListener(this);
         processing->addButtonSet(bqbs);
