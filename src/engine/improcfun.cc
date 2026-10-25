@@ -129,6 +129,7 @@ void ImProcFunctions::updateColorProfiles(const Glib::ustring &monitorProfile,
         cmsDeleteTransform(monitorTransform);
     }
     gamutWarning.reset(nullptr);
+    monitorFast.reset();
 
     monitorTransform = nullptr;
     monitor = nullptr;
@@ -274,6 +275,11 @@ void ImProcFunctions::updateColorProfiles(const Glib::ustring &monitorProfile,
             monitorTransform =
                 cmsCreateTransform(iprof, TYPE_RGB_FLT, monitor, TYPE_RGB_FLT,
                                    monitorIntent, flags);
+        }
+
+        if (!softProofCreated && monitorTransform && !gamutCheck &&
+            monitorIntent == RI_RELATIVE) {
+            monitorFast = MonitorMatrixTransform::create(iprof, monitor);
         }
 
         if (gamutCheck && gamutprof) {

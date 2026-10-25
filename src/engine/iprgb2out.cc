@@ -85,6 +85,33 @@ inline void copyAndClamp(Imagefloat *src, unsigned char *dst,
     }
 }
 
+/* Like copyAndClamp(), for an image that is already in RGB mode in the
+ * working space gamma2curve expects: no round trip through XYZ */
+inline void copyAndClampRGB(Imagefloat *src, unsigned char *dst,
+                            bool multiThread)
+{
+    src->syncCpu();
+
+    const int W = src->getWidth();
+    const int H = src->getHeight();
+
+#ifdef _OPENMP
+#pragma omp parallel for schedule(dynamic, 16) if (multiThread)
+#endif
+    for (int i = 0; i < H; ++i) {
+        const float *rr = src->r.ptrs[i];
+        const float *rg = src->g.ptrs[i];
+        const float *rb = src->b.ptrs[i];
+
+        int ix = i * 3 * W;
+        for (int j = 0; j < W; ++j) {
+            dst[ix++] = uint16ToUint8Rounded(Color::gamma2curve[CLIP(rr[j])]);
+            dst[ix++] = uint16ToUint8Rounded(Color::gamma2curve[CLIP(rg[j])]);
+            dst[ix++] = uint16ToUint8Rounded(Color::gamma2curve[CLIP(rb[j])]);
+        }
+    }
+}
+
 class ARTOutputProfile {
 public:
     ARTOutputProfile(cmsHPROFILE prof,
@@ -136,6 +163,15 @@ public:
     }
 
     operator bool() const { return mode_ != MODE_INVALID; }
+
+    // true if encoding with this profile and decoding with its own curve
+    // gives back the input (PQ and HLG are not handled)
+    bool is_gamma_or_linear() const
+    {
+        return mode_ == MODE_GAMMA || mode_ == MODE_LINEAR;
+    }
+
+    const Mat33<float> &matrix() const { return matrix_; }
 
     void operator()(const Imagefloat *src, Imagefloat *dst, bool multiThread)
     {
@@ -240,7 +276,25 @@ void ImProcFunctions::rgb2monitor(Imagefloat *img, Image8 *image,
 
     if (monitorTransform) {
         std::unique_ptr<Imagefloat> del_img;
-        if (!bypass_out) {
+        std::unique_ptr<ARTOutputProfile> fused;
+        if (monitorFast && !bypass_out && !gamutWarning) {
+            // skip the intermediate output-space image, see
+            // MonitorMatrixTransform::from_linear()
+            const cmsHPROFILE oprof =
+                ICCStore::getInstance()->getProfile(params->icm.outputProfile);
+            if (oprof) {
+                img->setMode(Imagefloat::Mode::RGB, multiThread);
+                std::unique_ptr<ARTOutputProfile> op(new ARTOutputProfile(
+                    oprof, params->icm, img->colorSpace(), 0));
+                if (static_cast<bool>(*op) && op->is_gamma_or_linear()) {
+                    img->syncCpu();
+                    fused = std::move(op);
+                }
+            }
+        }
+        if (fused) {
+            // img is already in RGB mode
+        } else if (!bypass_out) {
             img = rgb2out(img, params->icm);
             del_img.reset(img);
             img->setMode(Imagefloat::Mode::RGB, multiThread);
@@ -321,7 +375,14 @@ void ImProcFunctions::rgb2monitor(Imagefloat *img, Image8 *image,
                     }
                 }
 
-                cmsDoTransform(monitorTransform, buffer, outbuffer, W);
+                if (fused) {
+                    monitorFast->from_linear(buffer, fused->matrix(), outbuffer,
+                                             W);
+                } else if (monitorFast && !bypass_out) {
+                    (*monitorFast)(buffer, outbuffer, W);
+                } else {
+                    cmsDoTransform(monitorTransform, buffer, outbuffer, W);
+                }
                 copyAndClampLine(outbuffer, data + ix, W);
 
                 if (gamutWarning) {
@@ -445,7 +506,12 @@ Image8 *ImProcFunctions::rgb2out(Imagefloat *img, int cx, int cy, int cw,
     } else {
         const auto xyz_rgb =
             ICCStore::getInstance()->workingSpaceInverseMatrix(profile);
-        copyAndClamp(img, image->data, xyz_rgb, multiThread);
+        if (img->mode() == Imagefloat::Mode::RGB &&
+            img->colorSpace() == profile) {
+            copyAndClampRGB(img, image->data, multiThread);
+        } else {
+            copyAndClamp(img, image->data, xyz_rgb, multiThread);
+        }
     }
 
     return image;

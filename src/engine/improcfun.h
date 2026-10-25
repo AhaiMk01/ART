@@ -27,6 +27,7 @@
 #include "curves.h"
 #include "dcp.h"
 #include "gamutwarning.h"
+#include "ipmonitor.h"
 #include "image16.h"
 #include "image8.h"
 #include "imagefloat.h"
@@ -81,7 +82,11 @@ public:
     void updateColorProfiles(const Glib::ustring &monitorProfile,
                              RenderingIntent monitorIntent, bool softProof,
                              GamutCheck gamutCheck);
-    void setMonitorTransform(cmsHTRANSFORM xform) { monitorTransform = xform; }
+    void setMonitorTransform(cmsHTRANSFORM xform)
+    {
+        monitorTransform = xform;
+        monitorFast.reset();
+    }
 
     void setDCPProfile(DCPProfile *dcp, const DCPProfile::ApplyState &as)
     {
@@ -258,6 +263,8 @@ public:
 private:
     cmsHPROFILE monitor;
     cmsHTRANSFORM monitorTransform;
+    // set only when it is equivalent to monitorTransform (see ipmonitor.h)
+    std::unique_ptr<MonitorMatrixTransform> monitorFast;
     std::unique_ptr<GamutWarning> gamutWarning;
 
     const ProcParams *params;
