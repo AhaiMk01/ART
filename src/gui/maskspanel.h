@@ -140,6 +140,10 @@ public:
     /// Likewise for "enable/disable the selected region" (the checkbox of
     /// its row in the list)
     static bool toggleSelectedEnabledLastActive(Gtk::Widget &editor);
+    /// This panel is where the user is working (see toggleShowLastActive()):
+    /// to be called when its tool is switched on, as no region has been
+    /// clicked yet
+    void markActive();
 
     void adjusterChanged(Adjuster *a, double newval) override;
     void adjusterAutoToggled(Adjuster *a, bool newval) override;
@@ -211,8 +215,6 @@ private:
     void onMaskInvertedChanged();
     void onAreaMaskToggleChanged();
     void onShowMaskChanged();
-    // this panel is where the user is working: see toggleShowLastActive()
-    void markActive();
     bool usable() const;
     bool toolVisible() const;
     void toggleSelectedEnabled();

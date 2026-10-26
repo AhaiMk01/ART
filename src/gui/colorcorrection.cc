@@ -1024,8 +1024,12 @@ void ColorCorrection::enabledChanged()
         box_hsl->set_sensitive(getEnabled());
     }
 
-    if (listener && !getEnabled()) {
-        masks_->switchOffEditMode();
+    if (listener) {
+        if (getEnabled()) {
+            masks_->markActive();
+        } else {
+            masks_->switchOffEditMode();
+        }
     }
 }
 
