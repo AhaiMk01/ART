@@ -622,6 +622,9 @@ void ImProcFunctions::setProgressListener(ProgressListener *pl,
 template <class Ret, class Method>
 Ret ImProcFunctions::apply(const char *name, Method op, Imagefloat *img, bool can_skip_sync)
 {
+    // between tools nothing is in flight: safe place to abandon the update
+    throwIfAborted();
+
     if (plistener) {
         float percent = float(++progress_step) / float(progress_end);
         plistener->setProgress(percent);

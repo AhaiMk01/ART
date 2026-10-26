@@ -225,7 +225,7 @@ Settings::Settings()
       xmp_sidecar_style(XmpSidecarStyle::STD),
       metadata_xmp_sync(MetadataXmpSync::NONE), thread_pool_size(0),
       gpu_enabled(false), gpu_device("auto"), gpu_allow_software(false),
-      ctl_scripts_fast_preview(false),
+      preview_abort_starve_ms(300), ctl_scripts_fast_preview(false),
       os_monitor_profile(StdMonitorProfile::SRGB), imgio_raw_cache_size(10)
 {
 }

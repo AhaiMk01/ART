@@ -158,6 +158,10 @@ void NLMeans(array2D<float> &img, float normcoeff, int strength,
     const vfloat v65535f = F2V(factor);
 #endif
 
+    // A stale preview update skips the remaining tiles (no throwing out of an
+    // OpenMP region) and is unwound by the abortPoint() after it.
+    const AbortProbe aborted = currentAbortProbe();
+
 #ifdef _OPENMP
 #pragma omp parallel if (multithread)
 #endif
@@ -173,6 +177,9 @@ void NLMeans(array2D<float> &img, float normcoeff, int strength,
 #pragma omp for schedule(dynamic, 2)
 #endif
         for (int tile = 0; tile < ntiles; ++tile) {
+            if (aborted()) {
+                continue;
+            }
             const int tile_y = tile / ntiles_x;
             const int tile_x = tile % ntiles_x;
 
@@ -346,6 +353,8 @@ void NLMeans(array2D<float> &img, float normcoeff, int strength,
         _MM_SET_FLUSH_ZERO_MODE(oldMode);
 #endif
     } // omp parallel
+
+    abortPoint();
 }
 
 } // namespace denoise

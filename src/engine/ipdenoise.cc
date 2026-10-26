@@ -1035,18 +1035,34 @@ void shrinkChroma(const DenoiseContext &c, wavelet_decomposition &Ldecomp,
  * Lin is an out-parameter: phase 7 needs the *undenoised* L plane to form the
  * residual it runs the block DCT over, so it is snapshotted here, after the
  * luma shrink but before the reconstruction that overwrites labdn->L. */
+/* Owns the phase buffers of an RGB_denoise run, so that leaving through
+ * abortPoint() frees them. */
+struct DenoiseBufsGuard {
+    LabImage *&labdn;
+    array2D<float> *&Lin;
+    ~DenoiseBufsGuard()
+    {
+        delete labdn;
+        labdn = nullptr;
+        delete Lin;
+        Lin = nullptr;
+    }
+};
+
 void denoiseWaveletCPU(const DenoiseContext &c, LabImage *labdn,
                        array2D<float> *&Lin, int levwav, nrquality nrQuality,
                        bool autoch, bool denoiseLuminance)
 {
     const int threads = max(1, c.denoiseNestedLevels);
 
-    wavelet_decomposition *Ldecomp;
+    // unique_ptr: the abortPoint()s below may unwind out of here
+    std::unique_ptr<wavelet_decomposition> Ldecomp;
     {
         ART_PROFILE_SCOPE("denoise:wav:decompose");
-        Ldecomp = new wavelet_decomposition(labdn->L[0], labdn->W, labdn->H,
-                                            levwav, 1, 1, threads);
+        Ldecomp.reset(new wavelet_decomposition(labdn->L[0], labdn->W, labdn->H,
+                                                levwav, 1, 1, threads));
     }
+    abortPoint();
 
     /* madL[level][dir]: squared median absolute deviation of L's detail
      * coefficients, the robust noise estimate every shrink below scales by. */
@@ -1071,11 +1087,12 @@ void denoiseWaveletCPU(const DenoiseContext &c, LabImage *labdn,
         float *plane = ch == 0 ? labdn->a[0] : labdn->b[0];
         const float noisevar_ab = ch == 0 ? c.noisevarab_r : c.noisevarab_b;
 
-        wavelet_decomposition *abdecomp;
+        abortPoint();
+        std::unique_ptr<wavelet_decomposition> abdecomp;
         {
             ART_PROFILE_SCOPE("denoise:wav:decompose");
-            abdecomp = new wavelet_decomposition(plane, labdn->W, labdn->H,
-                                                 levwav, 1, 1, threads);
+            abdecomp.reset(new wavelet_decomposition(plane, labdn->W, labdn->H,
+                                                     levwav, 1, 1, threads));
         }
         {
             ART_PROFILE_SCOPE("denoise:wav:shrink-ab");
@@ -1086,10 +1103,10 @@ void denoiseWaveletCPU(const DenoiseContext &c, LabImage *labdn,
             ART_PROFILE_SCOPE("denoise:wav:reconstruct");
             abdecomp->reconstruct(plane);
         }
-        delete abdecomp;
     }
 
     if (denoiseLuminance) {
+        abortPoint();
         {
             ART_PROFILE_SCOPE("denoise:wav:shrink-l");
             int edge = 0;
@@ -1097,6 +1114,7 @@ void denoiseWaveletCPU(const DenoiseContext &c, LabImage *labdn,
                 WaveletDenoiseAll_BiShrinkL(c.scale, *Ldecomp, c.noisevarlum,
                                             madL, c.denoiseNestedLevels);
             }
+            abortPoint();
             WaveletDenoiseAllL(c.scale, *Ldecomp, c.noisevarlum, madL, nullptr,
                                edge, c.denoiseNestedLevels);
         }
@@ -1118,8 +1136,6 @@ void denoiseWaveletCPU(const DenoiseContext &c, LabImage *labdn,
             Ldecomp->reconstruct(labdn->L[0]);
         }
     }
-
-    delete Ldecomp;
 }
 
 /* The GPU wavelet phases' parameter block.  Built in one place so the
@@ -2167,6 +2183,7 @@ bool analyseCropGPU(CropAnalysisJob &j, int wcr, int hcr,
  * `omp parallel for`s collapse to one thread. */
 void computeParamsCPU(CropAnalysisJob &j)
 {
+    const AbortProbe aborted = currentAbortProbe();
 #ifdef _OPENMP
 #pragma omp parallel if (j.multiThread)
 #endif
@@ -2181,6 +2198,9 @@ void computeParamsCPU(CropAnalysisJob &j)
 #endif
         for (int wcr = 0; wcr <= 2; wcr++) {
             for (int hcr = 0; hcr <= 2; hcr++) {
+                if (aborted()) {
+                    continue; // no throwing out of an OpenMP region
+                }
                 analyseCropCPU(j, wcr, hcr, origCropPart, provicalc);
             }
         }
@@ -2188,6 +2208,7 @@ void computeParamsCPU(CropAnalysisJob &j)
         delete provicalc;
         delete origCropPart;
     }
+    abortPoint();
 }
 
 /* The nine crops on the device.  False means the device analysis is not usable
@@ -2215,6 +2236,7 @@ bool computeParamsGPU(CropAnalysisJob &j)
     Imagefloat provicalc((j.crW + 1) / 2, (j.crH + 1) / 2);
     for (int wcr = 0; wcr <= 2; ++wcr) {
         for (int hcr = 0; hcr <= 2; ++hcr) {
+            abortPoint(); // store stays !valid, so the analysis is redone
             prepareCropForAnalysis(j, wcr, hcr, &origCropPart, &provicalc);
             if (!analyseCropGPU(j, wcr, hcr, &origCropPart, &provicalc)) {
                 float chaut = 0.f, redaut = 0.f, blueaut = 0.f,
@@ -2593,6 +2615,7 @@ void ImProcFunctions::denoise(ImageSource *imgsrc, const ColorTemp &currWB,
         }
 
         if (denoiseParams.smoothingEnabled) {
+            abortPoint();
             denoise::finalSmoothing(im, img, denoiseParams);
         }
     } catch (const std::exception &exc) {
@@ -3877,38 +3900,44 @@ void RGB_denoise_CPU(Imagefloat *src, const DenoisePrep &prep)
 
     array2D<float> *Lin = nullptr;              // input L channel
     LabImage *labdn = new LabImage(width, height);  // wavelet denoised image
+    DenoiseBufsGuard bufs = {labdn, Lin};
 
+    // Until phase 8 src is only read, so a stale preview update can leave from
+    // any of the checks below with it untouched.
+    abortPoint();
     {
         ART_PROFILE_SCOPE("denoise:fill"); // phase 1
         computeNoisevarMapsCPU(ctx, src, prep.noiseCCurve);
         denoiseFill(ctx, src, labdn);
     }
+    abortPoint();
 
     denoiseWaveletCPU(ctx, labdn, Lin, prep.levwav, prep.nrQuality, prep.autoch,
                       prep.denoiseLuminance); // phases 2-6
 
     if (prep.denoiseLuminance) {
+        abortPoint();
         // now do detail recovery using block DCT to detect patterns missed by
         // wavelet denoise; blocks are not the same thing as tiles!
         ART_PROFILE_SCOPE("denoise:dct"); // phase 7
         array2D<float> mask(ARRAY2D_ALIGNED);
         buildDetailMask(width, height, labdn, prep.detail_thresh, prep.scale,
                         mask);
+        abortPoint();
         detailRecoveryCPU(width, height, labdn, Lin, prep.numthreads,
                           prep.denoiseNestedLevels, dct, prep.params_Ldetail,
                           prep.detail_thresh, mask, prep.scale,
                           prep.nrQuality == QUALITY_HIGH);
     }
 
-    // Phase 8: inverse colour transform back to RGB.
+    // Phase 8: inverse colour transform back to RGB.  The last point at which
+    // leaving is free.
+    abortPoint();
     {
         ART_PROFILE_SCOPE("denoise:out"); // phase 8
         denoiseOutput(ctx, labdn, dst, prep.qhighFactor, prep.realred,
                       prep.realblue);
     }
-
-    delete labdn;
-    delete Lin;
 }
 
 /* Phases 1-8 with the GPU in play.
@@ -3965,6 +3994,7 @@ bool RGB_denoise_GPU(ImProcData &im, Imagefloat *src, const DenoisePrep &prep,
 
     array2D<float> *Lin = nullptr;
     LabImage *labdn = new LabImage(width, height);
+    DenoiseBufsGuard bufs = {labdn, Lin};
 
     bool onDevice = false;
     /* Whether the noise-variance maps are currently the device's own copy
@@ -4001,14 +4031,13 @@ bool RGB_denoise_GPU(ImProcData &im, Imagefloat *src, const DenoisePrep &prep,
      * fell back to the CPU would use tile-local statistics, which is exactly
      * what tiling must not do.  So any decline abandons the tiled run (the
      * caller then runs the whole image on the CPU, as it would have anyway). */
-    const auto bail = [&]() {
-        delete labdn;
-        delete Lin;
-        return false;
-    };
+    const auto bail = [&]() { return false; };
     if (tile && !(onDevice && nvOnDevice)) {
         return bail();
     }
+    // Nothing has been written to src yet (phase 8 is the first), so a stale
+    // preview update may leave at any of these.
+    abortPoint();
 
     /* Phases 2-6.  No unconditional sync between phase 1 and here: both sides
      * have on-device entries, so the planes stay where phase 1 left them and
@@ -4031,8 +4060,6 @@ bool RGB_denoise_GPU(ImProcData &im, Imagefloat *src, const DenoisePrep &prep,
             return bail();
         }
         if (tile && tile->gathering) {
-            delete labdn;
-            delete Lin;
             return true; // statistics gathered; the output waits for a later phase
         }
 
@@ -4067,6 +4094,7 @@ bool RGB_denoise_GPU(ImProcData &im, Imagefloat *src, const DenoisePrep &prep,
 
     // wavelet denoised L channel
     //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    abortPoint();
     if (prep.denoiseLuminance) {
         // now do detail recovery using block DCT to detect patterns missed by
         // wavelet denoise; blocks are not the same thing as tiles!
@@ -4124,6 +4152,7 @@ bool RGB_denoise_GPU(ImProcData &im, Imagefloat *src, const DenoisePrep &prep,
     //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     // transform denoised "Lab" to output RGB
 
+    abortPoint(); // the last one: session.output() below writes dst
     {
         ART_PROFILE_SCOPE("denoise:out"); // phase 8
         bool outOnDevice = false;
@@ -4158,9 +4187,6 @@ bool RGB_denoise_GPU(ImProcData &im, Imagefloat *src, const DenoisePrep &prep,
                           prep.realblue);
         }
     }
-
-    delete labdn;
-    delete Lin;
 
     /* The "copy denoised image to output" step and the sRGB gamma restore that
      * used to sit here are both gone: the former only ran for numtiles > 1
@@ -4272,6 +4298,7 @@ void RGB_denoise(ImProcData &im, Imagefloat *src,
      * timing line below still prints in that case, as it always has. */
     DenoisePrep prep;
     if (denoisePrepare(im, src, dnparams, prep)) {
+        abortPoint();
         MyTime t1p, t2p;
         t1p.set();
         bool onGPU = false;
@@ -4317,8 +4344,10 @@ void finalSmoothing(ImProcData &im, Imagefloat *img,
     bool onGPU = gpu::ops::finalSmoothingGPU(im, img, dnparams);
     if (!onGPU) {
         img->syncCpuForWrite();
+        abortPoint();
         denoise::denoiseGuidedSmoothing(im, img);
         if (dnparams.nlStrength) {
+            abortPoint();
             img->setMode(Imagefloat::Mode::YUV, im.multiThread);
             array2D<float> tmp(img->getWidth(), img->getHeight(),
                                img->g.ptrs, ARRAY2D_BYREFERENCE);

@@ -30,6 +30,7 @@
 #include "procevents.h"
 #include "rtengine.h"
 
+#include <atomic>
 #include <condition_variable>
 #include <mutex>
 
@@ -193,6 +194,11 @@ protected:
     // MyMutex updaterThreadStart;
     art::utils::MyMutex paramsUpdateMutex;
     int changeSinceLast;
+    // Bumped whenever something newer than the render in flight arrives (a
+    // parameter change, a crop pan or resize, a stop request).  A crop update
+    // snapshots it and abandons itself, between tools, if it moves; never
+    // reset, so it cannot go stale.
+    std::atomic<uint64_t> changeGen_{0};
     bool updaterRunning;
     ProcParams nextParams;
     bool destroying;

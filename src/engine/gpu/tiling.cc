@@ -19,6 +19,7 @@
  */
 
 #include "tiling.h"
+#include "../abortpoint.h"
 #include "../imagefloat.h"
 #include "gpu.h"
 
@@ -255,6 +256,9 @@ TiledResult processTiled(
     for (int phase = 0; phase < std::max(phases, 1); ++phase) {
         const bool last = phase == std::max(phases, 1) - 1;
         for (size_t i = 0; i < tiles.size(); ++i) {
+            // img is only overwritten after the last tile, so a stale
+            // preview update can leave here untouched
+            abortPoint();
             const Tile &t = tiles[i];
             Imagefloat tile(t.padded.w, t.padded.h, img);
             copyRect(tile, 0, 0, *img, t.padded.x, t.padded.y, t.padded.w,

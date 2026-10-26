@@ -103,6 +103,7 @@ void ImProcCoordinator::assign(ImageSource *imgsrc)
 ImProcCoordinator::~ImProcCoordinator()
 {
     destroying = true;
+    changeGen_.fetch_add(1, std::memory_order_acq_rel);
     // updaterThreadStart.lock();
 
     wait_not_running();
@@ -1490,6 +1491,7 @@ void ImProcCoordinator::stopProcessing()
 
     if (updaterRunning) {
         changeSinceLast = 0;
+        changeGen_.fetch_add(1, std::memory_order_acq_rel);
         wait_not_running();
     }
     // if (updaterRunning && thread) {
@@ -1518,7 +1520,11 @@ void ImProcCoordinator::startProcessing()
 void ImProcCoordinator::startProcessing(int changeCode)
 {
     paramsUpdateMutex.lock();
-    changeSinceLast |= update_change_flags(nextParams, changeCode);
+    const int flags = update_change_flags(nextParams, changeCode);
+    changeSinceLast |= flags;
+    if (flags & (M_VOID - 1)) {
+        changeGen_.fetch_add(1, std::memory_order_acq_rel);
+    }
     paramsUpdateMutex.unlock();
 
     startProcessing();
@@ -1536,6 +1542,18 @@ void ImProcCoordinator::process()
     bool changed = false;
     while (changeSinceLast) {
         const bool panningRelatedChange = true;
+        // Take mProcessing before copying the params: Crop::fullUpdate() reads
+        // params under it, and must not see them half-overwritten.  It cannot
+        // be taken while holding paramsUpdateMutex (a long crop render would
+        // then block the GUI thread in beginUpdateParams()), so drop that one,
+        // and look again once both are held.
+        paramsUpdateMutex.unlock();
+        mProcessing.lock();
+        paramsUpdateMutex.lock();
+        if (!changeSinceLast) {
+            mProcessing.unlock();
+            break;
+        }
         params = nextParams;
         int change = changeSinceLast;
         changeSinceLast = 0;
@@ -1545,13 +1563,11 @@ void ImProcCoordinator::process()
         // updatePreviewImage() call, which can take a while) and leave mTweak
         // locked forever.
         TweakOperator *const tweakOp = tweakOperator;
-        // mProcessing is held for the whole span below (previously it was only
-        // locked inside updatePreviewImage() itself, now hoisted out here) so it
+        // mProcessing is held for the whole span below (taken above) so it
         // can be acquired in the same order -- mProcessing then mTweak -- as
         // Crop::fullUpdate(), which locks mProcessing for its own whole call and
         // mTweak around its own backup/tweak/restore sequence. Locking them in a
         // consistent order across both call sites avoids an ABBA deadlock.
-        mProcessing.lock();
         if (tweakOp) {
             // TWEAKING THE PROCPARAMS FOR THE SPOT ADJUSTMENT MODE
             // mTweak stays locked until restoreParams() below: Crop::fullUpdate()
@@ -1583,9 +1599,12 @@ void ImProcCoordinator::process()
         mProcessing.unlock();
     }
 
-    paramsUpdateMutex.unlock();
-
+    // Clear updaterRunning while still holding paramsUpdateMutex: a change
+    // arriving after the loop test above either sees it still set and has its
+    // flags found by us, or sees it clear and starts a new process().  Clearing
+    // it after the unlock left a window where the change was dropped.
     set_updater_running(false);
+    paramsUpdateMutex.unlock();
 
     if (plistener) {
         if (!changed) {
@@ -1635,7 +1654,13 @@ out:
 
 void ImProcCoordinator::endUpdateParams(int changeFlags)
 {
-    changeSinceLast |= update_change_flags(nextParams, changeFlags);
+    const int flags = update_change_flags(nextParams, changeFlags);
+    changeSinceLast |= flags;
+    if (flags & (M_VOID - 1)) {
+        // M_VOID alone does not rerun the preview, so it must not abort a
+        // render that nothing would then redo
+        changeGen_.fetch_add(1, std::memory_order_acq_rel);
+    }
 
     paramsUpdateMutex.unlock();
     startProcessing();

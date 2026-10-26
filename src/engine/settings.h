@@ -95,6 +95,12 @@ public:
     Glib::ustring gpu_device;
     bool gpu_allow_software;
 
+    /* How long (ms) a detail crop may go without showing a frame while edits
+     * keep arriving, before its update stops being abandonable in favour of
+     * the newer edit. Without a bound, a drag that outpaces the render would
+     * never show anything. 0 disables abandoning updates altogether. */
+    int preview_abort_starve_ms;
+
     bool ctl_scripts_fast_preview;
 
     enum class StdMonitorProfile { SRGB, DISPLAY_P3, ADOBE_RGB };
