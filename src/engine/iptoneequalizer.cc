@@ -60,8 +60,9 @@ const std::vector<std::array<float, 3>> colormap = {
     {1.f, 0.f, 0.f},                       // whites
     {1.f, 0.f, 0.f},    {1.f, 0.f, 0.f},   {1.f, 0.f, 0.f}};
 
-// Edge-aware smoothing of the (clamped, linear) luminance Y, in place: the
-// guide of the tone equalizer, depending on the regularization level
+} // namespace
+
+// see guidedfilter.h
 void toneEqGuide(array2D<float> &Y, int regularization, double scale,
                  bool multithread)
 {
@@ -109,6 +110,8 @@ void toneEqGuide(array2D<float> &Y, int regularization, double scale,
         }
     }
 }
+
+namespace {
 
 void tone_eq(array2D<float> &R, array2D<float> &G, array2D<float> &B,
              const ToneEqualizerParams &pp, const Glib::ustring &workingProfile,
@@ -369,44 +372,6 @@ bool ImProcFunctions::toneEqualizer(Imagefloat *rgb)
     rgb->multiply(!show_color_map ? 1.f / gain : 65535.f, multiThread);
 
     return show_color_map;
-}
-
-void ImProcFunctions::computeCTLGuide(Imagefloat *img, array2D<float> &guide)
-{
-    // the luminance is the Y channel of the YUV mode (in 0..65535)
-    const int W = img->getWidth();
-    const int H = img->getHeight();
-    guide(W, H, ARRAY2D_ALIGNED);
-
-    if (img->mode() == Imagefloat::Mode::YUV) {
-#ifdef _OPENMP
-#pragma omp parallel for if (multiThread)
-#endif
-        for (int y = 0; y < H; ++y) {
-            for (int x = 0; x < W; ++x) {
-                guide[y][x] = LIM(img->g(y, x) / 65535.f, 1e-5f, 32.f);
-            }
-        }
-    } else {
-        TMatrix ws = ICCStore::getInstance()->workingSpaceMatrix(
-            params->icm.workingProfile);
-#ifdef _OPENMP
-#pragma omp parallel for if (multiThread)
-#endif
-        for (int y = 0; y < H; ++y) {
-            for (int x = 0; x < W; ++x) {
-                guide[y][x] = LIM(Color::rgbLuminance(img->r(y, x), img->g(y, x),
-                                                      img->b(y, x), ws) /
-                                      65535.f,
-                                  1e-5f, 32.f);
-            }
-        }
-    }
-
-    // the same guide as the tone equalizer at regularization 4. This is the
-    // only place to change if a different algorithm is wanted
-    constexpr int regularization = 4;
-    toneEqGuide(guide, regularization, scale, multiThread);
 }
 
 }} // namespace art::engine

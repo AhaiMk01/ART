@@ -128,12 +128,14 @@ public:
                     const Glib::ustring &working_profile = "",
                     float strength = 1.f, int num_threads = 1,
                     bool guide_available = false);
-    /// guide: see wantsGuide(); must be given (with the size of img) iff
+    /// guides: see guidesMask(); must be given (with the size of img, and
+    /// with all the planes in guidesMask()) iff wantsGuide()
+    void operator()(Imagefloat *img, const CTLGuideSet *guides = nullptr);
+    /// guide_rows: W values for each plane, indexed by CTLGuide (see
+    /// CTLGuideSet::rows); the ones in guidesMask() must be given iff
     /// wantsGuide()
-    void operator()(Imagefloat *img, const array2D<float> *guide = nullptr);
-    /// guide: see wantsGuide(); W values, must be given iff wantsGuide()
     void apply(int thread_id, int W, float *r, float *g, float *b,
-               const float *guide = nullptr);
+               const float *const *guide_rows = nullptr);
     operator bool() const { return ok_; }
 
     CLUTParamDescriptorList get_param_descriptors() const;
@@ -142,11 +144,14 @@ public:
 
     bool set_num_threads(int num_threads);
 
-    /// true if the script takes a guide (a linear luminance plane, in the
-    /// working profile, see ctl.cc). Callers must then provide one to
-    /// apply() and fillPipette(). Such scripts can only be loaded if the
-    /// application was created with guide_available == true
+    /// true if the script takes guides (planes in the working profile, see
+    /// ctl.cc). Callers must then provide them to apply() and fillPipette().
+    /// Such scripts can only be loaded if the application was created with
+    /// guide_available == true
     bool wantsGuide() const;
+    /// the guides taken by the script, as a bit mask of ctl_guide_bit(); 0
+    /// if wantsGuide() is false
+    unsigned guidesMask() const;
 
     /// true if the script supports pipettes (see @ART-pipette)
     bool hasPipette() const;
@@ -154,7 +159,7 @@ public:
     /// (in the working profile, 0..65535 range) and are overwritten by the
     /// positions in the curve curve_id (0..1, -1 for unused channels)
     bool fillPipette(int thread_id, int curve_id, int W, float *r, float *g,
-                     float *b, const float *guide = nullptr);
+                     float *b, const float *const *guide_rows = nullptr);
 
     static CLUTParamDescriptorList
     get_param_descriptors(const Glib::ustring &filename);
@@ -193,7 +198,7 @@ protected:
 #ifdef ART_USE_CTL
     bool CTL_init(int num_threads);
     void CTL_apply(int thread_id, int W, float *r, float *g, float *b,
-                   const float *guide);
+                   const float *const *guide_rows);
     CTLApplication ctl_;
 #endif // ART_USE_CTL
 

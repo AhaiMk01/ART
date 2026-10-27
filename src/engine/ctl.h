@@ -20,11 +20,57 @@
 
 #pragma once
 
+#include <string>
+
+#include "array2D.h"
+
+namespace art { namespace engine {
+
+class Imagefloat;
+
+/**
+ * The kinds of guide a CTL script can ask for (see @ART-guides in ctl.cc).
+ * The value is the index of the plane in a CTLGuideSet
+ */
+enum class CTLGuide { Y = 0, C = 1, H = 2 };
+
+constexpr int CTL_MAX_GUIDES = 3;
+
+/// the name of a guide in @ART-guides
+const char *ctl_guide_name(CTLGuide g);
+
+/// parse a name in @ART-guides; returns false if unknown
+bool parse_ctl_guide(const std::string &name, CTLGuide &out);
+
+constexpr unsigned ctl_guide_bit(CTLGuide g)
+{
+    return 1u << unsigned(g);
+}
+
+/// The guide planes computed for an image (by compute_ctl_guides), indexed
+/// by CTLGuide. Only the planes that were requested are present.
+struct CTLGuideSet {
+    array2D<float> plane[CTL_MAX_GUIDES];
+    bool present[CTL_MAX_GUIDES] = {false, false, false};
+
+    bool has(CTLGuide g) const { return present[int(g)]; }
+
+    /// the row y of each plane (nullptr for the missing ones), indexed by
+    /// CTLGuide
+    void rows(int y, const float *out[CTL_MAX_GUIDES]) const
+    {
+        for (int i = 0; i < CTL_MAX_GUIDES; ++i) {
+            out[i] = present[i] ? plane[i][y] : nullptr;
+        }
+    }
+};
+
+}} // namespace art::engine
+
 #ifdef ART_USE_CTL
 
 #include <glibmm.h>
 #include <memory>
-#include <string>
 #include <utility>
 #include <vector>
 
@@ -44,14 +90,14 @@ public:
     static CTLStore &getInstance();
 
     /// see CLUTStore::getCTLLut. If md5 is not null, it is set to the
-    /// checksum of the script. If uses_guide is not null, it is set to true if
-    /// ART_main takes a guide (a 4th varying input)
+    /// checksum of the script. If guides is not null, it is set to the guides
+    /// that ART_main takes (the varying inputs after r, g, b; see @ART-guides)
     std::pair<std::shared_ptr<Ctl::Interpreter>,
               std::vector<Ctl::FunctionCallPtr>>
     getLut(const Glib::ustring &filename, int num_threads, int &chunk_size,
            CLUTParamDescriptorList &params, Glib::ustring &colorspace,
            int &lut_dim, std::string *md5 = nullptr,
-           bool *uses_guide = nullptr) const;
+           std::vector<CTLGuide> *guides = nullptr) const;
 
     /// Cache of the 3D LUTs baked from a script. The key identifies the
     /// script and the values of its parameters, but not the dimension of the
@@ -82,7 +128,7 @@ private:
         CLUTParamDescriptorList params;
         Glib::ustring colorspace;
         int lut_dim;
-        bool uses_guide;
+        std::vector<CTLGuide> guides;
     };
     mutable Cache<std::string, CacheEntry> cache_;
     mutable art::utils::MyMutex mutex_;
@@ -115,14 +161,18 @@ public:
     /// the cap on the LUT dimension requested by the quality (0 for none)
     bool set_params(const CLUTParamValueMap &values, int max_dim);
 
-    /// true if the script takes a guide, i.e. a 4th varying input to ART_main
-    /// (a linear luminance plane; see the comment in ctl.cc). Such scripts
-    /// are never baked into a 3D LUT
-    bool uses_guide() const { return uses_guide_; }
+    /// the guides the script takes, in the order of the varying inputs of
+    /// ART_main after r, g, b (see the comment in ctl.cc)
+    const std::vector<CTLGuide> &guides() const { return guides_; }
 
-    /// transform W pixels in place. guide must not be null iff uses_guide()
+    /// true if the script takes at least a guide. Such scripts are never
+    /// baked into a 3D LUT
+    bool uses_guide() const { return !guides_.empty(); }
+
+    /// transform W pixels in place. guide_rows (indexed by CTLGuide, see
+    /// CTLGuideSet::rows) must have a non-null entry for each of guides()
     bool apply(int thread_id, int W, float *r, float *g, float *b,
-               const float *guide = nullptr);
+               const float *const *guide_rows = nullptr);
 
     bool has_pipette() const { return !pipette_func_.empty(); }
     bool can_pipette(int thread_id) const
@@ -130,10 +180,10 @@ public:
         return thread_id >= 0 && size_t(thread_id) < pipette_func_.size();
     }
     /// see CLUTApplication::fillPipette. in: pixels already converted to the
-    /// colour space of the script. guide must not be null iff uses_guide()
+    /// colour space of the script. guide_rows: see apply()
     bool fill_pipette(int thread_id, int curve_id, int W,
                       const float *const in[3], float *const out[3],
-                      const float *guide = nullptr);
+                      const float *const *guide_rows = nullptr);
 
 private:
     std::string lut_key(const CLUTParamValueMap &values) const;
@@ -148,8 +198,17 @@ private:
     CLUTParamDescriptorList params_;
     std::shared_ptr<const LUT3D> lut_;
     int lut_dim_;
-    bool uses_guide_;
+    std::vector<CTLGuide> guides_;
 };
+
+/// Compute the planes of the guides in the set of kinds given by the bit
+/// mask kinds_mask (see ctl_guide_bit) for img, which can be either in RGB
+/// (working profile) or in YUV mode, and store them in out. The guides are
+/// computed from the input image as a whole, see the comment in ctl.cc.
+/// scale is the scale of the pipeline (1 for full size)
+void compute_ctl_guides(Imagefloat *img, unsigned kinds_mask,
+                        const Glib::ustring &working_profile, double scale,
+                        bool multithread, CTLGuideSet &out);
 
 }} // namespace art::engine
 

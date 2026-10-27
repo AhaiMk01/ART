@@ -741,7 +741,7 @@ bool CLUTApplication::CTL_init(int num_threads)
         }
         if (ctl_.uses_guide() && !guide_available_) {
             std::cout << clut_filename_
-                      << ": Error: the script requires a guide, which is "
+                      << ": Error: the script requires guides, which are "
                          "not available in this context"
                       << std::endl;
             ok_ = false;
@@ -855,9 +855,9 @@ void CLUTApplication::init_matrices(const Glib::ustring &lut_profile)
 
 #endif // ART_USE_OCIO || ART_USE_CTL
 
-void CLUTApplication::operator()(Imagefloat *img, const array2D<float> *guide)
+void CLUTApplication::operator()(Imagefloat *img, const CTLGuideSet *guides)
 {
-    if (!ok_ || (wantsGuide() && !guide)) {
+    if (!ok_ || (wantsGuide() && !guides)) {
         return;
     }
 
@@ -873,8 +873,12 @@ void CLUTApplication::operator()(Imagefloat *img, const array2D<float> *guide)
 #else
         int thread_id = 0;
 #endif
+        const float *rows[CTL_MAX_GUIDES] = {nullptr, nullptr, nullptr};
+        if (guides) {
+            guides->rows(y, rows);
+        }
         apply(thread_id, W, img->r(y), img->g(y), img->b(y),
-              guide ? (*guide)[y] : nullptr);
+              guides ? rows : nullptr);
     }
 }
 
@@ -1051,7 +1055,8 @@ inline void CLUTApplication::OCIO_apply(int W, float *r, float *g, float *b)
 #ifdef ART_USE_CTL
 
 inline void CLUTApplication::CTL_apply(int thread_id, int W, float *r, float *g,
-                                       float *b, const float *guide)
+                                       float *b,
+                                       const float *const *guide_rows)
 {
     if (!ctl_.empty()) {
         Vec3<float> v;
@@ -1071,7 +1076,7 @@ inline void CLUTApplication::CTL_apply(int thread_id, int W, float *r, float *g,
         }
 
         if (!ctl_.apply(thread_id, W, rgb[0].data(), rgb[1].data(),
-                        rgb[2].data(), guide)) {
+                        rgb[2].data(), guide_rows)) {
             return;
         }
 
@@ -1116,8 +1121,22 @@ bool CLUTApplication::wantsGuide() const
 #endif
 }
 
+unsigned CLUTApplication::guidesMask() const
+{
+    unsigned ret = 0;
+#ifdef ART_USE_CTL
+    if (wantsGuide()) {
+        for (auto g : ctl_.guides()) {
+            ret |= ctl_guide_bit(g);
+        }
+    }
+#endif
+    return ret;
+}
+
 bool CLUTApplication::fillPipette(int thread_id, int curve_id, int W, float *r,
-                                  float *g, float *b, const float *guide)
+                                  float *g, float *b,
+                                  const float *const *guide_rows)
 {
 #ifdef ART_USE_CTL
     if (!hasPipette() || !ctl_.can_pipette(thread_id)) {
@@ -1139,13 +1158,13 @@ bool CLUTApplication::fillPipette(int thread_id, int curve_id, int W, float *r,
     }
     const float *in[3] = {rgb[0].data(), rgb[1].data(), rgb[2].data()};
     float *const out[3] = {r, g, b};
-    return ctl_.fill_pipette(thread_id, curve_id, W, in, out, guide);
+    return ctl_.fill_pipette(thread_id, curve_id, W, in, out, guide_rows);
 #endif // ART_USE_CTL
     return false;
 }
 
 void CLUTApplication::apply(int thread_id, int W, float *r, float *g, float *b,
-                            const float *guide)
+                            const float *const *guide_rows)
 {
     if (!ok_) {
         return;
@@ -1160,7 +1179,7 @@ void CLUTApplication::apply(int thread_id, int W, float *r, float *g, float *b,
 #ifdef ART_USE_CTL
     if (!ctl_.empty()) {
         try {
-            CTL_apply(thread_id, W, r, g, b, guide);
+            CTL_apply(thread_id, W, r, g, b, guide_rows);
         } catch (std::exception &exc) {
             if (settings->verbose) {
                 std::cout << "Error in applying CTL LUT " << clut_filename_
