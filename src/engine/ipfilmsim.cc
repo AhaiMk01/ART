@@ -33,7 +33,8 @@ namespace art { namespace engine {
 // pipette for the curves of a CTL script: the buffer is filled with the
 // position in the curve of each pixel, as computed by ART_fill_pipette. If
 // clut is null (tool disabled, or script not usable), the buffer is zeroed.
-void ImProcFunctions::fillCTLPipette(CLUTApplication *clut, Imagefloat *img)
+void ImProcFunctions::fillCTLPipette(CLUTApplication *clut, Imagefloat *img,
+                                     const array2D<float> *guide)
 {
     const art::utils::EditUniqueID eid =
         pipetteBuffer ? pipetteBuffer->getEditID() : art::utils::EUID_None;
@@ -71,7 +72,8 @@ void ImProcFunctions::fillCTLPipette(CLUTApplication *clut, Imagefloat *img)
 #else
             int thread_id = 0;
 #endif
-            if (clut->fillPipette(thread_id, curve_id, W, r, g, b)) {
+            if (clut->fillPipette(thread_id, curve_id, W, r, g, b,
+                                   guide ? (*guide)[y] : nullptr)) {
                 continue;
             }
         }
@@ -98,7 +100,7 @@ void ImProcFunctions::filmSimulation(Imagefloat *img)
 #endif
     CLUTApplication clut(
         params->filmSimulation.clutFilename, params->icm.workingProfile,
-        float(params->filmSimulation.strength) / 100.f, num_threads);
+        float(params->filmSimulation.strength) / 100.f, num_threads, true);
 
     if (clut) {
         CLUTApplication::Quality q = CLUTApplication::Quality::HIGHEST;
@@ -118,8 +120,15 @@ void ImProcFunctions::filmSimulation(Imagefloat *img)
             break;
         }
         if (clut.set_param_values(params->filmSimulation.lut_params, q)) {
-            fillCTLPipette(&clut, img);
-            clut(img);
+            // the guide, if the script needs one, is computed from the input
+            // of the tool
+            array2D<float> guide;
+            const bool has_guide = clut.wantsGuide();
+            if (has_guide) {
+                computeCTLGuide(img, guide);
+            }
+            fillCTLPipette(&clut, img, has_guide ? &guide : nullptr);
+            clut(img, has_guide ? &guide : nullptr);
         } else {
             fillCTLPipette(nullptr, nullptr);
             if (plistener) {

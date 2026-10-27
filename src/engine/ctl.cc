@@ -110,6 +110,23 @@ bool fill_from_json(std::unordered_map<std::string, int> &name2pos,
  * // @ART-param: ["param_choice", "A combo box", ["Option A", "Option B"], 1,
  * "Select between option A (value 0) and option B (value 1)"]
  *
+ * ART_main can optionally take a guide as its 4th input, if it is varying
+ * (it must then be a float):
+ *
+ *  void ART_main(varying float r, varying float g, varying float b,
+ *                varying float guide, output varying float rout, ...)
+ *
+ * The guide is a spatial (edge-aware) smoothing of the luminance of the input
+ * image, computed as in the "Tone Equalizer" tool (regularization 4). It is
+ * a linear luminance, normalised like the tone equalizer does: 0.18 is
+ * middle grey (the guide is not in the colour space of the script, but in
+ * the working profile). It is computed from the input of the tool, before any
+ * of its regions is applied. Scripts taking a guide are never baked into a 3D
+ * LUT, so any @ART-lut annotation is ignored. They can only be used by tools
+ * that provide a guide (Color/Tone Correction, Film Simulation). If ART_main
+ * takes a guide, so must ART_fill_pipette, in the same position (before
+ * curve_id).
+ *
  * Curve parameters can support pipettes (picking a point of the curve from a
  * pixel of the preview). A script declares which curves do with
  *
@@ -118,6 +135,7 @@ bool fill_from_json(std::unordered_map<std::string, int> &name2pos,
  * (curve_id is the index in this list), and provides a second entry point
  *
  *  void ART_fill_pipette(varying float r, varying float g, varying float b,
+ *                        [varying float guide,]
  *                        output varying float rout, output varying float gout,
  *                        output varying float bout, int curve_id,
  *                        <optional parameters, as for ART_main>)
@@ -137,7 +155,7 @@ bool fill_from_json(std::unordered_map<std::string, int> &name2pos,
 bool get_CTL_params(const Glib::ustring &filename,
                     std::shared_ptr<Ctl::Interpreter> intp,
                     Ctl::FunctionCallPtr func, CLUTParamDescriptorList &out,
-                    Glib::ustring &colorspace, int &lut_dim)
+                    Glib::ustring &colorspace, int &lut_dim, bool uses_guide)
 {
     setlocale(LC_NUMERIC, "C");
 
@@ -145,6 +163,9 @@ bool get_CTL_params(const Glib::ustring &filename,
     std::unordered_map<std::string, int> name2pos;
 
     colorspace = "";
+    if (uses_guide) {
+        lut_dim = -1;
+    }
 
     static std::unordered_map<std::string, std::string> profilemap = {
         {"aces2065-1", "ACESp0"},  {"acescg", "ACESp1"},
@@ -165,7 +186,7 @@ bool get_CTL_params(const Glib::ustring &filename,
         return false;
     };
 
-    for (size_t i = 3, n = func->numInputArgs(); i < n; ++i) {
+    for (size_t i = uses_guide ? 4 : 3, n = func->numInputArgs(); i < n; ++i) {
         auto a = func->inputArg(i);
         if (a->isVarying()) {
             return err("parameter " + a->name() + " is varying");
@@ -284,6 +305,15 @@ bool get_CTL_params(const Glib::ustring &filename,
                 if (lut_dim < -1 || v != lut_dim) {
                     return err("invalid lut definition:\n  " + line);
                 }
+                if (uses_guide) {
+                    if (settings->verbose) {
+                        std::cout << filename << ":" << cur_line
+                                  << ": Warning: @ART-lut is ignored in "
+                                     "scripts taking a guide"
+                                  << std::endl;
+                    }
+                    lut_dim = -1;
+                }
             } else if (line.find("@ART-pipette:", s) == s) {
                 line = line.substr(13 + s);
                 cJSON *root = cJSON_Parse(line.c_str());
@@ -379,7 +409,7 @@ bool get_CTL_params(const Glib::ustring &filename,
  */
 bool check_CTL_pipette(const Glib::ustring &filename,
                        std::shared_ptr<Ctl::Interpreter> intp,
-                       const CLUTParamDescriptorList &params)
+                       const CLUTParamDescriptorList &params, bool uses_guide)
 {
     bool wanted = false;
     for (auto &p : params) {
@@ -403,7 +433,8 @@ bool check_CTL_pipette(const Glib::ustring &filename,
     } catch (std::exception &) {
         return warn("@ART-pipette given but no ART_fill_pipette function");
     }
-    if (f->numInputArgs() < 4 || f->numOutputArgs() != 3) {
+    const int id_pos = uses_guide ? 4 : 3;
+    if (f->numInputArgs() < id_pos + 1 || f->numOutputArgs() != 3) {
         return warn("wrong number of arguments to ART_fill_pipette");
     }
     for (int i = 0; i < 3; ++i) {
@@ -413,12 +444,19 @@ bool check_CTL_pipette(const Glib::ustring &filename,
             }
         }
     }
-    auto id = f->inputArg(3);
+    if (uses_guide) {
+        auto g = f->inputArg(3);
+        if (!g->type().cast<Ctl::FloatType>() || !g->isVarying()) {
+            return warn("ART_fill_pipette must take a varying float guide "
+                        "as its 4th input, like ART_main");
+        }
+    }
+    auto id = f->inputArg(id_pos);
     if (id->isVarying() || id->type()->cDataType() != Ctl::IntTypeEnum ||
         id->type().cast<Ctl::BoolType>()) {
         return warn("curve_id of ART_fill_pipette must be a uniform int");
     }
-    for (size_t i = 4, n = f->numInputArgs(); i < n; ++i) {
+    for (size_t i = id_pos + 1, n = f->numInputArgs(); i < n; ++i) {
         if (f->inputArg(i)->isVarying()) {
             return warn("parameter " + f->inputArg(i)->name() +
                         " of ART_fill_pipette is varying");
@@ -548,11 +586,14 @@ std::pair<std::shared_ptr<Ctl::Interpreter>, std::vector<Ctl::FunctionCallPtr>>
 CTLStore::getLut(const Glib::ustring &filename, int num_threads,
                  int &chunk_size, CLUTParamDescriptorList &params,
                  Glib::ustring &colorspace, int &lut_dim,
-                 std::string *md5_out) const
+                 std::string *md5_out, bool *guide_out) const
 {
     art::utils::MyMutex::MyLock lock(mutex_);
 
     lut_dim = 0;
+    if (guide_out) {
+        *guide_out = false;
+    }
 
     CacheEntry result;
     std::vector<Ctl::FunctionCallPtr> retval;
@@ -625,13 +666,22 @@ CTLStore::getLut(const Glib::ustring &filename, int num_threads,
                 }
             }
 
+            bool uses_guide = false;
+            if (f->numInputArgs() > 3 && f->inputArg(3)->isVarying()) {
+                // positional: a varying 4th input is the guide
+                if (!f->inputArg(3)->type().cast<Ctl::FloatType>()) {
+                    return err("the guide (4th input) must be a float");
+                }
+                uses_guide = true;
+            }
+
             if (!get_CTL_params(full_filename, intp, f, params, colorspace,
-                                lut_dim)) {
+                                lut_dim, uses_guide)) {
                 params.clear();
                 return err("error in parsing CTL parameters");
             }
 
-            if (!check_CTL_pipette(full_filename, intp, params)) {
+            if (!check_CTL_pipette(full_filename, intp, params, uses_guide)) {
                 for (auto &p : params) {
                     p.pipette_id = -1;
                 }
@@ -642,12 +692,16 @@ CTLStore::getLut(const Glib::ustring &filename, int num_threads,
             result.params = params;
             result.colorspace = colorspace;
             result.lut_dim = lut_dim;
+            result.uses_guide = uses_guide;
             cache_.set(key, result);
         } else {
             intp = result.intp;
             params = result.params;
             colorspace = result.colorspace;
             lut_dim = result.lut_dim;
+        }
+        if (guide_out) {
+            *guide_out = result.uses_guide;
         }
         if (intp) {
             for (int i = 0; i < num_threads; ++i) {
@@ -734,16 +788,20 @@ bool CTLStore::getDisplayName(const Glib::ustring &filename,
 // CTLApplication
 //-----------------------------------------------------------------------------
 
-CTLApplication::CTLApplication(): chunk_size_(0), lut_dim_(0) {}
+CTLApplication::CTLApplication()
+    : chunk_size_(0), lut_dim_(0), uses_guide_(false)
+{
+}
 
 bool CTLApplication::init(const Glib::ustring &filename, int num_threads,
                           Glib::ustring &colorspace)
 {
     filename_ = filename;
     lut_dim_ = 0;
+    uses_guide_ = false;
     auto res = CTLStore::getInstance().getLut(filename_, num_threads,
                                               chunk_size_, params_, colorspace,
-                                              lut_dim_, &md5_);
+                                              lut_dim_, &md5_, &uses_guide_);
     auto intp = res.first;
     auto &func = res.second;
     if (func.empty()) {
@@ -880,7 +938,9 @@ bool CTLApplication::set_params(const CLUTParamValueMap &values, int max_dim)
         return false;
     }
 
-    int dim = lut_dim_;
+    // a script taking a guide depends on more than the colour of the pixel,
+    // so it can't be baked into a 3D LUT (lut_dim_ is -1 in this case)
+    int dim = uses_guide_ ? -1 : lut_dim_;
     if (dim >= 0 && settings->ctl_scripts_fast_preview && max_dim != 0) {
         dim = !dim ? max_dim : std::min(dim, max_dim);
     }
@@ -990,8 +1050,16 @@ std::string CTLApplication::lut_key(const CLUTParamValueMap &values) const
                                             buf.str());
 }
 
-void CTLApplication::apply(int thread_id, int W, float *r, float *g, float *b)
+bool CTLApplication::apply(int thread_id, int W, float *r, float *g, float *b,
+                           const float *guide)
 {
+    if (uses_guide_ && !guide) {
+        if (settings->verbose) {
+            std::cout << "Error: no guide given to CTL script " << filename_
+                      << std::endl;
+        }
+        return false;
+    }
     auto func = func_[thread_id];
     float *ch[3] = {r, g, b};
 
@@ -1011,6 +1079,9 @@ void CTLApplication::apply(int thread_id, int W, float *r, float *g, float *b)
             for (int i = 0; i < 3; ++i) {
                 memcpy(func->inputArg(i)->data(), ch[i] + x, sizeof(float) * n);
             }
+            if (uses_guide_) {
+                memcpy(func->inputArg(3)->data(), guide + x, sizeof(float) * n);
+            }
             func->callFunction(n);
             for (int i = 0; i < 3; ++i) {
                 memcpy(ch[i] + x, func->outputArg(i)->data(),
@@ -1018,25 +1089,30 @@ void CTLApplication::apply(int thread_id, int W, float *r, float *g, float *b)
             }
         }
     }
+    return true;
 }
 
 bool CTLApplication::fill_pipette(int thread_id, int curve_id, int W,
                                   const float *const in[3],
-                                  float *const out[3])
+                                  float *const out[3], const float *guide)
 {
-    if (!can_pipette(thread_id)) {
+    if (!can_pipette(thread_id) || (uses_guide_ && !guide)) {
         return false;
     }
     try {
         auto func = pipette_func_[thread_id];
         // same input as ART_main, but never through the baked 3D LUT: the
         // output is not a colour
-        *reinterpret_cast<int *>(func->inputArg(3)->data()) = curve_id;
+        *reinterpret_cast<int *>(func->inputArg(uses_guide_ ? 4 : 3)->data()) =
+            curve_id;
         for (int x = 0; x < W; x += chunk_size_) {
             const auto n = (x + chunk_size_ < W ? chunk_size_ : W - x);
             for (int i = 0; i < 3; ++i) {
                 memcpy(func->inputArg(i)->data(), in[i] + x,
                        sizeof(float) * n);
+            }
+            if (uses_guide_) {
+                memcpy(func->inputArg(3)->data(), guide + x, sizeof(float) * n);
             }
             func->callFunction(n);
             for (int i = 0; i < 3; ++i) {

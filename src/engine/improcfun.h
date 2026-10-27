@@ -182,6 +182,9 @@ public:
     void dynamicRangeCompression(Imagefloat *rgb);
     bool localContrast(Imagefloat *rgb);
     bool toneEqualizer(Imagefloat *rgb);
+    /// compute the guide for the CTL scripts that need one (see ctl.cc): the
+    /// smoothed linear luminance of img, with the same size as img
+    void computeCTLGuide(Imagefloat *img, array2D<float> &guide);
     void softLight(Imagefloat *rgb);
     bool colorCorrection(Imagefloat *rgb);
     void logEncoding(Imagefloat *rgb);
@@ -195,7 +198,8 @@ public:
     void toneCurve(Imagefloat *img);
     void saturationVibrance(Imagefloat *img);
     void filmSimulation(Imagefloat *img);
-    void fillCTLPipette(CLUTApplication *clut, Imagefloat *img);
+    void fillCTLPipette(CLUTApplication *clut, Imagefloat *img,
+                        const array2D<float> *guide = nullptr);
     void creativeGradients(Imagefloat *img);
     //----------------------------------------------------------------------
 

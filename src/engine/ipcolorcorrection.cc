@@ -431,7 +431,7 @@ bool ImProcFunctions::colorCorrection(Imagefloat *rgb)
             if (!r.lutFilename.empty()) {
                 lut[i].reset(new CLUTApplication(r.lutFilename,
                                                  params->icm.workingProfile,
-                                                 1.f, num_threads));
+                                                 1.f, num_threads, true));
                 if (!(*lut[i])) {
                     lut[i].reset(nullptr);
                     if (plistener) {
@@ -811,6 +811,18 @@ bool ImProcFunctions::colorCorrection(Imagefloat *rgb)
 
     rgb->setMode(Imagefloat::Mode::YUV, multiThread);
 
+    // the guide for the CTL scripts that need one: computed once, from the
+    // input of the tool (i.e. before any region is applied)
+    array2D<float> guide;
+    bool has_guide = false;
+    for (int i = 0; i < n && !has_guide; ++i) {
+        has_guide = params->colorcorrection.masks[i].enabled && lut[i] &&
+                    lut[i]->wantsGuide();
+    }
+    if (has_guide) {
+        computeCTLGuide(rgb, guide);
+    }
+
 #ifdef _OPENMP
 #pragma omp parallel if (multiThread)
 #endif
@@ -846,7 +858,10 @@ bool ImProcFunctions::colorCorrection(Imagefloat *rgb)
                         memcpy(pg.data, gbuf.data, sizeof(float) * W);
                         memcpy(pb.data, bbuf.data, sizeof(float) * W);
                         if (lut[i]->fillPipette(thread_id, ctl_curve, W,
-                                                pr.data, pg.data, pb.data)) {
+                                                pr.data, pg.data, pb.data,
+                                                lut[i]->wantsGuide()
+                                                    ? guide[y]
+                                                    : nullptr)) {
                             for (int x = 0; x < W; ++x) {
                                 ctlbuf->r(y, x) = pr.data[x];
                                 ctlbuf->g(y, x) = pg.data[x];
@@ -854,8 +869,8 @@ bool ImProcFunctions::colorCorrection(Imagefloat *rgb)
                             }
                         }
                     }
-                    lut[i]->apply(thread_id, W, rbuf.data, gbuf.data,
-                                  bbuf.data);
+                    lut[i]->apply(thread_id, W, rbuf.data, gbuf.data, bbuf.data,
+                                  lut[i]->wantsGuide() ? guide[y] : nullptr);
                     for (int x = 0; x < W; ++x) {
                         float Y, u, v;
                         Color::rgb2yuv(rbuf.data[x], gbuf.data[x], bbuf.data[x],

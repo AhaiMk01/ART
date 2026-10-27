@@ -119,7 +119,7 @@ int check_lut(int argc, char **argv)
         if (!Glib::path_is_absolute(fn)) {
             fn = Glib::build_filename(Glib::get_current_dir(), fn);
         }
-        art::engine::CLUTApplication lut(fn);
+        art::engine::CLUTApplication lut(fn, "", 1.f, 1, true);
         if (!lut) {
             std::cout << "Invalid LUT file: " << argv[2] << std::endl;
             return 1;

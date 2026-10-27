@@ -44,12 +44,14 @@ public:
     static CTLStore &getInstance();
 
     /// see CLUTStore::getCTLLut. If md5 is not null, it is set to the
-    /// checksum of the script
+    /// checksum of the script. If uses_guide is not null, it is set to true if
+    /// ART_main takes a guide (a 4th varying input)
     std::pair<std::shared_ptr<Ctl::Interpreter>,
               std::vector<Ctl::FunctionCallPtr>>
     getLut(const Glib::ustring &filename, int num_threads, int &chunk_size,
            CLUTParamDescriptorList &params, Glib::ustring &colorspace,
-           int &lut_dim, std::string *md5 = nullptr) const;
+           int &lut_dim, std::string *md5 = nullptr,
+           bool *uses_guide = nullptr) const;
 
     /// Cache of the 3D LUTs baked from a script. The key identifies the
     /// script and the values of its parameters, but not the dimension of the
@@ -80,6 +82,7 @@ private:
         CLUTParamDescriptorList params;
         Glib::ustring colorspace;
         int lut_dim;
+        bool uses_guide;
     };
     mutable Cache<std::string, CacheEntry> cache_;
     mutable art::utils::MyMutex mutex_;
@@ -112,8 +115,14 @@ public:
     /// the cap on the LUT dimension requested by the quality (0 for none)
     bool set_params(const CLUTParamValueMap &values, int max_dim);
 
-    /// transform W pixels in place
-    void apply(int thread_id, int W, float *r, float *g, float *b);
+    /// true if the script takes a guide, i.e. a 4th varying input to ART_main
+    /// (a linear luminance plane; see the comment in ctl.cc). Such scripts
+    /// are never baked into a 3D LUT
+    bool uses_guide() const { return uses_guide_; }
+
+    /// transform W pixels in place. guide must not be null iff uses_guide()
+    bool apply(int thread_id, int W, float *r, float *g, float *b,
+               const float *guide = nullptr);
 
     bool has_pipette() const { return !pipette_func_.empty(); }
     bool can_pipette(int thread_id) const
@@ -121,9 +130,10 @@ public:
         return thread_id >= 0 && size_t(thread_id) < pipette_func_.size();
     }
     /// see CLUTApplication::fillPipette. in: pixels already converted to the
-    /// colour space of the script
+    /// colour space of the script. guide must not be null iff uses_guide()
     bool fill_pipette(int thread_id, int curve_id, int W,
-                      const float *const in[3], float *const out[3]);
+                      const float *const in[3], float *const out[3],
+                      const float *guide = nullptr);
 
 private:
     std::string lut_key(const CLUTParamValueMap &values) const;
@@ -138,6 +148,7 @@ private:
     CLUTParamDescriptorList params_;
     std::shared_ptr<const LUT3D> lut_;
     int lut_dim_;
+    bool uses_guide_;
 };
 
 }} // namespace art::engine

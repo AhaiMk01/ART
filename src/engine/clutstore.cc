@@ -639,9 +639,10 @@ float CLUTStore::CTL_shaper(float a, bool inv)
 
 CLUTApplication::CLUTApplication(const Glib::ustring &clut_filename,
                                  const Glib::ustring &working_profile,
-                                 float strength, int num_threads)
+                                 float strength, int num_threads,
+                                 bool guide_available)
     : clut_filename_(clut_filename), working_profile_(working_profile),
-      ok_(false), clut_and_working_profiles_are_same_(false),
+      ok_(false), guide_available_(guide_available), clut_and_working_profiles_are_same_(false),
       num_threads_(num_threads), strength_(strength)
 {
     init(num_threads);
@@ -735,6 +736,14 @@ bool CLUTApplication::CTL_init(int num_threads)
     try {
         Glib::ustring colorspace = "";
         if (!ctl_.init(clut_filename_, num_threads, colorspace)) {
+            ok_ = false;
+            return false;
+        }
+        if (ctl_.uses_guide() && !guide_available_) {
+            std::cout << clut_filename_
+                      << ": Error: the script requires a guide, which is "
+                         "not available in this context"
+                      << std::endl;
             ok_ = false;
             return false;
         }
@@ -846,9 +855,9 @@ void CLUTApplication::init_matrices(const Glib::ustring &lut_profile)
 
 #endif // ART_USE_OCIO || ART_USE_CTL
 
-void CLUTApplication::operator()(Imagefloat *img)
+void CLUTApplication::operator()(Imagefloat *img, const array2D<float> *guide)
 {
-    if (!ok_) {
+    if (!ok_ || (wantsGuide() && !guide)) {
         return;
     }
 
@@ -864,7 +873,8 @@ void CLUTApplication::operator()(Imagefloat *img)
 #else
         int thread_id = 0;
 #endif
-        apply(thread_id, W, img->r(y), img->g(y), img->b(y));
+        apply(thread_id, W, img->r(y), img->g(y), img->b(y),
+              guide ? (*guide)[y] : nullptr);
     }
 }
 
@@ -1041,7 +1051,7 @@ inline void CLUTApplication::OCIO_apply(int W, float *r, float *g, float *b)
 #ifdef ART_USE_CTL
 
 inline void CLUTApplication::CTL_apply(int thread_id, int W, float *r, float *g,
-                                       float *b)
+                                       float *b, const float *guide)
 {
     if (!ctl_.empty()) {
         Vec3<float> v;
@@ -1060,7 +1070,10 @@ inline void CLUTApplication::CTL_apply(int thread_id, int W, float *r, float *g,
             rgb[2][x] = v[2];
         }
 
-        ctl_.apply(thread_id, W, rgb[0].data(), rgb[1].data(), rgb[2].data());
+        if (!ctl_.apply(thread_id, W, rgb[0].data(), rgb[1].data(),
+                        rgb[2].data(), guide)) {
+            return;
+        }
 
         const bool blend = strength_ < 1.f;
 
@@ -1094,8 +1107,17 @@ bool CLUTApplication::hasPipette() const
 #endif
 }
 
+bool CLUTApplication::wantsGuide() const
+{
+#ifdef ART_USE_CTL
+    return ok_ && !ctl_.empty() && ctl_.uses_guide();
+#else
+    return false;
+#endif
+}
+
 bool CLUTApplication::fillPipette(int thread_id, int curve_id, int W, float *r,
-                                  float *g, float *b)
+                                  float *g, float *b, const float *guide)
 {
 #ifdef ART_USE_CTL
     if (!hasPipette() || !ctl_.can_pipette(thread_id)) {
@@ -1117,12 +1139,13 @@ bool CLUTApplication::fillPipette(int thread_id, int curve_id, int W, float *r,
     }
     const float *in[3] = {rgb[0].data(), rgb[1].data(), rgb[2].data()};
     float *const out[3] = {r, g, b};
-    return ctl_.fill_pipette(thread_id, curve_id, W, in, out);
+    return ctl_.fill_pipette(thread_id, curve_id, W, in, out, guide);
 #endif // ART_USE_CTL
     return false;
 }
 
-void CLUTApplication::apply(int thread_id, int W, float *r, float *g, float *b)
+void CLUTApplication::apply(int thread_id, int W, float *r, float *g, float *b,
+                            const float *guide)
 {
     if (!ok_) {
         return;
@@ -1137,7 +1160,7 @@ void CLUTApplication::apply(int thread_id, int W, float *r, float *g, float *b)
 #ifdef ART_USE_CTL
     if (!ctl_.empty()) {
         try {
-            CTL_apply(thread_id, W, r, g, b);
+            CTL_apply(thread_id, W, r, g, b, guide);
         } catch (std::exception &exc) {
             if (settings->verbose) {
                 std::cout << "Error in applying CTL LUT " << clut_filename_
