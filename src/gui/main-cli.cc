@@ -415,6 +415,8 @@ int processLineParams(int argc, char **argv)
     int bits = -1;
     bool isFloat = false;
     std::string outputType = "";
+    bool rawPreprocess = false;
+    art::engine::RawDNGOptions dngOpts;
     unsigned errors = 0;
 
     for (int iArg = 1; iArg < argc; iArg++) {
@@ -425,9 +427,49 @@ int processLineParams(int argc, char **argv)
 
         if (currParam.at(0) == '-' && currParam.size() > 1) {
             switch (currParam.at(1)) {
-            case '-':
-                // GTK --argument, we're skipping it
-                break;
+            case '-': {
+                const std::string a = currParam.raw();
+                const auto val = [&](const char *key) -> std::string {
+                    const std::string k = std::string("--") + key + "=";
+                    return a.compare(0, k.size(), k) == 0 ? a.substr(k.size())
+                                                          : std::string();
+                };
+                const auto bad = [&](const char *key, const char *vals) {
+                    std::cerr << "Error: --" << key << " must be one of: "
+                              << vals << std::endl;
+                    return -3;
+                };
+                if (a.compare(0, 17, "--raw-preprocess=") == 0) {
+                    const auto v = val("raw-preprocess");
+                    if (v == "mosaic" || v == "demosaic") {
+                        rawPreprocess = true;
+                        dngOpts.demosaic = (v == "demosaic");
+                    } else {
+                        return bad("raw-preprocess", "mosaic, demosaic");
+                    }
+                } else if (a.compare(0, 9, "--dng-wb=") == 0) {
+                    const auto v = val("dng-wb");
+                    if (v != "baked" && v != "neutral") {
+                        return bad("dng-wb", "baked, neutral");
+                    }
+                    dngOpts.neutral = (v == "neutral");
+                } else if (a.compare(0, 11, "--dng-bits=") == 0) {
+                    const auto v = val("dng-bits");
+                    if (v != "16" && v != "32") {
+                        return bad("dng-bits", "16, 32");
+                    }
+                    dngOpts.bits = std::stoi(v);
+                } else if (a == "--dng-lens-opcodes") {
+                    dngOpts.lens_opcodes = true;
+                } else if (a.compare(0, 11, "--dng-clip=") == 0) {
+                    const auto v = val("dng-clip");
+                    if (v != "min" && v != "max") {
+                        return bad("dng-clip", "min, max");
+                    }
+                    dngOpts.clip_max = (v == "max");
+                }
+                // otherwise a GTK --argument, we're skipping it
+            } break;
 
             case 'O':
                 copyParamsFile = true;
@@ -775,6 +817,10 @@ int processLineParams(int argc, char **argv)
         return 2;
     }
 
+    if (rawPreprocess) {
+        outputType = "dng";
+    }
+
     std::unordered_map<std::string, Glib::ustring> output_ext;
     for (auto &p : art::engine::ImageIOManager::getInstance()->getSaveFormats()) {
         output_ext[p.first] = p.second.extension;
@@ -782,6 +828,7 @@ int processLineParams(int argc, char **argv)
     output_ext["jpg"] = "jpg";
     output_ext["tif"] = "tif";
     output_ext["png"] = "png";
+    output_ext["dng"] = "dng";
 
     if (useDefault) {
         Glib::ustring profPath = options.findProfilePath(options.defProfRaw);
@@ -989,6 +1036,27 @@ int processLineParams(int argc, char **argv)
             art::engine::ImageIOManager::getInstance()->getSaveProfile(outputType);
         if (p) {
             p->applyTo(currentParams);
+        }
+
+        if (rawPreprocess) {
+            if (!isRaw) {
+                errors++;
+                cpl.error(Glib::ustring::compose(
+                    "not a raw file: %1", inputFile));
+                ii->decreaseRef();
+                continue;
+            }
+            errorCode = art::engine::processRawToDNG(ii, currentParams,
+                                                     dngOpts, outputFile, pl);
+            if (errorCode) {
+                errors++;
+                cpl.error(Glib::ustring::compose(
+                    "failure in preprocessing: %1", inputFile));
+            } else if (copyParamsFile) {
+                currentParams.save(pl, outputFile + paramFileExtension);
+            }
+            ii->decreaseRef();
+            continue;
         }
 
         job = create_processing_job(ii, currentParams, fast_export);

@@ -45,6 +45,15 @@ public:
     {
     }
 
+    /** Express the embedded correction as a DNG OpcodeList3 (WarpRectilinear
+     * for the distortion, and optionally FixVignetteRadial), by fitting the
+     * polynomials the opcodes use to the tables read from the makernotes.
+     * The chromatic aberration cannot be represented.
+     * @param planes number of image planes of the DNG (1 or 3)
+     * @return false if there is nothing to convert (e.g. no embedded data) */
+    bool getDNGOpcodes(std::vector<unsigned char> &out, int planes,
+                       bool with_vignette) const;
+
     class CorrectionData {
     public:
         virtual ~CorrectionData() = default;

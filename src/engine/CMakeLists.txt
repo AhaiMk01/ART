@@ -125,6 +125,7 @@ set(RTENGINESOURCEFILES
     processingjob.cc
     procparams.cc
     profilestore.cc
+    rawdngexport.cc
     rawimage.cc
     rawimagesource.cc
     rcd_demosaic.cc

@@ -59,9 +59,11 @@ protected:
     float c_white[4];
     float cblacksom[4];
     float ref_pre_mul[4];
+    bool uniform_scale_ = false; // scaleColors(): no WB, equal clip levels
     double refwb_red;
     double refwb_green;
     double refwb_blue;
+    double wb_true_[3] = {1, 1, 1}; // camera gains of the WB in use
     double rgb_cam[3][3];
     double cam_rgb[3][3];
     double xyz_cam[3][3];
@@ -127,6 +129,29 @@ protected:
 public:
     RawImageSource();
     ~RawImageSource() override;
+
+    /** Pixels after preprocess() (and demosaic(), if requested), with the
+     * metadata needed to describe them in a DNG. All values are on the
+     * 0..65535 scale of rawData. */
+    struct PreprocessedRaw {
+        int width = 0;
+        int height = 0;
+        bool demosaiced = false;
+        int cfa[2][2] = {{0, 1}, {1, 2}}; // 0=R 1=G 2=B
+        std::vector<float> data; // W*H, or interleaved RGB W*H*3
+        float clip[4] = {65535.f, 65535.f, 65535.f, 65535.f}; // R G1 B G2
+        double pre_mul[3] = {1, 1, 1};  // dcraw pre_mul, G=1
+        double gain[3] = {1, 1, 1};     // WB gains applied by scaleColors()
+        double wb[3] = {1, 1, 1};       // the WB gains in use, even if not applied
+        double cam_xyz[3][3] = {{0}};   // XYZ(D65) -> pre_mul-balanced camera
+        bool uniform = false;           // no WB baked into data
+        int rotate = 0;
+    };
+    /** Only for Bayer sensors, after preprocess() (and demosaic()). */
+    bool getPreprocessedRaw(PreprocessedRaw &out, bool demosaiced) const;
+    /** Must be called before preprocess(): scale all channels alike, so no
+     * white balance is baked into the data. */
+    void setUniformScale(bool yes) { uniform_scale_ = yes; }
 
     int load(const Glib::ustring &fname) override { return load(fname, false); }
     int load(const Glib::ustring &fname, bool firstFrameOnly);

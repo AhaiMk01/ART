@@ -680,6 +680,24 @@ public:
 IImagefloat *processImage(ProcessingJob *job, int &errorCode,
                           ProgressListener *pl = nullptr, bool flush = false);
 
+/** Options for processRawToDNG(). */
+struct RawDNGOptions {
+    bool demosaic = false;  // linear 3-channel DNG instead of a CFA one
+    bool neutral = false;   // don't bake the white balance into the data
+    int bits = 16;          // 16 (uint) or 32 (float)
+    bool clip_max = false;  // CFA: WhiteLevel = max (not min) of the clip levels
+    bool lens_opcodes = false; // convert the embedded lens corrections to
+                               // DNG opcodes (distortion, vignetting)
+};
+
+/** Apply only the raw preprocessing steps (up to demosaicing, which is
+ * optional) described by params to the (raw, Bayer) image ii and save the
+ * result as a DNG.
+ * @return 0 on success */
+int processRawToDNG(InitialImage *ii, const procparams::ProcParams &params,
+                    const RawDNGOptions &opts, const Glib::ustring &outfile,
+                    ProgressListener *pl = nullptr);
+
 /** This class is used to control the batch processing. The class implementing
  * this interface will be called when the full processing of an image is ready
  * and the next job to process is needed. */
