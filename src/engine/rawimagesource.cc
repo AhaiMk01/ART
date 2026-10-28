@@ -3176,15 +3176,17 @@ void RawImageSource::cfaboxblur(RawImage *riFlatFile, float *cfablur, int boxH,
 bool RawImageSource::getPreprocessedRaw(PreprocessedRaw &out,
                                         bool demosaiced) const
 {
-    if (ri->getSensorType() != ST_BAYER || rawData.width() <= 0) {
+    const bool xtrans = ri->getSensorType() == ST_FUJI_XTRANS;
+    if ((ri->getSensorType() != ST_BAYER && !xtrans) || rawData.width() <= 0) {
         return false;
     }
     out.width = W;
     out.height = H;
     out.demosaiced = demosaiced;
-    for (int i = 0; i < 2; ++i) {
-        for (int j = 0; j < 2; ++j) {
-            out.cfa[i][j] = FC(i, j);
+    out.cfa_size = xtrans ? 6 : 2;
+    for (int i = 0; i < out.cfa_size; ++i) {
+        for (int j = 0; j < out.cfa_size; ++j) {
+            out.cfa[i][j] = xtrans ? ri->XTRANSFC(i, j) : FC(i, j);
         }
     }
     if (demosaiced) {

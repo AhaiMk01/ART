@@ -137,7 +137,8 @@ public:
         int width = 0;
         int height = 0;
         bool demosaiced = false;
-        int cfa[2][2] = {{0, 1}, {1, 2}}; // 0=R 1=G 2=B
+        int cfa_size = 2; // 2 (Bayer) or 6 (X-Trans)
+        int cfa[6][6] = {{0, 1}, {1, 2}}; // 0=R 1=G 2=B
         std::vector<float> data; // W*H, or interleaved RGB W*H*3
         float clip[4] = {65535.f, 65535.f, 65535.f, 65535.f}; // R G1 B G2
         double pre_mul[3] = {1, 1, 1};  // dcraw pre_mul, G=1
@@ -147,7 +148,7 @@ public:
         bool uniform = false;           // no WB baked into data
         int rotate = 0;
     };
-    /** Only for Bayer sensors, after preprocess() (and demosaic()). */
+    /** Only for Bayer and X-Trans sensors, after preprocess() (and demosaic()). */
     bool getPreprocessedRaw(PreprocessedRaw &out, bool demosaiced) const;
     /** Must be called before preprocess(): scale all channels alike, so no
      * white balance is baked into the data. */

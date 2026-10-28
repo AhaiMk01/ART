@@ -195,7 +195,7 @@ inline void ART_print_help(std::ostream &out, const char *progname, bool gui)
             << std::endl;
         out << "  --raw-preprocess=<mosaic|demosaic>\n"
             << "                   Only apply the raw preprocessing steps "
-               "(Bayer raws only)\n"
+               "(Bayer and X-Trans)\n"
             << "                   and save a DNG: a mosaiced (CFA) one, or a "
                "linear\n"
             << "                   demosaiced one. Parameters come from the "

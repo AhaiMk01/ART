@@ -171,12 +171,17 @@ bool write_dng(const RawImageSource::PreprocessedRaw &raw,
     }
 
     if (!raw.demosaiced) {
-        const uint16_t dim[2] = {2, 2};
-        const unsigned char pat[4] = {
-            (unsigned char)raw.cfa[0][0], (unsigned char)raw.cfa[0][1],
-            (unsigned char)raw.cfa[1][0], (unsigned char)raw.cfa[1][1]};
+        const uint16_t dim[2] = {uint16_t(raw.cfa_size),
+                                 uint16_t(raw.cfa_size)};
+        unsigned char pat[36];
+        for (int i = 0; i < raw.cfa_size; ++i) {
+            for (int j = 0; j < raw.cfa_size; ++j) {
+                pat[i * raw.cfa_size + j] = (unsigned char)raw.cfa[i][j];
+            }
+        }
         TIFFSetField(out, TIFFTAG_CFAREPEATPATTERNDIM, dim);
-        TIFFSetField(out, TIFFTAG_CFAPATTERN, 4, pat);
+        TIFFSetField(out, TIFFTAG_CFAPATTERN, raw.cfa_size * raw.cfa_size,
+                     pat);
         // CFAPlaneColor is the default (R, G, B)
     }
 
@@ -275,9 +280,10 @@ int processRawToDNG(InitialImage *ii, const ProcParams &params,
 {
     ImageSource *imgsrc = ii->getImageSource();
     auto *rs = dynamic_cast<RawImageSource *>(imgsrc);
-    if (!rs || imgsrc->getSensorType() != ST_BAYER) {
+    const bool xtrans = imgsrc->getSensorType() == ST_FUJI_XTRANS;
+    if (!rs || (imgsrc->getSensorType() != ST_BAYER && !xtrans)) {
         std::cerr << "raw preprocessing to DNG is supported only for Bayer "
-                     "raw files"
+                     "and X-Trans raw files"
                   << std::endl;
         return 1;
     }
@@ -288,7 +294,10 @@ int processRawToDNG(InitialImage *ii, const ProcParams &params,
     }
 
     const RAWParams &rp = params.raw;
-    if (rp.bayersensor.method != RAWParams::BayerSensor::Method::PIXELSHIFT) {
+    if (xtrans) {
+        imgsrc->setBorder(rp.xtranssensor.border);
+    } else if (rp.bayersensor.method !=
+               RAWParams::BayerSensor::Method::PIXELSHIFT) {
         imgsrc->setBorder(rp.bayersensor.border);
     } else {
         imgsrc->setBorder(std::max(rp.bayersensor.border, 2));
@@ -330,8 +339,12 @@ int processRawToDNG(InitialImage *ii, const ProcParams &params,
         pl->setProgress(0.25);
     }
     if (opts.demosaic) {
-        const bool autoContrast = rp.bayersensor.dualDemosaicAutoContrast;
-        double contrastThreshold = rp.bayersensor.dualDemosaicContrast;
+        const bool autoContrast =
+            xtrans ? rp.xtranssensor.dualDemosaicAutoContrast
+                   : rp.bayersensor.dualDemosaicAutoContrast;
+        double contrastThreshold = xtrans
+                                       ? rp.xtranssensor.dualDemosaicContrast
+                                       : rp.bayersensor.dualDemosaicContrast;
         imgsrc->demosaic(rp, autoContrast, contrastThreshold);
     }
     if (pl) {
