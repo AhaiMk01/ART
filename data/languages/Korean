@@ -147,7 +147,7 @@ FILEBROWSER_APPLYPROFILE_PARTIAL;프로파일 적용 (일부)
 FILEBROWSER_AUTODARKFRAME;자동 장시간노출 노이즈 제거
 FILEBROWSER_AUTOFLATFIELD;자동 센서의 오점 그늘 제거
 FILEBROWSER_BROWSEPATHBUTTONHINT;썸네일 리스트 갱신\n단축키: <b>%shortcut(filecatalog.refresh)%</b>
-FILEBROWSER_BROWSEPATHHINT;참조할 패스를 입력합니다.\n<b>Ctrl-O</b> 패스의 칸에커서를  이동함\n<b>Enter</b> / <b>Ctrl-Enter</b>그 장소를 브라우징함\n<b>Esc</b> 변경을 해세\n<b>Shift-Esc</b>초점을 삭제함\n패스의 단축키:\n  <b>~</b> - 사용자의 홈 디렉토리\n  <b>!</b> - 사용자의 화상 디렉토리
+FILEBROWSER_BROWSEPATHHINT;참조할 패스를 입력합니다.\n<b>%shortcut(filecatalog.focus_path)%</b> 패스의 칸에커서를  이동함\n<b>Enter</b> / <b>Ctrl-Enter</b>그 장소를 브라우징함\n<b>Esc</b> 변경을 해세\n<b>Shift-Esc</b>초점을 삭제함\n패스의 단축키:\n  <b>~</b> - 사용자의 홈 디렉토리\n  <b>!</b> - 사용자의 화상 디렉토리
 FILEBROWSER_CACHE;캐시
 FILEBROWSER_CACHECLEARFROMFULL;프로파일을 포함한 캐시내를 비우기
 FILEBROWSER_CACHECLEARFROMPARTIAL;프로파일을 빼고 캐시내를 비우기
@@ -233,7 +233,7 @@ FILEBROWSER_SHOWCOLORLABEL5HINT;보라색 레이블의 화상을 표시함\n단�
 FILEBROWSER_SHOWDIRHINT;모둔 대상한정을 해제\n단축키: <b>%shortcut(filecatalog.filter_clear)%</b>
 FILEBROWSER_SHOWEDITEDHINT;편집한 화상을 표시함\n단축키: <b>%shortcut(filecatalog.filter_edited)%</b>
 FILEBROWSER_SHOWEDITEDNOTHINT;미편집 화상을 표시함\n단축키: <b>%shortcut(filecatalog.filter_not_edited)%</b>
-FILEBROWSER_SHOWEXIFINFO;EXIF정보를 표시함\n단축키: <b>i</b>\n\n신글 편집 탭 단축키: <b>Alt-i</b>
+FILEBROWSER_SHOWEXIFINFO;EXIF정보를 표시함\n단축키: <b>%shortcut(filecatalog.toggle_exif)%</b>
 FILEBROWSER_SHOWNOTTRASHHINT;미삭제화상만 표시
 FILEBROWSER_SHOWORIGINALHINT;편집원고 화상만을 표시함\n\n파일명은 같지만  확장자가 다른 화상이 있는 경우 환경 설정중 파일 브라우저에 있는 확장자 리스트 상위에 있는 확장자를 가진 화상을 원고 화상으로 삼음.
 FILEBROWSER_SHOWRANK1HINT;평가*를 표시함\n단축키: <b>%shortcut(filecatalog.filter_rank.1)%</b>
@@ -257,8 +257,8 @@ FILEBROWSER_SORT_PROCTIME;최종보존날짜/시간
 FILEBROWSER_SORT_PROCTIME_REV;최종보존날짜/시간 (역순)
 FILEBROWSER_THUMBSIZE;썸네일 크기
 FILEBROWSER_UNRANK_TOOLTIP;평가 없음\n단축키: <b>%shortcut(filebrowser.set_rank.0)%</b>
-FILEBROWSER_ZOOMINHINT;썸네일크기 확대\n단축키: <b>+</b>\n\n신글 편침 탭 단축키: <b>Alt-+</b>
-FILEBROWSER_ZOOMOUTHINT;썸네일크기 축소\n단축키: <b>-</b>\n\n신글 편침 탭 단축키: <b>Alt--</b>
+FILEBROWSER_ZOOMINHINT;썸네일크기 확대\n단축키: <b>%shortcut(filecatalog.zoom_in)%</b>
+FILEBROWSER_ZOOMOUTHINT;썸네일크기 축소\n단축키: <b>%shortcut(filecatalog.zoom_out)%</b>
 FILECHOOSER_FILTER_ANY;모둔 파일
 FILECHOOSER_FILTER_COLPROF;색 프로파일
 FILECHOOSER_FILTER_CURVE;커브파일
@@ -862,7 +862,7 @@ MAIN_BUTTON_NAVNEXT_TOOLTIP;편집소프트로 열고 있는 화상의 다음 �
 MAIN_BUTTON_NAVPREV_TOOLTIP;편집소프트로 열고 있는 화상에 앞 화상에 이동합니다.\n단축키: <b>%shortcut(editor.previous_image)%</b>\n\n파일 브라우저로 선택한 썸네일에 앞 화상에 이동하려면\n단축키: <b>%shortcut(filebrowser.open_previous)%</b>
 MAIN_BUTTON_NAVSYNC_TOOLTIP;현재 열고 있는 화상의 썸네일을 명시하고 편집소프트와 파일 브라우저를 동기시켜 파일 브라우저에서의 필터를 해제합니다. \n단축키: <b>%shortcut(editor.sync_file_browser_clear_filters)%</b>\n\n위와 같지만, 파일 브라우저에서의 필터를 해제 않습니다.\n단축키: <b>%shortcut(editor.sync_file_browser)%</b>\n(필터로 제외되면, 열려도 파일 썸네일이 표시되지 않습니까 조심하세요.).
 MAIN_BUTTON_PREFERENCES;환경 설정
-MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;현재 화상을 큐처리에 추가 (%mouse_primary%-click으로 즉시 출력)\n단축키: <b>%mouse_primary%-s</b> (<b>%shortcut(editor.queue_fast)%</b>로 즉시 출력)
+MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;현재 화상을 큐처리에 추가 (%mouse_primary%-click으로 즉시 출력)\n단축키: <b>%shortcut(editor.queue)%</b> (<b>%shortcut(editor.queue_fast)%</b>로 즉시 출력)
 MAIN_BUTTON_SAVE_TOOLTIP;현재 화상을 보존 (%mouse_primary%-click으로 즉시 출력)\n단축키: <b>%shortcut(editor.save)%</b> (<b>%shortcut(editor.save_fast)%</b>으로 즉시 출력)
 MAIN_BUTTON_SENDTOEDITOR;외부 편집소프트로 화상을 편집함
 MAIN_BUTTON_SENDTOEDITOR_TOOLTIP;현재 화상을 외부 편집소프트로 편집함.\n단축키: <b>%shortcut(editor.send_to_external_editor)%</b> (<b>%shortcut(editor.send_to_external_editor_alt)%</b> 으로 즉시 출력)
@@ -1283,9 +1283,9 @@ PROFILEPANEL_PLASTSAVED;갱신필
 PROFILEPANEL_SAVEDLGLABEL;처리 프로파일을 보존함...
 PROFILEPANEL_SAVEPPASTE;보존할 매개 변수
 PROFILEPANEL_TOOLTIPCOPY;클립 보드에 현재 프로파일을 복사합니다.
-PROFILEPANEL_TOOLTIPLOAD;파일에서 프로파일을 불러옵니다.\nCtrl-클릭으로 불러오는 매개 변수를 선택합니다.
-PROFILEPANEL_TOOLTIPPASTE; 클립 보드에서 프로파일을 붙입니다.\nCtrl-클릭으로 붙이는 매개 변수를 선택합니다.
-PROFILEPANEL_TOOLTIPSAVE;현재 프로파일을 보존\nCtrl-클릭으로 보존하는 매개 변수를 선택합니다.
+PROFILEPANEL_TOOLTIPLOAD;파일에서 프로파일을 불러옵니다.\n%mouse_primary%-클릭으로 불러오는 매개 변수를 선택합니다.
+PROFILEPANEL_TOOLTIPPASTE; 클립 보드에서 프로파일을 붙입니다.\n%mouse_primary%-클릭으로 붙이는 매개 변수를 선택합니다.
+PROFILEPANEL_TOOLTIPSAVE;현재 프로파일을 보존\n%mouse_primary%-클릭으로 보존하는 매개 변수를 선택합니다.
 PROGRESSBAR_DENOISING;노이즈 감소 중...
 PROGRESSBAR_HLREC;하이라이트의 복원...
 PROGRESSBAR_LOADING;화상불러오기 중...
@@ -1319,7 +1319,7 @@ QUEUE_LOCATION_FOLDER;폴더에 보존
 QUEUE_LOCATION_TEMPLATE;템플릿 쓰기
 QUEUE_LOCATION_TEMPLATE_TOOLTIP;원본 사진의 위치, 평가, 휴지통 또는 큐의 위치를 ​​기준으로 출력 위치를 지정합니다. \n\n예를 들면 다음의 패스명을 사용하는 경우...:\n<b>/home/tom/photos/2010-10-31/photo1.raw</b>\n서식문자열은 다음과 같습니다.:\n<b>%d4</b> = <i>home</i>\n<b>%d3</b> = <i>tom</i>\n<b>%d2</b> = <i>photos</i>\n<b>%d1</b> = <i>2010-10-31</i> \n<b>%f</b> = <i>photo1</i>\n<b>%p1</b> = <i>/home/tom/photos/2010-10-31/</i>\n<b>%p2</b> = <i>/home/tom/photos/</i>\n<b>%p3</b> = <i>/home/tom/</i>\n<b>%p4</b> = <i>/home/</i>\n\n<b>%r</b>은 사진 등급으로 대체됩니다. 사진에 등급이 없는 경우 '<i>0</i>'가 사용됩니다. 사진이 휴지통에 있는 경우 '<i>x</i>'가 사용됩니다. \n\n<b>%s1</b>, ..., <b>%s9</b>는 대기열이 시작될 때 대기열의 사진의 첫 번째 위치로 바뀝니다. 숫자는 자릿수를 의미합니다. 예를 들어 <b>%s3</b>의 결과는 <i>001</i>입니다. \n\n<b>%n</b>은 현재 적용된 스냅샷의 이름으로 바뀝니다. 스냅샷이 없거나 스냅샷이 선택되면 빈 문자열이 사용됩니다.<b>%n</b> 대신 <b>%u</b>를 사용하여 스냅샷 이름의 공백을 밑줄로 바꿀 수 있습니다. \n\n출력 이미지를 원본 이미지와 함께 저장하려면 다음과 같이 작성하십시오.\n<b>%p1/%f</b>\n\n 원본 사진 폴더에 '<i>converted</i>'라는 폴더에 출력 이미지를 저장하려면 다음과 같이 작성하십시오.\n<b>%p1/converted/%f</b>\n \n출력 이미지를 \n'<i>/home/tom/photos/converted/2010-10-31</i>'에 저장하려는 경우, 다음과 같이 씁니다:\n<b>%p2/ converted/%d1/%f</b>
 QUEUE_LOCATION_TITLE;출력장소
-QUEUE_STARTSTOP_TOOLTIP;큐에 있는 화상의 현상 시작/ 중지\n\n단축키: <b>Ctrl</b>+<b>s</b>
+QUEUE_STARTSTOP_TOOLTIP;큐에 있는 화상의 현상 시작/ 중지\n\n단축키: <b>%shortcut(queue.start_stop)%</b>
 RENAME_DIALOG_BASEDIR;기본 디렉토리
 RENAME_DIALOG_PATTERN;파일명의패턴
 RENAME_DIALOG_PATTERN_TIP;원래 사진이나 메타데이터명을 바탕으로 출력명을 지정하세요.\n\n형식을 지정하는 문자열의 뜻은 이하와 같습니다.:\n<b>%f</b>: 확장자가 없는 파일명\n<b>%e</b>: 확장자\n<b>%#</b>: 파일명과 부가번호\n<b>%C</b>: 사진기명 (회사명 및 머델)\n<b>%M</b>: 사진기브랜드\n<b>%N</b>: 사진기 머델\n<b>%Y</b>: 촬영 년 (4자리)\n<b>%y</b>: 촬영 년 (2자리)\n<b>%m</b>: 촬영 월 (수자)\n<b>%b</b>: 촬영 월 (영어 약칭)\n<b>%B</b>: 촬영 월 (영어 fullname)\n<b>%d</b>: 촬영 날짜 (수자)\n<b>%a</b>: 촬영 날짜 (영어 약칭)\n<b>%A</b>: 촬영 날짜 (영어  fullname)\n<b>%n1</b> to <b>%n9</b>: 증분치 자리수 지정 (예, <b>%n2</b> results in <i>01</i>)\n<b>%I</b>: ISO감도\n<b>%L</b>: 렌즈 모델명\n<b>%F</b>: 렌즈조 리개 값 (F값)\n<b>%l</b>: 초점거리\n<b>%E</b>: 노출 보정량\n<b>%s</b>: 셔터속도\n<b>%r</b>: 사진의 평가\n<b>%T[<i>태그명</i>]</b>: 메타데이터태그 내용 <i>태그명</i> (무효 문자는  '_' 로 대체됨)\n<b>%%</b>: '%' 문자.
@@ -1445,8 +1445,8 @@ TP_CHMIXER_PRIMARY_B;Blue 원색
 TP_CHMIXER_MODE_RGB_MATRIX;RGB 행렬
 TP_CHMIXER_MODE_PRIMARIES_CHROMA;원색 (Primaries) 보정
 TP_COARSETRAF_TOOLTIP_HFLIP;좌우반전
-TP_COARSETRAF_TOOLTIP_ROTLEFT;90도 좌회전\n단축키: <b>[</b>\n\n신글 편집 탭 の단축키: <b>Alt-[</b>
-TP_COARSETRAF_TOOLTIP_ROTRIGHT;90도 우회전\n단축키: <b>]</b>\n\n신글편 집 탭 の단축키: <b>Alt-]</b>
+TP_COARSETRAF_TOOLTIP_ROTLEFT;90도 좌회전\n단축키: <b>%shortcut(editor.rotate_left)%</b>
+TP_COARSETRAF_TOOLTIP_ROTRIGHT;90도 우회전\n단축키: <b>%shortcut(editor.rotate_right)%</b>
 TP_COARSETRAF_TOOLTIP_VFLIP;상하반전
 TP_COLORCORRECTION_ABVALUES;x=%1 y=%2
 TP_COLORCORRECTION_IN;입력
@@ -2026,7 +2026,7 @@ TP_SOFTLIGHT_LABEL;소프트라이트
 TP_SOFTLIGHT_STRENGTH;강도
 TP_SPOT_COUNTLABEL;%1 점
 TP_SPOT_ENTRYCHANGED;보수점 변경
-TP_SPOT_HINT;미리보기 영역을 조작하려면 이 버튼을 클릭합니다.\n\n스팟 (오점) 을 편집하려면 , 편집부분의 형태 (editing geometry) 가 보이도록 해서, 하양 십자 커서를 수정하고 싶은 부분 위에 놓습니다.\n\n수정할 스팟을  추가하려면 , Ctrl을 누르고 왼쪽 마우스 버튼을 클릭합니다. 그리고 그대로 드래그하고 , 편집부분을 메운 북사영역  장소의 커서를 이동시켜 (Ctrl키는 놓아도 됩니다) 마우스 버튼을 놓압니다.\n\n복사영역이나 수정부분을 이동하려면, 그 동그라미의 중심에 커서를 놓고 드래그합니다..\n\n수정부분의 안쪽 동그라미 (가앙 효과가 강한 부분) 및 "경계 흐림 (Feather) " (밖아쪽) 동그라미는 그 위에 커서를 놓고 (그러면 동그라미는 주황색으로 됩니다), 드래그하면 (그러면 동그라미는 빨간색으로 됩니다), 크기를 변화시킬 수 있습니다.\n\n수정이 끝나면 , 어누 스팟의 밖아쪽을 오른쪽 버튼으로 클릭하고나 이 버튼을 다시 클릭해서  스팟 편집 작업을 끝냅니다.
+TP_SPOT_HINT;미리보기 영역을 조작하려면 이 버튼을 클릭합니다.\n\n스팟 (오점) 을 편집하려면 , 편집부분의 형태 (editing geometry) 가 보이도록 해서, 하양 십자 커서를 수정하고 싶은 부분 위에 놓습니다.\n\n수정할 스팟을  추가하려면 , %mouse_primary%을 누르고 왼쪽 마우스 버튼을 클릭합니다. 그리고 그대로 드래그하고 , 편집부분을 메운 북사영역  장소의 커서를 이동시켜 (%mouse_primary%키는 놓아도 됩니다) 마우스 버튼을 놓압니다.\n\n복사영역이나 수정부분을 이동하려면, 그 동그라미의 중심에 커서를 놓고 드래그합니다..\n\n수정부분의 안쪽 동그라미 (가앙 효과가 강한 부분) 및 "경계 흐림 (Feather) " (밖아쪽) 동그라미는 그 위에 커서를 놓고 (그러면 동그라미는 주황색으로 됩니다), 드래그하면 (그러면 동그라미는 빨간색으로 됩니다), 크기를 변화시킬 수 있습니다.\n\n수정이 끝나면 , 어누 스팟의 밖아쪽을 오른쪽 버튼으로 클릭하고나 이 버튼을 다시 클릭해서  스팟 편집 작업을 끝냅니다.
 TP_SPOT_LABEL;스팟 (오점) 제거
 TP_SPOT_LIGHTPIPELINE_HINT;간이 미리보기 사용 중 (퍼포먼스 옵션) 은이 버튼을 눌러 스팟을 편집합니다.\n\n미리보기 편집 사용 중에만 유효합니다.
 TP_SPOT_CUR_SPOT_LABEL;현재의 스팟

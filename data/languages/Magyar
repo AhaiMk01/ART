@@ -214,7 +214,7 @@ FILEBROWSER_SHOWCOLORLABEL5HINT;Lila címkéjű képek megjelenítése.\nGyorsbi
 FILEBROWSER_SHOWDIRHINT;Összes szűrő törlése.\nGyorsbillentyű: <b>%shortcut(filecatalog.filter_clear)%</b>
 FILEBROWSER_SHOWEDITEDHINT;Már szerkesztett képek megjelenítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.filter_edited)%</b>
 FILEBROWSER_SHOWEDITEDNOTHINT;Még nem szerkesztett képek megjelenítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.filter_not_edited)%</b>
-FILEBROWSER_SHOWEXIFINFO;Exif információk megjelenítése.\n\nGyorsbillentyűk:\n<b>i</b> - Több szerkesztőlap mód,\n<b>Alt-i</b> - Egy szerkesztőlap mód.
+FILEBROWSER_SHOWEXIFINFO;Exif információk megjelenítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.toggle_exif)%</b>
 FILEBROWSER_SHOWNOTTRASHHINT;Csak a nem törölt képek megjelenítése.
 FILEBROWSER_SHOWORIGINALHINT;Csak az eredeti képeket mutatja.\n\nHa több kép létezik azonos fájlnévvel, de eltérő kiterjesztéssel, akkor az tekinthető eredetinek, amelynek kiterjesztése a legközelebb van a Beállítások > Fájlböngésző > Felismert kiterjesztések listájának tetejéhez..
 FILEBROWSER_SHOWRANK1HINT;1 csillaggal jelölt képek megjelenítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.filter_rank.1)%</b>
@@ -238,8 +238,8 @@ FILEBROWSER_SORT_PROCTIME;Utolsó szerkesztés ideje (legrégebbi fent)
 FILEBROWSER_SORT_PROCTIME_REV;Utolsó szerkesztés ideje (legújabb fent)
 FILEBROWSER_THUMBSIZE;Bélyegkép mérete
 FILEBROWSER_UNRANK_TOOLTIP;Nem értékelt.\nGyorsbillentyű: <b>%shortcut(filebrowser.set_rank.0)%</b>
-FILEBROWSER_ZOOMINHINT;Bélyegképek méretének növelése.\n\nGyorsbillentyűk:\n<b>+</b> - Több szerkesztőlap mód,\n<b>Alt</b>-<b>+</b> - Egy szerkesztőlap mód.
-FILEBROWSER_ZOOMOUTHINT;Bélyegképek méretének csökkentése.\n\nGyorsbillentyűk:\n<b>-</b> - Több szerkesztőlap mód,\n<b>Alt</b>-<b>-</b> - Egy szerkesztőlap mód.
+FILEBROWSER_ZOOMINHINT;Bélyegképek méretének növelése.\nGyorsbillentyű: <b>%shortcut(filecatalog.zoom_in)%</b>
+FILEBROWSER_ZOOMOUTHINT;Bélyegképek méretének csökkentése.\nGyorsbillentyű: <b>%shortcut(filecatalog.zoom_out)%</b>
 FILECHOOSER_FILTER_ANY;Minden fájl
 FILECHOOSER_FILTER_COLPROF;Színprofilok (*.icc)
 FILECHOOSER_FILTER_CURVE;Görbe fájlok
@@ -1286,7 +1286,7 @@ QUEUE_LOCATION_FOLDER;Mentés mappába
 QUEUE_LOCATION_TEMPLATE;Sablon használata
 QUEUE_LOCATION_TEMPLATE_TOOLTIP;Adja meg a kimeneti helyet a forrásfotó helye, értékelése, a kuka állapota, vagy a sorban elfoglalt helye alapján.\n\nPélda az elérési út használatára:\n<b>/home/tom/photos/2010-10-31/photo1.raw</b>\na formázási karakterláncok jelentése a következő:\n<b>%d4</b> = <i>home</i>\n<b>%d3</b> = <i>tom</i>\n<b>%d2</b> = <i>photos</i>\n<b>%d1</b> = <i>2010-10-31</i>\n<b>%f</b> = <i>photo1</i>\n<b>%p1</b> = <i>/home/tom/photos/2010-10-31/</i>\n<b>%p2</b> = <i>/home/tom/photos/</i>\n<b>%p3</b> = <i>/home/tom/</i>\n<b>%p4</b> = <i>/home/</i>\n\n<b>%r</b> helyébe a fotó értékelése kerül. Ha a fotó még nem értékelt, '<i>0</i>' lesz alkalmazva. Ha a fotó a kukában van, '<i>x</i>' lesz alkalmazva.\n\n<b>%s1</b>, ..., <b>%s9</b> helyettesítve lesz a képnek a sor indításakor a sorban elfoglalt pozíciójával. A számérték határozza meg a kitöltést, pl. <b>%s3</b> eredménye '<i>001</i>'.\n\n<b>%n</b> helyébe az aktuálisan alkalmazott pillanatkép neve kerül. Ha nem létezik a pillanatkép, vagy nincs kiválasztva, akkor üres karakterlánc kerül alkalmazásra. <b>%u</b> alkalmazható <b>%n</b> helyett, amely aláhúzásra cseréli a szóközöket a pillanatkép nevében.\n\nHa a kimeneti képet a forráskép mellé szeretné menteni, írja ezt:\n<b>%p1/%f</b>\n\nHa a kimeneti képet egy '<i>converted</i>' nevű mappába szeretné menteni, amely a forrásfotó mappájában található, írja be:\n<b>%p1/converted/%f</b>\n\nHa el szeretné menteni a kimeneti képet a\n'<i>/home/tom/photos/converted/2010-10-31</i>' könyvtárba, írja ezt:\n<b>%p2/converted/%d1/%f</b>
 QUEUE_LOCATION_TITLE;Kimenet helye
-QUEUE_STARTSTOP_TOOLTIP;Indítsa el vagy állítsa le a sorban lévő képek feldolgozását.\n\nGyorsbillentyű: <b>Ctrl</b>+<b>s</b>
+QUEUE_STARTSTOP_TOOLTIP;Indítsa el vagy állítsa le a sorban lévő képek feldolgozását.\n\nGyorsbillentyű: <b>%shortcut(queue.start_stop)%</b>
 RENAME_DIALOG_BASEDIR;Alapkönyvtár
 RENAME_DIALOG_PATTERN;Fájlnév minta
 RENAME_DIALOG_PATTERN_TIP;Adja meg a fájl nevét a forrásfotó neve és metaadatai alapján.\n\nA formázási karakterláncok jelentése a következő:\n<b>%f</b>: fájlnév kiterjesztés nélkül\n<b>%e</b>: kiterjesztés\n<b>%#</b>: fájlnév numerikus utótagja\n<b>%C</b>: fényképezőgép neve (gyártó és típus)\n<b>%M</b>: fényképezőgép márka\n<b>%N</b>: fényképezőgép típus\n<b>%Y</b>: fénykép dátuma, év (4 számjegy)\n<b>%y</b>: fénykép dátuma, év (2 számjegy)\n<b>%m</b>: fénykép dátuma, hónap (számmal)\n<b>%b</b>: fénykép dátuma, hónap (rövidített név)\n<b>%B</b>: fénykép dátuma, hónap (teljes név)\n<b>%d</b>: fénykép dátuma, nap (számmal)\n<b>%a</b>: fénykép dátuma, nap (rövidített név)\n<b>%A</b>: fénykép dátuma, nap (teljes név)\n<b>%n1</b>-től <b>%n9</b>-ig: hozzáadja a "Progresszív szám"-ot a számmal megadott számú számjeggyel (pl. <b>%n2</b> eredménye <i>01</i>)\n<b>%I</b>: ISO érzékenység\n<b>%L</b>: objektív neve\n<b>%F</b>: rekeszérték\n<b>%l</b>: fókusztávolság\n<b>%E</b>: expozíció-kompenzáció\n<b>%s</b>: záridő\n<b>%r</b>: fotó értékelése\n<b>%T[<i>tagnév</i>]</b>: a <i>tagnév</i> metaadat címke tartalma (az érvénytelen karakterek helyett '_')\n<b>%%</b>: '%' karakter.
@@ -1412,8 +1412,8 @@ TP_CHMIXER_PRIMARY_B;Kék elsődleges
 TP_CHMIXER_MODE_RGB_MATRIX;RGB mátrix
 TP_CHMIXER_MODE_PRIMARIES_CHROMA;Elsődleges színek korrekciója
 TP_COARSETRAF_TOOLTIP_HFLIP;Vízszintes tükrözés.
-TP_COARSETRAF_TOOLTIP_ROTLEFT;Forgatás balra.\n\nGyorsbillentyűk:\n<b>[</b> - Multiple Editor Tabs Mode,\n<b>Alt-[</b> - Single Editor Tab Mode.
-TP_COARSETRAF_TOOLTIP_ROTRIGHT;Rotate right.\n\nGyorsbillentyűk:\n<b>]</b> - Több szerkesztőlap mód,\n<b>Alt-]</b> - Egy szerkesztőlap mód.
+TP_COARSETRAF_TOOLTIP_ROTLEFT;Forgatás balra.\nGyorsbillentyű: <b>%shortcut(editor.rotate_left)%</b>
+TP_COARSETRAF_TOOLTIP_ROTRIGHT;Forgatás jobbra.\nGyorsbillentyű: <b>%shortcut(editor.rotate_right)%</b>
 TP_COARSETRAF_TOOLTIP_VFLIP;Függőleges tükrözés.
 TP_COLORCORRECTION_ABVALUES;x=%1 y=%2
 TP_COLORCORRECTION_IN;Bemenet

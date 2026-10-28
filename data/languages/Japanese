@@ -78,7 +78,7 @@ DYNPROFILEEDITOR_CUSTOMDATA_TAGS;タグ
 DYNPROFILEEDITOR_CUSTOMDATA_TOOLTIP;照合する追加のメタデータ タグの <i>キー=値</i> ペアのリスト。1行に1ペアを指定。ここで、<b>キー</b>は Exiv2 の構文上のタグ名、<b>値</b>は照合する値 (正規表現を入力するには "re:"を頭につける）
 EDITWINDOW_TITLE;画像編集
 EDIT_OBJECT_TOOLTIP;この機能を使うための目安に プレビュー画面にガイドを表示する
-EDIT_PIPETTE_TOOLTIP;カーブ上に調整ポイントを追加するには Ctrlキーを押しながら プレビューの画像上の目標ポイントを左クリックします. \n追加されたそのポイントを調整するには Ctrlキーを押しながら プレビュー画像のそのポイントに当たる部分を左クリックします. それからCtrlキーを離し（微妙な調整をする場合はそのまま） 左クリックしたままマウスを画面上で上下に動かすと それに合わせてトーンカーブが調整されます.
+EDIT_PIPETTE_TOOLTIP;カーブ上に調整ポイントを追加するには %mouse_primary%キーを押しながら プレビューの画像上の目標ポイントを左クリックします. \n追加されたそのポイントを調整するには %mouse_primary%キーを押しながら プレビュー画像のそのポイントに当たる部分を左クリックします. それから%mouse_primary%キーを離し（微妙な調整をする場合はそのまま） 左クリックしたままマウスを画面上で上下に動かすと それに合わせてトーンカーブが調整されます.
 ERROR_MSG_FILE_READ;ファイル読込エラー: %1
 ERROR_MSG_MAXERRORS;... (%1 以前のエラーは表示されません)
 ERROR_MSG_METADATA_VALUE;メタデータ: エラー setting %1 to %2
@@ -145,7 +145,7 @@ FILEBROWSER_APPLYPROFILE_PARTIAL;プロファイルの適用 (一部)
 FILEBROWSER_AUTODARKFRAME;オート･ダークフレーム
 FILEBROWSER_AUTOFLATFIELD;オート･フラットフィールド
 FILEBROWSER_BROWSEPATHBUTTONHINT;サムネイルのリストを更新\nショートカット: <b>%shortcut(filecatalog.refresh)%</b>
-FILEBROWSER_BROWSEPATHHINT;参照するパスを入力します\n<b>Ctrl-O</b> パスのテキストボックスにフォーカス\n<b>Enter</b> / <b>Ctrl-Enter</b>その場所をブラウズします\n<b>Esc</b> 変更をクリア\n<b>Shift-Esc</b>フォーカスを削除\nパスのショートカット:\n  <b>~</b> - ユーザーのホームディレクトリ\n  <b>!</b> - ユーザーの画像ディレクトリ
+FILEBROWSER_BROWSEPATHHINT;参照するパスを入力します\n<b>%shortcut(filecatalog.focus_path)%</b> パスのテキストボックスにフォーカス\n<b>Enter</b> / <b>Ctrl-Enter</b>その場所をブラウズします\n<b>Esc</b> 変更をクリア\n<b>Shift-Esc</b>フォーカスを削除\nパスのショートカット:\n  <b>~</b> - ユーザーのホームディレクトリ\n  <b>!</b> - ユーザーの画像ディレクトリ
 FILEBROWSER_CACHE;キャッシュ
 FILEBROWSER_CACHECLEARFROMFULL;プロファイルを含めcache内をクリアにする
 FILEBROWSER_CACHECLEARFROMPARTIAL;プロファイルを除き cache内をクリアにする
@@ -231,7 +231,7 @@ FILEBROWSER_SHOWCOLORLABEL5HINT;パープル･ラベルの画像を表示\nシ�
 FILEBROWSER_SHOWDIRHINT;全ての絞り込みをクリア\nショートカット: <b>%shortcut(filecatalog.filter_clear)%</b>
 FILEBROWSER_SHOWEDITEDHINT;編集済み画像を表示\nショートカット: <b>%shortcut(filecatalog.filter_edited)%</b>
 FILEBROWSER_SHOWEDITEDNOTHINT;未編集画像を表示\nショートカット: <b>%shortcut(filecatalog.filter_not_edited)%</b>
-FILEBROWSER_SHOWEXIFINFO;EXIF情報を表示\nショートカット: <b>i</b>\n\nシングル･エディタ･タブのショートカット: <b>Alt-i</b>
+FILEBROWSER_SHOWEXIFINFO;EXIF情報を表示\nショートカット: <b>%shortcut(filecatalog.toggle_exif)%</b>
 FILEBROWSER_SHOWNOTTRASHHINT;未削除画像のみ表示
 FILEBROWSER_SHOWORIGINALHINT;元画像だけを表示\n\nファイル名は同じだが拡張子が異なる画像がある場合は 環境設定の中のファイルブラウザタブにある拡張子リストの上位に位置する拡張子を持った画像を元画像とする.
 FILEBROWSER_SHOWRANK1HINT;１つ星ランクを表示\nショートカット: <b>%shortcut(filecatalog.filter_rank.1)%</b>
@@ -255,8 +255,8 @@ FILEBROWSER_SORT_PROCTIME;最終保存日時
 FILEBROWSER_SORT_PROCTIME_REV;最終保存日時 (逆順)
 FILEBROWSER_THUMBSIZE;サムネイルのサイズ
 FILEBROWSER_UNRANK_TOOLTIP;ランクなし\nショートカット: <b>%shortcut(filebrowser.set_rank.0)%</b>
-FILEBROWSER_ZOOMINHINT;サムネイルサイズの拡大\nショートカット: <b>+</b>\n\nシングル･エディタ･タブのショートカット: <b>Alt-+</b>
-FILEBROWSER_ZOOMOUTHINT;サムネイルサイズの縮小\nショートカット: <b>-</b>\n\nシングル･エディタ･タブのショートカット: <b>Alt--</b>
+FILEBROWSER_ZOOMINHINT;サムネイルサイズの拡大\nショートカット: <b>%shortcut(filecatalog.zoom_in)%</b>
+FILEBROWSER_ZOOMOUTHINT;サムネイルサイズの縮小\nショートカット: <b>%shortcut(filecatalog.zoom_out)%</b>
 FILECHOOSER_FILTER_ANY;全てのファイル
 FILECHOOSER_FILTER_COLPROF;カラープロファイル
 FILECHOOSER_FILTER_CURVE;カーブファイル
@@ -860,7 +860,7 @@ MAIN_BUTTON_NAVNEXT_TOOLTIP;エディタで開いている画像の次の画像�
 MAIN_BUTTON_NAVPREV_TOOLTIP;エディタで開いている画像の前の画像に移動します\nショートカット: <b>%shortcut(editor.previous_image)%</b>\n\nファイルブラウザで選択したサムネイルの前の画像に移動するには\nショートカット: <b>%shortcut(filebrowser.open_previous)%</b>
 MAIN_BUTTON_NAVSYNC_TOOLTIP;現在開いている画像のサムネイルを明示しエディタとファイルブラウザを同期させ ファイルブラウザでのフィルタをクリアします \nショートカット: <b>%shortcut(editor.sync_file_browser_clear_filters)%</b>\n\n上記と同じですが ファイルブラウザでのフィルタをクリアしません\nショートカット: <b>%shortcut(editor.sync_file_browser)%</b>\n(開かれていても フィルターで除外されたファイルのサムネイルは 表示されませんので注意してください).
 MAIN_BUTTON_PREFERENCES;環境設定
-MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;現在の画像をキュー処理に追加 (%mouse_primary%-clickで即時出力)\nショートカット: <b>%mouse_primary%-s</b> (<b>%shortcut(editor.queue_fast)%</b>で即時出力)
+MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;現在の画像をキュー処理に追加 (%mouse_primary%-clickで即時出力)\nショートカット: <b>%shortcut(editor.queue)%</b> (<b>%shortcut(editor.queue_fast)%</b>で即時出力)
 MAIN_BUTTON_SAVE_TOOLTIP;現在の画像を保存 (%mouse_primary%-clickで即時出力)\nショートカット: <b>%shortcut(editor.save)%</b> (<b>%shortcut(editor.save_fast)%</b>で即時出力)
 MAIN_BUTTON_SENDTOEDITOR;外部エディタで画像を編集
 MAIN_BUTTON_SENDTOEDITOR_TOOLTIP;現在の画像を外部エディタで編集\nショートカット: <b>%shortcut(editor.send_to_external_editor)%</b> (<b>%shortcut(editor.send_to_external_editor_alt)%</b> で即時出力)
@@ -1281,9 +1281,9 @@ PROFILEPANEL_PLASTSAVED;更新済
 PROFILEPANEL_SAVEDLGLABEL;処理プロファイルを保存...
 PROFILEPANEL_SAVEPPASTE;保存するパラメータ
 PROFILEPANEL_TOOLTIPCOPY;クリップボードに現在のプロファイルをコピーします
-PROFILEPANEL_TOOLTIPLOAD;ファイルからプロファイルを読み込みます\nCtrl-クリックで読み込むパラメータを選択します
-PROFILEPANEL_TOOLTIPPASTE; クリップボードからプロファイルを貼り付けます\nCtrl-クリックで貼り付けるパラメータを選択します
-PROFILEPANEL_TOOLTIPSAVE;現在のプロファイルを保存\nCtrl-クリックで保存するパラメータを選択します
+PROFILEPANEL_TOOLTIPLOAD;ファイルからプロファイルを読み込みます\n%mouse_primary%-クリックで読み込むパラメータを選択します
+PROFILEPANEL_TOOLTIPPASTE; クリップボードからプロファイルを貼り付けます\n%mouse_primary%-クリックで貼り付けるパラメータを選択します
+PROFILEPANEL_TOOLTIPSAVE;現在のプロファイルを保存\n%mouse_primary%-クリックで保存するパラメータを選択します
 PROGRESSBAR_DENOISING;ノイズ低減中...
 PROGRESSBAR_HLREC;ハイライトの復元. . .
 PROGRESSBAR_LOADING;画像読み込み中...
@@ -1317,7 +1317,7 @@ QUEUE_LOCATION_FOLDER;フォルダに保存
 QUEUE_LOCATION_TEMPLATE;テンプレートを使う
 QUEUE_LOCATION_TEMPLATE_TOOLTIP;元の写真の場所、評価、ゴミ箱内かどうか、またはキュー内の位置に基づいて出力場所を指定します。\n\n例えば次のパス名を使う場合...:\n<b>/home/tom/photos/2010-10-31/photo1.raw</b>\n書式設定文字列の意味は次のとおりです:\n<b>%d4</b> = <i>home</i>\n<b>%d3</b> = <i >tom</i>\n<b>%d2</b> = <i>photos</i>\n<b>%d1</b> = <i>2010-10-31</i> \n<b>%f</b> = <i>photo1</i>\n<b>%p1</b> = <i>/home/tom/photos/2010-10-31/</i>\n<b>%p2</b> = <i>/home/tom/photos/</i>\n<b>%p3</b> = <i>/home/tom/</i>\n<b>%p4</b> = <i>/home/</i>\n\n<b>%r</b> は写真の評価に置き換えられます。写真に評価がない場合は、「<i>0</i>」が使用されます。写真がゴミ箱にある場合は、「<i>x</i>」が使われます。\n\n<b>%s1</b>, ..., <b>%s9</b> はキューが開始されたときのキュー内の写真の最初の位置に置き換えられます。数値は桁数を意味します。 例えば<b>%s3</b> の結果は「<i>001</i>」になります。\n\n<b>%n</b> は、現在適用されているスナップショットの名前に置き換えられます。スナップショットが存在しない場合、またはスナップショットが選択されている場合は、空の文字列が使用されます。 <b>%n</b> の代わりに <b>%u</b> を使用すると、スナップショット名のスペースをアンダースコアに置き換えることができます。\n\n出力イメージを元のイメージと一緒に保存する場合は、次のように書きます:\n<b>%p1/%f</b>\n\nソース写真のフォルダ内にある '<i>converted</i>' という名前のフォルダに出力画像を保存する場合は、次のように書きます:\n<b>%p1/converted/%f</b>\n\n出力イメージを \n'<i>/home/tom/photos/converted/2010-10-31</i>' に保存する場合、次のように書きます:\n<b>%p2/converted/%d1/%f</b>
 QUEUE_LOCATION_TITLE;出力の場所
-QUEUE_STARTSTOP_TOOLTIP;キューにある画像の現像を始める 或いは中止する\n\nショートカット: <b>Ctrl</b>+<b>s</b>
+QUEUE_STARTSTOP_TOOLTIP;キューにある画像の現像を始める 或いは中止する\n\nショートカット: <b>%shortcut(queue.start_stop)%</b>
 RENAME_DIALOG_BASEDIR;基本ディレクトリ
 RENAME_DIALOG_PATTERN;ファイル名のパターン
 RENAME_DIALOG_PATTERN_TIP;元の写真やメタデータ名に基づき出力名を指定して下さい.\n\n形式を指定する文字列の意味は以下の通りです:\n<b>%f</b>: 拡張子のないファイル名\n<b>%e</b>: 拡張子\n<b>%#</b>: ファイル名と付加番号\n<b>%C</b>: カメラ名 (メーカー及モデル)\n<b>%M</b>: カメラブランド\n<b>%N</b>: カメラモデル\n<b>%Y</b>: 写真の年 (4桁)\n<b>%y</b>: 写真の年 (2桁)\n<b>%m</b>: 写真の月 (数字)\n<b>%b</b>: 写真の月 (英略称)\n<b>%B</b>: 写真の月 (英フルネーム)\n<b>%d</b>: 写真の日付 (数字)\n<b>%a</b>: 写真の日付 (英略称)\n<b>%A</b>: 写真の日付 (英フルネーム)\n<b>%n1</b> to <b>%n9</b>: 増分値の桁指定 (例: <b>%n2</b> は <i>01</i> となる)\n<b>%I</b>: ISO感度\n<b>%L</b>: レンズ名\n<b>%F</b>: レンズ絞り (F番号)\n<b>%l</b>: 焦点距離\n<b>%E</b>: 露出補正量 (compensation)\n<b>%s</b>: シャッター速度\n<b>%r</b>: 写真の評価\n<b>%T[<i>タグ名</i>]</b>: メタデータタグの内容 <i>タグ名</i> (無効な文字は '_' で代替)\n<b>%%</b>: '%' 文字.
@@ -1443,8 +1443,8 @@ TP_CHMIXER_PRIMARY_B;ブルー原色
 TP_CHMIXER_MODE_RGB_MATRIX;RGBマトリックス
 TP_CHMIXER_MODE_PRIMARIES_CHROMA;原色 (Primaries) 補正
 TP_COARSETRAF_TOOLTIP_HFLIP;左右反転
-TP_COARSETRAF_TOOLTIP_ROTLEFT;90度左回転\nショートカット: <b>[</b>\n\nシングル･エディタ･タブのショートカット: <b>Alt-[</b>
-TP_COARSETRAF_TOOLTIP_ROTRIGHT;90度右回転\nショートカット: <b>]</b>\n\nシングル･エディタ･タブのショートカット: <b>Alt-]</b>
+TP_COARSETRAF_TOOLTIP_ROTLEFT;90度左回転\nショートカット: <b>%shortcut(editor.rotate_left)%</b>
+TP_COARSETRAF_TOOLTIP_ROTRIGHT;90度右回転\nショートカット: <b>%shortcut(editor.rotate_right)%</b>
 TP_COARSETRAF_TOOLTIP_VFLIP;上下反転
 TP_COLORCORRECTION_ABVALUES;x=%1 y=%2
 TP_COLORCORRECTION_IN;入力
@@ -2024,7 +2024,7 @@ TP_SOFTLIGHT_LABEL;ソフトライト
 TP_SOFTLIGHT_STRENGTH;強さ
 TP_SPOT_COUNTLABEL;%1 箇所
 TP_SPOT_ENTRYCHANGED;補修点変更
-TP_SPOT_HINT;プレビュー領域を操作するにはこのボタンをクリックします.\n\nスポットを編集するには, 編集部分の形 (editing geometry) が見えるようにした上で, 白い十字のカーソルを編集したい場所の上に置きます.\n\n編集スポットの追加には, Ctrlを押して左マウスボタンをクリックします. そしてそのままドラッグし, 編集部分を穴埋めするコピー元の場所にカーソルを移動させ (Ctrlキーは放しても良い) マウスボタンを放します.\n\nコピー元や編集部分を移動するには, その円の中心にカーソルを置いてドラッグします.\n\n編集部分の内側の円 (もっとも効果が強い部分) および "境界のぼかし (Feather) " (外側の) 円は その上にカーソルを置いて (すると円はオレンジになる), ドラッグする (すると円は赤になる) ことにより, サイズを変えられます.\n\n修正が終わったら, 任意のスポットの外側を右クリックするかこのボタンを再度クリックして, スポット編集モードを終わらせます.
+TP_SPOT_HINT;プレビュー領域を操作するにはこのボタンをクリックします.\n\nスポットを編集するには, 編集部分の形 (editing geometry) が見えるようにした上で, 白い十字のカーソルを編集したい場所の上に置きます.\n\n編集スポットの追加には, %mouse_primary%を押して左マウスボタンをクリックします. そしてそのままドラッグし, 編集部分を穴埋めするコピー元の場所にカーソルを移動させ (%mouse_primary%キーは放しても良い) マウスボタンを放します.\n\nコピー元や編集部分を移動するには, その円の中心にカーソルを置いてドラッグします.\n\n編集部分の内側の円 (もっとも効果が強い部分) および "境界のぼかし (Feather) " (外側の) 円は その上にカーソルを置いて (すると円はオレンジになる), ドラッグする (すると円は赤になる) ことにより, サイズを変えられます.\n\n修正が終わったら, 任意のスポットの外側を右クリックするかこのボタンを再度クリックして, スポット編集モードを終わらせます.
 TP_SPOT_LABEL;スポット除去
 TP_SPOT_LIGHTPIPELINE_HINT;簡易プレビュー使用中 (パフォーマンスオプション) は このボタンを押してスポットを編集します.\n\nプレビュー編集使用中のみ有効です.
 TP_SPOT_CUR_SPOT_LABEL;現在のスポット
