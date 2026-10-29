@@ -1145,6 +1145,9 @@ void ExifLensCorrection::processVignette(int width, int height,
     }
 
     if (!is_dng_) {
+#ifdef _OPENMP
+#pragma omp parallel for schedule(dynamic, 16)
+#endif
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
                 float cx = x - w2_;
@@ -1159,6 +1162,9 @@ void ExifLensCorrection::processVignette(int width, int height,
         const float cy = knots_[3];
         const float m2 = 1.f / SQR(knots_[5]);
 
+#ifdef _OPENMP
+#pragma omp parallel for schedule(dynamic, 16)
+#endif
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
                 const float r2 = m2 * (SQR(x - cx) + SQR(y - cy));
