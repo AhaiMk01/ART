@@ -231,8 +231,8 @@ def test_edit_of_several_images_says_what_changed(axi, tmp_path):
     code, out = axi("edit", *images, "--set", "Exposure/Compensation=1.5")
 
     assert code == 0, out
-    # The same change to both: listed once, as a number.
-    assert out.count("Compensation: 1.5") == 1
+    # The same change to both: listed once, old and new value as numbers.
+    assert out.count("Exposure/Compensation,0,1.5") == 1
     assert "images[2]{path,error}:" in out and "failed: 0" in out
 
 
@@ -243,7 +243,7 @@ def test_edit_of_several_images_with_one_failing(axi, tmp_path):
 
     assert code == 0, out
     assert "not_open" in out and "failed: 1" in out
-    assert "Compensation: 1.5" in out
+    assert "Exposure/Compensation,0,1.5" in out
 
 
 def test_reset_says_what_it_discarded(axi, image):
@@ -252,7 +252,8 @@ def test_reset_says_what_it_discarded(axi, image):
     code, out = axi("reset", image, "--to", "default")
 
     assert code == 0, out
-    assert "discarded_edits: 2" in out
+    assert "discarded[2]{key,edited,now}:" in out
+    assert "Exposure/Compensation,1.5,0" in out and "unsaved_edits: 0" in out
 
 
 @pytest.fixture
@@ -279,10 +280,43 @@ def test_stats_sweep_measures_each_value(axi, image, rendered_png):
     code, out = axi("stats", image, "--sweep", "Exposure/Compensation=0.5,1")
 
     assert code == 0, out
-    assert "results[8]{value,ch," in out
-    assert "\n  0.5,r," in out and "\n  1,lum," in out
+    assert "results[2]{value,clipped_high_r," in out
+    assert "\n  0.5," in out and "\n  1," in out and "render:" in out
     _, profile = axi("profile", image, "--groups", "Exposure")
     assert "unsaved_edits: 0" in profile
+
+
+def test_sweep_range(axi, image, rendered_png):
+    axi("open", image)
+    code, out = axi("stats", image, "--sweep", "Exposure/Compensation=0:0.3:0.1")
+
+    assert code == 0, out
+    assert "results[4]" in out
+    assert all(f"\n  {v}," in out for v in ("0", "0.1", "0.2", "0.3"))
+
+
+def test_sweep_range_too_long(axi, image):
+    code, out = axi("stats", image, "--sweep", "Exposure/Compensation=0:10:0.1")
+
+    assert code == 2
+    assert "at most 50" in out
+
+
+def test_profile_rows_carry_the_key_to_set(axi, image):
+    axi("open", image)
+    axi("edit", image, "--set", "Exposure/Compensation=0.5")
+    code, out = axi("profile", image)
+
+    assert code == 0, out
+    assert "values[1]{key,stored,name,value}:" in out
+    assert "Exposure/Compensation,0.5,exposure.compensation,0.5" in out
+
+
+def test_paths_come_back_absolute(axi, image, monkeypatch):
+    monkeypatch.chdir(image.parent)
+    _, out = axi("open", image.name)
+
+    assert f"path: {image.as_posix()}" in out.replace('"', "")
 
 
 def test_sweep_goes_with_one_image(axi, tmp_path):
