@@ -241,7 +241,7 @@ def test_edit_of_several_images_with_one_failing(axi, tmp_path):
     axi("open", images[0])
     code, out = axi("edit", *images, "--set", "Exposure/Compensation=1.5")
 
-    assert code == 0, out
+    assert code == 1, out  # some images failed
     assert "edited: 1 of 2" in out and "failed[1]{image,error}:" in out and "not_open" in out
     assert "Exposure/Compensation,0,1.5" in out
 
@@ -387,3 +387,47 @@ def test_describe_shows_field_names_and_art_default(axi):
 
     assert "compensation" in listing
     assert "art_default" in exposure and "note:" in exposure
+
+
+def test_all_means_every_open_image(axi, tmp_path):
+    images = two_images(tmp_path)
+    axi("open", *images)
+    code, out = axi("edit", "--all", "--set", "Exposure/Compensation=1")
+
+    assert code == 0, out
+    assert "edited: 2 of 2" in out
+
+
+def test_all_with_nothing_open(axi):
+    code, out = axi("save", "--all")
+
+    assert code == 1
+    assert "no images are open" in out and "code: not_open" in out
+
+
+def test_all_and_paths_together_is_usage(axi, image):
+    code, out = axi("save", image, "--all")
+
+    assert code == 2
+    assert "not both" in out
+
+
+def test_sidecars_among_the_paths_are_skipped(axi, tmp_path):
+    images = two_images(tmp_path)
+    axi("open", *images)
+    axi("save", *images)
+    globbed = sorted(tmp_path.glob("*.ARW*"))
+    code, out = axi("edit", *globbed, "--set", "Exposure/Compensation=1")
+
+    assert len(globbed) == 4
+    assert code == 0, out
+    assert "edited: 2 of 2" in out and "skipped: 2 sidecar file(s)" in out
+
+
+def test_batch_errors_use_cli_names(axi, tmp_path):
+    images = two_images(tmp_path)
+    axi("open", images[0])
+    code, out = axi("export", *images, "--out-dir", tmp_path / "out")
+
+    assert code == 1
+    assert "open_image" not in out and "art-axi open" in out

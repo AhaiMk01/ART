@@ -36,6 +36,7 @@ GLOBAL_FLAGS = ("--art-dir", "--timeout")
 """Flags every command takes (with a value), before or after the command."""
 
 EXIT_OK = 0
+EXIT_FAILED = 1
 
 
 class Failure(Exception):
@@ -62,7 +63,17 @@ class UsageError(Failure):
 
 
 def emit(data: dict[str, Any]) -> None:
-    print(toon.encode(data))
+    print(toon.encode(cli_errors(data)))
+
+
+def cli_errors(value: Any) -> Any:
+    """``value`` with every `error` text (a batch item's too) in this CLI's
+    terms (see ``in_cli_terms``)."""
+    if isinstance(value, dict):
+        return {k: in_cli_terms(v) if k == "error" and isinstance(v, str) else cli_errors(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [cli_errors(v) for v in value]
+    return value
 
 
 def shown(path: str | Path | None) -> str | None:
@@ -366,6 +377,47 @@ def run_home(ctx: Context) -> dict[str, Any]:
     return out
 
 
+SIDECAR_SUFFIXES = (".arp", ".bak")
+"""Files a shell glob over a roll's folder picks up beside the images."""
+
+
+def add_paths(p: Parser, help: str) -> None:
+    """The PATH arguments of a command that works on open images, and --all."""
+    p.add_argument("paths", nargs="*", metavar="PATH", help=f"{help}; sidecar files (.arp, .bak) are skipped")
+    p.add_argument("--all", action="store_true", help="every open image instead of PATHs")
+
+
+def select_paths(ctx: "Context", command: "Command", a: argparse.Namespace) -> str | None:
+    """Settle ``a.paths``: the open images with --all, else the PATHs given
+    without sidecar files. Returns a note on what was skipped, if anything."""
+    if not hasattr(a, "paths"):
+        return None
+    if getattr(a, "all", False):
+        if a.paths:
+            raise UsageError("give PATHs or --all, not both", f"art-axi {command.name} --all")
+        a.paths = [str(wp.image) for wp in ctx.store().all()]
+        if not a.paths and command.name != "close":
+            raise Failure("no images are open", "art-axi open <path>...", "not_open")
+        return None
+    kept = [path for path in a.paths if not path.lower().endswith(SIDECAR_SUFFIXES)]
+    skipped = len(a.paths) - len(kept)
+    if not kept:
+        what = "only sidecar files given" if a.paths else "no images given"
+        raise UsageError(
+            what, [f"art-axi {command.name} <image>...", f"art-axi {command.name} --all  (every open image)"]
+        )
+    a.paths = kept
+    return f"{skipped} sidecar file(s) among the paths (.arp or .bak)" if skipped else None
+
+
+def has_failures(out: dict[str, Any]) -> bool:
+    """Whether a batch result reports an image that failed (exit code 1)."""
+    failed = out.get("failed")
+    if isinstance(failed, bool):
+        return False
+    return bool(failed) or bool(out.get("errors"))
+
+
 def build_open(p: Parser) -> None:
     p.add_argument("paths", nargs="+", metavar="PATH", help="images to open (up to 50)")
     p.add_argument("--profile", metavar="ARP", help="start from this .arp over ART's default instead of the sidecar")
@@ -424,15 +476,12 @@ def frame_size(session: Any, path: str) -> str | None:
 
 
 def build_close(p: Parser) -> None:
-    p.add_argument("paths", nargs="*", metavar="PATH")
-    p.add_argument("--all", action="store_true", help="close every open image")
+    add_paths(p, "images to close")
 
 
 def run_close(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
     store = ctx.store()
-    if a.all == bool(a.paths):
-        raise UsageError("give image paths or --all", "art-axi close <path>... | art-axi close --all")
-    targets = [wp.image for wp in store.all()] if a.all else [Path(p).resolve() for p in a.paths]
+    targets = [Path(p).resolve() for p in a.paths]
     if not targets:
         return {"closed": "0 (no images were open)"}
     folder, label = image_labels([str(t) for t in targets])
@@ -450,7 +499,7 @@ def run_close(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
 
 
 def build_reset(p: Parser) -> None:
-    p.add_argument("paths", nargs="+", metavar="PATH")
+    add_paths(p, "open images to reload")
     p.add_argument("--to", required=True, choices=("sidecar", "default"), help="where to reload the profile from")
 
 
@@ -579,7 +628,7 @@ def changes_table(changes: dict[str, dict[str, str]], before: dict[str, dict[str
 
 
 def build_edit(p: Parser) -> None:
-    p.add_argument("paths", nargs="+", metavar="PATH", help="images to change the same way (up to 50)")
+    add_paths(p, "images to change the same way (up to 50)")
     p.add_argument(
         "--set", dest="raw", action="append", type=raw_edit, default=[], metavar="GROUP/KEY=VALUE",
         help="set one stored [Group] Key (repeatable); the key must exist (art-axi profile <path> --all)",
@@ -692,9 +741,13 @@ def run_describe(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
 def build_preview(p: Parser) -> None:
     from art_mcp.render.preview_ops import MAX_PREVIEW_SIZE, PREVIEW_SIZE
 
-    p.add_argument("paths", nargs="+", metavar="PATH", help="images to render (up to 16)")
+    add_paths(p, "images to render (up to 16)")
     p.add_argument(
-        "--size", type=int, default=PREVIEW_SIZE, help=f"long edge in px, 1..{MAX_PREVIEW_SIZE} (default %(default)s)"
+        "--size",
+        type=int,
+        default=PREVIEW_SIZE,
+        metavar=f"1..{MAX_PREVIEW_SIZE}",
+        help="long edge in px (default %(default)s)",
     )
     p.add_argument(
         "--region", type=comma_floats(4, "--region"), metavar="X,Y,W,H", help="image fractions, rendered 1:1"
@@ -772,7 +825,7 @@ def named_after(file: str | None, image: str) -> str | None:
 def build_stats(p: Parser) -> None:
     from art_mcp.render.preview_ops import MAX_PREVIEW_SIZE, PREVIEW_SIZE
 
-    p.add_argument("paths", nargs="+", metavar="PATH", help="images to measure (up to 50)")
+    add_paths(p, "images to measure (up to 50)")
     p.add_argument("--detail", choices=("compact", "standard", "full"), help="default standard (compact for several)")
     p.add_argument("--region", type=comma_floats(4, "--region"), metavar="X,Y,W,H", help="image fractions")
     p.add_argument("--bins", type=int, choices=(8, 16, 32, 64), help="fractions of pixels in equal groups of values")
@@ -783,7 +836,8 @@ def build_stats(p: Parser) -> None:
         "--size",
         type=int,
         default=PREVIEW_SIZE,
-        help=f"long edge of the render measured, 1..{MAX_PREVIEW_SIZE} (default %(default)s)",
+        metavar=f"1..{MAX_PREVIEW_SIZE}",
+        help="long edge of the render measured (default %(default)s)",
     )
     p.add_argument("--stage", default="display", choices=("display", "converted"), help="default %(default)s")
     p.add_argument(
@@ -937,7 +991,7 @@ def image_labels(paths: list[str]) -> tuple[str | None, dict[str, str]]:
 
 def run_stats(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
     from art_mcp.render import profile_ops, sampling_ops
-    from art_mcp.render.preview_ops import Region
+    from art_mcp.render.preview_ops import MAX_PREVIEW_SIZE, Region
     from art_mcp.schema import RawEdit
 
     region = Region(**dict(zip("xywh", a.region, strict=True))) if a.region else None
@@ -984,7 +1038,7 @@ def run_stats(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
             **({"folder": folder} if folder else {}),
             "images": len(a.paths) if several else shown(a.paths[0]),
             "sweep": f"{group}/{key} (nothing stored)",
-            "render": f"{render} (--size {a.size}; raise it to confirm small clipped areas)",
+            "render": f"{render} (--size {a.size}, max {MAX_PREVIEW_SIZE}; raise it to confirm small clipped areas)",
             "results": rows(table, columns),
         }
         if several:
@@ -1051,7 +1105,7 @@ def run_sample(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
 
 
 def build_save(p: Parser) -> None:
-    p.add_argument("paths", nargs="+", metavar="PATH", help="open images whose sidecars to write")
+    add_paths(p, "open images whose sidecars to write")
     p.add_argument(
         "--on-conflict", choices=("merge", "overwrite"),
         help="when the sidecar changed on disk since it was loaded (default: fail with `conflict`)",
@@ -1094,7 +1148,7 @@ FORMATS = {".jpg": "jpeg", ".jpeg": "jpeg", ".png": "png", ".tif": "tiff", ".tif
 
 
 def build_export(p: Parser) -> None:
-    p.add_argument("paths", nargs="+", metavar="PATH", help="open images to export")
+    add_paths(p, "open images to export")
     p.add_argument("--out", metavar="FILE", help="the file to write, for one image (its folder is created)")
     p.add_argument(
         "--out-dir", metavar="DIR", help="write each image into this folder (created), named by --name"
@@ -1178,7 +1232,7 @@ def export_many(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
 
 
 def build_sheet(p: Parser) -> None:
-    p.add_argument("paths", nargs="+", metavar="PATH", help="open images, or a folder for the open images in it")
+    add_paths(p, "open images, or a folder for the open images in it")
     p.add_argument("--columns", type=int, metavar="N", help="frames per row (default 6)")
     p.add_argument("--thumb", type=int, default=None, metavar="PX", help="long edge of each frame, 32..1024")
     p.add_argument(
@@ -1229,7 +1283,7 @@ def run_sheet(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
 
 
 def build_inspect(p: Parser) -> None:
-    p.add_argument("paths", nargs="+", metavar="PATH", help="open images (up to 100)")
+    add_paths(p, "open images (up to 100)")
     p.add_argument("--tags", type=names, metavar="TAG,TAG", help="extra exiftool tags, e.g. Software")
     p.add_argument("--frame", action="store_true", help="measure the frame size for several images (~1 s each)")
 
@@ -1473,8 +1527,13 @@ def run(argv: list[str], session_factory: Callable[[Context], Any] | None = None
             print(command.parser().format_help().rstrip())
             return EXIT_OK
         unknown_flag_check(command, args)
-        emit(command.run(ctx, command.parser().parse_args(args)))
-        return EXIT_OK
+        parsed = command.parser().parse_args(args)
+        skipped = select_paths(ctx, command, parsed)
+        out = command.run(ctx, parsed)
+        if skipped:
+            out["skipped"] = skipped
+        emit(out)
+        return EXIT_FAILED if has_failures(out) else EXIT_OK
     except Failure as e:
         emit(error_output(e))
         return e.exit_code
