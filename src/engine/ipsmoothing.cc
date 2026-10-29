@@ -857,6 +857,7 @@ void wavelet_smoothing(Imagefloat *rgb,
 #endif
         wavelet_decomposition wd(data, W, H, nlevels, 1, 1, nthreads);
         for (int lvl = 0; lvl < wd.maxlevel(); ++lvl) {
+            abortPoint();
             for (int dir = 1; dir < 4; ++dir) {
                 const int lW = wd.level_W(lvl);
                 const int lH = wd.level_H(lvl);
@@ -1050,6 +1051,7 @@ bool ImProcFunctions::guidedSmoothing(Imagefloat *rgb)
             params->icm.workingProfile);
 
         for (int i = 0; i < n; ++i) {
+            abortPoint();
             if (!params->smoothing.masks[i].enabled) {
                 continue;
             }
@@ -1929,6 +1931,7 @@ static bool nlmeansSmoothingWhole(Imagefloat *rgb,
     
     const auto runPlaneNlmeans = [&](Buffer &plane) -> bool {
         for (int it = 0; it < iterations; ++it) {
+            abortPoint(); // nothing of this plane is half-written between calls
             if (!NLMeans(*ctx, *pool, plane, W, H, 1.f, scale,
                          strength, detail, frame)) {
                 return false;

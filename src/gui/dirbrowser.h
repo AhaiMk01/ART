@@ -20,6 +20,7 @@
 #pragma once
 
 #include <giomm.h>
+#include <map>
 #include <gtkmm.h>
 
 #include "dirtreeview.h"
@@ -71,16 +72,21 @@ private:
 
     void fillRoot();
 
+    // the order must match the one in loadIcons()
     enum class DirIcon {
         OPENFOLDER,
         CLOSEDFOLDER,
         CDROM,
         FLOPPY,
         HDD,
-        NETWORK,
-        REMOVABLE
+        REMOVABLE,
+        NETWORK
     };
-    std::vector<std::shared_ptr<RTSurface>> dir_icons_;
+    typedef std::vector<std::shared_ptr<RTSurface>> IconSet;
+    IconSet dir_icons_;
+    // icons rendered in the selected-row foreground color, by html color
+    std::map<std::string, IconSet> selected_icons_;
+    static IconSet loadIcons(const std::string &color = "");
 
     bool expandSuccess;
 

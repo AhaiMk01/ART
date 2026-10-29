@@ -149,6 +149,9 @@ protected:
     void build_menu();
     void refresh_usercommands_menu();
 
+private:
+    std::unordered_map<const Thumbnail *, unsigned> open_in_editor_;
+
 public:
     FileBrowser();
     ~FileBrowser() override;
@@ -156,6 +159,10 @@ public:
     void addEntry(FileBrowserEntry *entry); // can be called from any thread
     void addEntry_(
         FileBrowserEntry *entry); // this must be executed inside the gtk thread
+    // adjust (+1/-1) the number of editors in which thm is open; the count is
+    // kept here, not only on the entry, so that it survives the entry being
+    // destroyed and recreated (directory change, reload, ...)
+    void updateOpenInEditor(const Thumbnail *thm, int delta);
     FileBrowserEntry *
     delEntry(const Glib::ustring &
                  fname); // return the entry if found here return NULL otherwise

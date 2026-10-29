@@ -49,6 +49,10 @@ inline void *libSym(LibHandle h, const char *n)
     return (void *)GetProcAddress(h, n);
 }
 inline void closeLib(LibHandle h) { FreeLibrary(h); }
+inline std::string libError()
+{
+    return "error " + std::to_string((unsigned long)GetLastError());
+}
 #else
 typedef void *LibHandle;
 inline LibHandle openLib(const char *p)
@@ -57,6 +61,11 @@ inline LibHandle openLib(const char *p)
 }
 inline void *libSym(LibHandle h, const char *n) { return dlsym(h, n); }
 inline void closeLib(LibHandle h) { dlclose(h); }
+inline std::string libError()
+{
+    const char *e = dlerror();
+    return e ? e : "unknown error";
+}
 #endif
 
 LibHandle lib_ = nullptr;
@@ -103,20 +112,24 @@ bool loadVulkanLibrary(std::string &err)
         lib_ = openLib(override_path.c_str());
         if (!lib_) {
             err = std::string("could not open ART_VULKAN_LIBRARY=") +
-                  override_path;
+                  override_path + ": " + libError();
             return false;
         }
         loaded_path_ = override_path;
     } else {
         const char *const *c = candidates();
+        std::string details;
         for (int i = 0; c[i] && !lib_; ++i) {
             lib_ = openLib(c[i]);
             if (lib_) {
                 loaded_path_ = c[i];
+            } else {
+                details += std::string(details.empty() ? "" : "; ") + c[i] +
+                           ": " + libError();
             }
         }
         if (!lib_) {
-            err = "no Vulkan loader or ICD could be opened";
+            err = "no Vulkan loader or ICD could be opened (" + details + ")";
             return false;
         }
     }

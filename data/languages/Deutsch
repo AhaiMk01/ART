@@ -19,7 +19,7 @@ ABOUT_TAB_CREDITS;Danksagungen
 ABOUT_TAB_LICENSE;Lizenz
 ABOUT_TAB_RELEASENOTES;Versionshinweise
 ABOUT_TAB_SPLASH;Startbild
-ADJUSTER_RESET_TO_DEFAULT;<b>Linksklick</b> - Auf Standardwert zurücksetzen.\n<b>Strg + Linksklick</b> - Auf zuletzt gespeicherten Wert zurücksetzen.
+ADJUSTER_RESET_TO_DEFAULT;<b>Linksklick</b> - Auf Standardwert zurücksetzen.\n<b>%mouse_primary% + Linksklick</b> - Auf zuletzt gespeicherten Wert zurücksetzen.
 CTL_SIGMOID;Sigmoid Tonemapper
 CTL_SIGMOID_BASE_PRIMARIES;RGB Primärfarben
 CTL_SIGMOID_INSET;Dämpfung
@@ -71,7 +71,7 @@ DYNPROFILEEDITOR_NEW_RULE;Profilregel erstellen
 DYNPROFILEEDITOR_PROFILE;Profil
 EDITWINDOW_TITLE;Bildbearbeitung
 EDIT_OBJECT_TOOLTIP;Schaltet das Einstellungswerkzeug im Vorschaubild ein/aus.
-EDIT_PIPETTE_TOOLTIP;Punkte übers Vorschaubild hinzufügen:\nStrg gedrückt halten und Linksklick, um im gewünschten Farb- oder Helligkeitsbereich einen Punkt auf der Kurve hinzuzufügen. Bei gedrückter Strg- und linker Taste die Maus hoch oder runter bewegen, um Feinjustierungen vorzunehmen. Für gröbere Anpassungen Strg loslassen.
+EDIT_PIPETTE_TOOLTIP;Punkte übers Vorschaubild hinzufügen:\n%mouse_primary% gedrückt halten und Linksklick, um im gewünschten Farb- oder Helligkeitsbereich einen Punkt auf der Kurve hinzuzufügen. Bei gedrückter %mouse_primary%- und linker Taste die Maus hoch oder runter bewegen, um Feinjustierungen vorzunehmen. Für gröbere Anpassungen %mouse_primary% loslassen.
 ERROR_MSG_FILE_READ;Fehler beim Lesen der Datei: %1
 ERROR_MSG_INVALID_LUT_PARAMS;Ungültige LUT-Parameter für: %1
 ERROR_MSG_INVALID_PROFILE;Ungültiges Profil: %1
@@ -138,13 +138,13 @@ FILEBROWSER_APPLYPROFILE_PARTIAL;Profil selektiv anwenden
 FILEBROWSER_AUTODARKFRAME;Automatisches Dunkelbild
 FILEBROWSER_AUTOFLATFIELD;Automatisches Weißbild
 FILEBROWSER_BROWSEPATHBUTTONHINT;Ansicht aktualisieren.\nTaste: <b>%shortcut(filecatalog.refresh)%</b>
-FILEBROWSER_BROWSEPATHHINT;Einen Pfad eingeben:\nTaste:\n<b>Strg + o</b>  Setzt den Cursor in das Eingabefeld\n<b>Enter</b> / <b>Strg + Enter</b>  Öffnet den Pfad\n<b>Esc</b>  Anderungen verwerfen\n<b>Shift + Esc</b>  Eingabefeld verlassen\n\nSchnellnavigation:\n<b>~</b>  'Home'-Verzeichnis des Benutzers\n<b>!</b>  Bilder-Verzeichnis des Benutzers
+FILEBROWSER_BROWSEPATHHINT;Einen Pfad eingeben:\nTaste:\n<b>%shortcut(filecatalog.focus_path)%</b>  Setzt den Cursor in das Eingabefeld\n<b>Enter</b> / <b>Strg + Enter</b>  Öffnet den Pfad\n<b>Esc</b>  Anderungen verwerfen\n<b>Shift + Esc</b>  Eingabefeld verlassen\n\nSchnellnavigation:\n<b>~</b>  'Home'-Verzeichnis des Benutzers\n<b>!</b>  Bilder-Verzeichnis des Benutzers
 FILEBROWSER_BROWSEPATH_RECURSIVE_TOOLTIP;Bilder in Unterverzeichnissen rekursiv suchen.
 FILEBROWSER_CACHE;Festplatten-Cache
 FILEBROWSER_CACHECLEARFROMFULL;Alle zwischengespeicherte Profile löschen
 FILEBROWSER_CACHECLEARFROMPARTIAL;Alle NICHT zwischengespeicherte Profile löschen
 FILEBROWSER_CLEARPROFILE;Profil löschen
-FILEBROWSER_COLORLABEL_TOOLTIP;Farbmarkierung.\n\nBenutzen Sie die Dropdownliste oder folgende Tasten:\n<b>Shift + Strg + 0</b>  Keine Farbe\n<b>Shift + Strg + 1</b>  Rot\n<b>Shift + Strg + 2</b>  Gelb\n<b>Shift + Strg + 3</b>  Grün\n<b>Shift + Strg + 4</b>  Blau\n<b>Shift + Strg + 5</b>  Violett
+FILEBROWSER_COLORLABEL_TOOLTIP;Farbmarkierung.\n\nBenutzen Sie die Dropdownliste oder folgende Tasten:\n<b>%shortcut(filebrowser.set_label.0)%</b>  Keine Farbe\n<b>%shortcut(filebrowser.set_label.1)%</b>  Rot\n<b>%shortcut(filebrowser.set_label.2)%</b>  Gelb\n<b>%shortcut(filebrowser.set_label.3)%</b>  Grün\n<b>%shortcut(filebrowser.set_label.4)%</b>  Blau\n<b>%shortcut(filebrowser.set_label.5)%</b>  Violett
 FILEBROWSER_COPYPROFILE;Profil kopieren
 FILEBROWSER_CURRENT_NAME;Aktueller Name:
 FILEBROWSER_DARKFRAME;Dunkelbild
@@ -197,13 +197,13 @@ FILEBROWSER_POPUPTRASH;In den Papierkorb verschieben
 FILEBROWSER_POPUPUNRANK;Bewertung entfernen
 FILEBROWSER_POPUPUNTRASH;Aus dem Papierkorb wiederherstellen
 FILEBROWSER_QUERYBUTTONHINT;Suchfilter zurücksetzen.
-FILEBROWSER_QUERYHINT;Nach Dateinamen suchen.\n\nMehrere Suchbegriffe können durch Kommas getrennt werden,\nz.B. <i>1001,1004,1199</i>.\n\nMit <i>!=</i> können Suchbegriffe ausgeschlossen werden,\nz.B. <i>!=1001,1004,1199</i>.\n\nTaste:\n<b>Strg + f</b>  Setzt den Fokus auf das Suchfeld\n<b>Enter</b>  Suche starten\n<b>Shift + Esc</b>  Suchfeld leeren\n<b>Esc</b>  Suchfeld verlassen
+FILEBROWSER_QUERYHINT;Nach Dateinamen suchen.\n\nMehrere Suchbegriffe können durch Kommas getrennt werden,\nz.B. <i>1001,1004,1199</i>.\n\nMit <i>!=</i> können Suchbegriffe ausgeschlossen werden,\nz.B. <i>!=1001,1004,1199</i>.\n\nTaste:\n<b>%shortcut(filecatalog.focus_query)%</b>  Setzt den Fokus auf das Suchfeld\n<b>Enter</b>  Suche starten\n<b>Shift + Esc</b>  Suchfeld leeren\n<b>Esc</b>  Suchfeld verlassen
 FILEBROWSER_QUERYLABEL;Suche:
-FILEBROWSER_RANK1_TOOLTIP;Bewertung 1 *\nTaste: <b>Shift + 1</b>
-FILEBROWSER_RANK2_TOOLTIP;Bewertung 2 *\nTaste: <b>Shift + 2</b>
-FILEBROWSER_RANK3_TOOLTIP;Bewertung 3 *\nTaste: <b>Shift + 3</b>
-FILEBROWSER_RANK4_TOOLTIP;Bewertung 4 *\nTaste: <b>Shift + 4</b>
-FILEBROWSER_RANK5_TOOLTIP;Bewertung 5 *\nTaste: <b>Shift + 5</b>
+FILEBROWSER_RANK1_TOOLTIP;Bewertung 1 *\nTaste: <b>%shortcut(filebrowser.set_rank.1)%</b>
+FILEBROWSER_RANK2_TOOLTIP;Bewertung 2 *\nTaste: <b>%shortcut(filebrowser.set_rank.2)%</b>
+FILEBROWSER_RANK3_TOOLTIP;Bewertung 3 *\nTaste: <b>%shortcut(filebrowser.set_rank.3)%</b>
+FILEBROWSER_RANK4_TOOLTIP;Bewertung 4 *\nTaste: <b>%shortcut(filebrowser.set_rank.4)%</b>
+FILEBROWSER_RANK5_TOOLTIP;Bewertung 5 *\nTaste: <b>%shortcut(filebrowser.set_rank.5)%</b>
 FILEBROWSER_RENAMEDLGLABEL;Datei(en) umbenennen
 FILEBROWSER_RENAMEDLGLABEL;Datei(en) umbenennen/verschieben
 FILEBROWSER_RENAME_DIALOG_COPY_LABEL;Datei(en) kopieren
@@ -218,15 +218,15 @@ FILEBROWSER_SESSION_ADD_LABEL;Zu Sitzung hinzufügen
 FILEBROWSER_SESSION_LOAD_LABEL;Lade Sitzung aus Datei
 FILEBROWSER_SESSION_REMOVE_LABEL;Ausgewählte von Sitzung entfernen
 FILEBROWSER_SESSION_SAVE_LABEL;Speichere Sitzung in Datei
-FILEBROWSER_SHOWCOLORLABEL1HINT;Nur rot markierte Bilder anzeigen.\nTaste: <b>Alt + 1</b>
-FILEBROWSER_SHOWCOLORLABEL2HINT;Nur gelb markierte Bilder anzeigen.\nTaste: <b>Alt + 2</b>
-FILEBROWSER_SHOWCOLORLABEL3HINT;Nur grün markierte Bilder anzeigen.\nTaste: <b>Alt + 3</b>
-FILEBROWSER_SHOWCOLORLABEL4HINT;Nur blau markierte Bilder anzeigen.\nTaste: <b>Alt + 4</b>
-FILEBROWSER_SHOWCOLORLABEL5HINT;Nur violett markierte Bilder anzeigen.\nTaste: <b>Alt + 5</b>
+FILEBROWSER_SHOWCOLORLABEL1HINT;Nur rot markierte Bilder anzeigen.\nTaste: <b>%shortcut(filecatalog.filter_label.1)%</b>
+FILEBROWSER_SHOWCOLORLABEL2HINT;Nur gelb markierte Bilder anzeigen.\nTaste: <b>%shortcut(filecatalog.filter_label.2)%</b>
+FILEBROWSER_SHOWCOLORLABEL3HINT;Nur grün markierte Bilder anzeigen.\nTaste: <b>%shortcut(filecatalog.filter_label.3)%</b>
+FILEBROWSER_SHOWCOLORLABEL4HINT;Nur blau markierte Bilder anzeigen.\nTaste: <b>%shortcut(filecatalog.filter_label.4)%</b>
+FILEBROWSER_SHOWCOLORLABEL5HINT;Nur violett markierte Bilder anzeigen.\nTaste: <b>%shortcut(filecatalog.filter_label.5)%</b>
 FILEBROWSER_SHOWDIRHINT;Alle Filter zurücksetzen.\nTaste: <b>%shortcut(filecatalog.filter_clear)%</b>
 FILEBROWSER_SHOWEDITEDHINT;Nur bearbeitete Bilder anzeigen.\nTaste: <b>%shortcut(filecatalog.filter_edited)%</b>
 FILEBROWSER_SHOWEDITEDNOTHINT;Nur unbearbeitete Bilder anzeigen.\nTaste: <b>%shortcut(filecatalog.filter_not_edited)%</b>
-FILEBROWSER_SHOWEXIFINFO;Bildinformationen ein-/ausblenden.\n\nTaste: <b>i</b>
+FILEBROWSER_SHOWEXIFINFO;Bildinformationen ein-/ausblenden.\nTaste: <b>%shortcut(filecatalog.toggle_exif)%</b>
 FILEBROWSER_SHOWNOTTRASHHINT;Nur Bilder außerhalb des Papierkorbs anzeigen.
 FILEBROWSER_SHOWORIGINALHINT;Zeige nur das Originalbild.\n\nWenn mehrere Bilder mit gleichem Namen, aber unterschiedlichen Dateiendungen vorhanden sind, wird jenes als Original betrachtet, dessen Endung in der Liste <i>Einstellungen > Dateiverwaltung > Dateitypen anzeigen</i> am weitesten oben steht.
 FILEBROWSER_SHOWRANK1HINT;Nur mit 1 Stern bewertete Bilder anzeigen.\nTaste: <b>%shortcut(filecatalog.filter_rank.1)%</b>
@@ -234,10 +234,10 @@ FILEBROWSER_SHOWRANK2HINT;Nur mit 2 Sternen bewertete Bilder anzeigen.\nTaste: <
 FILEBROWSER_SHOWRANK3HINT;Nur mit 3 Sternen bewertete Bilder anzeigen.\nTaste: <b>%shortcut(filecatalog.filter_rank.3)%</b>
 FILEBROWSER_SHOWRANK4HINT;Nur mit 4 Sternen bewertete Bilder anzeigen.\nTaste: <b>%shortcut(filecatalog.filter_rank.4)%</b>
 FILEBROWSER_SHOWRANK5HINT;Nur mit 5 Sternen bewertete Bilder anzeigen.\nTaste: <b>%shortcut(filecatalog.filter_rank.5)%</b>
-FILEBROWSER_SHOWRECENTLYSAVEDHINT;Nur gespeicherte Bilder anzeigen.\nTaste: <b>Alt + 7</b>
-FILEBROWSER_SHOWRECENTLYSAVEDNOTHINT;Nur nicht gespeicherte Bilder anzeigen.\nTaste: <b>Alt</b> + <b>6</b>
-FILEBROWSER_SHOWTRASHHINT;Inhalt des Papierkorbs anzeigen.\nTaste: <b>Strg + t</b>
-FILEBROWSER_SHOWUNCOLORHINT;Nur unmarkierte Bilder anzeigen.\nTaste: <b>Alt + 0</b>
+FILEBROWSER_SHOWRECENTLYSAVEDHINT;Nur gespeicherte Bilder anzeigen.\nTaste: <b>%shortcut(filecatalog.filter_recently_saved)%</b>
+FILEBROWSER_SHOWRECENTLYSAVEDNOTHINT;Nur nicht gespeicherte Bilder anzeigen.\nTaste: <b>%shortcut(filecatalog.filter_not_recently_saved)%</b>
+FILEBROWSER_SHOWTRASHHINT;Inhalt des Papierkorbs anzeigen.\nTaste: <b>%shortcut(filecatalog.toggle_trash)%</b>
+FILEBROWSER_SHOWUNCOLORHINT;Nur unmarkierte Bilder anzeigen.\nTaste: <b>%shortcut(filecatalog.filter_no_label)%</b>
 FILEBROWSER_SHOWUNRANKHINT;Nur unbewertete Bilder anzeigen.\nTaste: <b>%shortcut(filecatalog.filter_unranked)%</b>
 FILEBROWSER_SORT_DATE;Aufnahmedatum (älteste oben)
 FILEBROWSER_SORT_DATE_REV;Aufnahmedatum (neueste oben)
@@ -249,9 +249,9 @@ FILEBROWSER_SORT_MODTIME_REV;Änderungsdatum der Datei (neueste oben)
 FILEBROWSER_SORT_PROCTIME;Zuletzt bearbeitet (älteste oben)
 FILEBROWSER_SORT_PROCTIME_REV;Zuletzt bearbeitet (neueste oben)
 FILEBROWSER_THUMBSIZE;Miniaturbildgröße
-FILEBROWSER_UNRANK_TOOLTIP;Bewertung entfernen.\nTaste: <b>Shift + 0</b>
-FILEBROWSER_ZOOMINHINT;Miniaturbilder vergrößern.\nTaste: <b>+</b>
-FILEBROWSER_ZOOMOUTHINT;Miniaturbilder verkleinern.\nTaste: <b>-</b>
+FILEBROWSER_UNRANK_TOOLTIP;Bewertung entfernen.\nTaste: <b>%shortcut(filebrowser.set_rank.0)%</b>
+FILEBROWSER_ZOOMINHINT;Miniaturbilder vergrößern.\nTaste: <b>%shortcut(filecatalog.zoom_in)%</b>
+FILEBROWSER_ZOOMOUTHINT;Miniaturbilder verkleinern.\nTaste: <b>%shortcut(filecatalog.zoom_out)%</b>
 FILECHOOSER_FILTER_ANY;Alle Dateien
 FILECHOOSER_FILTER_ARS;ART-Sitzungdateien (*.ars)
 FILECHOOSER_FILTER_COLPROF;Farbprofile
@@ -750,7 +750,7 @@ HISTORY_MSG_TONE_EQUALIZER_REGULARIZATION;Tonwertequalizer - Filterdiffusion
 HISTORY_MSG_TONE_EQUALIZER_SHOW_COLOR_MAP;Tonwertequalizer - Belichtungsmaske
 HISTORY_MSG_WBALANCE_MULT;Weißabgleich - Faktoren
 HISTORY_NEWSNAPSHOT;Hinzufügen
-HISTORY_NEWSNAPSHOT_TOOLTIP;Taste: <b>Alt + s</b>
+HISTORY_NEWSNAPSHOT_TOOLTIP;Taste: <b>%shortcut(editor.add_snapshot)%</b>
 HISTORY_SNAPSHOT;Schnappschuss
 HISTORY_SNAPSHOTS;Schnappschüsse
 HISTORY_SNAPSHOT_CONFIRM_UPDATE;Schnappschuss überschreiben?
@@ -796,9 +796,9 @@ ICCPROFCREATOR_SAVEDIALOG_TITLE;ICC-Profile speichern unter ...
 ICCPROFCREATOR_SLOPE;Steigung
 ICCPROFCREATOR_TRC_PRESET;Farbtonkennlinie:
 INSPECTOR_ENABLE_CMS;Farbmanagement aktivieren.
-INSPECTOR_FOCUS_MASK;Fokusmaske.\nTaste: <b>Shift + f</b>
+INSPECTOR_FOCUS_MASK;Fokusmaske.\nTaste: <b>%shortcut(inspector.toggle_focus_mask)%</b>
 INSPECTOR_HISTOGRAM;Histogramm.\nTaste: <b>%shortcut(inspector.toggle_histogram)%</b>
-INSPECTOR_INFO;Bildinformationen ein-/ausblenden.\nTaste: <b>Shift + i</b>
+INSPECTOR_INFO;Bildinformationen ein-/ausblenden.\nTaste: <b>%shortcut(inspector.toggle_info)%</b>
 INSPECTOR_PREVIEW;Eingebettetes Vorschaubild verwenden.\nTaste: <b>%shortcut(inspector.mode_jpeg)%</b>
 INSPECTOR_RAW_CLIP;Clipping-Anzeige.\nTaste: <b>%shortcut(inspector.mode_raw_clip_warning)%</b>
 INSPECTOR_RAW_FILM;Schnelle RAW-Vorschau mit filmähnlicher Tonkurve.\nTaste: <b>%shortcut(inspector.mode_raw_film_curve)%</b>
@@ -853,25 +853,25 @@ LABMASKS_AREA_MASK_EMPTY_WARNING;Achtung: Die aktuelle Kombination von Flächen 
 LINKED_MASK_NOT_FOUND_WARNING;Warnung: Verknüpfte Maske "%1->%2" nicht gefunden
 MAIN_BUTTON_FULLSCREEN;Vollbild\nTaste: <b>F11</b>
 MAIN_BUTTON_ICCPROFCREATOR;ICC-Profil erstellen.
-MAIN_BUTTON_NAVNEXT_TOOLTIP;Navigiert zum nächsten Bild in der\nDateiverwaltung oder Filmstreifen, bezogen\nauf das ausgewählte Miniaturbild.\nTaste: <b>%shortcut(filebrowser.open_next)%</b>\n\nNavigiert zum nächsten Bild in der\nDateiverwaltung oder Filmstreifen, bezogen\nauf das im Editor geöffnete Bild.\nTaste: <b>Shift + F4</b>
-MAIN_BUTTON_NAVPREV_TOOLTIP;Navigiert zum vorherigen Bild in der\nDateiverwaltung oder Filmstreifen, bezogen\nauf das ausgewählte Miniaturbild.\nTaste: <b>%shortcut(filebrowser.open_previous)%</b>\n\nNavigiert zum vorherigen Miniaturbild in der\nDateiverwaltung oder Filmstreifen, bezogen\nauf das im Editor geöffnete Bild.\nTaste: <b>Shift + F3</b>
+MAIN_BUTTON_NAVNEXT_TOOLTIP;Navigiert zum nächsten Bild in der\nDateiverwaltung oder Filmstreifen, bezogen\nauf das ausgewählte Miniaturbild.\nTaste: <b>%shortcut(editor.next_image)%</b>\n\nNavigiert zum nächsten Bild in der\nDateiverwaltung oder Filmstreifen, bezogen\nauf das im Editor geöffnete Bild.\nTaste: <b>%shortcut(filebrowser.open_next)%</b>
+MAIN_BUTTON_NAVPREV_TOOLTIP;Navigiert zum vorherigen Bild in der\nDateiverwaltung oder Filmstreifen, bezogen\nauf das ausgewählte Miniaturbild.\nTaste: <b>%shortcut(editor.previous_image)%</b>\n\nNavigiert zum vorherigen Miniaturbild in der\nDateiverwaltung oder Filmstreifen, bezogen\nauf das im Editor geöffnete Bild.\nTaste: <b>%shortcut(filebrowser.open_previous)%</b>
 MAIN_BUTTON_NAVSYNC_TOOLTIP;Wählt das Miniaturbild des aktuell geöffneten\Bildes in der Dateiverwaltung und im Filmstreifen aus.\nEs werden alle aktiven Filter gelöscht.\nTaste: <b>%shortcut(editor.sync_file_browser_clear_filters)%</b>\n\nWie oben, jedoch ohne dass aktiver Filter gelöscht werden. Das\nMiniaturbild des geöffneten Bildes wird nicht angezeigt,\nwenn es herausgefiltert wurde.\nTaste: <b>%shortcut(editor.sync_file_browser)%</b>
 MAIN_BUTTON_PREFERENCES;Einstellungen
-MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;Bild zur Warteschlange hinzufügen (<i>Strg + Linksklick</i> für Schnell-Export).\nTaste: <b>Strg + b</b>  (<b>Strg + Shift + b</b> für Schnell-Export)
-MAIN_BUTTON_SAVE_TOOLTIP;Bild speichern (<i>Strg + Linksklick</i> für Schnell-Export).\nTaste: <b>Strg + s</b>  (<b>Strg + Shift + s</b> für Schnell-Export)
+MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;Bild zur Warteschlange hinzufügen (<i>%mouse_primary% + Linksklick</i> für Schnell-Export).\nTaste: <b>%shortcut(editor.queue)%</b>  (<b>%shortcut(editor.queue_fast)%</b> für Schnell-Export)
+MAIN_BUTTON_SAVE_TOOLTIP;Bild speichern (<i>%mouse_primary% + Linksklick</i> für Schnell-Export).\nTaste: <b>%shortcut(editor.save)%</b>  (<b>%shortcut(editor.save_fast)%</b> für Schnell-Export)
 MAIN_BUTTON_SENDTOEDITOR;Bild im externen Editor öffnen.
-MAIN_BUTTON_SENDTOEDITOR_TOOLTIP;Bild im externen Editor öffnen.\nTaste: <b>Strg + e</b> (<b>Strg + Shift + e</b> für Schnell-Export)
+MAIN_BUTTON_SENDTOEDITOR_TOOLTIP;Bild im externen Editor öffnen.\nTaste: <b>%shortcut(editor.send_to_external_editor)%</b> (<b>%shortcut(editor.send_to_external_editor_alt)%</b> für Schnell-Export)
 MAIN_BUTTON_SHOWHIDESIDEPANELS_TOOLTIP;Alle seitlichen Bedienfelder ein-/ausblenden.\nTaste: <b>%shortcut(editor.maximize_preview)%</b>
 MAIN_BUTTON_UNFULLSCREEN;Vollbild beenden.\nTaste: <b>F11</b>
 MAIN_FRAME_EDITOR;Editor
-MAIN_FRAME_EDITOR_TOOLTIP;Editor\nTaste: <b>Strg + F4</b>
+MAIN_FRAME_EDITOR_TOOLTIP;Editor\nTaste: <b>%shortcut(window.show_editor)%</b>
 MAIN_FRAME_FILEBROWSER;Dateiverwaltung
-MAIN_FRAME_FILEBROWSER_TOOLTIP;Dateiverwaltung\nTaste: <b>Strg + F2</b>
+MAIN_FRAME_FILEBROWSER_TOOLTIP;Dateiverwaltung\nTaste: <b>%shortcut(window.show_file_browser)%</b>
 MAIN_FRAME_PLACES;Favoriten
 MAIN_FRAME_PLACES_ADD;Hinzufügen
 MAIN_FRAME_PLACES_DEL;Entfernen
 MAIN_FRAME_QUEUE;Warteschlange
-MAIN_FRAME_QUEUE_TOOLTIP;Warteschlange\nTaste: <b>Strg + F3</b>
+MAIN_FRAME_QUEUE_TOOLTIP;Warteschlange\nTaste: <b>%shortcut(window.show_queue)%</b>
 MAIN_FRAME_RECENT;Verzeichnisverlauf
 MAIN_MSG_ALREADYEXISTS;Diese Datei existiert bereits.
 MAIN_MSG_AUTOSAVING;Automatisches Speichern...
@@ -891,52 +891,52 @@ MAIN_MSG_WRITEFAILED;Fehler beim Schreiben von\n\n<b>'%1'</b>\n\nStellen Sie sic
 MAIN_TAB_ADVANCED;Erweitert
 MAIN_TAB_ADVANCED_TOOLTIP;Taste: <b>Alt + w</b>
 MAIN_TAB_COLOR;Farbe
-MAIN_TAB_COLOR_TOOLTIP;Taste: <b>Alt + c</b>
+MAIN_TAB_COLOR_TOOLTIP;Taste: <b>%shortcut(toolpanel.tab_color)%</b>
 MAIN_TAB_DETAIL;Details
-MAIN_TAB_DETAIL_TOOLTIP;Taste: <b>Alt + d</b>
+MAIN_TAB_DETAIL_TOOLTIP;Taste: <b>%shortcut(toolpanel.tab_details)%</b>
 MAIN_TAB_DEVELOP;Stapelverarbeitung
 MAIN_TAB_EFFECTS;Spezialeffekte
-MAIN_TAB_EFFECTS_TOOLTIP;Taste: <b>Alt + f</b>
+MAIN_TAB_EFFECTS_TOOLTIP;Taste: <b>%shortcut(toolpanel.tab_effects)%</b>
 MAIN_TAB_EXIF;Exif
 MAIN_TAB_EXPORT;Schnell-Export
 MAIN_TAB_EXPOSURE;Belichtung
-MAIN_TAB_EXPOSURE_TOOLTIP;Taste: <b>Alt + e</b>
+MAIN_TAB_EXPOSURE_TOOLTIP;Taste: <b>%shortcut(toolpanel.tab_exposure)%</b>
 MAIN_TAB_FAVORITES;Favoriten
-MAIN_TAB_FAVORITES_TOOLTIP;Taste: <b>Alt + u</b>
+MAIN_TAB_FAVORITES_TOOLTIP;Taste: <b>%shortcut(toolpanel.tab_favorites)%</b>
 MAIN_TAB_FILTER;Filter
 MAIN_TAB_INSPECT;Inspektor
-MAIN_TAB_INSPECT_TOOLTIP;Öffnet den Inspektor.\nTaste: <b>Strg + i</b>
+MAIN_TAB_INSPECT_TOOLTIP;Öffnet den Inspektor.\nTaste: <b>%shortcut(filepanel.toggle_right_notebook)%</b>
 MAIN_TAB_IPTC;IPTC
 MAIN_TAB_LOCAL;Lokale Bearbeitung
-MAIN_TAB_LOCAL_TOOLTIP;Taste: <b>Alt + x</b>
+MAIN_TAB_LOCAL_TOOLTIP;Taste: <b>%shortcut(toolpanel.tab_local)%</b>
 MAIN_TAB_METADATA;Metadaten
-MAIN_TAB_METADATA_TOOLTIP;Taste: <b>Alt + m</b>
+MAIN_TAB_METADATA_TOOLTIP;Taste: <b>%shortcut(toolpanel.tab_metadata)%</b>
 MAIN_TAB_RAW;RAW
-MAIN_TAB_RAW_TOOLTIP;Taste: <b>Alt + r</b>
+MAIN_TAB_RAW_TOOLTIP;Taste: <b>%shortcut(toolpanel.tab_raw)%</b>
 MAIN_TAB_TRANSFORM;Transformieren
-MAIN_TAB_TRANSFORM_TOOLTIP;Taste: <b>Alt + t</b>
+MAIN_TAB_TRANSFORM_TOOLTIP;Taste: <b>%shortcut(toolpanel.tab_transform)%</b>
 MAIN_TOOLTIP_BACKCOLOR0;Hintergrundfarbe der Vorschau basierend auf dem <b>Oberflächendesign</b>.\nTaste: <b>%shortcut(editor.toggle_preview_background)%</b>
 MAIN_TOOLTIP_BACKCOLOR1;Hintergrundfarbe der Vorschau: <b>Schwarz</b\nFarbe umschalten, Taste: <b>%shortcut(editor.toggle_preview_background)%</b>
 MAIN_TOOLTIP_BACKCOLOR2;Hintergrundfarbe der Vorschau: <b>Weiß</b>\nFarbe umschalten, Taste: <b>%shortcut(editor.toggle_preview_background)%</b>
 MAIN_TOOLTIP_BACKCOLOR3;Hintergrundfarbe der Vorschau: <b>Mittleres Grau</b>\nFarbe umschalten, Taste: <b>%shortcut(editor.toggle_preview_background)%</b>
 MAIN_TOOLTIP_BEFOREAFTERLOCK;<b>Vorher-Ansicht:</b> Sperren / Entsperren\n\n<b>Gesperrt</b>: Friert die Vorher-Ansicht ein,\nsodass sich die Gesamtwirkung mehrerer\nBearbeitungsschritte beurteilen lässt.\n\n<b>Entsperrt</b>: Die Vorher-Ansicht hinkt dem\naktuellen Bild immer einen Bearbeitungs-\nschritt hinterher.
-MAIN_TOOLTIP_FALSECOLORS;Belichtungsanzeige unter Verwendung von Falschfarben.\nTaste: <b>Shift + e</b>\n\nLegende (IRE-Bereich):\n%1
+MAIN_TOOLTIP_FALSECOLORS;Belichtungsanzeige unter Verwendung von Falschfarben.\nTaste: <b>%shortcut(editor.toggle_false_colors)%</b>\n\nLegende (IRE-Bereich):\n%1
 MAIN_TOOLTIP_GRIDOVERLAY;Gitter einblenden
 MAIN_TOOLTIP_HIDEHP;Linkes Bedienfeld ein-/ausblenden.\nTaste: <b>%shortcut(editor.toggle_history_panel)%</b>
 MAIN_TOOLTIP_INDCLIPPEDH;Anzeige zu heller Bereiche ein-/ausschalten.\nTaste: <b>%shortcut(editor.toggle_highlight_clipping)%</b>
 MAIN_TOOLTIP_INDCLIPPEDS;Anzeige zu dunkler Bereiche ein-/ausschalten.\nTaste: <b>%shortcut(editor.toggle_shadow_clipping)%</b>
-MAIN_TOOLTIP_PREVIEWB;Vorschau Blau-Kanal\nTaste: <b>Shift + b</b>
-MAIN_TOOLTIP_PREVIEWFOCUSMASK;Vorschau Fokusmaske\nTaste: <b>Shift + f</b>\n\nPräziser bei Bildern mit geringer Tiefenschärfe,\nniedrigem Rauschen und bei hoher Vergrößerung. Herauszoomen zu etwa 10 - 30%, um die Genauigkeit bei verrauschten Bildern zu erhöhen.
-MAIN_TOOLTIP_PREVIEWG;Vorschau Grün-Kanal\nTaste: <b>Shift + g</b>
-MAIN_TOOLTIP_PREVIEWL;Vorschau Helligkeit\nTaste: <b>Shift + v</b>\n\n0.299·R + 0.587·G + 0.114·B
-MAIN_TOOLTIP_PREVIEWR;Vorschau Rot-Kanal\nTaste: <b>Shift + r</b>
-MAIN_TOOLTIP_PREVIEWSHARPMASK;Schärfungs-Kontroll-Maske ein-/ausschalten.\n\nFunktioniert nur bei aktivierter Schärfung\nund ist nur bei Zoomstufen >= 100% akkurat.\nTaste: <b>Shift + o</b>
-MAIN_TOOLTIP_QINFO;Bildinformationen ein-/ausblenden.\nTaste: <b>Shift + i</b>
+MAIN_TOOLTIP_PREVIEWB;Vorschau Blau-Kanal\nTaste: <b>%shortcut(editor.toggle_blue_preview)%</b>
+MAIN_TOOLTIP_PREVIEWFOCUSMASK;Vorschau Fokusmaske\nTaste: <b>%shortcut(editor.toggle_focus_mask)%</b>\n\nPräziser bei Bildern mit geringer Tiefenschärfe,\nniedrigem Rauschen und bei hoher Vergrößerung. Herauszoomen zu etwa 10 - 30%, um die Genauigkeit bei verrauschten Bildern zu erhöhen.
+MAIN_TOOLTIP_PREVIEWG;Vorschau Grün-Kanal\nTaste: <b>%shortcut(editor.toggle_green_preview)%</b>
+MAIN_TOOLTIP_PREVIEWL;Vorschau Helligkeit\nTaste: <b>%shortcut(editor.toggle_luminosity_preview)%</b>\n\n0.299·R + 0.587·G + 0.114·B
+MAIN_TOOLTIP_PREVIEWR;Vorschau Rot-Kanal\nTaste: <b>%shortcut(editor.toggle_red_preview)%</b>
+MAIN_TOOLTIP_PREVIEWSHARPMASK;Schärfungs-Kontroll-Maske ein-/ausschalten.\n\nFunktioniert nur bei aktivierter Schärfung\nund ist nur bei Zoomstufen >= 100% akkurat.\nTaste: <b>%shortcut(editor.toggle_sharpening_mask)%</b>
+MAIN_TOOLTIP_QINFO;Bildinformationen ein-/ausblenden.\nTaste: <b>%shortcut(editor.toggle_info)%</b>
 MAIN_TOOLTIP_SHOWHIDELP1;Linkes Bedienfeld ein-/ausblenden.\nTaste: <b>%shortcut(editor.toggle_history_panel)%</b>
-MAIN_TOOLTIP_SHOWHIDERP1;Rechtes Bedienfeld ein-/ausblenden.\nTaste: <b>Strg + l</b>
-MAIN_TOOLTIP_SHOWHIDETP1;Filmstreifen ein-/ausblenden.\nTaste: <b>Shift + l</b>
+MAIN_TOOLTIP_SHOWHIDERP1;Rechtes Bedienfeld ein-/ausblenden.\nTaste: <b>%shortcut(editor.toggle_right_panel)%</b>
+MAIN_TOOLTIP_SHOWHIDETP1;Filmstreifen ein-/ausblenden.\nTaste: <b>%shortcut(editor.toggle_top_panel)%</b>
 MAIN_TOOLTIP_THRESHOLD;Schwellenwert
-MAIN_TOOLTIP_TOGGLE;Vorher/Nachher-Ansicht ein-/ausschalten.\nTaste: <b>Shift + a</b>
+MAIN_TOOLTIP_TOGGLE;Vorher/Nachher-Ansicht ein-/ausschalten.\nTaste: <b>%shortcut(editor.toggle_before_after)%</b>
 METADATA_LOAD_ERROR;Fehler beim Laden der Metadaten von %1: %2
 METADATA_SAVE_ERROR;Fehler beim Speichern der Metadaten nach %1: %2
 MONITOR_PROFILE_SYSTEM;Systemvorgabe
@@ -1277,9 +1277,9 @@ PROFILEPANEL_PLASTSAVED;Zuletzt gespeichert
 PROFILEPANEL_SAVEDLGLABEL;Bearbeitungsprofil speichern...
 PROFILEPANEL_SAVEPPASTE;Zu speichernde Parameter
 PROFILEPANEL_TOOLTIPCOPY;Profil in Zwischenablage kopieren.
-PROFILEPANEL_TOOLTIPLOAD;Profil aus Datei laden.\n\nStrg beim Klicken gedrückt halten, um\nzu ladende Parameter auszuwählen.
-PROFILEPANEL_TOOLTIPPASTE;Profil aus Zwischenablage einfügen.\n\nStrg beim Klicken gedrückt halten, um\neinzufügende Parameter auszuwählen.
-PROFILEPANEL_TOOLTIPSAVE;Profil speichern.\n\nStrg beim Klicken gedrückt halten, um\nzu speichernde Parameter auszuwählen.
+PROFILEPANEL_TOOLTIPLOAD;Profil aus Datei laden.\n\n%mouse_primary% beim Klicken gedrückt halten, um\nzu ladende Parameter auszuwählen.
+PROFILEPANEL_TOOLTIPPASTE;Profil aus Zwischenablage einfügen.\n\n%mouse_primary% beim Klicken gedrückt halten, um\neinzufügende Parameter auszuwählen.
+PROFILEPANEL_TOOLTIPSAVE;Profil speichern.\n\n%mouse_primary% beim Klicken gedrückt halten, um\nzu speichernde Parameter auszuwählen.
 PROGRESSBAR_DENOISING;Rauschreduzierung
 PROGRESSBAR_FILE_COPY;Dateien kopieren...
 PROGRESSBAR_FILE_DELETE;Dateien löschen...
@@ -1314,7 +1314,7 @@ QUEUE_LOCATION_FOLDER;In Ordner speichern
 QUEUE_LOCATION_TEMPLATE;Dynamisches Verzeichnis verwenden
 QUEUE_LOCATION_TEMPLATE_TOOLTIP;Legt das Zeilverzeichnis anhand des Quellverzeichnisses des Fotos, der Bewertung, des Papierkorb-Statuses oder der Position in der Warteschlange fest.\n\nBeispiel anhand des folgenden Pfades:\n<b>/home/tom/photos/2010-10-31/photo1.raw</b>\nDie Bedeutung der Variablen ist wie folgt:\n<b>%d4</b> = <i>home</i>\n<b>%d3</b> = <i>tom</i>\n<b>%d2</b> = <i>photos</i>\n<b>%d1</b> = <i>2010-10-31</i>\n<b>%f</b> = <i>photo1</i>\n<b>%p1</b> = <i>/home/tom/photos/2010-10-31/</i>\n<b>%p2</b> = <i>/home/tom/photos/</i>\n<b>%p3</b> = <i>/home/tom/</i>\n<b>%p4</b> = <i>/home/</i>\n\n<b>%r</b> wird durch die Bewertung des Fotos ersetzt. Ist das Foto unbewertet, wird '<i>0</i>' verwendet. Ist das Foto im Papierkorb, wird '<i>x</i>' verwendet.\n\n<b>%s1</b>, ..., <b>%s9</b> wird durch die Anfangsposition des Fotos in der Warteschlange zum Zeitpunkt des Starts der Verarbeitung ersetzt. Die Ziffer gibt die Anzahl der Stellen an, z.B. <b>%s3</b> ergibt '<i>001</i>'.\n\n<b>%n</b> wird durch den Namen des aktuell angewendeten Schnappschusses ersetzt. Existiert kein Schnappschuss, wird der leere String verwendet. <b>%u</b> kann anstelle von <b>%n</b> verwendet werden, um Leerstellen im Schnappschussnamen durch Unterstriche zu ersetzen.\n\nWenn Sie das exportierte Bild im Ordner des Urpsrungsfotos speichern möchten, verwenden Sie:\n<b>%p1/%f</b>\n\nWenn Sie das exportierte Bild in einem Ordner namens '<i>converted</i>' innerhalb vom Ordner des Ursprungsfotos speichern möchten, verwenden Sie:\n<b>%p1/converted/%f</b>\n\nWenn Sie das exportierte Bild in\n'<i>/home/tom/photos/converted/2010-10-31</i>'\nspeichern möchten, verwenden Sie:\n<b>%p2/converted/%d1/%f</b>
 QUEUE_LOCATION_TITLE;Ausgabeverzeichnis
-QUEUE_STARTSTOP_TOOLTIP;Startet/Stoppt die Verarbeitung\nder Warteschlange.\n\nTaste: <b>Strg + s</b>
+QUEUE_STARTSTOP_TOOLTIP;Startet/Stoppt die Verarbeitung\nder Warteschlange.\n\nTaste: <b>%shortcut(queue.start_stop)%</b>
 RENAME_DIALOG_ALLOW_WHITESPACE;Leerzeichen in Ausgabenamen erlauben
 RENAME_DIALOG_BASEDIR;Hauptverzeichniss
 RENAME_DIALOG_ERROR;Umbenennen von %1 zu %2 fehlgeschlagen
@@ -1366,7 +1366,7 @@ SESSION_LABEL;Sitzung
 SHCSELECTOR_TOOLTIP;Um die 3 Regler zurückzusetzen, rechte Maustaste klicken.
 SOFTPROOF_GAMUTCHECK_MONITOR_TOOLTIP;Pixel die außerhalb des Farbumfangs liegen hervorheben, im Bezug zum Monitor-Profil.
 SOFTPROOF_GAMUTCHECK_TOOLTIP;Pixel die außerhalb des Farbumfangs liegen hervorheben, im Bezug zum\n\n- Soft-Proofing-Profil, sofern eines eingestellt und Soft-Proofing aktiviert ist.\n- Ausgabeprofil, wenn Soft-Proofing deaktiviert ist.
-SOFTPROOF_TOOLTIP;Soft-Proofing simuliert das Aussehen des Bildes, wie es von einem bestimmten Drucker oder Monitor wiedergegeben wird, wenn in den Einstellungen > Farbmanagement ein gültiges Profil festgelegt ist.\n(Strg + Linksklick um das Soft-Proofing-Profil zu wechseln)
+SOFTPROOF_TOOLTIP;Soft-Proofing simuliert das Aussehen des Bildes, wie es von einem bestimmten Drucker oder Monitor wiedergegeben wird, wenn in den Einstellungen > Farbmanagement ein gültiges Profil festgelegt ist.\n(%mouse_primary% + Linksklick um das Soft-Proofing-Profil zu wechseln)
 THRESHOLDSELECTOR_B;Unten
 THRESHOLDSELECTOR_BL;Unten-Links
 THRESHOLDSELECTOR_BR;Unten-
@@ -1374,12 +1374,12 @@ THRESHOLDSELECTOR_HINT;<b>Shift</b> halten, um individuelle\nKontrollpunkte zu v
 THRESHOLDSELECTOR_T;Oben
 THRESHOLDSELECTOR_TL;Oben-Links
 THRESHOLDSELECTOR_TR;Oben-Rechts
-TOOLBAR_TOOLTIP_COLORPICKER;<b>Farbwähler</b>\n\nWenn eingeschaltet:\n- Mit der linken Maustaste können Sie einen Farbwähler setzen.\n- Zum Verschieben, linke Maustaste gedrückt halten.\n- Zum Entfernen, rechte Maustaste\n- Strg + Shift + Rechtsklick entfernt alle Farbwähler.\n- Rechtsklick in einen freien Bereich schaltet auf das Hand-Werkzeug zurück.
-TOOLBAR_TOOLTIP_CROP;<b>Ausschnitt wählen.</b>\nTaste: <b>Shift + c</b>\n\nLinke Maustaste gedrückt halten, um den Ausschnitt zu verschieben. Zum Ändern der Größe mit dem Mauszeiger die Ränder bewegen.
+TOOLBAR_TOOLTIP_COLORPICKER;<b>Farbwähler</b>\n\nWenn eingeschaltet:\n- Mit der linken Maustaste können Sie einen Farbwähler setzen.\n- Zum Verschieben, linke Maustaste gedrückt halten.\n- Zum Entfernen, rechte Maustaste\n- %mouse_primary% + Shift + Rechtsklick entfernt alle Farbwähler.\n- Rechtsklick in einen freien Bereich schaltet auf das Hand-Werkzeug zurück.
+TOOLBAR_TOOLTIP_CROP;<b>Ausschnitt wählen.</b>\nTaste: <b>%shortcut(toolbar.crop)%</b>\n\nLinke Maustaste gedrückt halten, um den Ausschnitt zu verschieben. Zum Ändern der Größe mit dem Mauszeiger die Ränder bewegen.
 TOOLBAR_TOOLTIP_HAND;Hand-Werkzeug\nTaste: <b>%shortcut(toolbar.hand)%</b>
-TOOLBAR_TOOLTIP_PERSPECTIVE;<b>Perspektivkorrektur</b>\nTaste: <b>Shift + p</b>\n\nMit dem Editieren der Kontrolllinien können perspektivische Verzerrungen korrigiert werden. Ein erneuter Klick auf diesen Button wendet die Korrektur an.
-TOOLBAR_TOOLTIP_STRAIGHTEN;<b>Ausrichten/Drehen</b>\nTaste: <b>Shift + s</b>\n\nRichtet das Bild entlang einer Leitlinie aus.
-TOOLBAR_TOOLTIP_WB;Weißabgleich manuell setzen.\nTaste: <b>Shift + w</b>
+TOOLBAR_TOOLTIP_PERSPECTIVE;<b>Perspektivkorrektur</b>\nTaste: <b>%shortcut(toolbar.perspective)%</b>\n\nMit dem Editieren der Kontrolllinien können perspektivische Verzerrungen korrigiert werden. Ein erneuter Klick auf diesen Button wendet die Korrektur an.
+TOOLBAR_TOOLTIP_STRAIGHTEN;<b>Ausrichten/Drehen</b>\nTaste: <b>%shortcut(toolbar.straighten)%</b>\n\nRichtet das Bild entlang einer Leitlinie aus.
+TOOLBAR_TOOLTIP_WB;Weißabgleich manuell setzen.\nTaste: <b>%shortcut(toolbar.white_balance_picker)%</b>
 TOOL_SHORTCUT_HELP_HEADER;Tastenkürzel:\n(halten Sie die angegebene Taste gedrückt und stellen Sie\nden Regler mit +/- oder dem Mausrad ein)\n
 TP_BRIGHTCONTRSAT_CONTRAST;Kontrast
 TP_BWMIX_COLORCAST;Farbtönung
@@ -1821,7 +1821,7 @@ TP_PERSPECTIVE_AUTO_BOTH_TOOLTIP;Horizontal und vertikal
 TP_PERSPECTIVE_AUTO_HORIZONTAL_TOOLTIP;Horizontal
 TP_PERSPECTIVE_AUTO_VERTICAL_TOOLTIP;Vertikal
 TP_PERSPECTIVE_CONTROL_LINES;Kontroll-Linien
-TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>Strg + Ziehen</b>: Zeichne neue Linie\n<b>Rechtsklick</b>: Lösche Linie
+TP_PERSPECTIVE_CONTROL_LINES_TOOLTIP;<b>%mouse_primary% + Ziehen</b>: Zeichne neue Linie\n<b>Rechtsklick</b>: Lösche Linie
 TP_PERSPECTIVE_CROPFACTOR;Crop-Faktor
 TP_PERSPECTIVE_FLENGTH;Brennweite
 TP_PERSPECTIVE_HORIZONTAL;Horizontal
@@ -1969,7 +1969,7 @@ TP_ROTATE_SELECTLINE;Leitlinie wählen
 TP_SATURATION_LABEL;Sättigung/Dynamik
 TP_SATURATION_SATURATION;Sättigung
 TP_SATURATION_VIBRANCE;Dynamik
-TP_SAVEDIALOG_OK_TIP;Taste: <b>Strg + Enter</b>
+TP_SAVEDIALOG_OK_TIP;Taste: <b>%shortcut(saveas.ok)%</b>
 TP_SHARPENING_AMOUNT;Intensität
 TP_SHARPENING_BLUR;Weichzeichnerradius
 TP_SHARPENING_CONTRAST;Kontrastschwelle
@@ -2030,7 +2030,7 @@ TP_SPOT_CUR_SPOT_LABEL;Aktueller Punkt
 TP_SPOT_DETAIL;Details erhalten
 TP_SPOT_ENTRYCHANGED;Punkt geändert
 TP_SPOT_FEATHER;Anpassungsbereich
-TP_SPOT_HINT;Klicken Sie auf diesen Button, um auf der Voransicht zu arbeiten.\n\nUm einen Punkt hinzuzufügen, drücken Sie Strg und linke Maustaste, bewegen Sie den Kreis (Strg kann losgelassen werden) zu einem Quellbereich und lassen Sie die Maustaste los.\n\nUm einen Punkt zu editieren, bewegen Sie den Mauszeiger über ihn, bis seine Geometrie erscheint.\n\nUm Quell- oder Zielbereich zu verschieben, klicken Sie in den Kreismittelpunkt und verschieben ihn.\n\nDer innere Kreis (maximaler Anwendungsbereich) und der Anpassungsbereich können in der Größe verändert werden, indem die Maus darüber bewegt (der Kreis wird orange) und verschoben wird (der Kreis wird rot).\n\nWenn die Änderungen fertig sind, klicken Sie mit der rechten Maustaste außerhalb der Punkte, um den Editiermodus zu beenden oder erneut auf diesen Button.
+TP_SPOT_HINT;Klicken Sie auf diesen Button, um auf der Voransicht zu arbeiten.\n\nUm einen Punkt hinzuzufügen, drücken Sie %mouse_primary% und linke Maustaste, bewegen Sie den Kreis (%mouse_primary% kann losgelassen werden) zu einem Quellbereich und lassen Sie die Maustaste los.\n\nUm einen Punkt zu editieren, bewegen Sie den Mauszeiger über ihn, bis seine Geometrie erscheint.\n\nUm Quell- oder Zielbereich zu verschieben, klicken Sie in den Kreismittelpunkt und verschieben ihn.\n\nDer innere Kreis (maximaler Anwendungsbereich) und der Anpassungsbereich können in der Größe verändert werden, indem die Maus darüber bewegt (der Kreis wird orange) und verschoben wird (der Kreis wird rot).\n\nWenn die Änderungen fertig sind, klicken Sie mit der rechten Maustaste außerhalb der Punkte, um den Editiermodus zu beenden oder erneut auf diesen Button.
 TP_SPOT_LABEL;Flecken entfernen
 TP_SPOT_LIGHTPIPELINE_HINT;Aktiviert eine vereinfachte Voransicht, indem ressourcenintensive Module wärend der Bearbeitung von Punkten deaktiviert werden.\n\nHat nur einen Effekt, wenn die Bearbeitung auf der Voransicht aktiviert ist.
 TP_SPOT_OPACITY;Deckkraft

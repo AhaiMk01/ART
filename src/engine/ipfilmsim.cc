@@ -33,7 +33,8 @@ namespace art { namespace engine {
 // pipette for the curves of a CTL script: the buffer is filled with the
 // position in the curve of each pixel, as computed by ART_fill_pipette. If
 // clut is null (tool disabled, or script not usable), the buffer is zeroed.
-void ImProcFunctions::fillCTLPipette(CLUTApplication *clut, Imagefloat *img)
+void ImProcFunctions::fillCTLPipette(CLUTApplication *clut, Imagefloat *img,
+                                     const CTLGuideSet *guides)
 {
     const art::utils::EditUniqueID eid =
         pipetteBuffer ? pipetteBuffer->getEditID() : art::utils::EUID_None;
@@ -71,7 +72,12 @@ void ImProcFunctions::fillCTLPipette(CLUTApplication *clut, Imagefloat *img)
 #else
             int thread_id = 0;
 #endif
-            if (clut->fillPipette(thread_id, curve_id, W, r, g, b)) {
+            const float *rows[CTL_MAX_GUIDES] = {nullptr, nullptr, nullptr};
+            if (guides) {
+                guides->rows(y, rows);
+            }
+            if (clut->fillPipette(thread_id, curve_id, W, r, g, b,
+                                  guides ? rows : nullptr)) {
                 continue;
             }
         }
@@ -98,7 +104,7 @@ void ImProcFunctions::filmSimulation(Imagefloat *img)
 #endif
     CLUTApplication clut(
         params->filmSimulation.clutFilename, params->icm.workingProfile,
-        float(params->filmSimulation.strength) / 100.f, num_threads);
+        float(params->filmSimulation.strength) / 100.f, num_threads, true);
 
     if (clut) {
         CLUTApplication::Quality q = CLUTApplication::Quality::HIGHEST;
@@ -118,8 +124,19 @@ void ImProcFunctions::filmSimulation(Imagefloat *img)
             break;
         }
         if (clut.set_param_values(params->filmSimulation.lut_params, q)) {
-            fillCTLPipette(&clut, img);
-            clut(img);
+            // the guides, if the script needs any, are computed from the input
+            // of the tool
+            CTLGuideSet guides;
+            const bool has_guide = clut.wantsGuide();
+#ifdef ART_USE_CTL
+            if (has_guide) {
+                compute_ctl_guides(img, clut.guidesMask(),
+                                   params->icm.workingProfile, scale,
+                                   multiThread, guides);
+            }
+#endif
+            fillCTLPipette(&clut, img, has_guide ? &guides : nullptr);
+            clut(img, has_guide ? &guides : nullptr);
         } else {
             fillCTLPipette(nullptr, nullptr);
             if (plistener) {

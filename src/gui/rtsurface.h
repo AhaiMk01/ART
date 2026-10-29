@@ -29,15 +29,17 @@ namespace art { namespace gui {
  * sets.
  */
 class RTSurface: public RTScalable {
-    void changeImage(Glib::ustring imageName);
+    void changeImage(Glib::ustring imageName, const std::string &color);
 
 public:
     Cairo::RefPtr<Cairo::ImageSurface> surface;
 
     RTSurface();
     RTSurface(const RTSurface &other);
+    /** @param color if not empty, replaces the theme svg color */
     RTSurface(Glib::ustring fileName,
-              Glib::ustring rtlFileName = Glib::ustring());
+              Glib::ustring rtlFileName = Glib::ustring(),
+              const std::string &color = "");
 
     // void setImage(Glib::ustring fileName,
     //               Glib::ustring rtlFileName = Glib::ustring());

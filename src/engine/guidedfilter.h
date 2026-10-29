@@ -36,6 +36,12 @@ void guidedFilterLog(const array2D<float> &guide, float base,
                      array2D<float> &chan, int r, float eps, bool multithread,
                      int subsampling = 0);
 
+/// Edge-aware smoothing of the (clamped, linear) luminance Y, in place: the
+/// guide of the tone equalizer, depending on its regularization level (also
+/// used for the "Y" guide of the CTL scripts). Defined in iptoneequalizer.cc
+void toneEqGuide(array2D<float> &Y, int regularization, double scale,
+                 bool multithread);
+
 #ifdef ART_USE_VULKAN
 
 namespace gpu {

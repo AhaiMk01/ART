@@ -127,7 +127,7 @@ FILEBROWSER_APPLYPROFILE_PARTIAL;Appliquer le profil (partiel)
 FILEBROWSER_AUTODARKFRAME;Soustraction auto. de Trame Noire
 FILEBROWSER_AUTOFLATFIELD;Champ Uniforme auto.
 FILEBROWSER_BROWSEPATHBUTTONHINT;Rafraichir la liste des vignettes.\nRaccourci : <b>%shortcut(filecatalog.refresh)%</b>
-FILEBROWSER_BROWSEPATHHINT;Saisir le chemin à parcourir\n<b>Ctrl-O</b> pour placer le focus sur le champ de saisie.\n<b>Entrée</b> / <b>Ctrl-Entrée</b> pour y naviguer;\n<b>Esc</b> pour effacer les modifications.\n<b>Shift-Esc</b> pour enlever le focus.\n\n\nRaccourcis pour les chemins:\n  <b>~</b> - le dossier utilisateur\n  <b>!</b> - le dossier Images de l'utilisateur
+FILEBROWSER_BROWSEPATHHINT;Saisir le chemin à parcourir\n<b>%shortcut(filecatalog.focus_path)%</b> pour placer le focus sur le champ de saisie.\n<b>Entrée</b> / <b>Ctrl-Entrée</b> pour y naviguer;\n<b>Esc</b> pour effacer les modifications.\n<b>Shift-Esc</b> pour enlever le focus.\n\n\nRaccourcis pour les chemins:\n  <b>~</b> - le dossier utilisateur\n  <b>!</b> - le dossier Images de l'utilisateur
 FILEBROWSER_CACHE;Cache
 FILEBROWSER_CACHECLEARFROMFULL;Vider tout y-compris les profils mis en cache
 FILEBROWSER_CACHECLEARFROMPARTIAL;Vider tout sauf les profils mis en cache
@@ -186,7 +186,7 @@ FILEBROWSER_POPUPTRASH;Déplacer dans la corbeille
 FILEBROWSER_POPUPUNRANK;Effacer le rang
 FILEBROWSER_POPUPUNTRASH;Retirer de la corbeille
 FILEBROWSER_QUERYBUTTONHINT;Effacer la recherche
-FILEBROWSER_QUERYHINT;Taper les noms de fichier à chercher. Supporte les noms partiels. Séparer les termes à chercher des virgules, ex. :\n<i>1001,1004,1199</i>\n\nRaccourcis :\n<b>Ctrl-F</b> - placer le curseur dans le champ de saisie.\n<b>Entrée</b> - lancer la recherche\n<b>Shift-Esc</b> - effacer.\n<b>Esc</b> - retirer le focus.
+FILEBROWSER_QUERYHINT;Taper les noms de fichier à chercher. Supporte les noms partiels. Séparer les termes à chercher des virgules, ex. :\n<i>1001,1004,1199</i>\n\nRaccourcis :\n<b>%shortcut(filecatalog.focus_query)%</b> - placer le curseur dans le champ de saisie.\n<b>Entrée</b> - lancer la recherche\n<b>Shift-Esc</b> - effacer.\n<b>Esc</b> - retirer le focus.
 FILEBROWSER_QUERYLABEL;Chercher : 
 FILEBROWSER_RANK1_TOOLTIP;Assigner le rang 1 *\nRaccourci : <b>%shortcut(filebrowser.set_rank.1)%</b>
 FILEBROWSER_RANK2_TOOLTIP;Assigner le rang 2 *\nRaccourci : <b>%shortcut(filebrowser.set_rank.2)%</b>
@@ -218,7 +218,7 @@ FILEBROWSER_SHOWCOLORLABEL5HINT;Afficher les images avec un label Violet\nRaccou
 FILEBROWSER_SHOWDIRHINT;Voir toutes les images du dossier\nRaccourci : <b>%shortcut(filecatalog.filter_clear)%</b>
 FILEBROWSER_SHOWEDITEDHINT;Afficher les images éditées\nRaccourci : <b>%shortcut(filecatalog.filter_edited)%</b>
 FILEBROWSER_SHOWEDITEDNOTHINT;Afficher les images non éditées\nRaccourci : <b>%shortcut(filecatalog.filter_not_edited)%</b>
-FILEBROWSER_SHOWEXIFINFO;Montrer les infos EXIF.\n\nRaccourcis :\n<b>i</b> - Mode Onglets Editeurs Mutiples,\n<b>Alt-i</b> - Mode Onglet Editeur Unique
+FILEBROWSER_SHOWEXIFINFO;Montrer les infos EXIF.\nRaccourci : <b>%shortcut(filecatalog.toggle_exif)%</b>
 FILEBROWSER_SHOWNOTTRASHHINT;Montrer seulement les images non effacées.
 FILEBROWSER_SHOWORIGINALHINT;;Voir seulement les images originales.\n\nQuand plusieurs images existent avec le même nom de fichier mais des extensions différentes, celle considérée originale est celle dont l'extension est au plus haut dans la liste des extensions indiquées dans Préférences > Navigateur de fichiers > Extensions considérées.
 FILEBROWSER_SHOWRANK1HINT;Voir les images 1 étoile\nRaccourci : <b>%shortcut(filecatalog.filter_rank.1)%</b>
@@ -242,8 +242,8 @@ FILEBROWSER_SORT_PROCTIME;Heure de dernière sauvegarde du fichier
 FILEBROWSER_SORT_PROCTIME_REV;Heure de dernière sauvegarde du fichier (inverser)
 FILEBROWSER_THUMBSIZE;Taille des vignettes
 FILEBROWSER_UNRANK_TOOLTIP;Désassigner le rang\nRaccourci : <b>%shortcut(filebrowser.set_rank.0)%</b>
-FILEBROWSER_ZOOMINHINT;Augmenter la taille des vignettes.\nRaccourcis :\n<b>+</b> - Mode Onglets Editeurs Mutiples,\n<b>Alt</b>-<b>+</b> - Mode Onglet Editeur Unique
-FILEBROWSER_ZOOMOUTHINT;Diminuer la taille des vignettes.\nRaccourcis :\n<b>-</b> - Mode Onglets Editeurs Mutiples,\n<b>Alt</b>-<b>-</b> - Mode Onglet Editeur Unique
+FILEBROWSER_ZOOMINHINT;Augmenter la taille des vignettes.\nRaccourci : <b>%shortcut(filecatalog.zoom_in)%</b>
+FILEBROWSER_ZOOMOUTHINT;Diminuer la taille des vignettes.\nRaccourci : <b>%shortcut(filecatalog.zoom_out)%</b>
 FILECHOOSER_FILTER_ANY;Tous les fichiers
 FILECHOOSER_FILTER_COLPROF;Profils coulorimétriques (*.icc)
 FILECHOOSER_FILTER_CURVE;Fichiers de courbe
@@ -920,7 +920,7 @@ MAIN_TOOLTIP_PREVIEWSHARPMASK;Prévisualiser le <b>masque de contraste de nettet
 MAIN_TOOLTIP_QINFO;Informations rapides sur l'image\nRaccourci : <b>%shortcut(editor.toggle_info)%</b>
 MAIN_TOOLTIP_SHOWHIDELP1;Montrer/Cacher le panneau gauche\nRaccourci : <b>%shortcut(editor.toggle_history_panel)%</b>
 MAIN_TOOLTIP_SHOWHIDERP1;Show/cacher le panneau droit.\nRaccourci : <b>%shortcut(editor.toggle_right_panel)%</b>
-MAIN_TOOLTIP_SHOWHIDETP1;Afficher/Cacher le panneau supérieur\nRaccourci : <b>Shift-L</b>
+MAIN_TOOLTIP_SHOWHIDETP1;Afficher/Cacher le panneau supérieur\nRaccourci : <b>%shortcut(editor.toggle_top_panel)%</b>
 MAIN_TOOLTIP_THRESHOLD;Seuil
 MAIN_TOOLTIP_TOGGLE;Comparer Avant/Après\nRaccourci : <b>%shortcut(editor.toggle_before_after)%</b>
 METADATA_LOAD_ERROR;Erreur lors du chargement des métadonnées depuis %1: %2
@@ -1261,9 +1261,9 @@ PROFILEPANEL_PLASTSAVED;Dernier sauvegardé
 PROFILEPANEL_SAVEDLGLABEL;Enregistrer les paramètres de traitement...
 PROFILEPANEL_SAVEPPASTE;Paramètres à enregistrer
 PROFILEPANEL_TOOLTIPCOPY;Copier le profil courant dans le presse-papier.
-PROFILEPANEL_TOOLTIPLOAD;Charger un profil depuis un fichier\n<b>CTRL-clic</b> pour sélectionner les paramètres à charger.
-PROFILEPANEL_TOOLTIPPASTE;Coller le profil depuis le presse-papier\n<b>CTRL-clic</b> pour sélectionner les paramètres à coller.
-PROFILEPANEL_TOOLTIPSAVE;Enregistrer le profil actuel\n<b>CTRL-clic</b> pour sélectionner les paramètres à enregistrer.
+PROFILEPANEL_TOOLTIPLOAD;Charger un profil depuis un fichier\n<b>%mouse_primary%-clic</b> pour sélectionner les paramètres à charger.
+PROFILEPANEL_TOOLTIPPASTE;Coller le profil depuis le presse-papier\n<b>%mouse_primary%-clic</b> pour sélectionner les paramètres à coller.
+PROFILEPANEL_TOOLTIPSAVE;Enregistrer le profil actuel\n<b>%mouse_primary%-clic</b> pour sélectionner les paramètres à enregistrer.
 PROGRESSBAR_DENOISING;Réduction du bruit...
 PROGRESSBAR_HLREC;Reconstruction des Hautes Lumières...
 PROGRESSBAR_LOADING;Chargement de l'image...
@@ -1300,7 +1300,7 @@ TP_DRCOMPRESSION_LABEL;Compression de la Plage Dynamique
 TP_DRCOMPRESSION_SATCONTROL;Contrôle de saturation
 TP_DRCOMPRESSION_THRESHOLD;Détail
 ​QUEUE_LOCATION_TITLE;Emplacement de sortie
-QUEUE_STARTSTOP_TOOLTIP;Démarre ou arrête le traitement des images dans la file.\n\nRaccourci : <b>Ctrl</b>+<b>s</b>
+QUEUE_STARTSTOP_TOOLTIP;Démarre ou arrête le traitement des images dans la file.\n\nRaccourci : <b>%shortcut(queue.start_stop)%</b>
 RENAME_DIALOG_BASEDIR;Répertoire
 RENAME_DIALOG_PATTERN;Modèle de nom de fichier
 RENAME_DIALOG_PATTERN_TIP;Spécifiez le nom de sortie en fonction du nom et des métadonnées de la photo source.\n\nLa signification des chaînes de formatage est la suivante:\n<b>%f</b>: nom de fichier sans extension\n<b>%e</b>: extension de fichier\n<b>%#</b>: suffixe numérique du nom de fichier\n<b>%C</b>: nom de l'appareil photo (marque et modèle)\n<b>%M</b>: marque de l'appareil photo\n<b>%N</b>: modèle de l'appareil photo\n<b>%Y</b>: date de la photo, année (4chiffres)\n<b>%y</b> : date de la photo, année (2chiffres)\n<b>%m</b>: date de la photo, mois (numérique)\n<b>%b</b>: date de la photo, mois (nom abrégé)\n <b>%B</b>: date de la photo, mois (nom complet)\n<b>%d</b>: date de la photo, jour (numérique)\n<b>%a</b>: photo date, jour (nom abrégé)\n<b>%A</b>: date, jour de la photo (nom complet)\n<b>%n1</b> à <b>%n9</b>: progressif nombre, avec le nombre spécifiant le remplissage avec des zéros (par exemple, <b>%n2</b> donne <i>01</i>)\n<b>%I</b>: vitesse ISO\n<b>%L</b>: nom de l'objectif\n<b>%F</b>: ouverture de l'objectif (nombre F)\n<b>%l</b>: distance focale\n<b>%E</b>: compensation d'exposition\n<b>%s</b>: vitesse d'obturation\n<b>%r</b>: note photo\n<b>%T[<i>tag name</i>]</b>: contenu de la balise de métadonnées <i>tagname</i> (avec les caractères invalides remplacés par '_')\n<b>%%</b>: caractère '%' .
@@ -1359,7 +1359,7 @@ THRESHOLDSELECTOR_T;Haut
 THRESHOLDSELECTOR_TL;Haut-Gauche
 THRESHOLDSELECTOR_TR;Haut-droite
 TOOL_SHORTCUT_HELP_HEADER;Tool shortcuts:\n(hold the given key and adjust the slider with +/- or the scrollwheel)\n
-TOOLBAR_TOOLTIP_COLORPICKER;Ancre de Vérification Couleur\n\nSi activé:\n- Ajouter une ancre : <b>clic-gauche</b>.\n- Déplacer une ancre : <b>clic-gauche et glisser</b>.\n- Supprimer une ancre : <b>clic-droit</b>.\n- Supprimer toutes les ancres : <b>ctrl</b>+<b>shift</b>+<b>clic-droit</b>.\n- Revenir au mode Déplacement : <b>clic-droit</b> en dehors de toute ancre
+TOOLBAR_TOOLTIP_COLORPICKER;Ancre de Vérification Couleur\n\nSi activé:\n- Ajouter une ancre : <b>clic-gauche</b>.\n- Déplacer une ancre : <b>clic-gauche et glisser</b>.\n- Supprimer une ancre : <b>clic-droit</b>.\n- Supprimer toutes les ancres : <b>%mouse_primary%</b>+<b>shift</b>+<b>clic-droit</b>.\n- Revenir au mode Déplacement : <b>clic-droit</b> en dehors de toute ancre
 TOOLBAR_TOOLTIP_CROP;Sélection du rognage\nRaccourci : <b>%shortcut(toolbar.crop)%</b>\nDéplacez le rognage en <b>utilisant la souris</b>\nRedimensionnez le rognage en déplaçant les bordures
 TOOLBAR_TOOLTIP_HAND;Outil de navigation\nRaccourci : <b>%shortcut(toolbar.hand)%</b>
 TOOLBAR_TOOLTIP_PERSPECTIVE;<b>Correction de Perspective</b>.\nRaccourci : <b>%shortcut(toolbar.perspective)%</b>\n\nEditer les lignes de contrôle pour corriger la distortion de perspective. Cliquez à nouveau sur le bouton pour appliquer les corrections.
@@ -1422,8 +1422,8 @@ TP_CHMIXER_PRIMARY_B;Primaire bleu
 TP_CHMIXER_MODE_RGB_MATRIX;Matrice RVB
 TP_CHMIXER_MODE_PRIMARIES_CHROMA;Correction des Primaires
 TP_COARSETRAF_TOOLTIP_HFLIP;Miroir horizontal.
-TP_COARSETRAF_TOOLTIP_ROTLEFT;Rotation antihoraire\nRaccourci : <b>[</b> - Mode Onglets Éditeurs Multiples,\n<b>Alt-[</b> - Mode Onglet Éditeur unique
-TP_COARSETRAF_TOOLTIP_ROTRIGHT;Rotation horaire\nRaccourci : <b>]</b> - Mode Onglets Éditeurs Multiples,\n<b>Alt-]</b> - Mode Onglet Éditeur unique
+TP_COARSETRAF_TOOLTIP_ROTLEFT;Rotation antihoraire\nRaccourci : <b>%shortcut(editor.rotate_left)%</b>
+TP_COARSETRAF_TOOLTIP_ROTRIGHT;Rotation horaire\nRaccourci : <b>%shortcut(editor.rotate_right)%</b>
 TP_COARSETRAF_TOOLTIP_VFLIP;Miroir vertical.
 TP_COLORCORRECTION_ABVALUES;x=%1 y=%2
 TP_COLORCORRECTION_IN;Entrée
@@ -1943,7 +1943,7 @@ TP_RGBCURVES_RED;R
 TP_ROTATE_DEGREE;Degré
 TP_ROTATE_LABEL;Rotation
 TP_ROTATE_SELECTLINE;Choisir une ligne droite
-TP_SAVEDIALOG_OK_TIP;Raccourci : <b>Ctrl-Entrée</b>
+TP_SAVEDIALOG_OK_TIP;Raccourci : <b>%shortcut(saveas.ok)%</b>
 TP_SHARPENING_AMOUNT;Quantité
 TP_SHARPENING_BLUR;Rayon de floutage
 TP_SHARPENING_CONTRAST;Seuil de contraste

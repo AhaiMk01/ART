@@ -245,7 +245,7 @@ FILEBROWSER_SHOWCOLORLABEL5HINT;Mostra le immagini con etichetta Viola.\nScorcia
 FILEBROWSER_SHOWDIRHINT;Rimuovi tutti i filtri.\nScorciatoia: <b>%shortcut(filecatalog.filter_clear)%</b>
 FILEBROWSER_SHOWEDITEDHINT;Mostra immagini modificate.\nScorciatoia: <b>%shortcut(filecatalog.filter_edited)%</b>
 FILEBROWSER_SHOWEDITEDNOTHINT;Mostra immagini non modificate.\nScorciatoia: <b>%shortcut(filecatalog.filter_not_edited)%</b>
-FILEBROWSER_SHOWEXIFINFO;Mostra informazioni Exif.\nScorciatoie:\n<b>i</b> - Modalità a Schede Multiple,\n<b>Alt-i</b> - Modalità a Schede Singole.
+FILEBROWSER_SHOWEXIFINFO;Mostra informazioni Exif.\nScorciatoia: <b>%shortcut(filecatalog.toggle_exif)%</b>
 FILEBROWSER_SHOWNOTTRASHHINT;Mostra solo le immagini non cancellate.
 FILEBROWSER_SHOWORIGINALHINT;Mostra solo le immagini originali.\n\nQuando sono presenti più immagini con lo stesso nome ma differente estensione, l'immagine considerata originale è quella la cui estensione è più in alto nella lista delle estensioni gestite in Preferenze > Navigatore > Estensioni gestite.
 FILEBROWSER_SHOWRANK1HINT;Mostra le immagini valutate 1 stella.\nScorciatoia: <b>%shortcut(filecatalog.filter_rank.1)%</b>
@@ -269,8 +269,8 @@ FILEBROWSER_SORT_PROCTIME;Ora ultimo salvataggio
 FILEBROWSER_SORT_PROCTIME_REV;Ora ultimo salvataggio (invertita)
 FILEBROWSER_THUMBSIZE;Dimensione miniature
 FILEBROWSER_UNRANK_TOOLTIP;Nessuna valutazione.\nScorciatoia: <b>%shortcut(filebrowser.set_rank.0)%</b>
-FILEBROWSER_ZOOMINHINT;Aumenta la dimensione delle miniature.\n\nScorciatoie:\n<b>+</b> - Modalità a Schede Multiple,\n<b>Alt</b>-<b>+</b> - Modalità a Schede Singole.
-FILEBROWSER_ZOOMOUTHINT;Riduce la dimensione delle miniature.\n\nScorciatoie:\n<b>-</b> - Modalità a Schede Multiple,\n<b>Alt</b>-<b>-</b> - Modalità a Schede Singole.
+FILEBROWSER_ZOOMINHINT;Aumenta la dimensione delle miniature.\nScorciatoia: <b>%shortcut(filecatalog.zoom_in)%</b>
+FILEBROWSER_ZOOMOUTHINT;Riduce la dimensione delle miniature.\nScorciatoia: <b>%shortcut(filecatalog.zoom_out)%</b>
 FILECHOOSER_FILTER_ANY;Tutti i file
 FILECHOOSER_FILTER_ARS;File sessione di ART (*.ars)
 FILECHOOSER_FILTER_COLPROF;Profili colore (*.icc)
@@ -1336,7 +1336,7 @@ QUEUE_LOCATION_FOLDER;Salva nella cartella
 QUEUE_LOCATION_TEMPLATE;Usa lo schema
 QUEUE_LOCATION_TEMPLATE_TOOLTIP;Definisce il percorso e il nome file in base alla posizione dell'immagine sorgente, la valutazione, il cestino, la posizione nella coda di sviluppo e altro.\n\nPer esempio, se la foto sviluppata si trovasse nel seguente percorso:\n<b><i>/home/mario/foto/31-10-2010/dsc0042.nef</i></b>\nil significato delle stringhe di formattazione sarebbe:\n<b>%d4</b> = <i>home</i>\n<b>%d3</b> = <i>mario</i>\n<b>%d2</b> = <i>foto</i>\n<b>%d1</b> = <i>31-10-2010</i>\n<b>%f</b> = <i>dsc0042</i>\n<b>%p1</b> = <i>/home/mario/foto/31-10-2010/</i>\n<b>%p2</b> = <i>/home/mario/foto/</i>\n<b>%p3</b> = <i>/home/mario/</i>\n<b>%p4</b> = <i>/home/</i>\n\n<b>%r</b> sarà sostituito dalla valutazione della foto. Se la foto non è valutata, è usato '<i>0</i>'. Se la foto è nel cestino, è usato '<i>x</i>'.\n\n<b>%s1</b>, ..., <b>%s9</b> sarà sostituito dalla posizione iniziale della foto nella coda di sviluppo nel momento in cui la coda è avviata. Il numero indica le cifre, p.es. <b>%s3</b> per ottenere '<i>001</i>'.\n\n<b>%n</b> sarà sostituito dal nome dell'istantanea applicata correntemente. Se nessuna istantanea esiste o è selezionata, sarà usata una stringa vuota. <b>%u</b> può essere usato al posto di <b>%n</b> se vogliamo gli underscore al posto degli spazi nel nome dell'istantanea.\n\nSe vuoi salvare l'immagine in uscita insieme all'immagine sorgente, scrivi:\n<b>%p1/%f</b>\n\nSe vuoi salvare l'immagine in uscita in una cartella '<i>convertite</i>' posta dentro la cartella dell'immagine sorgente, scrivi:\n<b>%p1/convertite/%f</b>\n\nSe vuoi salvare l'immagine in uscita  in\n'<i>/home/mario/foto/convertite/2010-10-31</i>', scrivi:\n<b>%p2/convertite/%d1/%f</b>
 QUEUE_LOCATION_TITLE;Destinazione
-QUEUE_STARTSTOP_TOOLTIP;Avvia o ferma l'elaborazione delle immagini nella coda.\n\nScorciatoia: <b>Ctrl-s</b>
+QUEUE_STARTSTOP_TOOLTIP;Avvia o ferma l'elaborazione delle immagini nella coda.\n\nScorciatoia: <b>%shortcut(queue.start_stop)%</b>
 RENAME_DIALOG_ALLOW_WHITESPACE;Permette spazi nei nomi file destinazione
 RENAME_DIALOG_BASEDIR;Cartella base
 RENAME_DIALOG_ERROR;Errore nel rinominare %1 in %2
@@ -1456,8 +1456,8 @@ TP_CHMIXER_PRIMARY_R;Rosso primario
 TP_CHMIXER_RED;Canale Rosso
 TP_CHMIXER_SAT;Correzione saturazione
 TP_COARSETRAF_TOOLTIP_HFLIP;Ribalta orizzontalmente.
-TP_COARSETRAF_TOOLTIP_ROTLEFT;Ruota a sinistra.\nScorciatoie:\n<b>[</b> - Modalità a Scheda Multipla,\n<b>Alt-[</b> - Modalità a Scheda Singola.
-TP_COARSETRAF_TOOLTIP_ROTRIGHT;Ruota a destra.\nScorciatoie:\n<b>]</b> - Modalità a Scheda Multipla,\n<b>Alt-]</b> - Modalità a Scheda Singola.
+TP_COARSETRAF_TOOLTIP_ROTLEFT;Ruota a sinistra.\nScorciatoia: <b>%shortcut(editor.rotate_left)%</b>
+TP_COARSETRAF_TOOLTIP_ROTRIGHT;Ruota a destra.\nScorciatoia: <b>%shortcut(editor.rotate_right)%</b>
 TP_COARSETRAF_TOOLTIP_VFLIP;Ribalta verticalmente
 TP_COLORAPP_WBRT;WB [RT] + [output]
 TP_COLORCORRECTION_ABVALUES;x=%1 y=%2
@@ -1992,7 +1992,7 @@ TP_ROTATE_SELECTLINE;Seleziona una linea dritta
 TP_SATURATION_LABEL;Saturatione/Vividezza
 TP_SATURATION_SATURATION;Saturazione
 TP_SATURATION_VIBRANCE;Vividezza
-TP_SAVEDIALOG_OK_TIP;Scorciatoia: <b>Ctrl-invio</b>
+TP_SAVEDIALOG_OK_TIP;Scorciatoia: <b>%shortcut(saveas.ok)%</b>
 TP_SHARPENING_AMOUNT;Quantità
 TP_SHARPENING_BLUR;Raggio di sfocatura
 TP_SHARPENING_CONTRAST;Soglia di contrasto

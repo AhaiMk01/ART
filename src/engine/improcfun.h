@@ -27,6 +27,7 @@
 #include "curves.h"
 #include "dcp.h"
 #include "gamutwarning.h"
+#include "ipmonitor.h"
 #include "image16.h"
 #include "image8.h"
 #include "imagefloat.h"
@@ -34,8 +35,12 @@
 #include "lcp.h"
 #include "masks.h"
 #include "pipettebuffer.h"
+#include "abortpoint.h"
 #include "procparams.h"
 #include "rtengine.h"
+
+#include <atomic>
+#include <cstdint>
 
 namespace art { namespace engine {
 
@@ -50,6 +55,7 @@ class DenoisePools;
 } // namespace gpu
 
 class CLUTApplication;
+struct CTLGuideSet;
 
 class ImProcFunctions;
 class ImageSource;
@@ -84,7 +90,11 @@ public:
     void updateColorProfiles(const Glib::ustring &monitorProfile,
                              RenderingIntent monitorIntent, bool softProof,
                              GamutCheck gamutCheck);
-    void setMonitorTransform(cmsHTRANSFORM xform) { monitorTransform = xform; }
+    void setMonitorTransform(cmsHTRANSFORM xform)
+    {
+        monitorTransform = xform;
+        monitorFast.reset();
+    }
 
     void setDCPProfile(DCPProfile *dcp, const DCPProfile::ApplyState &as)
     {
@@ -95,6 +105,25 @@ public:
     void setPipetteBuffer(PipetteBuffer *pb) { pipetteBuffer = pb; }
 
     void setProgressListener(ProgressListener *pl, int num_previews);
+
+    /**
+     * Make the pipeline abandonable: once *gen differs from `start`,
+     * throwIfAborted() throws Cancelled.  Pass nullptr to turn it off again
+     * (the default, and what export and the thumbnailer use).  Use
+     * AbortScope rather than calling this directly.
+     */
+    void setAbortToken(const std::atomic<uint64_t> *gen, uint64_t start)
+    {
+        abort_gen_ = gen;
+        abort_start_ = start;
+    }
+    void throwIfAborted() const
+    {
+        if (abort_gen_ &&
+            abort_gen_->load(std::memory_order_acquire) != abort_start_) {
+            throw Cancelled();
+        }
+    }
     //----------------------------------------------------------------------
 
     //----------------------------------------------------------------------
@@ -170,7 +199,8 @@ public:
     void toneCurve(Imagefloat *img);
     void saturationVibrance(Imagefloat *img);
     void filmSimulation(Imagefloat *img);
-    void fillCTLPipette(CLUTApplication *clut, Imagefloat *img);
+    void fillCTLPipette(CLUTApplication *clut, Imagefloat *img,
+                        const CTLGuideSet *guides = nullptr);
     void creativeGradients(Imagefloat *img);
     //----------------------------------------------------------------------
 
@@ -264,6 +294,8 @@ public:
 private:
     cmsHPROFILE monitor;
     cmsHTRANSFORM monitorTransform;
+    // set only when it is equivalent to monitorTransform (see ipmonitor.h)
+    std::unique_ptr<MonitorMatrixTransform> monitorFast;
     std::unique_ptr<GamutWarning> gamutWarning;
 
     const ProcParams *params;
@@ -288,6 +320,9 @@ private:
     LUTu *histLCurve;
 
     bool show_sharpening_mask;
+
+    const std::atomic<uint64_t> *abort_gen_ = nullptr;
+    uint64_t abort_start_ = 0;
 
     ProgressListener *plistener;
     bool filmNegContractFailed = false;
@@ -354,5 +389,31 @@ SpotStatus sampleSpots(ImProcFunctions &ipf, ImageSource *imgsrc,
  */
 bool filmStageStats(Imagefloat *img, const ProcParams &params,
                     const StageStatsRequest &req, StageStatsResult &res);
+
+/// Makes `ipf` and this thread's abortPoint() abandon the work in flight once
+/// *gen moves.
+class AbortScope {
+public:
+    AbortScope(ImProcFunctions &ipf, const std::atomic<uint64_t> *gen):
+        ipf_(ipf), start_(gen ? gen->load(std::memory_order_acquire) : 0),
+        probe_(gen, start_), prev_(abortProbeSlot())
+    {
+        ipf_.setAbortToken(gen, start_);
+        abortProbeSlot() = gen ? &probe_ : nullptr;
+    }
+    ~AbortScope()
+    {
+        abortProbeSlot() = prev_;
+        ipf_.setAbortToken(nullptr, 0);
+    }
+    AbortScope(const AbortScope &) = delete;
+    AbortScope &operator=(const AbortScope &) = delete;
+
+private:
+    ImProcFunctions &ipf_;
+    const uint64_t start_; // one snapshot for both, declared before probe_
+    AbortProbe probe_;
+    const AbortProbe *prev_;
+};
 
 }} // namespace art::engine

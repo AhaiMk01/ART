@@ -1,8 +1,8 @@
 #00 Hungary - Hungarian
 #01 Developers should add translations to this file and then run the 'generateTranslationDiffs' Bash script to update other locales.
 #02 Translators please append a comment here with the current date and your name(s) as used in the RawTherapee/ART forum or Bitbucket page, e.g.:
-#03 2026-10-09 Bereczky Péter
-# ART version: 1.26.6
+#03 2026-10-29 Bereczky Péter
+# ART version: 1.26.11
 ABOUT_TAB_BUILD;Verzió
 ABOUT_TAB_CREDITS;Szerzők
 ABOUT_TAB_LICENSE;Licenc
@@ -214,7 +214,7 @@ FILEBROWSER_SHOWCOLORLABEL5HINT;Lila címkéjű képek megjelenítése.\nGyorsbi
 FILEBROWSER_SHOWDIRHINT;Összes szűrő törlése.\nGyorsbillentyű: <b>%shortcut(filecatalog.filter_clear)%</b>
 FILEBROWSER_SHOWEDITEDHINT;Már szerkesztett képek megjelenítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.filter_edited)%</b>
 FILEBROWSER_SHOWEDITEDNOTHINT;Még nem szerkesztett képek megjelenítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.filter_not_edited)%</b>
-FILEBROWSER_SHOWEXIFINFO;Exif információk megjelenítése.\n\nGyorsbillentyűk:\n<b>i</b> - Több szerkesztőlap mód,\n<b>Alt-i</b> - Egy szerkesztőlap mód.
+FILEBROWSER_SHOWEXIFINFO;Exif információk megjelenítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.toggle_exif)%</b>
 FILEBROWSER_SHOWNOTTRASHHINT;Csak a nem törölt képek megjelenítése.
 FILEBROWSER_SHOWORIGINALHINT;Csak az eredeti képeket mutatja.\n\nHa több kép létezik azonos fájlnévvel, de eltérő kiterjesztéssel, akkor az tekinthető eredetinek, amelynek kiterjesztése a legközelebb van a Beállítások > Fájlböngésző > Felismert kiterjesztések listájának tetejéhez..
 FILEBROWSER_SHOWRANK1HINT;1 csillaggal jelölt képek megjelenítése.\nGyorsbillentyű: <b>%shortcut(filecatalog.filter_rank.1)%</b>
@@ -238,8 +238,8 @@ FILEBROWSER_SORT_PROCTIME;Utolsó szerkesztés ideje (legrégebbi fent)
 FILEBROWSER_SORT_PROCTIME_REV;Utolsó szerkesztés ideje (legújabb fent)
 FILEBROWSER_THUMBSIZE;Bélyegkép mérete
 FILEBROWSER_UNRANK_TOOLTIP;Nem értékelt.\nGyorsbillentyű: <b>%shortcut(filebrowser.set_rank.0)%</b>
-FILEBROWSER_ZOOMINHINT;Bélyegképek méretének növelése.\n\nGyorsbillentyűk:\n<b>+</b> - Több szerkesztőlap mód,\n<b>Alt</b>-<b>+</b> - Egy szerkesztőlap mód.
-FILEBROWSER_ZOOMOUTHINT;Bélyegképek méretének csökkentése.\n\nGyorsbillentyűk:\n<b>-</b> - Több szerkesztőlap mód,\n<b>Alt</b>-<b>-</b> - Egy szerkesztőlap mód.
+FILEBROWSER_ZOOMINHINT;Bélyegképek méretének növelése.\nGyorsbillentyű: <b>%shortcut(filecatalog.zoom_in)%</b>
+FILEBROWSER_ZOOMOUTHINT;Bélyegképek méretének csökkentése.\nGyorsbillentyű: <b>%shortcut(filecatalog.zoom_out)%</b>
 FILECHOOSER_FILTER_ANY;Minden fájl
 FILECHOOSER_FILTER_COLPROF;Színprofilok (*.icc)
 FILECHOOSER_FILTER_CURVE;Görbe fájlok
@@ -1182,6 +1182,31 @@ PREFERENCES_SELECTLANG;Nyelv kiválasztása
 PREFERENCES_SERIALIZE_TIFF_READ;TIFF beolvasási beállítások
 PREFERENCES_SERIALIZE_TIFF_READ_LABEL;TIFF-fájlok olvasásának sorba rendezése
 PREFERENCES_SERIALIZE_TIFF_READ_TOOLTIP;Ha engedélyezi ezt a beállítást tömörítetlen TIFF-fájlokat tartalmazó mappákkal végzett munka során, az megnövelheti a miniatűrök létrehozásának teljesítményét.
+PREFERENCES_SHORTCUTS_ACTION;Művelet
+PREFERENCES_SHORTCUTS_ADD;Kulcs hozzáadása...
+PREFERENCES_SHORTCUTS_ASSIGNANYWAY;Mindenképpen rendelje hozzá
+PREFERENCES_SHORTCUTS_BACKTOCTRL;Vissza a Ctrl-hez
+PREFERENCES_SHORTCUTS_CHOOSE;Válasszon másik kulcsot...
+PREFERENCES_SHORTCUTS_CHANGE;Változás...
+PREFERENCES_SHORTCUTS_CONFLICT;<b>%1</b> már használatban van ennél: <b>%2</b>.\n\nIde hozzárendeli, onnan pedig eltávolítja?
+PREFERENCES_SHORTCUTS_ESC;(Esc a megszakításhoz)
+PREFERENCES_SHORTCUTS_KEEP;Megtartás
+PREFERENCES_SHORTCUTS_KEEPBOTH;Mindkettő megtartása
+PREFERENCES_SHORTCUTS_KEYS;Gyorsbillentyű
+PREFERENCES_SHORTCUTS_MOUSEMOD;Egérműveletek módosítója (Ctrl-click...)
+PREFERENCES_SHORTCUTS_MOUSEMOD_TIP;Az az egérrel együtt használt billentyű, amely a csúszkák alaphelyzetbe állítására, gyors exportálásra, kijelölések kiterjesztésére, valamint az eszközökkel történő rajzolásra szolgál... Ez a Ctrl billentyű, akárcsak az ART korábbi verzióiban; macOS-en érdemesebb lehet a Cmd billentyűt használni (ott a Ctrl-kattintás jobb egérgombos kattintásnak felel meg).
+PREFERENCES_SHORTCUTS_OVERLAP;<b>%1</b>: ezt szintén használja <b>%2</b>.\n\nMindkettő lehet egyszerre aktív, így csak az egyik fog reagálni rá. Meg szeretné tartani mindkettőt, vagy el szeretné távolítani onnan?
+PREFERENCES_SHORTCUTS_PRESS;Nyomja meg az új gyorsbillentyűt
+PREFERENCES_SHORTCUTS_REASSIGN;Újra hozzárendel
+PREFERENCES_SHORTCUTS_PRIMARY;A gyorsbillentyűk elsődleges módosítója
+PREFERENCES_SHORTCUTS_PRIMARY_TIP;A gyorsbillentyűknél az „Elsődleges” megjelölés arra a billentyűre utal, amelyet az összes alapértelmezett gyorsbillentyű használ (pl. Ctrl+S, Ctrl+Z...). Az ART kezdettől fogva a Ctrl billentyűt alkalmazza erre a célra. macOS rendszeren választható helyette a Cmd, más rendszereken pedig a Windows billentyű. Az egérműveletekhez külön beállítás tartozik.
+PREFERENCES_SHORTCUTS_RESETALL;Összes visszaállítása
+PREFERENCES_SHORTCUTS_SYSCLASH;<b>%1</b> (%2) egy rendszerszintű gyorsbillentyű.\n\nLehet, hogy a rendszer veszi figyelembe, mielőtt az ART-hoz kerülne. Mit szeretne kezdeni vele?
+PREFERENCES_SHORTCUTS_SYSTEM;<b>%1</b> egy rendszerszintű gyorsbillentyű.\n\nLehet, hogy a rendszer veszi figyelembe, mielőtt az ART hozzáférhetne (lásd a rendszer billentyűzetbeállításait). Ennek ellenére hozzárendeli?
+PREFERENCES_SHORTCUTS_SYSTEMNOTE;Also note that <b>%1</b> egy rendszerszintű gyorsbillentyű: Lehet, hogy a rendszer veszi figyelembe, mielőtt az ART láthatná.
+PREFERENCES_SHORTCUTS_SEARCH;Műveletek és billentyűk keresése
+PREFERENCES_SHORTCUTS_RESTART;A gyorsbillentyűk módosításai az ART következő indításakor lépnek életbe. Az egyénileg beállított gyorsbillentyűk félkövérrel jelennek meg.
+PREFERENCES_SHORTCUTS_SAVEERROR;A gyorsbillentyűket nem sikerült menteni:\n%1
 PREFERENCES_SHOWBASICEXIF;Alapvető Exif információk megjelenítése
 PREFERENCES_SHOWDATETIME;Megjeleníti a dátumot és az idő
 PREFERENCES_SHOWEXPOSURECOMPENSATION;Expozíció-kompenzáció hozzáfűzése
@@ -1207,6 +1232,7 @@ PREFERENCES_TAB_FASTEXPORT;Gyors exportálás
 PREFERENCES_TAB_GENERAL;Általános
 PREFERENCES_TAB_IMPROC;Képfeldolgozás
 PREFERENCES_TAB_PERFORMANCE;Teljesítmény
+PREFERENCES_TAB_SHORTCUTS;Billentyűparancsok
 PREFERENCES_TAB_SOUND;Hang
 PREFERENCES_THUMBNAIL_DELAY_UPDATE;A bélyegképek frissítésének késleltetése könyvtárak megnyitásakor
 PREFERENCES_THUMBNAIL_LAZY_CACHING;Lassú bélyegképek gyorsítótárazása
@@ -1286,7 +1312,7 @@ QUEUE_LOCATION_FOLDER;Mentés mappába
 QUEUE_LOCATION_TEMPLATE;Sablon használata
 QUEUE_LOCATION_TEMPLATE_TOOLTIP;Adja meg a kimeneti helyet a forrásfotó helye, értékelése, a kuka állapota, vagy a sorban elfoglalt helye alapján.\n\nPélda az elérési út használatára:\n<b>/home/tom/photos/2010-10-31/photo1.raw</b>\na formázási karakterláncok jelentése a következő:\n<b>%d4</b> = <i>home</i>\n<b>%d3</b> = <i>tom</i>\n<b>%d2</b> = <i>photos</i>\n<b>%d1</b> = <i>2010-10-31</i>\n<b>%f</b> = <i>photo1</i>\n<b>%p1</b> = <i>/home/tom/photos/2010-10-31/</i>\n<b>%p2</b> = <i>/home/tom/photos/</i>\n<b>%p3</b> = <i>/home/tom/</i>\n<b>%p4</b> = <i>/home/</i>\n\n<b>%r</b> helyébe a fotó értékelése kerül. Ha a fotó még nem értékelt, '<i>0</i>' lesz alkalmazva. Ha a fotó a kukában van, '<i>x</i>' lesz alkalmazva.\n\n<b>%s1</b>, ..., <b>%s9</b> helyettesítve lesz a képnek a sor indításakor a sorban elfoglalt pozíciójával. A számérték határozza meg a kitöltést, pl. <b>%s3</b> eredménye '<i>001</i>'.\n\n<b>%n</b> helyébe az aktuálisan alkalmazott pillanatkép neve kerül. Ha nem létezik a pillanatkép, vagy nincs kiválasztva, akkor üres karakterlánc kerül alkalmazásra. <b>%u</b> alkalmazható <b>%n</b> helyett, amely aláhúzásra cseréli a szóközöket a pillanatkép nevében.\n\nHa a kimeneti képet a forráskép mellé szeretné menteni, írja ezt:\n<b>%p1/%f</b>\n\nHa a kimeneti képet egy '<i>converted</i>' nevű mappába szeretné menteni, amely a forrásfotó mappájában található, írja be:\n<b>%p1/converted/%f</b>\n\nHa el szeretné menteni a kimeneti képet a\n'<i>/home/tom/photos/converted/2010-10-31</i>' könyvtárba, írja ezt:\n<b>%p2/converted/%d1/%f</b>
 QUEUE_LOCATION_TITLE;Kimenet helye
-QUEUE_STARTSTOP_TOOLTIP;Indítsa el vagy állítsa le a sorban lévő képek feldolgozását.\n\nGyorsbillentyű: <b>Ctrl</b>+<b>s</b>
+QUEUE_STARTSTOP_TOOLTIP;Indítsa el vagy állítsa le a sorban lévő képek feldolgozását.\n\nGyorsbillentyű: <b>%shortcut(queue.start_stop)%</b>
 RENAME_DIALOG_BASEDIR;Alapkönyvtár
 RENAME_DIALOG_PATTERN;Fájlnév minta
 RENAME_DIALOG_PATTERN_TIP;Adja meg a fájl nevét a forrásfotó neve és metaadatai alapján.\n\nA formázási karakterláncok jelentése a következő:\n<b>%f</b>: fájlnév kiterjesztés nélkül\n<b>%e</b>: kiterjesztés\n<b>%#</b>: fájlnév numerikus utótagja\n<b>%C</b>: fényképezőgép neve (gyártó és típus)\n<b>%M</b>: fényképezőgép márka\n<b>%N</b>: fényképezőgép típus\n<b>%Y</b>: fénykép dátuma, év (4 számjegy)\n<b>%y</b>: fénykép dátuma, év (2 számjegy)\n<b>%m</b>: fénykép dátuma, hónap (számmal)\n<b>%b</b>: fénykép dátuma, hónap (rövidített név)\n<b>%B</b>: fénykép dátuma, hónap (teljes név)\n<b>%d</b>: fénykép dátuma, nap (számmal)\n<b>%a</b>: fénykép dátuma, nap (rövidített név)\n<b>%A</b>: fénykép dátuma, nap (teljes név)\n<b>%n1</b>-től <b>%n9</b>-ig: hozzáadja a "Progresszív szám"-ot a számmal megadott számú számjeggyel (pl. <b>%n2</b> eredménye <i>01</i>)\n<b>%I</b>: ISO érzékenység\n<b>%L</b>: objektív neve\n<b>%F</b>: rekeszérték\n<b>%l</b>: fókusztávolság\n<b>%E</b>: expozíció-kompenzáció\n<b>%s</b>: záridő\n<b>%r</b>: fotó értékelése\n<b>%T[<i>tagnév</i>]</b>: a <i>tagnév</i> metaadat címke tartalma (az érvénytelen karakterek helyett '_')\n<b>%%</b>: '%' karakter.
@@ -1412,8 +1438,8 @@ TP_CHMIXER_PRIMARY_B;Kék elsődleges
 TP_CHMIXER_MODE_RGB_MATRIX;RGB mátrix
 TP_CHMIXER_MODE_PRIMARIES_CHROMA;Elsődleges színek korrekciója
 TP_COARSETRAF_TOOLTIP_HFLIP;Vízszintes tükrözés.
-TP_COARSETRAF_TOOLTIP_ROTLEFT;Forgatás balra.\n\nGyorsbillentyűk:\n<b>[</b> - Multiple Editor Tabs Mode,\n<b>Alt-[</b> - Single Editor Tab Mode.
-TP_COARSETRAF_TOOLTIP_ROTRIGHT;Rotate right.\n\nGyorsbillentyűk:\n<b>]</b> - Több szerkesztőlap mód,\n<b>Alt-]</b> - Egy szerkesztőlap mód.
+TP_COARSETRAF_TOOLTIP_ROTLEFT;Forgatás balra.\nGyorsbillentyű: <b>%shortcut(editor.rotate_left)%</b>
+TP_COARSETRAF_TOOLTIP_ROTRIGHT;Forgatás jobbra.\nGyorsbillentyű: <b>%shortcut(editor.rotate_right)%</b>
 TP_COARSETRAF_TOOLTIP_VFLIP;Függőleges tükrözés.
 TP_COLORCORRECTION_ABVALUES;x=%1 y=%2
 TP_COLORCORRECTION_IN;Bemenet
@@ -1716,6 +1742,7 @@ TP_LABMASKS_DELTAE_H;H
 TP_LABMASKS_DELTAE_RANGE;Tartomány
 TP_LABMASKS_DELTAE_DECAY;Átmeneti terület csökkentése
 TP_LABMASKS_DELTAE_PICK;Kiválaszt
+TP_LABMASKS_DELTAE_SIZE_TOOLTIP;A kiválasztó által mintavételezett négyzet mérete képpontokban
 TP_LABMASKS_DELTAE_CHAN_WEIGHT;Súly a ΔE számításban
 TP_LABMASKS_DELTAE_TOOLTIP;Válasszon ki hasonló színű régiókat\n(a CIELAB ΔE* mérőszáma szerint)
 TP_LABMASKS_DRAWNMASK;Ecsetmaszk

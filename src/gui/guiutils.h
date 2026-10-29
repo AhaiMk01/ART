@@ -61,6 +61,13 @@ void drawCrop(Cairo::RefPtr<Cairo::Context> cr, int imx, int imy, int imw,
               bool drawGuide = true, bool useBgColor = true,
               bool fullImageVisible = true);
 gboolean acquireGUI(void *data);
+/**
+ * Regenerate the "ART-folders" icon theme (ART's folder icons, overriding the
+ * stock GTK ones) in the user config dir, with the magic SVG color replaced by
+ * options.svg_color, and make GTK pick it up. Call again when svg_color changes.
+ */
+void updateFolderIconTheme();
+
 void setExpandAlignProperties(Gtk::Widget *widget, bool hExpand, bool vExpand,
                               enum Gtk::Align hAlign, enum Gtk::Align vAlign);
 Gtk::Border getPadding(const Glib::RefPtr<Gtk::StyleContext> style);

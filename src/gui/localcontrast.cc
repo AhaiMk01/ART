@@ -293,8 +293,12 @@ void LocalContrast::enabledChanged()
         }
     }
 
-    if (listener && !getEnabled()) {
-        masks_->switchOffEditMode();
+    if (listener) {
+        if (getEnabled()) {
+            masks_->markActive();
+        } else {
+            masks_->switchOffEditMode();
+        }
     }
 }
 

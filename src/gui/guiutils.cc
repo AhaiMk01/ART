@@ -1416,6 +1416,55 @@ bool MyHScale::on_key_press_event(GdkEventKey *event)
     }
 }
 
+void updateFolderIconTheme()
+{
+    const auto src = Glib::build_filename(options.ART_base_dir, "images",
+                                          "icons", "ART-folders");
+    const auto root = Glib::build_filename(options.user_config_dir, "icons");
+    const auto dst = Glib::build_filename(root, "ART-folders");
+    const auto dst_places = Glib::build_filename(dst, "scalable", "places");
+    const auto src_places = Glib::build_filename(src, "scalable", "places");
+    try {
+        g_mkdir_with_parents(dst_places.c_str(), 0755);
+        Glib::file_set_contents(
+            Glib::build_filename(dst, "index.theme"),
+            Glib::file_get_contents(Glib::build_filename(src, "index.theme")));
+        auto re = Glib::Regex::create("#2a7fff"); // the magic color
+        Glib::Dir d(src_places);
+        for (const auto &name : d) {
+            Glib::ustring svg = Glib::file_get_contents(
+                Glib::build_filename(src_places, name));
+            Glib::file_set_contents(
+                Glib::build_filename(dst_places, name),
+                re->replace(svg, 0, options.svg_color,
+                            Glib::RegexMatchFlags()));
+        }
+    } catch (Glib::Error &e) {
+        std::cerr << "ERROR: cannot update the folder icon theme: "
+                  << e.what() << std::endl;
+        return;
+    }
+
+    auto theme = Gtk::IconTheme::get_default();
+    bool found = false;
+    for (const auto &p : theme->get_search_path()) {
+        if (p == root) {
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        theme->append_search_path(root);
+    }
+    auto settings = Gtk::Settings::get_default();
+    if (settings->property_gtk_icon_theme_name() == "ART-folders") {
+        // force a reload of the icons and of the widgets showing them
+        settings->property_gtk_icon_theme_name() = "hicolor";
+    }
+    settings->property_gtk_icon_theme_name() = "ART-folders";
+}
+
+
 MyFileChooserButton::MyFileChooserButton(const Glib::ustring &title,
                                          Gtk::FileChooserAction action)
     : title_(title), action_(action), lbl_("", Gtk::ALIGN_START),
@@ -1425,8 +1474,7 @@ MyFileChooserButton::MyFileChooserButton(const Glib::ustring &title,
     lbl_.set_justify(Gtk::JUSTIFY_LEFT);
     set_none();
     box_.pack_start(lbl_, true, true);
-    Gtk::Image *img = Gtk::manage(new Gtk::Image());
-    img->set_from_icon_name("folder-open", Gtk::ICON_SIZE_BUTTON);
+    Gtk::Image *img = Gtk::manage(new RTImage("folder-open-small.svg"));
     box_.pack_start(*Gtk::manage(new Gtk::VSeparator()), false, false, 5);
     box_.pack_start(*img, false, false);
     box_.show_all_children();
@@ -1649,6 +1697,16 @@ void MyProgressBar::get_preferred_width_vfunc(int &minimum_width,
 {
     minimum_width = art::engine::max(w / 2, 50 * 1);
     natural_width = art::engine::max(w, 50 * 1);
+    // grow to fit the text, otherwise long strings (e.g. "Ready" with the
+    // CPU/GPU times) get truncated, especially with a scaled display
+    if (get_show_text()) {
+        auto layout = const_cast<MyProgressBar *>(this)->create_pango_layout(
+            get_text() + "x");
+        int tw = 0, th = 0;
+        layout->get_pixel_size(tw, th);
+        natural_width = art::engine::max(natural_width, tw);
+        minimum_width = art::engine::max(minimum_width, tw);
+    }
 }
 
 void MyProgressBar::get_preferred_width_for_height_vfunc(

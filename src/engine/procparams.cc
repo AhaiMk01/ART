@@ -5753,7 +5753,7 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                 if (assignFromKeyfile(keyFile, "Film Simulation", "ClutParams",
                                       tmpparams)) {
                     filmSimulation.lut_params.clear();
-                    CLUTApplication lut(filmSimulation.clutFilename);
+                    CLUTApplication lut(filmSimulation.clutFilename, "", 1.f, 1, true);
                     if (lut) {
                         auto desc = lut.get_param_descriptors();
                         if (desc.size() == tmpparams.size()) {
@@ -6172,7 +6172,7 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                                           prefix + "LUTParams_" + n,
                                           tmpparams)) {
                         cur.lut_params.clear();
-                        CLUTApplication lut(cur.lutFilename);
+                        CLUTApplication lut(cur.lutFilename, "", 1.f, 1, true);
                         if (lut) {
                             auto desc = lut.get_param_descriptors();
                             if (desc.size() == tmpparams.size()) {

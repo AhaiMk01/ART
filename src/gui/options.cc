@@ -1405,6 +1405,12 @@ void Options::readFromFile(Glib::ustring fname)
                         keyFile.get_string("Performance", "GPUDevice");
                 }
 
+                if (keyFile.has_key("Performance", "PreviewAbortStarveMs")) {
+                    rtSettings.preview_abort_starve_ms = std::max(
+                        0, keyFile.get_integer("Performance",
+                                               "PreviewAbortStarveMs"));
+                }
+
                 if (keyFile.has_key("Performance", "CTLScriptsFastPreview")) {
                     rtSettings.ctl_scripts_fast_preview = keyFile.get_boolean(
                         "Performance", "CTLScriptsFastPreview");
@@ -2360,6 +2366,8 @@ void Options::saveToFile(Glib::ustring fname)
         keyFile.set_boolean("Performance", "GPUEnabled",
                             rtSettings.gpu_enabled);
         keyFile.set_string("Performance", "GPUDevice", rtSettings.gpu_device);
+        keyFile.set_integer("Performance", "PreviewAbortStarveMs",
+                            rtSettings.preview_abort_starve_ms);
         keyFile.set_integer("Performance", "WBPreviewMode", wb_preview_mode);
         keyFile.set_integer("Performance", "RAWImageIOCacheSize",
                             rtSettings.imgio_raw_cache_size);

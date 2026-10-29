@@ -987,6 +987,63 @@ private:
 
 bool on_release_event_ignore(GdkEventButton *event) { return true; }
 
+// A combo box for choosing the spot size; every row reads "Size: N"
+class SpotSizeCombo: public Gtk::ComboBox {
+public:
+    explicit SpotSizeCombo(const std::vector<int> &sizes, int current)
+        : size_(current)
+    {
+        model_ = Gtk::ListStore::create(cols_);
+        int active = 0, i = 0;
+        for (int s : sizes) {
+            auto row = *model_->append();
+            row[cols_.size] = s;
+            row[cols_.text] = std::to_string(s) + "x" + std::to_string(s);
+            if (s == current) {
+                active = i;
+            }
+            ++i;
+        }
+        set_model(model_);
+        pack_start(cols_.text);
+        set_active(active);
+        set_tooltip_text(M("TP_LABMASKS_DELTAE_SIZE_TOOLTIP"));
+    }
+
+    int getSize() const { return size_; }
+    sigc::signal<void, int> signal_size_changed() { return sig_size_changed_; }
+
+protected:
+    void on_changed() override
+    {
+        Gtk::ComboBox::on_changed();
+        auto it = get_active();
+        if (it) {
+            int s = (*it)[cols_.size];
+            if (s != size_) {
+                size_ = s;
+                sig_size_changed_.emit(s);
+            }
+        }
+    }
+
+private:
+    struct Columns: public Gtk::TreeModelColumnRecord {
+        Gtk::TreeModelColumn<int> size;
+        Gtk::TreeModelColumn<Glib::ustring> text;
+        Columns()
+        {
+            add(size);
+            add(text);
+        }
+    };
+
+    Columns cols_;
+    Glib::RefPtr<Gtk::ListStore> model_;
+    int size_;
+    sigc::signal<void, int> sig_size_changed_;
+};
+
 } // namespace
 
 namespace {
@@ -1382,11 +1439,12 @@ MasksPanel::MasksPanel(MasksContentProvider *cp)
     vb = Gtk::manage(new Gtk::VBox());
     deltaEPick = Gtk::manage(new Gtk::Button(M("TP_LABMASKS_DELTAE_PICK")));
     vb->pack_start(*deltaEPick, Gtk::PACK_SHRINK);
-    deltaESize = Gtk::manage(new SpotSizeCombo(
-        M("TP_WBALANCE_SIZE"), {2, 4, 8, 16, 32, 64}, options.deltaESpotSize));
-    static_cast<DeltaEArea *>(deltaEColor)->setSpotSize(deltaESize->getSize());
+    deltaESize = Gtk::manage(
+        new SpotSizeCombo({2, 4, 8, 16, 32, 64}, options.deltaESpotSize));
+    static_cast<DeltaEArea *>(deltaEColor)->setSpotSize(
+        static_cast<SpotSizeCombo *>(deltaESize)->getSize());
     vb->pack_start(*deltaESize, Gtk::PACK_SHRINK);
-    deltaESize->signal_size_changed().connect(
+    static_cast<SpotSizeCombo *>(deltaESize)->signal_size_changed().connect(
         sigc::mem_fun(*this, &MasksPanel::onDeltaESizeChanged));
     vb->pack_start(*deltaEColor, Gtk::PACK_EXPAND_WIDGET, 4);
     hb->pack_start(*vb, Gtk::PACK_SHRINK, 4);

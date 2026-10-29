@@ -901,6 +901,10 @@ void FileBrowser::addEntry_(FileBrowserEntry *entry)
     entry->selected = false;
     entry->drawable = false;
     entry->framed = editedFiles.find(entry->filename) != editedFiles.end();
+    {
+        auto it = open_in_editor_.find(entry->thumbnail);
+        entry->open_in_editor = it != open_in_editor_.end() ? it->second : 0;
+    }
 
     // add button set to the thumbbrowserentry
     entry->addButtonSet(new FileThumbnailButtonSet(entry));
@@ -930,6 +934,35 @@ void FileBrowser::addEntry_(FileBrowserEntry *entry)
         initEntry(entry);
     }
     redraw(false);
+}
+
+void FileBrowser::updateOpenInEditor(const Thumbnail *thm, int delta)
+{
+    unsigned n = 0;
+    auto it = open_in_editor_.find(thm);
+    if (it != open_in_editor_.end()) {
+        n = it->second;
+    }
+    if (delta < 0) {
+        n = n > unsigned(-delta) ? n - unsigned(-delta) : 0;
+    } else {
+        n += unsigned(delta);
+    }
+    if (n) {
+        open_in_editor_[thm] = n;
+    } else if (it != open_in_editor_.end()) {
+        open_in_editor_.erase(it);
+    }
+
+    {
+        MYREADERLOCK(l, entryRW);
+        for (auto e : fd) {
+            if (static_cast<const FileBrowserEntry *>(e)->thumbnail == thm) {
+                e->open_in_editor = n;
+            }
+        }
+    }
+    queue_draw();
 }
 
 FileBrowserEntry *FileBrowser::delEntry(const Glib::ustring &fname)

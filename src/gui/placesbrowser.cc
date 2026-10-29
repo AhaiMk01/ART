@@ -166,6 +166,11 @@ void PlacesBrowser::setRow(Gtk::TreeModel::Row row,
 
 void PlacesBrowser::refreshPlacesList()
 {
+    // clearing the model emits selection_changed, which would make
+    // selectionChanged() ask for the directory to be (re)loaded: that deletes
+    // all the thumbnails (and the open marks) of the current directory while
+    // an image might be loading or open in the editor
+    ConnectionBlocker blocker(selection_conn_);
     placesModel->clear();
 
     // append home directory
@@ -291,6 +296,14 @@ void PlacesBrowser::refreshPlacesList()
                    mounts[i]->get_name(),
                    mounts[i]->get_root()->get_parse_name(), PlaceType::MOUNT,
                    false);
+        }
+    }
+
+    // restore the selection lost by clear()
+    for (auto &row : placesModel->children()) {
+        if (row[placesColumns.root] == lastSelectedDir) {
+            treeView->get_selection()->select(row);
+            break;
         }
     }
 }

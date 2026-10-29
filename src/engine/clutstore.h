@@ -26,6 +26,7 @@
 #include <gtkmm.h>
 
 #include "alignedbuffer.h"
+#include "array2D.h"
 #include "cache.h"
 #include "clutparams.h"
 #include "iccstore.h"
@@ -125,9 +126,16 @@ public:
     enum class Quality { LOW = 20, MEDIUM = 30, HIGH = 50, HIGHEST = 0 };
     CLUTApplication(const Glib::ustring &clut_filename,
                     const Glib::ustring &working_profile = "",
-                    float strength = 1.f, int num_threads = 1);
-    void operator()(Imagefloat *img);
-    void apply(int thread_id, int W, float *r, float *g, float *b);
+                    float strength = 1.f, int num_threads = 1,
+                    bool guide_available = false);
+    /// guides: see guidesMask(); must be given (with the size of img, and
+    /// with all the planes in guidesMask()) iff wantsGuide()
+    void operator()(Imagefloat *img, const CTLGuideSet *guides = nullptr);
+    /// guide_rows: W values for each plane, indexed by CTLGuide (see
+    /// CTLGuideSet::rows); the ones in guidesMask() must be given iff
+    /// wantsGuide()
+    void apply(int thread_id, int W, float *r, float *g, float *b,
+               const float *const *guide_rows = nullptr);
     operator bool() const { return ok_; }
 
     CLUTParamDescriptorList get_param_descriptors() const;
@@ -136,13 +144,22 @@ public:
 
     bool set_num_threads(int num_threads);
 
+    /// true if the script takes guides (planes in the working profile, see
+    /// ctl.cc). Callers must then provide them to apply() and fillPipette().
+    /// Such scripts can only be loaded if the application was created with
+    /// guide_available == true
+    bool wantsGuide() const;
+    /// the guides taken by the script, as a bit mask of ctl_guide_bit(); 0
+    /// if wantsGuide() is false
+    unsigned guidesMask() const;
+
     /// true if the script supports pipettes (see @ART-pipette)
     bool hasPipette() const;
     /// Compute the pipette values for W pixels: r, g, b are the input pixels
     /// (in the working profile, 0..65535 range) and are overwritten by the
     /// positions in the curve curve_id (0..1, -1 for unused channels)
     bool fillPipette(int thread_id, int curve_id, int W, float *r, float *g,
-                     float *b);
+                     float *b, const float *const *guide_rows = nullptr);
 
     static CLUTParamDescriptorList
     get_param_descriptors(const Glib::ustring &filename);
@@ -153,6 +170,7 @@ protected:
     Glib::ustring clut_filename_;
     Glib::ustring working_profile_;
     bool ok_;
+    bool guide_available_;
     bool clut_and_working_profiles_are_same_;
     int num_threads_;
     float strength_;
@@ -179,7 +197,8 @@ protected:
 
 #ifdef ART_USE_CTL
     bool CTL_init(int num_threads);
-    void CTL_apply(int thread_id, int W, float *r, float *g, float *b);
+    void CTL_apply(int thread_id, int W, float *r, float *g, float *b,
+                   const float *const *guide_rows);
     CTLApplication ctl_;
 #endif // ART_USE_CTL
 

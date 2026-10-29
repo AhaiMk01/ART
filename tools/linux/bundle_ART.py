@@ -72,6 +72,15 @@ def getdlls(opts):
 	'libsystemd.so.0',
         'librt.so.1',
         'libstdc++.so.6',
+        # The host's Vulkan loader and Mesa WSI are built against the host's
+        # libwayland; a bundled (older) copy found first through the
+        # launcher's LD_LIBRARY_PATH makes dlopen("libvulkan.so.1") fail on
+        # an unresolved wl_* symbol, and the GPU is reported as unavailable
+        # (issue #553). They are also the client side of the compositor
+        # protocol, so there is no reason to pin them.
+        'libwayland-client.so.0',
+        'libwayland-cursor.so.0',
+        'libwayland-egl.so.1',
         }
     res = []
     d = os.getcwd()

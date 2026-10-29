@@ -1,0 +1,12 @@
+[Icon Theme]
+Name=ART-folders
+Comment=ART folder icons over the stock theme
+Inherits=Adwaita,hicolor
+Directories=scalable/places
+
+[scalable/places]
+Context=Places
+Size=24
+MinSize=8
+MaxSize=512
+Type=Scalable

@@ -233,7 +233,36 @@ inline void ART_print_help(std::ostream &out, const char *progname, bool gui)
         out << "  -f               Use the custom fast-export processing "
                "pipeline."
             << std::endl;
+        out << "  --raw-preprocess=<mosaic|demosaic>\n"
+            << "                   Only apply the raw preprocessing steps "
+               "(Bayer and X-Trans)\n"
+            << "                   and save a DNG: a mosaiced (CFA) one, or a "
+               "linear\n"
+            << "                   demosaiced one. Parameters come from the "
+               "-p/-s profiles.\n"
+            << "  --dng-wb=<baked|neutral>\n"
+            << "                   baked (default): the white balance is "
+               "applied to the\n"
+            << "                   data. neutral: not applied (as-shot "
+               "neutral is stored).\n"
+            << "  --dng-bits=<16|32>\n"
+            << "                   Integer (default) or float DNG samples.\n"
+            << "  --dng-clip=<min|max>\n"
+            << "                   baked output: use the lowest (default) "
+               "or highest\n"
+            << "                   channel clipping level as the DNG "
+               "WhiteLevel.\n"
+            << "  --dng-lens-opcodes\n"
+            << "                   Convert the lens correction parameters "
+               "embedded in the raw\n"
+            << "                   file (distortion, and vignetting if not "
+               "already applied)\n"
+            << "                   to DNG opcodes. Chromatic aberration is "
+               "not converted."
+            << std::endl;
         out << "  -V               Verbose output." << std::endl;
+        out << "  -v               Print version number and exit." << std::endl;
+        out << "  -h, --help       Print this help and exit." << std::endl;
         out << "  --progress       Show progress info in a format compatible "
                "with zenity."
             << std::endl;

@@ -42,7 +42,9 @@
 #include "lensexif.h"
 #include "metadata.h"
 #include "settings.h"
+#include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -235,7 +237,7 @@ public:
                 size_t start = idx;
                 size_t end = idx + 7 * 8;
                 if (end <= buf.size()) {
-                    ret.vignette_radial.resize(6);
+                    ret.vignette_radial.resize(5);
                     for (int j = 0; j < 5; ++j) {
                         ret.vignette_radial[j] =
                             Exiv2::getDouble(data + start, Exiv2::bigEndian);
@@ -669,6 +671,11 @@ ExifLensCorrection::ExifLensCorrection(const FramesMetaData *meta, int width,
             auto &exif = md.exifData();
             auto it =
                 exif.findKey(Exiv2::ExifKey("Exif.SubImage1.OpcodeList3"));
+            if (it == exif.end()) {
+                // single-IFD DNGs (e.g. the ones written by ART-cli
+                // --raw-preprocess)
+                it = exif.findKey(Exiv2::ExifKey("Exif.Image.OpcodeList3"));
+            }
             if (it != exif.end()) {
                 std::vector<Exiv2::byte> buf;
                 buf.resize(it->value().size());
@@ -943,6 +950,163 @@ void ExifLensCorrection::correctDistortion(double &x, double &y, int cx, int cy,
     }
 }
 
+namespace {
+
+// least squares fit of sum_k c[k] * u^k (u = r^2) to f(r), r in [0, 1]
+template <class F>
+std::vector<double> fit_even_poly(int ncoeffs, F f, double &max_err)
+{
+    constexpr int N = 129;
+    std::vector<std::vector<double>> A(ncoeffs,
+                                       std::vector<double>(ncoeffs + 1, 0.0));
+    for (int i = 0; i < N; ++i) {
+        const double r = double(i) / (N - 1);
+        const double u = r * r;
+        const double y = f(r);
+        std::vector<double> p(ncoeffs);
+        p[0] = 1;
+        for (int k = 1; k < ncoeffs; ++k) {
+            p[k] = p[k - 1] * u;
+        }
+        for (int a = 0; a < ncoeffs; ++a) {
+            for (int b = 0; b < ncoeffs; ++b) {
+                A[a][b] += p[a] * p[b];
+            }
+            A[a][ncoeffs] += p[a] * y;
+        }
+    }
+    // gaussian elimination with partial pivoting
+    for (int c = 0; c < ncoeffs; ++c) {
+        int piv = c;
+        for (int r = c + 1; r < ncoeffs; ++r) {
+            if (std::abs(A[r][c]) > std::abs(A[piv][c])) {
+                piv = r;
+            }
+        }
+        std::swap(A[c], A[piv]);
+        for (int r = c + 1; r < ncoeffs; ++r) {
+            const double m = A[r][c] / A[c][c];
+            for (int k = c; k <= ncoeffs; ++k) {
+                A[r][k] -= m * A[c][k];
+            }
+        }
+    }
+    std::vector<double> coef(ncoeffs);
+    for (int r = ncoeffs - 1; r >= 0; --r) {
+        double v = A[r][ncoeffs];
+        for (int k = r + 1; k < ncoeffs; ++k) {
+            v -= A[r][k] * coef[k];
+        }
+        coef[r] = v / A[r][r];
+    }
+    max_err = 0;
+    for (int i = 0; i < N; ++i) {
+        const double r = double(i) / (N - 1);
+        const double u = r * r;
+        double v = 0, pw = 1;
+        for (int k = 0; k < ncoeffs; ++k) {
+            v += coef[k] * pw;
+            pw *= u;
+        }
+        max_err = std::max(max_err, std::abs(v - f(r)));
+    }
+    return coef;
+}
+
+void put_u32(std::vector<unsigned char> &out, uint32_t v)
+{
+    for (int i = 3; i >= 0; --i) {
+        out.push_back((v >> (8 * i)) & 0xff);
+    }
+}
+
+void put_f64(std::vector<unsigned char> &out, double d)
+{
+    uint64_t v;
+    std::memcpy(&v, &d, sizeof(v));
+    for (int i = 7; i >= 0; --i) {
+        out.push_back((v >> (8 * i)) & 0xff);
+    }
+}
+
+} // namespace
+
+bool ExifLensCorrection::getDNGOpcodes(std::vector<unsigned char> &out,
+                                       int planes, bool with_vignette) const
+{
+    // the data of a DNG is already expressed in opcodes
+    if (!data_ || is_dng_) {
+        return false;
+    }
+    const bool dist = data_->has_dist();
+    const bool vign = with_vignette && data_->has_vign();
+    if (!dist && !vign) {
+        return false;
+    }
+
+    out.clear();
+    put_u32(out, (dist ? 1 : 0) + (vign ? 1 : 0));
+    constexpr uint32_t version = 0x01030000;
+    constexpr uint32_t optional = 1;
+
+    if (dist) {
+        double err = 0;
+        const auto k = fit_even_poly(
+            4,
+            [&](double r) {
+                return interpolate(dist_knots_, dist_, dist_r2_ ? r * r : r);
+            },
+            err);
+        if (settings->verbose) {
+            std::cout << "DNG WarpRectilinear: " << k[0] << " " << k[1] << " "
+                      << k[2] << " " << k[3] << " (max fit error " << err
+                      << ")" << std::endl;
+        }
+        put_u32(out, 1); // WarpRectilinear
+        put_u32(out, version);
+        put_u32(out, optional);
+        put_u32(out, 4 + planes * 6 * 8 + 2 * 8);
+        put_u32(out, planes);
+        for (int p = 0; p < planes; ++p) {
+            for (int i = 0; i < 4; ++i) {
+                put_f64(out, k[i]);
+            }
+            put_f64(out, 0); // tangential
+            put_f64(out, 0);
+        }
+        put_f64(out, 0.5); // centre
+        put_f64(out, 0.5);
+    }
+
+    if (vign) {
+        double err = 0;
+        // gain = 1 + k0 r^2 + ... + k4 r^10, as applied by processVignette()
+        auto k = fit_even_poly(
+            6,
+            [&](double r) {
+                const float sf = interpolate(knots_, vig_, r);
+                return 1.0 / SQR(sf);
+            },
+            err);
+        if (settings->verbose) {
+            std::cout << "DNG FixVignetteRadial: max fit error " << err
+                      << std::endl;
+        }
+        put_u32(out, 3); // FixVignetteRadial
+        put_u32(out, version);
+        put_u32(out, optional);
+        put_u32(out, 7 * 8);
+        // k[0] is the constant term, the opcode has an implicit 1
+        const double g0 = k[0];
+        for (int i = 1; i < 6; ++i) {
+            put_f64(out, k[i] / g0);
+        }
+        put_f64(out, 0.5);
+        put_f64(out, 0.5);
+    }
+    return true;
+}
+
 bool ExifLensCorrection::isCACorrectionAvailable() const
 {
     return data_.get() && data_->has_ca();
@@ -981,6 +1145,9 @@ void ExifLensCorrection::processVignette(int width, int height,
     }
 
     if (!is_dng_) {
+#ifdef _OPENMP
+#pragma omp parallel for schedule(dynamic, 16)
+#endif
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
                 float cx = x - w2_;
@@ -995,6 +1162,9 @@ void ExifLensCorrection::processVignette(int width, int height,
         const float cy = knots_[3];
         const float m2 = 1.f / SQR(knots_[5]);
 
+#ifdef _OPENMP
+#pragma omp parallel for schedule(dynamic, 16)
+#endif
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
                 const float r2 = m2 * (SQR(x - cx) + SQR(y - cy));

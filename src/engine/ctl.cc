@@ -22,7 +22,11 @@
 
 #include "ctl.h"
 
+#include "color.h"
 #include "curves.h"
+#include "guidedfilter.h"
+#include "iccstore.h"
+#include "imagefloat.h"
 #include "linalgebra.h"
 #include "opthelper.h"
 #include "rt_math.h"
@@ -86,6 +90,122 @@ bool fill_from_json(std::unordered_map<std::string, int> &name2pos,
     return desc.fill_from_json(root);
 }
 
+struct GuideName {
+    const char *name;
+    CTLGuide guide;
+};
+
+// the guides that can be requested in @ART-guides
+const GuideName guide_names[] = {
+    {"Y", CTLGuide::Y}, {"C", CTLGuide::C}, {"H", CTLGuide::H}};
+
+} // namespace
+
+const char *ctl_guide_name(CTLGuide g)
+{
+    for (auto &n : guide_names) {
+        if (n.guide == g) {
+            return n.name;
+        }
+    }
+    return "";
+}
+
+bool parse_ctl_guide(const std::string &name, CTLGuide &out)
+{
+    for (auto &n : guide_names) {
+        if (name == n.name) {
+            out = n.guide;
+            return true;
+        }
+    }
+    return false;
+}
+
+namespace {
+
+/**
+ * Read the @ART-guides tag of the script, if any. Returns false on error
+ * (with a message in verbose mode); found is set to true if the tag is
+ * present.
+ */
+bool get_CTL_guides(const Glib::ustring &filename, std::vector<CTLGuide> &out,
+                    bool &found)
+{
+    out.clear();
+    found = false;
+    if (!Glib::file_test(filename, Glib::FILE_TEST_EXISTS)) {
+        return true;
+    }
+    int cur_line = 0;
+    const auto err = [&](const std::string &msg) -> bool {
+        if (settings->verbose) {
+            std::cout << filename << ":" << cur_line << ": Error: " << msg
+                      << "\n" << std::endl;
+        }
+        return false;
+    };
+    auto fn = Glib::filename_from_utf8(filename);
+    std::ifstream src(fn.c_str());
+    std::string line;
+    while (src && std::getline(src, line)) {
+        ++cur_line;
+        size_t s = 0;
+        while (s < line.size() && std::isspace(line[s])) {
+            ++s;
+        }
+        if (s + 1 < line.size() && line[s] == '/' && line[s + 1] == '/') {
+            s += 2;
+        }
+        while (s < line.size() && std::isspace(line[s])) {
+            ++s;
+        }
+        if (line.find("@ART-guides:", s) != s) {
+            continue;
+        }
+        line = line.substr(12 + s);
+        if (found) {
+            return err("duplicate @ART-guides definition");
+        }
+        found = true;
+        cJSON *root = cJSON_Parse(line.c_str());
+        if (!root || !cJSON_IsArray(root)) {
+            if (root) {
+                cJSON_Delete(root);
+            }
+            return err("invalid guides definition:\n  " + line);
+        }
+        const int n = cJSON_GetArraySize(root);
+        bool ok = n >= 1 && n <= CTL_MAX_GUIDES;
+        if (!ok) {
+            err("the number of guides must be between 1 and " +
+                std::to_string(CTL_MAX_GUIDES) + ":\n  " + line);
+        }
+        cJSON *item = nullptr;
+        cJSON_ArrayForEach(item, root)
+        {
+            if (!ok) {
+                break;
+            }
+            CTLGuide g;
+            if (!cJSON_IsString(item) ||
+                !parse_ctl_guide(cJSON_GetStringValue(item), g)) {
+                ok = err("unknown guide in @ART-guides:\n  " + line);
+            } else if (std::find(out.begin(), out.end(), g) != out.end()) {
+                ok = err("duplicate guide in @ART-guides:\n  " + line);
+            } else {
+                out.push_back(g);
+            }
+        }
+        cJSON_Delete(root);
+        if (!ok) {
+            out.clear();
+            return false;
+        }
+    }
+    return true;
+}
+
 /**
  * ART-compatible CTL scripts can contain parameters as additional uniform
  * input parameters to ART_main. The supported parameter types are "bool",
@@ -110,6 +230,41 @@ bool fill_from_json(std::unordered_map<std::string, int> &name2pos,
  * // @ART-param: ["param_choice", "A combo box", ["Option A", "Option B"], 1,
  * "Select between option A (value 0) and option B (value 1)"]
  *
+ * ART_main can optionally take up to 3 guides: varying float inputs
+ * following r, g and b (before the output arguments):
+ *
+ *  // @ART-guides: ["Y", "C", "H"]
+ *  void ART_main(varying float r, varying float g, varying float b,
+ *                varying float guide_y, varying float guide_c,
+ *                varying float guide_h, output varying float rout, ...)
+ *
+ * A guide is a spatially smoothed (edge-aware) quantity, computed from the
+ * input of the tool (i.e. before any of its regions is applied), that gives a
+ * script some information about the neighbourhood of the pixel. The
+ * @ART-guides tag lists, in the order of the arguments, how each guide is
+ * computed (no duplicates are allowed):
+ *
+ *  - "Y": the luminance of the input image, computed as in the "Tone
+ *         Equalizer" tool (regularization 4). It is a linear luminance,
+ *         normalised like the tone equalizer does: 0.18 is middle grey.
+ *  - "C": a chroma-like quantity: the smoothed value of the "cz" output of
+ *         Color::rgb2jzczhz (i.e. the chroma in the JzAzBz colour space)
+ *  - "H": a hue-like quantity: the smoothed value of the "hz" output of
+ *         Color::rgb2jzczhz (the hue angle in the JzAzBz colour space, in
+ *         radians, in the range (-pi, pi]). Note that it is an angle, so the
+ *         differences between hues must be wrapped by the script.
+ *
+ * If the tag is missing, a script with exactly one guide gets "Y" (so
+ * @ART-guides is only needed for other guides, or for more than one). The
+ * number of strings in the tag must match the number of guides taken by
+ * ART_main.
+ *
+ * The guides are not in the colour space of the script, but in the working
+ * profile. Scripts taking a guide are never baked into a 3D LUT, so any
+ * @ART-lut annotation is ignored. They can only be used by tools that
+ * provide guides (Color/Tone Correction, Film Simulation). If ART_main takes
+ * guides, so must ART_fill_pipette, in the same positions (before curve_id).
+ *
  * Curve parameters can support pipettes (picking a point of the curve from a
  * pixel of the preview). A script declares which curves do with
  *
@@ -118,6 +273,7 @@ bool fill_from_json(std::unordered_map<std::string, int> &name2pos,
  * (curve_id is the index in this list), and provides a second entry point
  *
  *  void ART_fill_pipette(varying float r, varying float g, varying float b,
+ *                        [varying float guide, ...] (the same as ART_main)
  *                        output varying float rout, output varying float gout,
  *                        output varying float bout, int curve_id,
  *                        <optional parameters, as for ART_main>)
@@ -137,7 +293,8 @@ bool fill_from_json(std::unordered_map<std::string, int> &name2pos,
 bool get_CTL_params(const Glib::ustring &filename,
                     std::shared_ptr<Ctl::Interpreter> intp,
                     Ctl::FunctionCallPtr func, CLUTParamDescriptorList &out,
-                    Glib::ustring &colorspace, int &lut_dim)
+                    Glib::ustring &colorspace, int &lut_dim,
+                    const std::vector<CTLGuide> &guides)
 {
     setlocale(LC_NUMERIC, "C");
 
@@ -145,6 +302,10 @@ bool get_CTL_params(const Glib::ustring &filename,
     std::unordered_map<std::string, int> name2pos;
 
     colorspace = "";
+    const bool uses_guide = !guides.empty();
+    if (uses_guide) {
+        lut_dim = -1;
+    }
 
     static std::unordered_map<std::string, std::string> profilemap = {
         {"aces2065-1", "ACESp0"},  {"acescg", "ACESp1"},
@@ -165,7 +326,7 @@ bool get_CTL_params(const Glib::ustring &filename,
         return false;
     };
 
-    for (size_t i = 3, n = func->numInputArgs(); i < n; ++i) {
+    for (size_t i = 3 + guides.size(), n = func->numInputArgs(); i < n; ++i) {
         auto a = func->inputArg(i);
         if (a->isVarying()) {
             return err("parameter " + a->name() + " is varying");
@@ -284,6 +445,15 @@ bool get_CTL_params(const Glib::ustring &filename,
                 if (lut_dim < -1 || v != lut_dim) {
                     return err("invalid lut definition:\n  " + line);
                 }
+                if (uses_guide) {
+                    if (settings->verbose) {
+                        std::cout << filename << ":" << cur_line
+                                  << ": Warning: @ART-lut is ignored in "
+                                     "scripts taking a guide"
+                                  << std::endl;
+                    }
+                    lut_dim = -1;
+                }
             } else if (line.find("@ART-pipette:", s) == s) {
                 line = line.substr(13 + s);
                 cJSON *root = cJSON_Parse(line.c_str());
@@ -379,7 +549,8 @@ bool get_CTL_params(const Glib::ustring &filename,
  */
 bool check_CTL_pipette(const Glib::ustring &filename,
                        std::shared_ptr<Ctl::Interpreter> intp,
-                       const CLUTParamDescriptorList &params)
+                       const CLUTParamDescriptorList &params,
+                       const std::vector<CTLGuide> &guides)
 {
     bool wanted = false;
     for (auto &p : params) {
@@ -403,7 +574,8 @@ bool check_CTL_pipette(const Glib::ustring &filename,
     } catch (std::exception &) {
         return warn("@ART-pipette given but no ART_fill_pipette function");
     }
-    if (f->numInputArgs() < 4 || f->numOutputArgs() != 3) {
+    const int id_pos = 3 + int(guides.size());
+    if (f->numInputArgs() < id_pos + 1 || f->numOutputArgs() != 3) {
         return warn("wrong number of arguments to ART_fill_pipette");
     }
     for (int i = 0; i < 3; ++i) {
@@ -413,12 +585,19 @@ bool check_CTL_pipette(const Glib::ustring &filename,
             }
         }
     }
-    auto id = f->inputArg(3);
+    for (size_t k = 0; k < guides.size(); ++k) {
+        auto g = f->inputArg(3 + k);
+        if (!g->type().cast<Ctl::FloatType>() || !g->isVarying()) {
+            return warn("ART_fill_pipette must take the same varying float "
+                        "guides as ART_main, after its first 3 inputs");
+        }
+    }
+    auto id = f->inputArg(id_pos);
     if (id->isVarying() || id->type()->cDataType() != Ctl::IntTypeEnum ||
         id->type().cast<Ctl::BoolType>()) {
         return warn("curve_id of ART_fill_pipette must be a uniform int");
     }
-    for (size_t i = 4, n = f->numInputArgs(); i < n; ++i) {
+    for (size_t i = id_pos + 1, n = f->numInputArgs(); i < n; ++i) {
         if (f->inputArg(i)->isVarying()) {
             return warn("parameter " + f->inputArg(i)->name() +
                         " of ART_fill_pipette is varying");
@@ -548,11 +727,15 @@ std::pair<std::shared_ptr<Ctl::Interpreter>, std::vector<Ctl::FunctionCallPtr>>
 CTLStore::getLut(const Glib::ustring &filename, int num_threads,
                  int &chunk_size, CLUTParamDescriptorList &params,
                  Glib::ustring &colorspace, int &lut_dim,
-                 std::string *md5_out) const
+                 std::string *md5_out,
+                 std::vector<CTLGuide> *guides_out) const
 {
     art::utils::MyMutex::MyLock lock(mutex_);
 
     lut_dim = 0;
+    if (guides_out) {
+        guides_out->clear();
+    }
 
     CacheEntry result;
     std::vector<Ctl::FunctionCallPtr> retval;
@@ -625,13 +808,49 @@ CTLStore::getLut(const Glib::ustring &filename, int num_threads,
                 }
             }
 
+            // the varying inputs after r, g, b are the guides
+            int num_guides = 0;
+            while (3 + num_guides < int(f->numInputArgs()) &&
+                   f->inputArg(3 + num_guides)->isVarying()) {
+                if (!f->inputArg(3 + num_guides)
+                         ->type()
+                         .cast<Ctl::FloatType>()) {
+                    return err("the guides (inputs after the first 3) must be "
+                               "floats");
+                }
+                ++num_guides;
+            }
+            if (num_guides > CTL_MAX_GUIDES) {
+                return err("too many guides");
+            }
+
+            std::vector<CTLGuide> guides;
+            bool guides_tag = false;
+            if (!get_CTL_guides(full_filename, guides, guides_tag)) {
+                return err("error in parsing @ART-guides");
+            }
+            if (guides_tag) {
+                if (int(guides.size()) != num_guides) {
+                    return err(
+                        ("@ART-guides lists " + std::to_string(guides.size()) +
+                         " guides, but ART_main takes " +
+                         std::to_string(num_guides))
+                            .c_str());
+                }
+            } else if (num_guides == 1) {
+                guides.push_back(CTLGuide::Y);
+            } else if (num_guides > 1) {
+                return err("ART_main takes more than one guide: use "
+                           "@ART-guides to say which");
+            }
+
             if (!get_CTL_params(full_filename, intp, f, params, colorspace,
-                                lut_dim)) {
+                                lut_dim, guides)) {
                 params.clear();
                 return err("error in parsing CTL parameters");
             }
 
-            if (!check_CTL_pipette(full_filename, intp, params)) {
+            if (!check_CTL_pipette(full_filename, intp, params, guides)) {
                 for (auto &p : params) {
                     p.pipette_id = -1;
                 }
@@ -642,12 +861,16 @@ CTLStore::getLut(const Glib::ustring &filename, int num_threads,
             result.params = params;
             result.colorspace = colorspace;
             result.lut_dim = lut_dim;
+            result.guides = guides;
             cache_.set(key, result);
         } else {
             intp = result.intp;
             params = result.params;
             colorspace = result.colorspace;
             lut_dim = result.lut_dim;
+        }
+        if (guides_out) {
+            *guides_out = result.guides;
         }
         if (intp) {
             for (int i = 0; i < num_threads; ++i) {
@@ -734,16 +957,20 @@ bool CTLStore::getDisplayName(const Glib::ustring &filename,
 // CTLApplication
 //-----------------------------------------------------------------------------
 
-CTLApplication::CTLApplication(): chunk_size_(0), lut_dim_(0) {}
+CTLApplication::CTLApplication()
+    : chunk_size_(0), lut_dim_(0)
+{
+}
 
 bool CTLApplication::init(const Glib::ustring &filename, int num_threads,
                           Glib::ustring &colorspace)
 {
     filename_ = filename;
     lut_dim_ = 0;
+    guides_.clear();
     auto res = CTLStore::getInstance().getLut(filename_, num_threads,
                                               chunk_size_, params_, colorspace,
-                                              lut_dim_, &md5_);
+                                              lut_dim_, &md5_, &guides_);
     auto intp = res.first;
     auto &func = res.second;
     if (func.empty()) {
@@ -880,7 +1107,9 @@ bool CTLApplication::set_params(const CLUTParamValueMap &values, int max_dim)
         return false;
     }
 
-    int dim = lut_dim_;
+    // a script taking a guide depends on more than the colour of the pixel,
+    // so it can't be baked into a 3D LUT (lut_dim_ is -1 in this case)
+    int dim = uses_guide() ? -1 : lut_dim_;
     if (dim >= 0 && settings->ctl_scripts_fast_preview && max_dim != 0) {
         dim = !dim ? max_dim : std::min(dim, max_dim);
     }
@@ -990,8 +1219,33 @@ std::string CTLApplication::lut_key(const CLUTParamValueMap &values) const
                                             buf.str());
 }
 
-void CTLApplication::apply(int thread_id, int W, float *r, float *g, float *b)
+namespace {
+
+bool check_guide_rows(const std::vector<CTLGuide> &guides,
+                      const float *const *guide_rows,
+                      const Glib::ustring &filename)
 {
+    for (auto g : guides) {
+        if (!guide_rows || !guide_rows[int(g)]) {
+            if (settings->verbose) {
+                std::cout << "Error: guide " << ctl_guide_name(g)
+                          << " not given to CTL script " << filename
+                          << std::endl;
+            }
+            return false;
+        }
+    }
+    return true;
+}
+
+} // namespace
+
+bool CTLApplication::apply(int thread_id, int W, float *r, float *g, float *b,
+                           const float *const *guide_rows)
+{
+    if (!check_guide_rows(guides_, guide_rows, filename_)) {
+        return false;
+    }
     auto func = func_[thread_id];
     float *ch[3] = {r, g, b};
 
@@ -1011,6 +1265,10 @@ void CTLApplication::apply(int thread_id, int W, float *r, float *g, float *b)
             for (int i = 0; i < 3; ++i) {
                 memcpy(func->inputArg(i)->data(), ch[i] + x, sizeof(float) * n);
             }
+            for (size_t k = 0; k < guides_.size(); ++k) {
+                memcpy(func->inputArg(3 + k)->data(),
+                       guide_rows[int(guides_[k])] + x, sizeof(float) * n);
+            }
             func->callFunction(n);
             for (int i = 0; i < 3; ++i) {
                 memcpy(ch[i] + x, func->outputArg(i)->data(),
@@ -1018,25 +1276,33 @@ void CTLApplication::apply(int thread_id, int W, float *r, float *g, float *b)
             }
         }
     }
+    return true;
 }
 
 bool CTLApplication::fill_pipette(int thread_id, int curve_id, int W,
                                   const float *const in[3],
-                                  float *const out[3])
+                                  float *const out[3],
+                                  const float *const *guide_rows)
 {
-    if (!can_pipette(thread_id)) {
+    if (!can_pipette(thread_id) ||
+        !check_guide_rows(guides_, guide_rows, filename_)) {
         return false;
     }
     try {
         auto func = pipette_func_[thread_id];
         // same input as ART_main, but never through the baked 3D LUT: the
         // output is not a colour
-        *reinterpret_cast<int *>(func->inputArg(3)->data()) = curve_id;
+        *reinterpret_cast<int *>(
+            func->inputArg(3 + guides_.size())->data()) = curve_id;
         for (int x = 0; x < W; x += chunk_size_) {
             const auto n = (x + chunk_size_ < W ? chunk_size_ : W - x);
             for (int i = 0; i < 3; ++i) {
                 memcpy(func->inputArg(i)->data(), in[i] + x,
                        sizeof(float) * n);
+            }
+            for (size_t k = 0; k < guides_.size(); ++k) {
+                memcpy(func->inputArg(3 + k)->data(),
+                       guide_rows[int(guides_[k])] + x, sizeof(float) * n);
             }
             func->callFunction(n);
             for (int i = 0; i < 3; ++i) {
@@ -1052,6 +1318,166 @@ bool CTLApplication::fill_pipette(int thread_id, int curve_id, int W,
         }
     }
     return false;
+}
+
+//-----------------------------------------------------------------------------
+// guides
+//-----------------------------------------------------------------------------
+
+namespace {
+
+// parameters of the smoothing of the "C" and "H" guides
+constexpr int CH_RADIUS = 8; // in pixels at scale 1
+constexpr float CH_EPSILON = 1e-3f;
+// cz is multiplied by this before filtering, so that it is roughly in [0, 1]
+// (like in the tone curve), and the same epsilon fits
+constexpr float CH_SCALE = 50.f;
+
+void compute_Y_guide(Imagefloat *img, TMatrix ws, double scale, bool multithread,
+                     array2D<float> &guide)
+{
+    // the luminance is the Y channel of the YUV mode (in 0..65535)
+    const int W = img->getWidth();
+    const int H = img->getHeight();
+    guide(W, H, ARRAY2D_ALIGNED);
+
+    if (img->mode() == Imagefloat::Mode::YUV) {
+#ifdef _OPENMP
+#pragma omp parallel for if (multithread)
+#endif
+        for (int y = 0; y < H; ++y) {
+            for (int x = 0; x < W; ++x) {
+                guide[y][x] = LIM(img->g(y, x) / 65535.f, 1e-5f, 32.f);
+            }
+        }
+    } else {
+#ifdef _OPENMP
+#pragma omp parallel for if (multithread)
+#endif
+        for (int y = 0; y < H; ++y) {
+            for (int x = 0; x < W; ++x) {
+                guide[y][x] = LIM(Color::rgbLuminance(img->r(y, x), img->g(y, x),
+                                                      img->b(y, x), ws) /
+                                      65535.f,
+                                  1e-5f, 32.f);
+            }
+        }
+    }
+
+    // the same guide as the tone equalizer at regularization 4. This is the
+    // only place to change if a different algorithm is wanted
+    constexpr int regularization = 4;
+    toneEqGuide(guide, regularization, scale, multithread);
+}
+
+/**
+ * The "C" and "H" guides: the chroma and the hue (cz and hz of
+ * Color::rgb2jzczhz) of the image, smoothed with an edge-aware filter.
+ * The hue is an angle, so it is not smoothed directly: the cartesian
+ * components (az, bz) are, which gives a chroma-weighted average of the hues
+ * without problems at the wrap point. All the channels are filtered with a
+ * guided filter that uses the chroma itself as its guide, so that they share
+ * the same edges.
+ */
+void compute_CH_guides(Imagefloat *img, TMatrix ws, double scale,
+                       bool multithread, bool want_c, bool want_h,
+                       array2D<float> &C, array2D<float> &Hz)
+{
+    const int W = img->getWidth();
+    const int H = img->getHeight();
+    const bool yuv = img->mode() == Imagefloat::Mode::YUV;
+
+    array2D<float> az(W, H, ARRAY2D_ALIGNED);
+    array2D<float> bz(W, H, ARRAY2D_ALIGNED);
+    array2D<float> cz(W, H, ARRAY2D_ALIGNED);
+
+#ifdef _OPENMP
+#pragma omp parallel for if (multithread)
+#endif
+    for (int y = 0; y < H; ++y) {
+        for (int x = 0; x < W; ++x) {
+            float R, G, B;
+            if (yuv) {
+                Color::yuv2rgb(img->g(y, x), img->b(y, x), img->r(y, x), R, G, B,
+                               ws);
+            } else {
+                R = img->r(y, x);
+                G = img->g(y, x);
+                B = img->b(y, x);
+            }
+            float Jz, a, b;
+            Color::rgb2jzazbz(std::max(R, 0.f) / 65535.f,
+                              std::max(G, 0.f) / 65535.f,
+                              std::max(B, 0.f) / 65535.f, Jz, a, b, ws);
+            if (!(Jz > 1e-7f)) {
+                // the hue is undefined (also catches NaNs)
+                a = b = 0.f;
+            }
+            a *= CH_SCALE;
+            b *= CH_SCALE;
+            az[y][x] = a;
+            bz[y][x] = b;
+            cz[y][x] = std::sqrt(a * a + b * b);
+        }
+    }
+
+    const int radius = std::max(1, int(CH_RADIUS / scale + 0.5));
+    array2D<float> tmp(W, H, ARRAY2D_ALIGNED);
+
+    if (want_h) {
+        array2D<float> bs(W, H, ARRAY2D_ALIGNED);
+        guidedFilter(cz, az, tmp, radius, CH_EPSILON, multithread);
+        guidedFilter(cz, bz, bs, radius, CH_EPSILON, multithread);
+        Hz(W, H, ARRAY2D_ALIGNED);
+#ifdef _OPENMP
+#pragma omp parallel for if (multithread)
+#endif
+        for (int y = 0; y < H; ++y) {
+            for (int x = 0; x < W; ++x) {
+                float c, h;
+                Color::jzazbz2jzch(tmp[y][x], bs[y][x], c, h);
+                Hz[y][x] = h;
+            }
+        }
+    }
+    if (want_c) {
+        guidedFilter(cz, cz, tmp, radius, CH_EPSILON, multithread);
+        C(W, H, ARRAY2D_ALIGNED);
+#ifdef _OPENMP
+#pragma omp parallel for if (multithread)
+#endif
+        for (int y = 0; y < H; ++y) {
+            for (int x = 0; x < W; ++x) {
+                C[y][x] = std::max(tmp[y][x], 0.f) / CH_SCALE;
+            }
+        }
+    }
+}
+
+} // namespace
+
+void compute_ctl_guides(Imagefloat *img, unsigned kinds_mask,
+                        const Glib::ustring &working_profile, double scale,
+                        bool multithread, CTLGuideSet &out)
+{
+    TMatrix ws = ICCStore::getInstance()->workingSpaceMatrix(working_profile);
+    for (int i = 0; i < CTL_MAX_GUIDES; ++i) {
+        out.present[i] = false;
+    }
+
+    if (kinds_mask & ctl_guide_bit(CTLGuide::Y)) {
+        compute_Y_guide(img, ws, scale, multithread, out.plane[int(CTLGuide::Y)]);
+        out.present[int(CTLGuide::Y)] = true;
+    }
+    const bool want_c = kinds_mask & ctl_guide_bit(CTLGuide::C);
+    const bool want_h = kinds_mask & ctl_guide_bit(CTLGuide::H);
+    if (want_c || want_h) {
+        compute_CH_guides(img, ws, scale, multithread, want_c, want_h,
+                          out.plane[int(CTLGuide::C)],
+                          out.plane[int(CTLGuide::H)]);
+        out.present[int(CTLGuide::C)] = want_c;
+        out.present[int(CTLGuide::H)] = want_h;
+    }
 }
 
 }} // namespace art::engine

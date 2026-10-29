@@ -25,6 +25,8 @@
 #include "refreshmap.h"
 #include "rt_math.h"
 
+#include <iostream>
+
 namespace art { namespace engine {
 
 
@@ -148,10 +150,46 @@ bool Crop::hasListener()
     return cropImageListener;
 }
 
+namespace {
+
+// Crop::update() acts on these bits only
+constexpr int CROP_STAGES = M_RGBCURVE | M_LUMACURVE | M_LUMINANCE | M_COLOR;
+constexpr int CROP_ALL =
+    M_INIT | M_LINDENOISE | M_SPOT | M_HDR | CROP_STAGES;
+
+} // namespace
+
 void Crop::update(int todo)
 {
     art::utils::MyMutex::MyLock cropLock(cropMutex);
 
+    // redo whatever an abandoned update left unfinished
+    todo |= pendingTodo_;
+    pendingTodo_ = 0;
+
+    const auto now = std::chrono::steady_clock::now();
+    // see Settings::preview_abort_starve_ms
+    const std::chrono::milliseconds starve(settings->preview_abort_starve_ms);
+    const bool abortable = starve.count() > 0 && now - lastShown_ < starve;
+
+    AbortScope abortScope(parent->ipf, abortable ? &parent->changeGen_ : nullptr);
+
+    try {
+        updateImpl(todo);
+        lastShown_ = std::chrono::steady_clock::now();
+    } catch (Cancelled &) {
+        // Nothing of this update was shown (rgb2monitor is after the last
+        // check), so the previous image stays up.
+        pendingTodo_ |= restoreOnAbort_;
+        if (settings->verbose) {
+            std::cout << "crop update abandoned, redo 0x" << std::hex
+                      << restoreOnAbort_ << std::dec << std::endl;
+        }
+    }
+}
+
+void Crop::updateImpl(int todo)
+{
     ProcParams &params = parent->params;
     //       CropGUIListener* cropgl;
 
@@ -182,9 +220,16 @@ void Crop::update(int todo)
 
     // it something has been reallocated, all processing steps have to be
     // performed
-    if (needsinitupdate || (todo & M_HIGHQUAL)) {
+    const bool full = needsinitupdate || (todo & M_HIGHQUAL);
+    if (full) {
         todo = ALL;
     }
+    // what to redo if abandoned from here to the next phase() call: a
+    // reallocation is only reported once, so then everything
+    const auto phase = [&](int redo) {
+        restoreOnAbort_ = full ? CROP_ALL : redo;
+        parent->ipf.throwIfAborted();
+    };
 
     // Tells to the ImProcFunctions' tool what is the preview scale, which may
     // lead to some simplifications
@@ -243,6 +288,7 @@ void Crop::update(int todo)
 
     Imagefloat *hdr_base_crop = origCrop;
 
+    phase((todo & (M_LINDENOISE | M_SPOT | M_HDR)) | CROP_STAGES);
     if (todo & M_LINDENOISE) {
         if (!denoiseCrop) {
             denoiseCrop =
@@ -291,6 +337,7 @@ void Crop::update(int todo)
     parent->ipf.setViewport(offset_x, offset_y, full_width, full_height);
 
     // Apply Spot removal
+    phase((todo & (M_SPOT | M_HDR)) | CROP_STAGES);
     if ((todo & M_SPOT) && !spotsDone) {
         if (params.spot.enabled) {
             if (!spotCrop) {
@@ -320,7 +367,12 @@ void Crop::update(int todo)
     std::unique_ptr<Imagefloat> drCompCrop;
     bool stop = false;
 
+    phase((todo & M_HDR) | CROP_STAGES);
     if ((todo & M_HDR) && parent->ipf.stage0NeedsFullImage()) {
+        // stage 0 may run in place on the shared input, which then has to be
+        // fetched again
+        restoreOnAbort_ = CROP_ALL;
+        bool cache_f = false;
         Imagefloat *f = baseCrop;
         int fw = skips(parent->fw, skip);
         int fh = skips(parent->fh, skip);
@@ -370,8 +422,7 @@ void Crop::update(int todo)
                         }
                     }
                 } else if (skip == 1) {
-                    parent->drcomp_11_dcrop_cache = f; // cache this globally
-                    drCompCrop.release();
+                    cache_f = true;
                 }
             }
         }
@@ -379,6 +430,12 @@ void Crop::update(int todo)
         if (need_drcomp) {
             pipeline_stop_[0] =
                 parent->ipf.process(ImProcFunctions::Stage::STAGE_0, f);
+        }
+        if (cache_f) {
+            // cache this globally, but only once stage 0 has run on it: an
+            // abandoned update must not leave a half-processed image there
+            parent->drcomp_11_dcrop_cache = f;
+            drCompCrop.release();
         }
         stop = pipeline_stop_[0];
 
@@ -408,6 +465,7 @@ void Crop::update(int todo)
     }
 
     // transform
+    phase(CROP_STAGES);
     if (needstransform) {
         if (!transCrop) {
             transCrop = new Imagefloat(cropw, croph, baseCrop);
@@ -449,6 +507,7 @@ void Crop::update(int todo)
     stop = stop || pipeline_stop_[1];
 
     if (todo & M_LUMACURVE) {
+        restoreOnAbort_ = full ? CROP_ALL : (M_LUMACURVE | M_LUMINANCE | M_COLOR);
         bufs_[0]->copyTo(bufs_[1]);
 
         pipeline_stop_[2] =
@@ -458,6 +517,7 @@ void Crop::update(int todo)
     stop = stop || pipeline_stop_[2];
 
     if (todo & (M_LUMINANCE | M_COLOR)) {
+        restoreOnAbort_ = full ? CROP_ALL : (M_LUMINANCE | M_COLOR);
         bufs_[1]->copyTo(bufs_[2]);
 
         pipeline_stop_[3] =
@@ -767,6 +827,9 @@ bool Crop::setCropSizes(int rcx, int rcy, int rcw, int rch, int skip,
 bool Crop::tryUpdate()
 {
     bool needsNewThread = true;
+
+    // whatever render of this crop is in flight is now stale
+    parent->changeGen_.fetch_add(1, std::memory_order_acq_rel);
 
     if (updating) {
         // tells to the updater thread that a new update is pending

@@ -60,6 +60,59 @@ const std::vector<std::array<float, 3>> colormap = {
     {1.f, 0.f, 0.f},                       // whites
     {1.f, 0.f, 0.f},    {1.f, 0.f, 0.f},   {1.f, 0.f, 0.f}};
 
+} // namespace
+
+// see guidedfilter.h
+void toneEqGuide(array2D<float> &Y, int regularization, double scale,
+                 bool multithread)
+{
+    const int W = Y.width();
+    const int H = Y.height();
+
+    const auto log2 = [](float x) -> float {
+        static const float l2 = xlogf(2);
+        return xlogf(x) / l2;
+    };
+
+    const auto exp2 = [](float x) -> float { return pow_F(2.f, x); };
+
+    const int detail = regularization > 0 ? 5 : 0;
+    int radius = float(detail) / scale + 0.5f;
+    float epsilon = 0.01f + 0.002f * max(detail - 3, 0);
+    if (radius > 0) {
+        art::engine::guidedFilterLog(10.f, Y, radius, epsilon, multithread);
+    }
+
+    if (regularization > 1) {
+        array2D<float> Y2(W, H, ARRAY2D_ALIGNED);
+        constexpr float base_epsilon = 0.004f;
+        constexpr float base_posterization = 5.f;
+
+#ifdef _OPENMP
+#pragma omp parallel for if (multithread)
+#endif
+        for (int y = 0; y < H; ++y) {
+            for (int x = 0; x < W; ++x) {
+                float l = LIM(log2(std::max(Y[y][x], 1e-9f)), -16.f, 6.f);
+                float ll = round(l * base_posterization) / base_posterization;
+                Y2[y][x] = Y[y][x];
+                Y[y][x] = exp2(ll);
+            }
+        }
+        radius = 350.f / scale;
+        epsilon = base_epsilon;
+        art::engine::guidedFilter(Y2, Y, Y, radius, epsilon, multithread);
+
+        int reg = 5 - std::min(regularization, 4);
+        if (reg > 1) {
+            art::engine::guidedFilter(Y2, Y, Y, radius * (reg - 1), epsilon / 100,
+                                   multithread);
+        }
+    }
+}
+
+namespace {
+
 void tone_eq(array2D<float> &R, array2D<float> &G, array2D<float> &B,
              const ToneEqualizerParams &pp, const Glib::ustring &workingProfile,
              double scale, bool multithread, bool show_color_map,
@@ -113,40 +166,7 @@ void tone_eq(array2D<float> &R, array2D<float> &G, array2D<float> &B,
         }
     }
 
-    const int detail = pp.regularization > 0 ? 5 : 0;
-    int radius = float(detail) / scale + 0.5f;
-    float epsilon = 0.01f + 0.002f * max(detail - 3, 0);
-    if (radius > 0) {
-        art::engine::guidedFilterLog(10.f, Y, radius, epsilon, multithread);
-    }
-
-    if (pp.regularization > 1) {
-        array2D<float> Y2(W, H, ARRAY2D_ALIGNED);
-        constexpr float base_epsilon = 0.004f;
-        constexpr float base_posterization = 5.f;
-
-#ifdef _OPENMP
-#pragma omp parallel for if (multithread)
-#endif
-        for (int y = 0; y < H; ++y) {
-            for (int x = 0; x < W; ++x) {
-                float l = LIM(log2(std::max(Y[y][x], 1e-9f)), centers[0],
-                              centers[11]);
-                float ll = round(l * base_posterization) / base_posterization;
-                Y2[y][x] = Y[y][x];
-                Y[y][x] = exp2(ll);
-            }
-        }
-        radius = 350.f / scale;
-        epsilon = base_epsilon;
-        art::engine::guidedFilter(Y2, Y, Y, radius, epsilon, multithread);
-
-        int reg = 5 - std::min(pp.regularization, 4);
-        if (reg > 1) {
-            art::engine::guidedFilter(Y2, Y, Y, radius * (reg - 1), epsilon / 100,
-                                   multithread);
-        }
-    }
+    toneEqGuide(Y, pp.regularization, scale, multithread);
 
     const auto gauss = [](float b, float x) -> float {
         return xexpf((-SQR(x - b) / 4.0f));

@@ -22,6 +22,8 @@
 #include "../utils/threadutils.h"
 #include "image16.h"
 #include "image8.h"
+#include <chrono>
+
 #include "imagesource.h"
 #include "improccoordinator.h"
 #include "improcfun.h"
@@ -84,6 +86,21 @@ protected:
 
     friend class ImProcCoordinator;
     void update(int todo);
+
+private:
+    /// The work of update(), which may throw Cancelled between tools.
+    void updateImpl(int todo);
+
+    /// What must be redone next time because an abandoned update did not
+    /// finish it (consumed by the next update()).
+    int pendingTodo_ = 0;
+    /// What an update abandoned at its current phase would have to redo;
+    /// kept up to date by updateImpl().
+    int restoreOnAbort_ = 0;
+    /// When this crop last made it to the end of an update.
+    std::chrono::steady_clock::time_point lastShown_{};
+
+protected:
 
 public:
     Crop(ImProcCoordinator *parent, art::gui::EditDataProvider *editDataProvider,

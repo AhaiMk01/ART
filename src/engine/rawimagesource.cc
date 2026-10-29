@@ -1693,6 +1693,7 @@ void RawImageSource::preprocess(const RAWParams &raw,
                                 const CoarseTransformParams &coarse,
                                 bool prepareDenoise, const ColorTemp &wb)
 {
+    deconv_radius_valid_ = false;
     //    BENCHFUN
     MyTime t1, t2;
     t1.set();
@@ -1719,6 +1720,21 @@ void RawImageSource::preprocess(const RAWParams &raw,
         refwb_red = ri->get_pre_mul(0) / ref_pre_mul[0];
         refwb_green = ri->get_pre_mul(1) / ref_pre_mul[1];
         refwb_blue = ri->get_pre_mul(2) / ref_pre_mul[2];
+
+        // camera gains corresponding to the WB in use. Note that, when the
+        // WB is given, preprocess uses its multipliers directly as if they
+        // were gains, while they are in the rgb_cam-mixed space
+        if (wbok) {
+            for (int i = 0; i < 3; ++i) {
+                wb_true_[i] = imatrices.cam_rgb[i][0] * rm +
+                              imatrices.cam_rgb[i][1] * gm +
+                              imatrices.cam_rgb[i][2] * bm;
+            }
+        } else {
+            wb_true_[0] = refwb_red;
+            wb_true_[1] = refwb_green;
+            wb_true_[2] = refwb_blue;
+        }
 
         if (!wbok) {
             rm = imatrices.rgb_cam[0][0] * refwb_red +
@@ -2140,6 +2156,7 @@ void RawImageSource::preprocess(const RAWParams &raw,
 void RawImageSource::demosaic(const RAWParams &raw, bool autoContrast,
                               double &contrastThreshold)
 {
+    deconv_radius_valid_ = false;
     MyTime t1, t2;
     t1.set();
 
@@ -2261,6 +2278,7 @@ void RawImageSource::demosaic(const RAWParams &raw, bool autoContrast,
 
 void RawImageSource::flushRawData()
 {
+    deconv_radius_valid_ = false;
     if (rawData) {
         rawData(0, 0);
     }
@@ -3155,6 +3173,74 @@ void RawImageSource::cfaboxblur(RawImage *riFlatFile, float *cfablur, int boxH,
 
 // Scale original pixels into the range 0 65535 using black offsets and
 // multipliers
+bool RawImageSource::getPreprocessedRaw(PreprocessedRaw &out,
+                                        bool demosaiced) const
+{
+    const bool xtrans = ri->getSensorType() == ST_FUJI_XTRANS;
+    if ((ri->getSensorType() != ST_BAYER && !xtrans) || rawData.width() <= 0) {
+        return false;
+    }
+    out.width = W;
+    out.height = H;
+    out.demosaiced = demosaiced;
+    out.cfa_size = xtrans ? 6 : 2;
+    for (int i = 0; i < out.cfa_size; ++i) {
+        for (int j = 0; j < out.cfa_size; ++j) {
+            out.cfa[i][j] = xtrans ? ri->XTRANSFC(i, j) : FC(i, j);
+        }
+    }
+    if (demosaiced) {
+        if (red.width() <= 0 || green.width() <= 0 || blue.width() <= 0) {
+            return false;
+        }
+        out.data.resize(size_t(W) * H * 3);
+        for (int y = 0; y < H; ++y) {
+            float *d = &out.data[size_t(y) * W * 3];
+            for (int x = 0; x < W; ++x) {
+                d[3 * x] = red[y][x];
+                d[3 * x + 1] = green[y][x];
+                d[3 * x + 2] = blue[y][x];
+            }
+        }
+    } else {
+        out.data.resize(size_t(W) * H);
+        for (int y = 0; y < H; ++y) {
+            std::copy(rawData[y], rawData[y] + W, &out.data[size_t(y) * W]);
+        }
+    }
+    for (int i = 0; i < 4; ++i) {
+        out.clip[i] = clmax[i];
+    }
+    for (int i = 0; i < 3; ++i) {
+        out.pre_mul[i] = ri->get_pre_mul(i);
+    }
+    {
+        const float mx = std::max(
+            std::max(ref_pre_mul[0], ref_pre_mul[1]), ref_pre_mul[2]);
+        for (int i = 0; i < 3; ++i) {
+            out.gain[i] = uniform_scale_ ? 1.0 : ref_pre_mul[i] / mx;
+        }
+        // the camera gains of the WB in use (also if not applied), which
+        // is what the neutral of a DNG has to describe
+        double g[3];
+        for (int i = 0; i < 3; ++i) {
+            g[i] = ri->get_pre_mul(i) / wb_true_[i];
+        }
+        const double gm = std::max(std::max(g[0], g[1]), g[2]);
+        for (int i = 0; i < 3; ++i) {
+            out.wb[i] = g[i] / gm;
+        }
+    }
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            out.cam_xyz[i][j] = imatrices.cam_xyz[i][j];
+        }
+    }
+    out.uniform = uniform_scale_;
+    out.rotate = ri->get_rotateDegree();
+    return true;
+}
+
 void RawImageSource::scaleColors(int winx, int winy, int winw, int winh,
                                  const RAWParams &raw, array2D<float> &rawData)
 {
@@ -3201,8 +3287,14 @@ void RawImageSource::scaleColors(int winx, int winy, int winw, int winh,
             (ri->get_white(i) - cblacksom[i]) / raw_expos + cblacksom[i];
     }
 
+    float scale_pre_mul[4] = {ref_pre_mul[0], ref_pre_mul[1], ref_pre_mul[2],
+                              ref_pre_mul[3]};
+    if (uniform_scale_) {
+        scale_pre_mul[0] = scale_pre_mul[1] = scale_pre_mul[2] =
+            scale_pre_mul[3] = 1.f;
+    }
     initialGain = calculate_scale_mul(
-        scale_mul, ref_pre_mul, c_white, cblacksom, isMono,
+        scale_mul, scale_pre_mul, c_white, cblacksom, isMono,
         ri->get_colors()); // recalculate scale colors with adjusted levels
 
     // fprintf(stderr, "recalc: %f [%f %f %f %f]\n", initialGain, scale_mul[0],

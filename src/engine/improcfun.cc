@@ -129,6 +129,7 @@ void ImProcFunctions::updateColorProfiles(const Glib::ustring &monitorProfile,
         cmsDeleteTransform(monitorTransform);
     }
     gamutWarning.reset(nullptr);
+    monitorFast.reset();
 
     monitorTransform = nullptr;
     monitor = nullptr;
@@ -274,6 +275,11 @@ void ImProcFunctions::updateColorProfiles(const Glib::ustring &monitorProfile,
             monitorTransform =
                 cmsCreateTransform(iprof, TYPE_RGB_FLT, monitor, TYPE_RGB_FLT,
                                    monitorIntent, flags);
+        }
+
+        if (!softProofCreated && monitorTransform && !gamutCheck &&
+            monitorIntent == RI_RELATIVE) {
+            monitorFast = MonitorMatrixTransform::create(iprof, monitor);
         }
 
         if (gamutCheck && gamutprof) {
@@ -616,6 +622,9 @@ void ImProcFunctions::setProgressListener(ProgressListener *pl,
 template <class Ret, class Method>
 Ret ImProcFunctions::apply(const char *name, Method op, Imagefloat *img, bool can_skip_sync)
 {
+    // between tools nothing is in flight: safe place to abandon the update
+    throwIfAborted();
+
     if (plistener) {
         float percent = float(++progress_step) / float(progress_end);
         plistener->setProgress(percent);

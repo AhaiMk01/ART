@@ -1207,6 +1207,31 @@ PREFERENCES_SELECTLANG;Selecteer taal
 PREFERENCES_SERIALIZE_TIFF_READ_LABEL;Serieel lezen van TIFF-bestanden
 PREFERENCES_SERIALIZE_TIFF_READ;Leesopties TIFF 
 PREFERENCES_SERIALIZE_TIFF_READ_TOOLTIP;Als een map veel ongecomprimeerde TIFF-bestanden bevat dan versnelt deze optie het genereren van de miniaturen.
+PREFERENCES_SHORTCUTS_ACTION;Actie
+PREFERENCES_SHORTCUTS_ADD;Voeg toets toe...
+PREFERENCES_SHORTCUTS_ASSIGNANYWAY;Toch toekennen
+PREFERENCES_SHORTCUTS_BACKTOCTRL;Ga terug naar Ctrl
+PREFERENCES_SHORTCUTS_CHOOSE;Kies andere toets...
+PREFERENCES_SHORTCUTS_CHANGE;Verander...
+PREFERENCES_SHORTCUTS_CONFLICT;<b>%1</b> wordt al gebruikt door <b>%2</b>.\n\nHier toekennen en de oude verwijderen?
+PREFERENCES_SHORTCUTS_ESC;(Esc om te stoppen)
+PREFERENCES_SHORTCUTS_KEEP;Behouden
+PREFERENCES_SHORTCUTS_KEEPBOTH;Behoud beide
+PREFERENCES_SHORTCUTS_KEYS;Sneltoets
+PREFERENCES_SHORTCUTS_MOUSEMOD;Toets om muisacties te wijzigen (Ctrl+click...)
+PREFERENCES_SHORTCUTS_MOUSEMOD_TIP;De toets die met de muis wordt gebruikt om schuiven terug te zetten naar hun standaardwaarden, snelle export, selecties uitbreiden, tekenen in de gereedschappen... Dat is de Ctrl-toets, net als in eerdere versies van ART; op macOS wil je waarschijnlijk de Cmd-toets gebruiken (Ctrl+click is een rechtsklik daar).
+PREFERENCES_SHORTCUTS_OVERLAP;<b>%1</b> wordt ook gebruikt door <b>%2</b>.\n\nBeide kunnen tegelijkertijd actief zijn, maar slechts één zal reageren. Beide behouden of de laatste verwijderen?
+PREFERENCES_SHORTCUTS_PRESS;Kies nieuwe sneltoets
+PREFERENCES_SHORTCUTS_REASSIGN;Opnieuw toewijzen
+PREFERENCES_SHORTCUTS_PRIMARY;Primaire aanpastoets voor de sneltoetsen
+PREFERENCES_SHORTCUTS_PRIMARY_TIP;De primaire toets voor de sneltoetsen: alle standaard sneltoetsen gebruiken deze (Ctrl+S, Ctrl+Z...). Ctrl is de toets die ART altijd heeft gebruikt. Op macOS kun je Cmd kiezen, op andere systemen de Windows-toets. De muisacties hebben hun eigen instelling. 
+PREFERENCES_SHORTCUTS_RESETALL;Alles terugzetten
+PREFERENCES_SHORTCUTS_SYSCLASH;<b>%1</b> (%2) is een systeemsneltoets.\n\nHet systeem houdt deze in gebruik nog voordat ART het kan zien. Wat wil je hiermee doen?
+PREFERENCES_SHORTCUTS_SYSTEM;<b>%1</b> is een systeemsneltoets.\n\nHet systeem houdt deze toets in gebruik nog voordat ART die kan zien (zie de sneltoetsen van het systeem). Toch toewijzen? 
+PREFERENCES_SHORTCUTS_SYSTEMNOTE;Merk op dat <b>%1</b> een systeemsneltoets is: Het systeem houdt deze toets in gebruik nog voordat ART die kan zien.
+PREFERENCES_SHORTCUTS_SEARCH;Zoekacties en sneltoetsen
+PREFERENCES_SHORTCUTS_RESTART;Veranderingen in de sneltoetsen worden effectief na een herstart van ART. Aangepaste sneltoetsen worden vet weergegeven.
+PREFERENCES_SHORTCUTS_SAVEERROR;De sneltoetsen konden niet bewaard worden:\n%1
 PREFERENCES_SHOWBASICEXIF;Toon standaard Exif-info
 PREFERENCES_SHOWDATETIME;Toon datum en tijd
 PREFERENCES_SHOWEXPOSURECOMPENSATION;Toon belichtingscompensatie
@@ -1233,6 +1258,7 @@ PREFERENCES_TAB_FASTEXPORT;Snelle export
 PREFERENCES_TAB_GENERAL;Algemeen
 PREFERENCES_TAB_IMPROC;Beeldverwerking
 PREFERENCES_TAB_PERFORMANCE;Prestaties
+PREFERENCES_TAB_SHORTCUTS;Sneltoetsen
 PREFERENCES_TAB_SOUND;Geluiden
 PREFERENCES_THUMBNAIL_DELAY_UPDATE;Vertraag verversen van miniaturen tijdens het openen van mappen
 PREFERENCES_THUMBNAIL_LAZY_CACHING;Miniaturen 'lui' in de cache plaatsen
@@ -1728,6 +1754,7 @@ TP_LABMASKS_DELTAE_H;H
 TP_LABMASKS_DELTAE;Kleurverwantschapsmasker
 TP_LABMASKS_DELTAE_L;L
 TP_LABMASKS_DELTAE_PICK;Kies kleur
+TP_LABMASKS_DELTAE_SIZE_TOOLTIP;De grootte van het vierkant dat door de kleurenkiezer wordt gebruikt, in pixels
 TP_LABMASKS_DELTAE_RANGE;Bereik
 TP_LABMASKS_DELTAE_TOOLTIP;Kies gebieden van gelijke kleur\n(volgens de CIELAB ΔE*-metriek)
 TP_LABMASKS_DRAWNMASK_ADD_BOUNDED_TOOLTIP;Plaats penseelmasker boven de andere maskers, maar alleen binnen het actieve gebiedsmasker
