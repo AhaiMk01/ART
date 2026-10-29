@@ -1,3 +1,14 @@
+#00 Japan - Japanese
+#01 2021-08-29 Ohnishi, Yasuo, initial translation for 1.9.3
+#02 2021-08-30 Ohnishi, Yasuo, some fixes
+#03 2021-08-31 Ohnishi, Yasuo, some fixes
+#04 2021-09-01 Ohnishi, Yasuo, some fixes
+#05 2021-09-05 Ohnishi, Yasuo, some fixes
+#06 2021-09-09 Ohnishi, Yasuo, some fixes
+#07 2021-10-06 Ohnishi, Yasuo, some fixes
+#08 2021-10-07 Ohnishi, Yasuo, updated for 1.10
+#09 2021-10-11 Ohnishi, Yasuo, updated
+#10 2021-10-18 Ohnishi, Yasuo, some fixes and updated for New Keys
 #11 2021-12-01 Ohnishi, Yasuo, some fixes and updated for 1.11
 #12 2021-12-23 Ohnishi, Yasuo, updated for 1.12
 #13 2022-01-30 Ohnishi, Yasuo, updated for 1.12.1
@@ -21,6 +32,7 @@
 #31 2026-04-26  Ohnishi, Yasuo, updates for 1.26.4
 #32 2026-06-10  Ohnishi, Yasuo, updates for 1.26.6
 #33 2026-10-07  Ohnishi, Yasuo, updates for 1.26.10
+#34 2026-10-29  Ohnishi, Yasuo, updates for 1.26.11
 ABOUT_TAB_BUILD;バージョン
 ABOUT_TAB_CREDITS;クレジット
 ABOUT_TAB_LICENSE;ライセンス
@@ -1213,6 +1225,33 @@ PREFERENCES_SELECTLANG;言語選択 / Language
 PREFERENCES_SERIALIZE_TIFF_READ;TIFFファイルの読み込み設定
 PREFERENCES_SERIALIZE_TIFF_READ_LABEL;TIFFファイルの読み込みをシリアライズ
 PREFERENCES_SERIALIZE_TIFF_READ_TOOLTIP;画像フォルダーが多数の非圧縮のTIFFファイルで占められている場合 このオプションを有効にすることで サムネイル画像生成の効率が上がります
+
+PREFERENCES_SHORTCUTS_ACTION;動作
+PREFERENCES_SHORTCUTS_ADD;キーを追加...
+PREFERENCES_SHORTCUTS_ASSIGNANYWAY;強制的に割当
+PREFERENCES_SHORTCUTS_BACKTOCTRL;Ctrl に戻る
+PREFERENCES_SHORTCUTS_CHOOSE;別のキーを選択...
+PREFERENCES_SHORTCUTS_CHANGE;変更...
+PREFERENCES_SHORTCUTS_CONFLICT;<b>%1</b>キーは既に<b>%2</b>に使われています\n\n前の割当を削除しこちらに割り当てますか?
+PREFERENCES_SHORTCUTS_ESC;(Esc でキャンセル)
+PREFERENCES_SHORTCUTS_KEEP;そのままにする
+PREFERENCES_SHORTCUTS_KEEPBOTH;両方共保持
+PREFERENCES_SHORTCUTS_KEYS;ショートカット
+PREFERENCES_SHORTCUTS_MOUSEMOD;マウス動作を変更 (Ctrl-click...)
+PREFERENCES_SHORTCUTS_MOUSEMOD_TIP;スライダーのリセット 即時出力 選択の拡張 ツールへの取込みにマウスと同時に使うキーは ART の前のバージョンと同じく Ctrl です; macOS では Cmd を使ってください (Ctrl-click は右クリック相当になります).
+PREFERENCES_SHORTCUTS_OVERLAP;<b>%1</b> キーは <b>%2</b>にも使われています\n\n両方とも同時に有効化できますが 再度押すと一方しか反応しません 両方とも保持しますか または前の設定を削除しますか?
+PREFERENCES_SHORTCUTS_PRESS;押して新ショートカット作成
+PREFERENCES_SHORTCUTS_REASSIGN;割当て直す
+PREFERENCES_SHORTCUTS_PRIMARY;ショートカットのプライマリ キーの変更
+PREFERENCES_SHORTCUTS_PRIMARY_TIP;ショートカットにおけるプライマリ キーの意味: すべてのショートカットで必ず使われるキーです (例: Ctrl+S, Ctrl+Z...). ART では Ctrl キーがプライマリとして従来から使われてきました. macOS ではその代わりに Cmd キーが それ以外では Windows キーが選べます マウスは OS ごと固有の動作になります
+PREFERENCES_SHORTCUTS_RESETALL;全リセット
+PREFERENCES_SHORTCUTS_SYSCLASH;<b>%1</b> (%2) はシステムショートカットです\n\nシステムショートカットは ART の設定より優先されます どうしますか?
+PREFERENCES_SHORTCUTS_SYSTEM;<b>%1</b> はシステムショートカットです\n\nシステムショートカットは ART の設定より優先されます (システムキーボード設定を参照してください) それでも割当てますか?
+PREFERENCES_SHORTCUTS_SYSTEMNOTE;<b>%1</b> はシステムショートカットであるのにご注意ください: システムショートカットは ART の設定より優先されます
+PREFERENCES_SHORTCUTS_SEARCH;動作とキーを検索
+PREFERENCES_SHORTCUTS_RESTART;ショートカット設定は次に ART を再起動すると有効になります 変更点は太字で表示されます
+PREFERENCES_SHORTCUTS_SAVEERROR;ショートカット設定は保存できませんでした:\n%1
+
 PREFERENCES_SHOWBASICEXIF;基本Exif情報を表示
 PREFERENCES_SHOWDATETIME;日付表示
 PREFERENCES_SHOWEXPOSURECOMPENSATION;露出補正追加
@@ -1238,6 +1277,7 @@ PREFERENCES_TAB_FASTEXPORT;高速エクスポート
 PREFERENCES_TAB_GENERAL;一般
 PREFERENCES_TAB_IMPROC;画像処理
 PREFERENCES_TAB_PERFORMANCE;パフォーマンス
+PREFERENCES_TAB_SHORTCUTS;キーボード ショートカット
 PREFERENCES_TAB_SOUND;サウンド
 PREFERENCES_THUMBNAIL_DELAY_UPDATE;ディレクトリを開く際 サムネイル画像の更新を遅らせる
 PREFERENCES_THUMBNAIL_LAZY_CACHING;サムネイル画像の粗いキャッシュを作る (Lazy caching)
@@ -1747,7 +1787,8 @@ TP_LABMASKS_DELTAE_C;C
 TP_LABMASKS_DELTAE_H;H
 TP_LABMASKS_DELTAE_RANGE;範囲 (Range)
 TP_LABMASKS_DELTAE_DECAY;衰減 (Decay)
-TP_LABMASKS_DELTAE_PICK;Pick
+TP_LABMASKS_DELTAE_PICK;採色
+TP_LABMASKS_DELTAE_SIZE_TOOLTIP;採色の際サンプリングする正方形のサイズ（ピクセル単位）
 TP_LABMASKS_DELTAE_CHAN_WEIGHT;デルタE (色差) の計算にウエイト付け
 TP_LABMASKS_DELTAE_TOOLTIP;類似色領域を選択\n(CIELABデルタE メトリックに準拠)
 TP_LABMASKS_DRAWNMASK;ブラシマスク
