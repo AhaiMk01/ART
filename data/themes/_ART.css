@@ -1357,6 +1357,15 @@ filechooser placessidebar list row:selected:hover label {
     color: @ART-bg;
 }
 
+/* The file/directory list */
+filechooser treeview.view:selected,
+filechooser treeview.view:selected:hover,
+filechooser treeview.view:selected:focus {
+    background-color: @ART-hl;
+    background-image: none;
+    color: @ART-bg;
+}
+
 /*** end ***************************************************************************************/
 
 /*** Scrollbar ***************************************/
