@@ -51,6 +51,7 @@ class RenderSession:
         exiftool: Exiftool | None,
         inline_previews: bool,
         store: ProfileStore | None = None,
+        locks: ImageLocks | None = None,
     ) -> None:
         self.cli = cli
         self.config_dir = config_dir
@@ -58,7 +59,7 @@ class RenderSession:
         self.exiftool = exiftool
         self.inline_previews = inline_previews
         self.store: ProfileStore = store if store is not None else MemoryStore()
-        self._locks = ImageLocks()
+        self._locks = locks if locks is not None else ImageLocks()
         self._art_version: str | None = None
         self._version_guard = threading.Lock()
         self.last_sheets_folder: Path | None = None

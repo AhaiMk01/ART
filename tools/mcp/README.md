@@ -444,6 +444,38 @@ how it got there. Each call is one *pass*:
   for `compare_passes` too); the folder of an `export_batch`, the source
   images' folder and the temp folder are never a default.
 
+## Command line (`art-axi`)
+
+`art-axi` runs the Render operations from a shell, for agents that call
+commands instead of MCP tools. It follows [AXI](https://axi.md): output is
+[TOON](https://toonformat.dev) on stdout, errors too (`error`, `code`, a `help`
+line with the command that fixes it), exit code 0 / 1 (the operation failed) /
+2 (bad usage: an unknown flag is rejected by name with the valid ones listed),
+progress on stderr, no prompts. `art-axi` alone lists the open images;
+`art-axi --help` the commands; `art-axi <command> --help` one command with
+examples; `--version` answers without loading the CLI.
+
+```sh
+uv run --directory tools/mcp art-axi open /raw/IMG_1.ARW
+uv run --directory tools/mcp art-axi edit /raw/IMG_1.ARW --set Exposure/Compensation=0.5
+uv run --directory tools/mcp art-axi preview /raw/IMG_1.ARW --size 800   # prints the JPEG's path
+uv run --directory tools/mcp art-axi save /raw/IMG_1.ARW
+```
+
+Commands: `open`, `close`, `reset`, `profile` (default: only values that
+differ from ART's default; `--all` for every one), `edit` (`--set
+Group/Key=value`, `--adjust '<json>'`), `describe`, `preview`, `stats`,
+`sample`, `save`, `export`, `inspect`. Contact sheets, presets, batch export
+and partial profiles are MCP-only for now.
+
+Each run is its own process, so working profiles live on disk in a state
+folder (`ART_AXI_HOME`, default `%LOCALAPPDATA%\art-axi` or
+`~/.local/state/art-axi`): an image stays open across runs until `close`,
+runs about one image wait for each other (a lock file per image), and
+previews stay a day. `--art-dir <folder>` and `--timeout <seconds>` work on
+every command; ART-cli is found as for the server (`ART_DIR`, PATH, newest
+install).
+
 ## Skills
 
 `skills/` holds Claude skills that teach an agent a workflow with these tools
