@@ -30,7 +30,16 @@ from art_mcp.axi.core import (
     emit,
     error_output,
 )
-from art_mcp.axi.editing import build_describe, build_edit, build_profile, run_describe, run_edit, run_profile
+from art_mcp.axi.editing import (
+    build_describe,
+    build_edit,
+    build_preset,
+    build_profile,
+    run_describe,
+    run_edit,
+    run_preset,
+    run_profile,
+)
 from art_mcp.axi.images import (
     build_close,
     build_inspect,
@@ -45,8 +54,8 @@ from art_mcp.axi.images import (
 from art_mcp.axi.measuring import build_sample, build_stats, run_sample, run_stats
 from art_mcp.axi.output import rows
 from art_mcp.axi.state import default_home
-from art_mcp.axi.viewing import build_preview, build_sheet, run_preview, run_sheet
-from art_mcp.axi.writing import build_export, build_save, run_export, run_save
+from art_mcp.axi.viewing import build_compare, build_preview, build_sheet, run_compare, run_preview, run_sheet
+from art_mcp.axi.writing import build_export, build_partial, build_save, run_export, run_partial, run_save
 
 COMMANDS = {
     c.name: c
@@ -175,6 +184,36 @@ COMMANDS = {
                 "art-axi sheet roll/*.ARW --record ~/work --label exposure",
             ],
             {"--thumb-size": "use --thumb", "--folder": "use --record <folder>"},
+        ),
+        Command(
+            "compare",
+            "Two passes recorded with `sheet --record` side by side, frame by frame, in one JPEG.",
+            build_compare,
+            run_compare,
+            ["art-axi compare 1 2 --folder ~/work", "art-axi compare 2 3 IMG_1.ARW IMG_4.ARW --folder ~/work"],
+        ),
+        Command(
+            "preset",
+            "Lay an .arp over open images' working profiles: its keys win, every other value (crop, earlier "
+            "edits) stays.",
+            build_preset,
+            run_preset,
+            [
+                "art-axi preset roll/ --profile look.arp",
+                "art-axi preset roll/ --profile look.arp --exclude Exposure/Compensation --exclude ToneCurve",
+            ],
+            {"--exclude-keys": "use --exclude GROUP[/KEY] (repeatable)", "--preset": "use --profile <arp>"},
+        ),
+        Command(
+            "partial",
+            "Write an open image's values as a partial profile (.arp), to use as a preset.",
+            build_partial,
+            run_partial,
+            [
+                "art-axi partial roll/IMG_1.ARW --out look.arp",
+                "art-axi partial roll/IMG_1.ARW --out look.arp --vs default --exclude Exposure/Compensation",
+            ],
+            {"--dest": "use --out <arp>", "--verbose": "use --keys"},
         ),
     )  # fmt: skip
 }

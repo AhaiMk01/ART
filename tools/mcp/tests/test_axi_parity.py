@@ -18,9 +18,6 @@ pytestmark = pytest.mark.anyio
 
 MCP_ONLY = {
     "inspect_images": "`art-axi inspect` takes several paths",
-    "apply_preset": "not in the CLI yet",
-    "save_partial_profile": "not in the CLI yet",
-    "compare_passes": "not in the CLI yet",
 }
 """Tool -> why it has no command of its own."""
 

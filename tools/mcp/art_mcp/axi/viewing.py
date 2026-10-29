@@ -1,4 +1,5 @@
-"""Looking at images: ``preview`` and the contact ``sheet``."""
+"""Looking at images: ``preview``, the contact ``sheet`` and ``compare`` (two
+recorded passes side by side)."""
 
 import argparse
 import os
@@ -143,3 +144,31 @@ def run_sheet(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
         out["warnings"] = result.warnings
     out["help"] = ["open the sheet JPEG to look at the frames", "art-axi preview <path>  (one frame larger)"]
     return out
+
+
+def build_compare(p: Parser) -> None:
+    p.add_argument("first", type=int, metavar="FIRST", help="pass number shown left")
+    p.add_argument("second", type=int, metavar="SECOND", help="pass number shown right")
+    p.add_argument(
+        "frames", nargs="*", metavar="FRAME", help="file names or paths of the frames to show (default: every frame "
+        "in both passes)",
+    )  # fmt: skip
+    p.add_argument(
+        "--folder", required=True, metavar="DIR",
+        help="the folder given to `sheet --record` (it holds sheets/), not sheets/ itself",
+    )  # fmt: skip
+    p.add_argument("--columns", type=int, default=2, metavar="N", help="pairs per row (default %(default)s)")
+
+
+def run_compare(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
+    """Two recorded passes side by side, frame by frame."""
+    from art_mcp.render import sheet_ops
+
+    session = ctx.session()
+    result = call(lambda: sheet_ops.compare_passes(session, a.first, a.second, a.folder, a.frames or None, a.columns))
+    return {
+        "compare": shown(result.path),
+        "layout": f"pass {result.first} left, pass {result.second} right; {a.columns} pairs per row",
+        "frames": result.images,
+        "help": ["open the JPEG to look at it"],
+    }

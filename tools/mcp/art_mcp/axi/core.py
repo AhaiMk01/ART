@@ -136,6 +136,9 @@ TOOL_NAMES = {
     "inspect_image": "inspect",
     "export_batch": "export",
     "contact_sheet": "sheet",
+    "apply_preset": "preset",
+    "save_partial_profile": "partial",
+    "compare_passes": "compare",
 }
 """The MCP tool names the operations' messages use -> this CLI's commands."""
 

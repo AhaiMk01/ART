@@ -1,4 +1,4 @@
-"""Writing files: ``save`` (sidecars) and ``export``."""
+"""Writing files: ``save`` (sidecars), ``export`` and ``partial`` (presets)."""
 
 import argparse
 from pathlib import Path
@@ -134,3 +134,45 @@ def export_many(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
     if failures:
         out["failed"] = rows(failures, ["image", "error"])
     return out
+
+
+def build_partial(p: Parser) -> None:
+    p.add_argument("path", metavar="PATH")
+    p.add_argument("--out", required=True, metavar="ARP", help="the partial profile to write (its folder is created)")
+    p.add_argument(
+        "--vs", choices=("opened", "default"), default="opened",
+        help="which values: those changed since the image was opened, reset or saved (opened), or every value that "
+        "differs from ART's default profile (default) (default %(default)s)",
+    )  # fmt: skip
+    p.add_argument(
+        "--exclude", action="append", default=[], metavar="GROUP[/KEY]",
+        help="leave this [Group] or Group/Key out (repeatable), e.g. Exposure/Compensation for a per-frame value",
+    )  # fmt: skip
+    p.add_argument("--keys", action="store_true", help="list every Group/Key written, not a count per group")
+    p.add_argument("--overwrite", action="store_true", help="replace an existing --out file")
+
+
+def run_partial(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
+    """Write an image's values as a partial profile: a preset for `art-axi
+    preset` or for opening other frames with `open --profile`."""
+    from art_mcp.render import save_ops
+
+    session = ctx.session()
+    try:
+        Path(a.out).parent.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        raise Failure(f"can't create the folder for --out: {e}", code="not_found") from e
+    result = call(
+        lambda: save_ops.save_partial_profile(session, a.path, a.out, a.overwrite, a.exclude or None, a.vs, a.keys),
+        a.path,
+    )
+    if not result.written:
+        nothing = "no unsaved changes" if a.vs == "opened" else "no values differ from ART's default"
+        return {"partial": f"nothing written: {nothing}", "help": [f"art-axi partial {shown(a.path)} --vs default ..."]}
+    return {
+        "partial": shown(result.path),
+        "vs": result.vs,
+        "total": result.total,
+        "keys": result.keys,
+        "help": [f"art-axi preset <path>... --profile {shown(result.path)}"],
+    }

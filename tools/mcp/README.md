@@ -469,9 +469,12 @@ Group/Key=value`, `--adjust '<json>'`), `describe`, `preview`, `stats`,
 `--out-dir`), `inspect`, `sheet` (a contact sheet to look at; `--record
 <folder>` saves it as a numbered pass). `stats --set` measures values without
 storing them, and `stats --sweep Group/Key=0:1:0.1` measures a range in one call,
-over several images taking the worst one per value. Presets, pass comparison
-and partial profiles are MCP-only for now (`tests/test_axi_parity.py` lists
-them).
+over several images taking the worst one per value. `partial` writes an
+image's values as a partial profile and `preset` lays one over open images,
+listing every value that changed (ART's loader can reset keys of a group the
+preset doesn't list); `compare` puts two recorded `sheet` passes side by side.
+`open <folder>` opens the images in it. Every MCP tool has a command
+(`tests/test_axi_parity.py` keeps it so).
 
 Each run is its own process, so working profiles live on disk in a state
 folder (`ART_AXI_HOME`, default `%LOCALAPPDATA%\art-axi` or

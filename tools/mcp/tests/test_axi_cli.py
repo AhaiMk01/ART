@@ -461,3 +461,82 @@ def test_all_refuses_to_change_images_in_several_folders(axi, tmp_path):
 
     code, out = axi("close", "--all")
     assert code == 0 and "closed: 3 of 3" in out
+
+
+def test_partial_then_preset_round_trip(axi, tmp_path):
+    images = two_images(tmp_path)
+    axi("open", *images)
+    axi("edit", images[0], "--set", "Exposure/Compensation=1.5", "--set", "Exposure/Black=0.1")
+    arp = tmp_path / "presets" / "look.arp"
+    code, out = axi("partial", images[0], "--out", arp, "--exclude", "Exposure/Black")
+
+    assert code == 0, out
+    assert arp.is_file() and "total: 1" in out
+    assert "Black" not in arp.read_text()
+
+    code, out = axi("preset", images[1], "--profile", arp)
+    assert code == 0, out
+    assert "applied: 1 of 1" in out
+    _, profile = axi("profile", images[1], "--groups", "Exposure")
+    assert "Exposure/Compensation,1.5" in profile
+
+
+def test_partial_with_nothing_to_write(axi, image, tmp_path):
+    axi("open", image)
+    code, out = axi("partial", image, "--out", tmp_path / "x.arp")
+
+    assert code == 0, out
+    assert "nothing written" in out and not (tmp_path / "x.arp").exists()
+
+
+def test_preset_all_refuses_several_folders(axi, tmp_path):
+    images = two_images(tmp_path)
+    other = tmp_path / "other" / "C.ARW"
+    other.parent.mkdir()
+    other.write_bytes(b"raw")
+    axi("open", *images, other)
+    arp = tmp_path / "p.arp"
+    arp.write_text("[Exposure]\nCompensation=1\n")
+    code, out = axi("preset", "--all", "--profile", arp)
+
+    assert code == 2 and "2 folders" in out
+
+
+def test_compare_two_recorded_passes(axi, tmp_path, monkeypatch):
+    monkeypatch.setenv("FAKE_REAL_JPEG", "1")
+    images = two_images(tmp_path)
+    work = tmp_path / "work"
+    work.mkdir()
+    axi("open", *images)
+    code, out = axi("sheet", *images, "--record", work, "--label", "before")
+    assert code == 0, out
+    axi("edit", *images, "--set", "Exposure/Compensation=1")
+    code, out = axi("sheet", *images, "--record", work)
+    assert code == 0, out
+    assert "pass: 2" in out
+
+    code, out = axi("compare", "1", "2", "--folder", work)
+    assert code == 0, out
+    assert "pass 1 left, pass 2 right" in out
+    jpeg = next(line for line in out.splitlines() if line.startswith("compare:")).split(":", 1)[1].strip().strip('"')
+    assert Path(jpeg).is_file()
+
+
+def test_open_a_folder_opens_its_images(axi, tmp_path):
+    two_images(tmp_path)
+    (tmp_path / "notes.txt").write_text("x")
+    code, out = axi("open", tmp_path)
+
+    assert code == 0, out
+    assert "opened: 2 of 2" in out
+
+
+def test_preset_lists_what_it_changed(axi, tmp_path):
+    images = two_images(tmp_path)
+    axi("open", *images)
+    arp = tmp_path / "p.arp"
+    arp.write_text("[Exposure]\nCompensation=1\n")
+    code, out = axi("preset", tmp_path, "--profile", arp)
+
+    assert code == 0, out
+    assert "changed[" in out and "Exposure/Compensation,0,1" in out

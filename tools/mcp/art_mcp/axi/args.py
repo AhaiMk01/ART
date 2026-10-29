@@ -65,7 +65,7 @@ def names(text: str) -> list[str]:
 SIDECAR_SUFFIXES = (".arp", ".bak")
 """Files a shell glob over a roll's folder picks up beside the images."""
 
-CHANGING = ("edit", "reset", "save", "export")
+CHANGING = ("edit", "reset", "save", "export", "preset")
 """Commands that change or write something: their --all must stay in one folder."""
 
 

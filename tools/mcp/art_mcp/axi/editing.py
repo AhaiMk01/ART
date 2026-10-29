@@ -1,4 +1,5 @@
-"""Reading and changing working profiles: ``profile``, ``edit`` and ``describe``."""
+"""Reading and changing working profiles: ``profile``, ``edit``, ``describe``
+and ``preset``."""
 
 import argparse
 import json
@@ -7,7 +8,7 @@ from typing import Any
 from art_mcp.axi import toon
 from art_mcp.axi.args import add_paths, names, raw_edit
 from art_mcp.axi.core import Context, Failure, Parser, UsageError, adjustments_arg, call, edit_count
-from art_mcp.axi.output import TRUNCATE, as_number, image_labels, prune, rows, shown, truncated
+from art_mcp.axi.output import TRUNCATE, as_number, image_labels, progress, prune, rows, shown, truncated
 
 
 def build_profile(p: Parser) -> None:
@@ -194,4 +195,65 @@ def run_describe(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
     }
     if len(tool.description) > TRUNCATE and not a.full:
         out["help"] = [f"art-axi describe {a.tool} --full"]
+    return out
+
+
+def profile_changes(before: dict[str, dict[str, str]], after: dict[str, dict[str, str]]) -> list[dict[str, Any]]:
+    """Every stored value that differs between two copies of a profile, as rows
+    `Group/Key, old, new` (null: absent); [Version] is left out."""
+    table = []
+    for group in [*after, *(g for g in before if g not in after)]:
+        if group == "Version":
+            continue
+        old, new = before.get(group, {}), after.get(group, {})
+        for key in [*new, *(k for k in old if k not in new)]:
+            if old.get(key) != new.get(key):
+                table.append({"key": f"{group}/{key}", "old": as_number(old.get(key)), "new": as_number(new.get(key))})
+    return table
+
+
+def build_preset(p: Parser) -> None:
+    add_paths(p, "open images to lay the preset over")
+    p.add_argument("--profile", required=True, metavar="ARP", help="the preset: an .arp, partial or complete")
+    p.add_argument(
+        "--exclude", action="append", default=[], metavar="GROUP[/KEY]",
+        help="leave this [Group] or Group/Key of the preset out, so the frames keep theirs (repeatable)",
+    )  # fmt: skip
+
+
+def run_preset(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
+    """Lay an .arp over the working profiles: its keys win, every other value
+    (crop, earlier edits) stays; the changes count as the agent's, like edit's."""
+    from art_mcp.render import preset_ops
+
+    session = ctx.session()
+    before = {path: call(lambda path=path: profile_before(session, path), path) for path in a.paths}
+    result = call(
+        lambda: preset_ops.apply_preset(session, a.paths, a.profile, a.exclude or None, on_progress=progress("preset")),
+        a.paths[0],
+    )
+    folder, label = image_labels(a.paths)
+    done = [i for i in result.items if not i.error]
+    failures = [{"image": label.get(i.path, i.path), "error": i.error} for i in result.items if i.error]
+    out: dict[str, Any] = {
+        "applied": f"{result.applied} of {len(result.items)}",
+        "preset": shown(result.profile),
+        **({"folder": folder} if folder else {}),
+    }
+    if result.excluded:
+        out["excluded"] = result.excluded
+    # What changed in each image, old -> new: ART's loader can change keys the
+    # preset doesn't list (a group's missing keys go back to their defaults).
+    changes = {i.path: profile_changes(before[i.path], profile_before(session, i.path)) for i in done}
+    tables = list(changes.values())
+    if tables and all(t == tables[0] for t in tables):
+        # The same change to every image: said once.
+        out["changed"] = rows(tables[0], ["key", "old", "new"]) if tables[0] else "nothing (the values were set)"
+    elif tables:
+        out["images"] = [
+            {"image": label.get(p, p), "changed": rows(t, ["key", "old", "new"])} for p, t in changes.items()
+        ]
+    if failures:
+        out["failed"] = rows(failures, ["image", "error"])
+    out["help"] = ["art-axi profile <path>  (the values now)", "art-axi sheet <folder>  (look at the frames)"]
     return out

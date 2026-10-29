@@ -37,13 +37,23 @@ def run_home(ctx: Context) -> dict[str, Any]:
 
 
 def build_open(p: Parser) -> None:
-    p.add_argument("paths", nargs="+", metavar="PATH", help="images to open (up to 50)")
+    p.add_argument(
+        "paths", nargs="+", metavar="PATH", help="images to open (up to 50), or a folder for the images in it"
+    )
     p.add_argument("--profile", metavar="ARP", help="start from this .arp over ART's default instead of the sidecar")
 
 
 def run_open(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
-    from art_mcp.render import profile_ops
+    from art_mcp.render import export_ops, profile_ops
 
+    # A folder opens the raw, jpeg and tiff images directly in it.
+    expanded: list[str] = []
+    for path in a.paths:
+        if Path(path).is_dir():
+            expanded.extend(item.path for item in call(lambda path=path: export_ops.folder_items(path, None, None)))
+        else:
+            expanded.append(path)
+    a.paths = expanded
     session = ctx.session()
     if len(a.paths) == 1:
         opened = call(lambda: profile_ops.open_image(session, a.paths[0], a.profile), a.paths[0])
