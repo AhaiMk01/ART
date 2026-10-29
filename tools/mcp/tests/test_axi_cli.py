@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from art_mcp.axi import cli
+from art_mcp.axi import cli, core
 from art_mcp.axi.state import DiskStore, FileImageLocks, StatePreviews
 from art_mcp.render.artcli import ArtCli
 from art_mcp.render.session import RenderSession
@@ -210,8 +210,8 @@ def test_version_fast_path(capsys, monkeypatch):
 
 
 def test_messages_use_the_cli_names():
-    assert cli.in_cli_terms("x is not open; call open_image first") == "x is not open; call `art-axi open` first"
-    assert cli.in_cli_terms("y already exists; pass overwrite=true to replace it") == (
+    assert core.in_cli_terms("x is not open; call open_image first") == "x is not open; call `art-axi open` first"
+    assert core.in_cli_terms("y already exists; pass overwrite=true to replace it") == (
         "y already exists; pass --overwrite to replace it"
     )
 

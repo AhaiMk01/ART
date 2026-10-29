@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from mcp.client.client import Client
 
-from art_mcp.axi import cli
+from art_mcp.axi import cli, core
 from art_mcp.preview import PreviewFolder
 from art_mcp.render.artcli import ArtCli
 from art_mcp.render.server import build_server
@@ -39,17 +39,17 @@ async def mcp_tool_names(tmp_path) -> set[str]:
 async def test_every_tool_has_a_command_or_is_mcp_only(tmp_path):
     tools = await mcp_tool_names(tmp_path)
 
-    unaccounted = tools - set(cli.TOOL_NAMES) - set(MCP_ONLY)
+    unaccounted = tools - set(core.TOOL_NAMES) - set(MCP_ONLY)
     assert not unaccounted, f"add a command to art-axi (and TOOL_NAMES) or list these in MCP_ONLY: {unaccounted}"
 
 
 async def test_the_lists_name_only_real_tools(tmp_path):
     tools = await mcp_tool_names(tmp_path)
 
-    assert set(cli.TOOL_NAMES) <= tools, set(cli.TOOL_NAMES) - tools
+    assert set(core.TOOL_NAMES) <= tools, set(core.TOOL_NAMES) - tools
     assert set(MCP_ONLY) <= tools, set(MCP_ONLY) - tools
-    assert not set(MCP_ONLY) & set(cli.TOOL_NAMES)
+    assert not set(MCP_ONLY) & set(core.TOOL_NAMES)
 
 
 def test_mapped_commands_exist():
-    assert set(cli.TOOL_NAMES.values()) <= set(cli.COMMANDS)
+    assert set(core.TOOL_NAMES.values()) <= set(cli.COMMANDS)
