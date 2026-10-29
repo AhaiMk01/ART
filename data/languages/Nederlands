@@ -172,12 +172,12 @@ FILEBROWSER_APPLYPROFILE;Pas profiel toe
 FILEBROWSER_AUTODARKFRAME;Automatisch donkerframe
 FILEBROWSER_AUTOFLATFIELD;Automatisch vlakveld
 FILEBROWSER_BROWSEPATHBUTTONHINT;Ververs de lijst met miniaturen. \nSneltoets <b>%shortcut(filecatalog.refresh)%</b>
-FILEBROWSER_BROWSEPATHHINT;Typ het pad naar de doelmap.\n\nSneltoetsen:\n<b>%shortcut(filecatalog.focus_path)%</b> richt focus op tekstveld.\n<b>Enter</b> / <b>Ctrl+Enter</b> open die map.\n<b>Esc</b> maak het tekstveld leeg.\n<b>Shift-Esc</b> haal focus weg.\n\nSneltoetsen:\n<b>~</b> - thuismap gebruiker\n <b>!</b> - afbeeldingenmap gebruiker
+FILEBROWSER_BROWSEPATHHINT;Typ het pad naar de doelmap.\n\nSneltoetsen:\n<b>Ctrl+O</b> richt focus op tekstveld.\n<b>Enter</b> / <b>Ctrl+Enter</b> open die map.\n<b>Esc</b> maak het tekstveld leeg.\n<b>Shift-Esc</b> haal focus weg.\n\nSneltoetsen:\n<b>~</b> - thuismap gebruiker\n <b>!</b> - afbeeldingenmap gebruiker
 FILEBROWSER_CACHE;Cache
 FILEBROWSER_CACHECLEARFROMFULL;Wis alles inclusief opgeslagen profielen
 FILEBROWSER_CACHECLEARFROMPARTIAL;Wis alles behalve opgeslagen profielen
 FILEBROWSER_CLEARPROFILE;Wis
-FILEBROWSER_COLORLABEL_TOOLTIP;Labelkleur\n\nGebruik keuzemenu of sneltoets:\n<b>%shortcut(filebrowser.set_label.0)%</b> Geen kleur\n<b>%shortcut(filebrowser.set_label.1)%</b> Rood\n<b>%shortcut(filebrowser.set_label.2)%</b> Geel\n<b>%shortcut(filebrowser.set_label.3)%</b> Groen\n<b>%shortcut(filebrowser.set_label.4)%</b> Blauw\n<b>%shortcut(filebrowser.set_label.5)%</b> Paars
+FILEBROWSER_COLORLABEL_TOOLTIP;Labelkleur\n\nGebruik keuzemenu of sneltoets:\n<b>Shift+Ctrl+0</b> Geen kleur\n<b>Shift+Ctrl+1</b> Rood\n<b>Shift+Ctrl+2</b> Geel\n<b>Shift+Ctrl+3</b> Groen\n<b>Shift+Ctrl+4</b> Blauw\n<b>Shift+Ctrl+5</b> Paars
 FILEBROWSER_COPYPROFILE;Kopieer
 FILEBROWSER_CURRENT_NAME;Huidige naam:
 FILEBROWSER_DARKFRAME;Donkerframe
@@ -231,13 +231,13 @@ FILEBROWSER_POPUPTRASH;Verplaats naar prullenbak
 FILEBROWSER_POPUPUNRANK;Verwijder sterwaardering
 FILEBROWSER_POPUPUNTRASH;Haal terug uit prullenbak
 FILEBROWSER_QUERYBUTTONHINT;Wis zoekopdracht
-FILEBROWSER_QUERYHINT;Zoek op bestandsnamen. Ondersteunt gedeeltelijke bestandsnamen. Scheid zoektermen door komma's, zoals \n1001,1004,1199\n\nSluit zoektermen uit met een 'is niet' ofwel !=, zoals in\n!=1001,1004,1199\n\nSneltoetsen:\n<b>%shortcut(filecatalog.focus_query)%</b> - focus op zoekveld,\n<b>Enter</b> - zoek,\n<b>Esc</b> - maak zoekveld leeg, \n<b>Shift+Esc</b> - verwijder focus van het zoekveld.
+FILEBROWSER_QUERYHINT;Zoek op bestandsnamen. Ondersteunt gedeeltelijke bestandsnamen. Scheid zoektermen door komma's, zoals \n1001,1004,1199\n\nSluit zoektermen uit met een 'is niet' ofwel !=, zoals in\n!=1001,1004,1199\n\nSneltoetsen:\n<b>Ctrl+f</b> - focus op zoekveld,\n<b>Enter</b> - zoek,\n<b>Esc</b> - maak zoekveld leeg, \n<b>Shift+Esc</b> - verwijder focus van het zoekveld.
 FILEBROWSER_QUERYLABEL; Zoek:
-FILEBROWSER_RANK1_TOOLTIP;Waardering 1 *\nSneltoets: <b>%shortcut(filebrowser.set_rank.1)%</b>
-FILEBROWSER_RANK2_TOOLTIP;Waardering 2 *\nSneltoets: <b>%shortcut(filebrowser.set_rank.2)%</b>
-FILEBROWSER_RANK3_TOOLTIP;Waardering 3 *\nSneltoets: <b>%shortcut(filebrowser.set_rank.3)%</b>
-FILEBROWSER_RANK4_TOOLTIP;Waardering 4 *\nSneltoets: <b>%shortcut(filebrowser.set_rank.4)%</b>
-FILEBROWSER_RANK5_TOOLTIP;Waardering 5 *\nSneltoets: <b>%shortcut(filebrowser.set_rank.5)%</b>
+FILEBROWSER_RANK1_TOOLTIP;Waardering 1 *\nSneltoets: Shift+1
+FILEBROWSER_RANK2_TOOLTIP;Waardering 2 *\nSneltoets: Shift+2
+FILEBROWSER_RANK3_TOOLTIP;Waardering 3 *\nSneltoets: Shift+3
+FILEBROWSER_RANK4_TOOLTIP;Waardering 4 *\nSneltoets: Shift+4
+FILEBROWSER_RANK5_TOOLTIP;Waardering 5 *\nSneltoets: Shift+5
 FILEBROWSER_RENAMEDLGLABEL; Hernoem/verplaats bestand(en)
 FILEBROWSER_RENAME_DIALOG_LOAD_TIP;Laad instellingen uit bestand
 FILEBROWSER_RENAME_DIALOG_SAVE_TIP;Bewaar instellingen naar bestand
@@ -251,15 +251,15 @@ FILEBROWSER_SESSION_REMOVE_LABEL;Verwijder foto of selectie uit sessie
 FILEBROWSER_SESSION_LOAD_LABEL;Laad sessiebestand
 FILEBROWSER_SESSION_SAVE_LABEL;Bewaar sessiebestand
 FILECHOOSER_FILTER_ARS;ART sessiebestanden (*.ars)
-FILEBROWSER_SHOWCOLORLABEL1HINT;Toon foto's met label Rood\nSneltoets <b>%shortcut(filecatalog.filter_label.1)%</b>
-FILEBROWSER_SHOWCOLORLABEL2HINT;Toon foto's met label Geel\nSneltoets <b>%shortcut(filecatalog.filter_label.2)%</b>
-FILEBROWSER_SHOWCOLORLABEL3HINT;Toon foto's met label Groen\nSneltoets <b>%shortcut(filecatalog.filter_label.3)%</b>
-FILEBROWSER_SHOWCOLORLABEL4HINT;Toon foto's met label Blauw\nSneltoets <b>%shortcut(filecatalog.filter_label.4)%</b>
-FILEBROWSER_SHOWCOLORLABEL5HINT;Toon foto's met label Paars\nSneltoets <b>%shortcut(filecatalog.filter_label.5)%</b>
+FILEBROWSER_SHOWCOLORLABEL1HINT;Toon foto's met label Rood\nSneltoets <b>Alt+1</b>
+FILEBROWSER_SHOWCOLORLABEL2HINT;Toon foto's met label Geel\nSneltoets <b>Alt+2</b>
+FILEBROWSER_SHOWCOLORLABEL3HINT;Toon foto's met label Groen\nSneltoets <b>Alt+3</b>
+FILEBROWSER_SHOWCOLORLABEL4HINT;Toon foto's met label Blauw\nSneltoets <b>Alt+4</b>
+FILEBROWSER_SHOWCOLORLABEL5HINT;Toon foto's met label Paars\nSneltoets <b>Alt+5</b>
 FILEBROWSER_SHOWDIRHINT;Verwijder alle filters\nSneltoets: <b>%shortcut(filecatalog.filter_clear)%</b>
 FILEBROWSER_SHOWEDITEDHINT;Toon bewerkte afbeeldingen\nSneltoets: <b>%shortcut(filecatalog.filter_edited)%</b>
 FILEBROWSER_SHOWEDITEDNOTHINT;Toon onbewerkte afbeeldingen\nSneltoets: <b>%shortcut(filecatalog.filter_not_edited)%</b>
-FILEBROWSER_SHOWEXIFINFO;Toon Exif-info\nSneltoets: <b>%shortcut(filecatalog.toggle_exif)%</b>
+FILEBROWSER_SHOWEXIFINFO;Toon Exif-info\nSneltoetsen:\n<b>I</b> - Multi-tab modus,\n<b>Alt+I</b> - Enkel-tab modus.
 FILEBROWSER_SHOWNOTTRASHHINT;Toon alleen niet-verwijderde afbeeldingen.
 FILEBROWSER_SHOWORIGINALHINT;Toon alleen originele afbeelding.\n\nAls er meerdere afbeeldingen zijn met dezelfde naam maar verschillende extensies, dan wordt de afbeelding waarvan de extensie het hoogst staat in de lijst met extensies in Voorkeuren > Bestandsnavigator > Extensies als het origineel beschouwd.
 FILEBROWSER_SHOWRANK1HINT;Toon foto's met 1 ster\nSneltoets: <b>%shortcut(filecatalog.filter_rank.1)%</b>
@@ -267,10 +267,10 @@ FILEBROWSER_SHOWRANK2HINT;Toon foto's met 2 sterren\nSneltoets: <b>%shortcut(fil
 FILEBROWSER_SHOWRANK3HINT;Toon foto's met 3 sterren\nSneltoets: <b>%shortcut(filecatalog.filter_rank.3)%</b>
 FILEBROWSER_SHOWRANK4HINT;Toon foto's met 4 sterren\nSneltoets: <b>%shortcut(filecatalog.filter_rank.4)%</b>
 FILEBROWSER_SHOWRANK5HINT;Toon foto's met 5 sterren\nSneltoets: <b>%shortcut(filecatalog.filter_rank.5)%</b>
-FILEBROWSER_SHOWRECENTLYSAVEDHINT;Toon opgeslagen afbeeldingen\nSneltoets: <b>%shortcut(filecatalog.filter_recently_saved)%</b>
-FILEBROWSER_SHOWRECENTLYSAVEDNOTHINT;Toon niet-opgeslagen afbeeldingen\nSneltoets: <b>%shortcut(filecatalog.filter_not_recently_saved)%</b>
-FILEBROWSER_SHOWTRASHHINT;Toon inhoud prullenbak\nSneltoets: <b>%shortcut(filecatalog.toggle_trash)%</b>
-FILEBROWSER_SHOWUNCOLORHINT;Toon foto's zonder kleurlabel\nSneltoets: <b>%shortcut(filecatalog.filter_no_label)%</b>
+FILEBROWSER_SHOWRECENTLYSAVEDHINT;Toon opgeslagen afbeeldingen\nSneltoets: <b>Alt+7</b>
+FILEBROWSER_SHOWRECENTLYSAVEDNOTHINT;Toon niet-opgeslagen afbeeldingen\nSneltoets: <b>Alt+6</b>
+FILEBROWSER_SHOWTRASHHINT;Toon inhoud prullenbak\nSneltoets: <b>Ctrl+T</b>
+FILEBROWSER_SHOWUNCOLORHINT;Toon foto's zonder kleurlabel\nSneltoets: <b>Alt+0</b>
 FILEBROWSER_SHOWUNRANKHINT;Toon foto's zonder sterwaardering\nSneltoets: <b>%shortcut(filecatalog.filter_unranked)%</b>
 FILEBROWSER_SORT_LABEL;Volgorde miniaturen
 FILEBROWSER_SORT_FILENAME;Bestandsnaam in
@@ -282,9 +282,9 @@ FILEBROWSER_SORT_MODTIME_REV;Tijdstip bestandsmodificatie (omgekeerd)
 FILEBROWSER_SORT_PROCTIME;Tijdstip laatst bewaard
 FILEBROWSER_SORT_PROCTIME_REV;Tijdstip laatst bewaard (omgekeerd)
 FILEBROWSER_THUMBSIZE;Grootte miniaturen
-FILEBROWSER_UNRANK_TOOLTIP;Verwijder sterwaardering\nSneltoets: <b>%shortcut(filebrowser.set_rank.0)%</b>
-FILEBROWSER_ZOOMINHINT;Vergroot miniaturen\nSneltoets: <b>%shortcut(filecatalog.zoom_in)%</b>
-FILEBROWSER_ZOOMOUTHINT;Verklein miniaturen\nSneltoets: <b>%shortcut(filecatalog.zoom_out)%</b>
+FILEBROWSER_UNRANK_TOOLTIP;Verwijder sterwaardering\nSneltoets: <b>Shift+0</b>
+FILEBROWSER_ZOOMINHINT;Vergroot miniaturen\n\nSneltoetsen:\n- multi-tab <b>+</b> (azerty: <b>Alt+=</b>)\n- enkel-tab <b>Alt++</b> 
+FILEBROWSER_ZOOMOUTHINT;Verklein miniaturen\n\nSneltoetsen:\n- multi-tab <b>-</b> (azerty: <b>Alt+_)</b>,\n- enkel-tab <b>Alt+-</b>
 FILECHOOSER_FILTER_ANY;Alle bestanden
 FILECHOOSER_FILTER_COLPROF;Kleurprofielen (*.icc)
 FILECHOOSER_FILTER_CURVE;Curvebestanden
@@ -758,7 +758,7 @@ HISTORY_MSG_TONE_EQUALIZER_SHOW_COLOR_MAP;Toon kleurenkaart
 HISTORY_MSG_TONE_EQUALIZER_PIVOT;Tooneq. - draaipunt
 HISTORY_MSG_TONECURVE_BASECURVE; Tooncurve - basiscurve
 HISTORY_MSG_WBALANCE_MULT;WB - versterkers
-HISTORY_NEWSNAPSHOT_TOOLTIP;Sneltoets: <b>%shortcut(editor.add_snapshot)%</b>
+HISTORY_NEWSNAPSHOT_TOOLTIP;Sneltoets: <b>Alt+s</b>
 HISTORY_NEWSNAPSHOT;Voeg toe
 HISTORY_SNAPSHOT_CONFIRM_UPDATE;Huidig snapshot overschrijven?
 HISTORY_SNAPSHOT;Snapshot
@@ -805,9 +805,9 @@ ICCPROFCREATOR_SAVEDIALOG_TITLE;Bewaar ICC-profiel als...
 ICCPROFCREATOR_SLOPE;Helling
 ICCPROFCREATOR_TRC_PRESET;Toonresponscurve:
 INSPECTOR_ENABLE_CMS;Activeer kleurbeheer.
-INSPECTOR_FOCUS_MASK;Focusmasker.\nSneltoets: <b>%shortcut(inspector.toggle_focus_mask)%</b>.
+INSPECTOR_FOCUS_MASK;Focusmasker.\nSneltoets: <b>Shift+f</b>.
 INSPECTOR_HISTOGRAM;Histogram.\nSneltoets: <b>%shortcut(inspector.toggle_histogram)%</b>.
-INSPECTOR_INFO;Snelle info.\nSneltoets: <b>%shortcut(inspector.toggle_info)%</b>
+INSPECTOR_INFO;Snelle info.\nSneltoets: <b>Shift+i</b>
 INSPECTOR_PREVIEW;Ingebed voorbeeld.\nSneltoets: <b>%shortcut(inspector.mode_jpeg)%</b>.
 INSPECTOR_RAW_CLIP;RAW: toon overbelichte pixels.\nSneltoets: <b>%shortcut(inspector.mode_raw_clip_warning)%</b>.
 INSPECTOR_RAW_FILM;Snelle RAW-rendering met filmachtige tooncurve.\nSneltoets: <b>%shortcut(inspector.mode_raw_film_curve)%</b>.
@@ -861,24 +861,24 @@ IPTCPANEL_TRANSREFERENCE;Referentienummer
 LABMASKS_AREA_MASK_EMPTY_WARNING;Pas op: deze combinatie van gebiedsmaskers resulteert in een leeg masker
 MAIN_BUTTON_FULLSCREEN;Volledig scherm
 MAIN_BUTTON_ICCPROFCREATOR;ICC-profielmaker
-MAIN_BUTTON_NAVNEXT_TOOLTIP;Ga naar de volgende afbeelding relatief tov. de geopende afbeelding in de Editor\nSneltoets: <b>%shortcut(editor.next_image)%</b>\n\nGa naar de volgende afbeelding relatief tov. de miniatuur geselecteerd in de Bestandsnavigator of de Filmstrook\nSneltoets: <b>%shortcut(filebrowser.open_next)%</b>
-MAIN_BUTTON_NAVPREV_TOOLTIP;Ga naar de vorige afbeelding relatief tov. de geopende afbeelding in de Editor\nSneltoets: <b>%shortcut(editor.previous_image)%</b> \n\nGa naar de vorige afbeelding relatief tov. de miniatuur geselecteerd in de Bestandsnavigator of de Filmstrook\nSneltoets: <b>%shortcut(filebrowser.open_previous)%</b>
+MAIN_BUTTON_NAVNEXT_TOOLTIP;Ga naar de volgende afbeelding relatief tov. de geopende afbeelding in de Editor\nSneltoets: <b>Shift+F4</b>\n\nGa naar de volgende afbeelding relatief tov. de miniatuur geselecteerd in de Bestandsnavigator of de Filmstrook\nSneltoets: <b>%shortcut(filebrowser.open_next)%</b>
+MAIN_BUTTON_NAVPREV_TOOLTIP;Ga naar de vorige afbeelding relatief tov. de geopende afbeelding in de Editor\nSneltoets: <b>Shift+F3</b> \n\nGa naar de vorige afbeelding relatief tov. de miniatuur geselecteerd in de Bestandsnavigator of de Filmstrook\nSneltoets: <b>%shortcut(filebrowser.open_previous)%</b>
 MAIN_BUTTON_NAVSYNC_TOOLTIP;Synchroniseer de Bestandsnavigator of de Filmstrook met de Fotobewerker om de miniatuur te tonen van de huidig geopende afbeelding, en verwijder eventuele actieve filters.\nSneltoets: <b>%shortcut(editor.sync_file_browser_clear_filters)%</b>\n\nAls voorgaand, maar zonder het verwijderen van actieve filters.\nSneltoets: <b>%shortcut(editor.sync_file_browser)%</b>\n(NB: de miniatuur van de geopende afbeelding zal niet worden getoond indien eruit gefilterd).
 MAIN_BUTTON_PREFERENCES;Voorkeuren
-MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;Plaats huidige foto in verwerkingsrij\nSneltoets: <b>%shortcut(editor.queue)%</b> (<b>%shortcut(editor.queue_fast)%</b> voor snelle export)
-MAIN_BUTTON_SAVE_TOOLTIP;Bewaar huidige foto (%mouse_primary%+klik voor snelle export)\nSneltoets: <b>%shortcut(editor.save)%</b> (<b>%shortcut(editor.save_fast)%</b> voor snelle export)
+MAIN_BUTTON_PUTTOQUEUE_TOOLTIP;Plaats huidige foto in verwerkingsrij\nSneltoets: <b>%mouse_primary%+b</b> (<b>%mouse_primary%+Shift+b</b> voor snelle export)
+MAIN_BUTTON_SAVE_TOOLTIP;Bewaar huidige foto (%mouse_primary%+klik voor snelle export)\nSneltoets: <b>%mouse_primary%+s</b> (<b>%mouse_primary%+Shift+s</b> voor snelle export)
 MAIN_BUTTON_SENDTOEDITOR;Stuur foto naar externe fotobewerker
-MAIN_BUTTON_SENDTOEDITOR_TOOLTIP;Stuur huidige foto naar extern fotobewerkingsprogramma\nSneltoets: <b>%shortcut(editor.send_to_external_editor)%</b>
+MAIN_BUTTON_SENDTOEDITOR_TOOLTIP;Stuur huidige foto naar extern fotobewerkingsprogramma\nSneltoets: <b>Ctrl+e</b>
 MAIN_BUTTON_SHOWHIDESIDEPANELS_TOOLTIP;Toon/verberg alle zijpanelen\nSneltoets: <b>%shortcut(editor.maximize_preview)%</b>
 MAIN_BUTTON_UNFULLSCREEN;Verlaat volledig scherm
 MAIN_FRAME_EDITOR;Fotobewerker
-MAIN_FRAME_EDITOR_TOOLTIP; Fotobewerker\nSneltoets: <b>%shortcut(window.show_editor)%</b>
+MAIN_FRAME_EDITOR_TOOLTIP; Fotobewerker\nSneltoets: <b>Ctrl+F4</b>
 MAIN_FRAME_FILEBROWSER;Navigator
-MAIN_FRAME_FILEBROWSER_TOOLTIP; Bestandsnavigator\nSneltoets: <b>%shortcut(window.show_file_browser)%</b>
+MAIN_FRAME_FILEBROWSER_TOOLTIP; Bestandsnavigator\nSneltoets: <b>Ctrl+F2</b>
 MAIN_FRAME_PLACES_ADD;Voeg huidige locatie toe aan locatielijst
 MAIN_FRAME_PLACES_DEL;Verwijder geselecteerde locatie uit locatielijst
 MAIN_FRAME_PLACES;Locaties
-MAIN_FRAME_QUEUE_TOOLTIP; Verwerkingsrij\nSneltoets: <b>%shortcut(window.show_queue)%</b>
+MAIN_FRAME_QUEUE_TOOLTIP; Verwerkingsrij\nSneltoets: <b>Ctrl+F3</b>
 MAIN_FRAME_QUEUE;Verwerkingsrij
 MAIN_FRAME_RECENT;Recente mappen
 MAIN_MSG_ALREADYEXISTS;Bestand bestaat al
@@ -897,51 +897,51 @@ MAIN_MSG_SETPATHFIRST;Specificeer eerst een doelmap in Voorkeuren\nom deze funct
 MAIN_MSG_TOOMANYOPENEDITORS;Teveel fotobewerkers geopend.\nSluit er een om verder te kunnen.
 MAIN_MSG_WRITEFAILED;Niet opgeslagen\n\n<b>"%1"</b>\n\nControleer of de map bestaat en of je schrijfrechten hebt.
 MAIN_TAB_COLOR;Kleur
-MAIN_TAB_COLOR_TOOLTIP;Sneltoets: <b>%shortcut(toolpanel.tab_color)%</b>
+MAIN_TAB_COLOR_TOOLTIP;Sneltoets: <b>Alt+c</b>
 MAIN_TAB_DETAIL;Detail
-MAIN_TAB_DETAIL_TOOLTIP;Sneltoets: <b>%shortcut(toolpanel.tab_details)%</b>
+MAIN_TAB_DETAIL_TOOLTIP;Sneltoets: <b>Alt+d</b>
 MAIN_TAB_DEVELOP; Groepsverwerking
 MAIN_TAB_EFFECTS;Speciale effecten
-MAIN_TAB_EFFECTS_TOOLTIP;Sneltoets: <b>%shortcut(toolpanel.tab_effects)%</b>
+MAIN_TAB_EFFECTS_TOOLTIP;Sneltoets: <b>Alt+f</b>
 MAIN_TAB_EXIF;Exif
 MAIN_TAB_EXPORT; Snelle export
 MAIN_TAB_EXPOSURE;Belichting
-MAIN_TAB_EXPOSURE_TOOLTIP;Sneltoets: <b>%shortcut(toolpanel.tab_exposure)%</b>
+MAIN_TAB_EXPOSURE_TOOLTIP;Sneltoets: <b>Alt+e</b>
 MAIN_TAB_FAVORITES;Favorieten
-MAIN_TAB_FAVORITES_TOOLTIP;Sneltoets: <b>%shortcut(toolpanel.tab_favorites)%</b>
+MAIN_TAB_FAVORITES_TOOLTIP;Sneltoets: <b>Alt+u</b>
 MAIN_TAB_FILTER; Filter 
 MAIN_TAB_INSPECT; Inspecteer 
-MAIN_TAB_INSPECT_TOOLTIP;Activeer de inspecteur.\nSneltoets: <b>%shortcut(filepanel.toggle_right_notebook)%</b>
+MAIN_TAB_INSPECT_TOOLTIP;Activeer de inspecteur.\nSneltoets: <b>Ctrl+i</b>
 MAIN_TAB_IPTC;IPTC
 MAIN_TAB_LOCAL;Lokaal bewerken
-MAIN_TAB_LOCAL_TOOLTIP;Sneltoets: <b>%shortcut(toolpanel.tab_local)%</b>
+MAIN_TAB_LOCAL_TOOLTIP;Sneltoets: <b>Alt+x</b>
 MAIN_TAB_METADATA;Metadata
-MAIN_TAB_METADATA_TOOLTIP;Sneltoets: <b>%shortcut(toolpanel.tab_metadata)%</b>
+MAIN_TAB_METADATA_TOOLTIP;Sneltoets: <b>Alt+m</b>
 MAIN_TAB_RAW;RAW
-MAIN_TAB_RAW_TOOLTIP;Sneltoets: <b>%shortcut(toolpanel.tab_raw)%</b>
-MAIN_TAB_TRANSFORM_TOOLTIP;Sneltoets: <b>%shortcut(toolpanel.tab_transform)%</b>
+MAIN_TAB_RAW_TOOLTIP;Sneltoets: <b>Alt+r</b>
+MAIN_TAB_TRANSFORM_TOOLTIP;Sneltoets: <b>Alt+t</b>
 MAIN_TAB_TRANSFORM;Transformeer
-MAIN_TOOLTIP_BACKCOLOR0;Achtergrondkleur van het voorbeeld: <b>Themagebaseerd</b>\nSneltoets: <b>%shortcut(editor.toggle_preview_background)%</b>
+MAIN_TOOLTIP_BACKCOLOR0;Achtergrondkleur van het voorbeeld: <b>Themagebaseerd</b>\nSneltoets: <b>8</b>
 MAIN_TOOLTIP_BACKCOLOR1;Achtergrondkleur van het voorbeeld: <b>Zwart</b>\nSneltoets: <b>%shortcut(editor.toggle_preview_background)%</b>
 MAIN_TOOLTIP_BACKCOLOR2;Achtergrondkleur van het voorbeeld: <b>Wit</b>\nSneltoets: <b>%shortcut(editor.toggle_preview_background)%</b>
 MAIN_TOOLTIP_BACKCOLOR3;Achtergrondkleur van het voorbeeld: <b>Middelgrijs</b>\nSneltoets: <b>%shortcut(editor.toggle_preview_background)%</b>
 MAIN_TOOLTIP_BEFOREAFTERLOCK;<b>Vergrendel</b>/<b>ontgrendel</b> de <b>Voor</b>-afbeelding.\n\n<b>Vergrendeld</b>: laat de <b>Voor</b>-afbeelding ongewijzigd.\n<b>Ontgrendeld</b>: de <b>Voor</b>-afbeelding is gelijk aan de <b>Na</b>-afbeelding.
-MAIN_TOOLTIP_FALSECOLORS;Toon belichtingsindicatie op basis van valse kleuren.\nSneltoets: <b>%shortcut(editor.toggle_false_colors)%</b>\n\nSleutel (IRE-reeks):\n%1
+MAIN_TOOLTIP_FALSECOLORS;Toon belichtingsindicatie op basis van valse kleuren.\nSneltoets: <b>Shift+e</b>\n\nSleutel (IRE-reeks):\n%1
 MAIN_TOOLTIP_HIDEHP;Toon/verberg linkerpaneel (incl. geschiedenis)\nSneltoets: <b>%shortcut(editor.toggle_history_panel)%</b>
 MAIN_TOOLTIP_INDCLIPPEDH;Overbelichtingsindicatie.\nSneltoets: <b>%shortcut(editor.toggle_highlight_clipping)%</b>
 MAIN_TOOLTIP_INDCLIPPEDS;Onderbelichtingsindicatie.\nSneltoets: <b>%shortcut(editor.toggle_shadow_clipping)%</b>
-MAIN_TOOLTIP_PREVIEWB;Bekijk het <b>blauwe kanaal</b>.\nSneltoets: <b>%shortcut(editor.toggle_blue_preview)%</b>
-MAIN_TOOLTIP_PREVIEWFOCUSMASK;Bekijk het <b>Focusmasker</b>.\nSneltoets: <b>%shortcut(editor.toggle_focus_mask)%</b>\nAccurater bij afbeeldingen met geringe scherptediepte, weinig ruis en hogere zoomniveaus.\nZoom uit naar 10-30% om de accuratesse te verhogen bij afbeeldingen met veel ruis.
-MAIN_TOOLTIP_PREVIEWG;Bekijk het <b>groene kanaal</b>.\nSneltoets: <b>%shortcut(editor.toggle_green_preview)%</b>
-MAIN_TOOLTIP_PREVIEWL;Bekijk de <b>Luminositeit</b>.\nSneltoets: <b>%shortcut(editor.toggle_luminosity_preview)%</b>\n\n0,299*R + 0,587*G + 0,114*B
-MAIN_TOOLTIP_PREVIEWR;Bekijk het <b>rode kanaal</b>.\nSneltoets: <b>%shortcut(editor.toggle_red_preview)%</b>
+MAIN_TOOLTIP_PREVIEWB;Bekijk het <b>blauwe kanaal</b>.\nSneltoets: <b>Shift+b</b>
+MAIN_TOOLTIP_PREVIEWFOCUSMASK;Bekijk het <b>Focusmasker</b>.\nSneltoets: <b>Shift+f</b>\nAccurater bij afbeeldingen met geringe scherptediepte, weinig ruis en hogere zoomniveaus.\nZoom uit naar 10-30% om de accuratesse te verhogen bij afbeeldingen met veel ruis.
+MAIN_TOOLTIP_PREVIEWG;Bekijk het <b>groene kanaal</b>.\nSneltoets: <b>Shift+g</b>
+MAIN_TOOLTIP_PREVIEWL;Bekijk de <b>Luminositeit</b>.\nSneltoets: <b>Shift+v</b>\n\n0,299*R + 0,587*G + 0,114*B
+MAIN_TOOLTIP_PREVIEWR;Bekijk het <b>rode kanaal</b>.\nSneltoets: <b>Shift+r</b>
 MAIN_TOOLTIP_PREVIEWSHARPMASK;Bekijk het <b>scherptecontrastmasker</b>.\nSneltoets: <b>%shortcut(editor.toggle_sharpening_mask)%</b>\nWerkt alleen als verscherping is geactiveerd en is slechts accuraat bij een zoomniveau >= 100%.
-MAIN_TOOLTIP_QINFO;Beknopte fotogegevens\nSneltoets: <b>%shortcut(editor.toggle_info)%</b>
+MAIN_TOOLTIP_QINFO;Beknopte fotogegevens\nSneltoets: <b>Shift+i</b>
 MAIN_TOOLTIP_SHOWHIDELP1;Toon/verberg linkerpaneel.\nSneltoets: <b>%shortcut(editor.toggle_history_panel)%</b>
-MAIN_TOOLTIP_SHOWHIDERP1;Toon/verberg rechterpaneel\nSneltoets: <b>%shortcut(editor.toggle_right_panel)%</b>
-MAIN_TOOLTIP_SHOWHIDETP1;Toon/verberg filmstrip\nSneltoets: <b>%shortcut(editor.toggle_top_panel)%</b>
+MAIN_TOOLTIP_SHOWHIDERP1;Toon/verberg rechterpaneel\nSneltoets: <b>Ctrl+l</b>
+MAIN_TOOLTIP_SHOWHIDETP1;Toon/verberg filmstrip\nSneltoets: <b>Shift+l</b>
 MAIN_TOOLTIP_THRESHOLD;Drempel
-MAIN_TOOLTIP_TOGGLE;Schakel tussen <b>Voor</b>/<b>Na</b>-beeld\nSneltoets: <b>%shortcut(editor.toggle_before_after)%</b>
+MAIN_TOOLTIP_TOGGLE;Schakel tussen <b>Voor</b>/<b>Na</b>-beeld\nSneltoets: <b>Shift+a</b>
 METADATA_LOAD_ERROR;Fout tijdens laden metadata van %1: %2
 METADATA_SAVE_ERROR;Fout tijdens bewaren metadata naar %1: %2
 MONITOR_PROFILE_SYSTEM;Systeemstandaard
@@ -1207,6 +1207,31 @@ PREFERENCES_SELECTLANG;Selecteer taal
 PREFERENCES_SERIALIZE_TIFF_READ_LABEL;Serieel lezen van TIFF-bestanden
 PREFERENCES_SERIALIZE_TIFF_READ;Leesopties TIFF 
 PREFERENCES_SERIALIZE_TIFF_READ_TOOLTIP;Als een map veel ongecomprimeerde TIFF-bestanden bevat dan versnelt deze optie het genereren van de miniaturen.
+PREFERENCES_SHORTCUTS_ACTION;Actie
+PREFERENCES_SHORTCUTS_ADD;Voeg toets toe...
+PREFERENCES_SHORTCUTS_ASSIGNANYWAY;Toch toekennen
+PREFERENCES_SHORTCUTS_BACKTOCTRL;Ga terug naar Ctrl
+PREFERENCES_SHORTCUTS_CHOOSE;Kies andere toets...
+PREFERENCES_SHORTCUTS_CHANGE;Verander...
+PREFERENCES_SHORTCUTS_CONFLICT;<b>%1</b> wordt al gebruikt door <b>%2</b>.\n\nHier toekennen en de oude verwijderen?
+PREFERENCES_SHORTCUTS_ESC;(Esc om te stoppen)
+PREFERENCES_SHORTCUTS_KEEP;Behouden
+PREFERENCES_SHORTCUTS_KEEPBOTH;Behoud beide
+PREFERENCES_SHORTCUTS_KEYS;Sneltoets
+PREFERENCES_SHORTCUTS_MOUSEMOD;Toets om muisacties te wijzigen (Ctrl+click...)
+PREFERENCES_SHORTCUTS_MOUSEMOD_TIP;De toets die met de muis wordt gebruikt om schuiven terug te zetten naar hun standaardwaarden, snelle export, selecties uitbreiden, tekenen in de gereedschappen... Dat is de Ctrl-toets, net als in eerdere versies van ART; op macOS wil je waarschijnlijk de Cmd-toets gebruiken (Ctrl+click is een rechtsklik daar).
+PREFERENCES_SHORTCUTS_OVERLAP;<b>%1</b> wordt ook gebruikt door <b>%2</b>.\n\nBeide kunnen tegelijkertijd actief zijn, maar slechts één zal reageren. Beide behouden of de laatste verwijderen?
+PREFERENCES_SHORTCUTS_PRESS;Kies nieuwe sneltoets
+PREFERENCES_SHORTCUTS_REASSIGN;Opnieuw toewijzen
+PREFERENCES_SHORTCUTS_PRIMARY;Primaire aanpastoets voor de sneltoetsen
+PREFERENCES_SHORTCUTS_PRIMARY_TIP;De primaire toets voor de sneltoetsen: alle standaard sneltoetsen gebruiken deze (Ctrl+S, Ctrl+Z...). Ctrl is de toets die ART altijd heeft gebruikt. Op macOS kun je Cmd kiezen, op andere systemen de Windows-toets. De muisacties hebben hun eigen instelling. 
+PREFERENCES_SHORTCUTS_RESETALL;Alles terugzetten
+PREFERENCES_SHORTCUTS_SYSCLASH;<b>%1</b> (%2) is een systeemsneltoets.\n\nHet systeem houdt deze in gebruik nog voordat ART het kan zien. Wat wil je hiermee doen?
+PREFERENCES_SHORTCUTS_SYSTEM;<b>%1</b> is een systeemsneltoets.\n\nHet systeem houdt deze toets in gebruik nog voordat ART die kan zien (zie de sneltoetsen van het systeem). Toch toewijzen? 
+PREFERENCES_SHORTCUTS_SYSTEMNOTE;Merk op dat <b>%1</b> een systeemsneltoets is: Het systeem houdt deze toets in gebruik nog voordat ART die kan zien.
+PREFERENCES_SHORTCUTS_SEARCH;Zoekacties en sneltoetsen
+PREFERENCES_SHORTCUTS_RESTART;Veranderingen in de sneltoetsen worden effectief na een herstart van ART. Aangepaste sneltoetsen worden vet weergegeven.
+PREFERENCES_SHORTCUTS_SAVEERROR;De sneltoetsen konden niet bewaard worden:\n%1
 PREFERENCES_SHOWBASICEXIF;Toon standaard Exif-info
 PREFERENCES_SHOWDATETIME;Toon datum en tijd
 PREFERENCES_SHOWEXPOSURECOMPENSATION;Toon belichtingscompensatie
@@ -1233,6 +1258,7 @@ PREFERENCES_TAB_FASTEXPORT;Snelle export
 PREFERENCES_TAB_GENERAL;Algemeen
 PREFERENCES_TAB_IMPROC;Beeldverwerking
 PREFERENCES_TAB_PERFORMANCE;Prestaties
+PREFERENCES_TAB_SHORTCUTS;Sneltoetsen
 PREFERENCES_TAB_SOUND;Geluiden
 PREFERENCES_THUMBNAIL_DELAY_UPDATE;Vertraag verversen van miniaturen tijdens het openen van mappen
 PREFERENCES_THUMBNAIL_LAZY_CACHING;Miniaturen 'lui' in de cache plaatsen
@@ -1311,7 +1337,7 @@ QUEUE_LOCATION_FOLDER;Sla op in map
 QUEUE_LOCATION_TEMPLATE;Gebruik sjabloon
 QUEUE_LOCATION_TEMPLATE_TOOLTIP;Geef uitvoerlocatie op, gebaseerd op locatie, waardering, prullenbakpositie of positie in de verwerkingsrij.\n\nAls voorbeeld nemen we de volgende padnaam:\n<b>/home/tom/fotoos/2020-10-31/foto1.RAW</b>\nDe betekenis van de formatteeropties is als volgt:\n\n<b>%d4</b> = <i>home</i>\n<b>%d3</b> = <i>tom</i>\n<b>%d2</b> = <i>fotoos</i>\n<b>%d1</b> = <i>2020-10-31</i>\n<b>%f</b> = <i>foto1</i>\n<b>%p1</b> = <i>/home/tom/fotoos/2020-10-31/</i>\n<b>%p2</b> = <i>/home/tom/fotoos/</i>\n<b>%p3</b> = <i>/home/tom/</i>\n<b>%p4</b> = <i>/home/</i>\n\n<b>%r</b> wordt vervangen door de waardering van de foto. Heeft de foto geen waardering, dan wordt '<i>0</i>' gebruikt. Als de foto in de prullenbak zit wordt 'x' gebruikt.\n\n<b>%s1 ... %s9</b> wordt vervangen door de initiële plek van de foto in de verwerkingsrij wanneer deze gestart wordt. Het getal bepaalt de getalruimte: <b>%s3</b> resulteert in <i>001</i>.\n\n<b>%n</b> wordt vervangen door de naam van het huidige snapshot. Als er geen snapshot bestaat, wordt een lege tekenreeks gebruikt. Gebruik <b>%u</b>  in plaats van <b>%n</b> om spaties in de snapshot-naam te vervangen door underscores.\n\nWil je het uitvoerbestand naast het oorspronkelijke bestand bewaren, typ dan:\n<b>%p1/%f</b>\n\nAls je de uitvoer in een map genaamd <i>geconverteerd</i> wil bewaren die in dezelfde map staat als de oorspronkelijke foto, zeg dan:\n<b>%p1/geconverteerd/%f</b>\n\nAls je het resulterende bestand wil bewaren in \n<i>/home/tom/fotoos/geconverteerd/2020-10-31</i>, schrijf dan:\n<b>%p2/geconverteerd/%d1/%f</b>
 QUEUE_LOCATION_TITLE;Uitvoerlocatie
-QUEUE_STARTSTOP_TOOLTIP;Start of stop de verwerking van foto's in de rij.\n\nSneltoets: <b>%shortcut(queue.start_stop)%</b>
+QUEUE_STARTSTOP_TOOLTIP;Start of stop de verwerking van foto's in de rij.\n\nSneltoets: <b>Ctrl+s</b>
 RENAME_DIALOG_ALLOW_WHITESPACE;Sta spaties in nieuwe naam toe
 RENAME_DIALOG_BASEDIR;Basismap
 RENAME_DIALOG_ERROR;Hernoemen %1 naar %2 mislukt
@@ -1371,11 +1397,11 @@ THRESHOLDSELECTOR_TL;Bovenkant-links
 THRESHOLDSELECTOR_TR;Bovenkant-rechts
 TOOL_SHORTCUT_HELP_HEADER;Gereedschapssneltoetsen:\n(druk een zekere toets en pas de schuif aan met +/- of het muiswiel)\n
 TOOLBAR_TOOLTIP_COLORPICKER;Vergrendelbare kleurenkiezer\n\nIndien geactiveerd:\nVoeg kiezer toe: <b>linksklik</b>\nVerplaats kiezer:<b>linksklik en sleep</b>\nVerwijder kiezer: <b>rechtsklik</b>op een kiezer\nVerwijder alle kiezers:<b>%mouse_primary%+Shift+rechtsklik</b> op een kiezer\nTerug naar handgereedschap: <b>rechtsklik</b> buiten een kiezer.
-TOOLBAR_TOOLTIP_CROP;<b>Snij selectie bij.</b>\nSneltoets: <b>%shortcut(toolbar.crop)%</b>\nVerplaats uitsnede met <b>linkermuisklik</b>\nWijzig grootte uitsnede door de randen te verplaatsen.
+TOOLBAR_TOOLTIP_CROP;<b>Snij selectie bij.</b>\nSneltoets: <b>Shift+c</b>\nVerplaats uitsnede met <b>linkermuisklik</b>\nWijzig grootte uitsnede door de randen te verplaatsen.
 TOOLBAR_TOOLTIP_HAND;Handgereedschap.\nSneltoets: <b>%shortcut(toolbar.hand)%</b>
-TOOLBAR_TOOLTIP_PERSPECTIVE;<b>Perspectiefcorrectie</b>.\nSneltoets: <b>%shortcut(toolbar.perspective)%</b>\n\nBewerk controlelijnen om perspectivische vervorming te corrigeren. Klik opnieuw op deze knop om de correctie toe te passen.
-TOOLBAR_TOOLTIP_STRAIGHTEN;<b>Rechtzetten</b> / <b>Kleine rotaties</b>.\nSneltoets: <b>%shortcut(toolbar.straighten)%</b>\n\nBepaal de verticale of horizontale as door een hulplijn over de foto te trekken met de Ctrl-toets ingedrukt. De rotatiehoek wordt naast de hulplijn getoond. Het draaicentrum is het geometrische midden van de afbeelding.
-TOOLBAR_TOOLTIP_WB;Spot-witbalans.\nSneltoets: <b>%shortcut(toolbar.white_balance_picker)%</b>
+TOOLBAR_TOOLTIP_PERSPECTIVE;<b>Perspectiefcorrectie</b>.\nSneltoets: <b>Shift+p</b>\n\nBewerk controlelijnen om perspectivische vervorming te corrigeren. Klik opnieuw op deze knop om de correctie toe te passen.
+TOOLBAR_TOOLTIP_STRAIGHTEN;<b>Rechtzetten</b> / <b>Kleine rotaties</b>.\nSneltoets: <b>Shift+s</b>\n\nBepaal de verticale of horizontale as door een hulplijn over de foto te trekken met de Ctrl-toets ingedrukt. De rotatiehoek wordt naast de hulplijn getoond. Het draaicentrum is het geometrische midden van de afbeelding.
+TOOLBAR_TOOLTIP_WB;Spot-witbalans.\nSneltoets: <b>Shift+w</b>
 TP_BRIGHTCONTRSAT_CONTRAST;Contrast
 TP_BWMIX_COLORCAST;Tint
 TP_BWMIX_FILTER_BLUE;Blauw
@@ -1429,8 +1455,8 @@ TP_CHMIXER_PRIMARY_R;Rood primair
 TP_CHMIXER_RED;Roodkanaal
 TP_CHMIXER_SAT;Verzadigingscorrectie
 TP_COARSETRAF_TOOLTIP_HFLIP;Horizontaal spiegelen
-TP_COARSETRAF_TOOLTIP_ROTLEFT;Roteer naar links.\nSneltoets: <b>%shortcut(editor.rotate_left)%</b>
-TP_COARSETRAF_TOOLTIP_ROTRIGHT;Roteer naar rechts.\nSneltoets: <b>%shortcut(editor.rotate_right)%</b>
+TP_COARSETRAF_TOOLTIP_ROTLEFT;Roteer naar links.\nSneltoets:\n<b>[</b> in Multi-tab modus\n<b>Alt-[</b> in Enkel-tab modus.
+TP_COARSETRAF_TOOLTIP_ROTRIGHT;Roteer naar rechts.\nSneltoets:\n<b>]</b> in Multi-tab modus\n<b>Alt-]</b> in Enkel-tab modus.
 TP_COARSETRAF_TOOLTIP_VFLIP;Verticaal spiegelen
 TP_COLORCORRECTION_ABVALUES;x=%1 y=%2
 TP_COLORCORRECTION_CHANNEL_B;Blauw
@@ -1728,6 +1754,7 @@ TP_LABMASKS_DELTAE_H;H
 TP_LABMASKS_DELTAE;Kleurverwantschapsmasker
 TP_LABMASKS_DELTAE_L;L
 TP_LABMASKS_DELTAE_PICK;Kies kleur
+TP_LABMASKS_DELTAE_SIZE_TOOLTIP;De grootte van het vierkant dat door de kleurenkiezer wordt gebruikt, in pixels
 TP_LABMASKS_DELTAE_RANGE;Bereik
 TP_LABMASKS_DELTAE_TOOLTIP;Kies gebieden van gelijke kleur\n(volgens de CIELAB ΔE*-metriek)
 TP_LABMASKS_DRAWNMASK_ADD_BOUNDED_TOOLTIP;Plaats penseelmasker boven de andere maskers, maar alleen binnen het actieve gebiedsmasker
@@ -1965,7 +1992,7 @@ TP_ROTATE_SELECTLINE;Bepaal rechte lijn
 TP_SATURATION_LABEL;Verzadiging/levendigheid
 TP_SATURATION_SATURATION;Verzadiging
 TP_SATURATION_VIBRANCE;Levendigheid
-TP_SAVEDIALOG_OK_TIP;Sneltoets: <b>%shortcut(saveas.ok)%</b>
+TP_SAVEDIALOG_OK_TIP;Sneltoets: <b>Ctrl+Enter</b>
 TP_SHARPENING_AMOUNT;Hoeveelheid
 TP_SHARPENING_BLUR;Vervagingsstraal
 TP_SHARPENING_CONTRAST;Contrastdrempel

@@ -1,8 +1,8 @@
 #00 Hungary - Hungarian
 #01 Developers should add translations to this file and then run the 'generateTranslationDiffs' Bash script to update other locales.
 #02 Translators please append a comment here with the current date and your name(s) as used in the RawTherapee/ART forum or Bitbucket page, e.g.:
-#03 2026-10-09 Bereczky Péter
-# ART version: 1.26.6
+#03 2026-10-29 Bereczky Péter
+# ART version: 1.26.11
 ABOUT_TAB_BUILD;Verzió
 ABOUT_TAB_CREDITS;Szerzők
 ABOUT_TAB_LICENSE;Licenc
@@ -1182,6 +1182,31 @@ PREFERENCES_SELECTLANG;Nyelv kiválasztása
 PREFERENCES_SERIALIZE_TIFF_READ;TIFF beolvasási beállítások
 PREFERENCES_SERIALIZE_TIFF_READ_LABEL;TIFF-fájlok olvasásának sorba rendezése
 PREFERENCES_SERIALIZE_TIFF_READ_TOOLTIP;Ha engedélyezi ezt a beállítást tömörítetlen TIFF-fájlokat tartalmazó mappákkal végzett munka során, az megnövelheti a miniatűrök létrehozásának teljesítményét.
+PREFERENCES_SHORTCUTS_ACTION;Művelet
+PREFERENCES_SHORTCUTS_ADD;Kulcs hozzáadása...
+PREFERENCES_SHORTCUTS_ASSIGNANYWAY;Mindenképpen rendelje hozzá
+PREFERENCES_SHORTCUTS_BACKTOCTRL;Vissza a Ctrl-hez
+PREFERENCES_SHORTCUTS_CHOOSE;Válasszon másik kulcsot...
+PREFERENCES_SHORTCUTS_CHANGE;Változás...
+PREFERENCES_SHORTCUTS_CONFLICT;<b>%1</b> már használatban van ennél: <b>%2</b>.\n\nIde hozzárendeli, onnan pedig eltávolítja?
+PREFERENCES_SHORTCUTS_ESC;(Esc a megszakításhoz)
+PREFERENCES_SHORTCUTS_KEEP;Megtartás
+PREFERENCES_SHORTCUTS_KEEPBOTH;Mindkettő megtartása
+PREFERENCES_SHORTCUTS_KEYS;Gyorsbillentyű
+PREFERENCES_SHORTCUTS_MOUSEMOD;Egérműveletek módosítója (Ctrl-click...)
+PREFERENCES_SHORTCUTS_MOUSEMOD_TIP;Az az egérrel együtt használt billentyű, amely a csúszkák alaphelyzetbe állítására, gyors exportálásra, kijelölések kiterjesztésére, valamint az eszközökkel történő rajzolásra szolgál... Ez a Ctrl billentyű, akárcsak az ART korábbi verzióiban; macOS-en érdemesebb lehet a Cmd billentyűt használni (ott a Ctrl-kattintás jobb egérgombos kattintásnak felel meg).
+PREFERENCES_SHORTCUTS_OVERLAP;<b>%1</b>: ezt szintén használja <b>%2</b>.\n\nMindkettő lehet egyszerre aktív, így csak az egyik fog reagálni rá. Meg szeretné tartani mindkettőt, vagy el szeretné távolítani onnan?
+PREFERENCES_SHORTCUTS_PRESS;Nyomja meg az új gyorsbillentyűt
+PREFERENCES_SHORTCUTS_REASSIGN;Újra hozzárendel
+PREFERENCES_SHORTCUTS_PRIMARY;A gyorsbillentyűk elsődleges módosítója
+PREFERENCES_SHORTCUTS_PRIMARY_TIP;A gyorsbillentyűknél az „Elsődleges” megjelölés arra a billentyűre utal, amelyet az összes alapértelmezett gyorsbillentyű használ (pl. Ctrl+S, Ctrl+Z...). Az ART kezdettől fogva a Ctrl billentyűt alkalmazza erre a célra. macOS rendszeren választható helyette a Cmd, más rendszereken pedig a Windows billentyű. Az egérműveletekhez külön beállítás tartozik.
+PREFERENCES_SHORTCUTS_RESETALL;Összes visszaállítása
+PREFERENCES_SHORTCUTS_SYSCLASH;<b>%1</b> (%2) egy rendszerszintű gyorsbillentyű.\n\nLehet, hogy a rendszer veszi figyelembe, mielőtt az ART-hoz kerülne. Mit szeretne kezdeni vele?
+PREFERENCES_SHORTCUTS_SYSTEM;<b>%1</b> egy rendszerszintű gyorsbillentyű.\n\nLehet, hogy a rendszer veszi figyelembe, mielőtt az ART hozzáférhetne (lásd a rendszer billentyűzetbeállításait). Ennek ellenére hozzárendeli?
+PREFERENCES_SHORTCUTS_SYSTEMNOTE;Also note that <b>%1</b> egy rendszerszintű gyorsbillentyű: Lehet, hogy a rendszer veszi figyelembe, mielőtt az ART láthatná.
+PREFERENCES_SHORTCUTS_SEARCH;Műveletek és billentyűk keresése
+PREFERENCES_SHORTCUTS_RESTART;A gyorsbillentyűk módosításai az ART következő indításakor lépnek életbe. Az egyénileg beállított gyorsbillentyűk félkövérrel jelennek meg.
+PREFERENCES_SHORTCUTS_SAVEERROR;A gyorsbillentyűket nem sikerült menteni:\n%1
 PREFERENCES_SHOWBASICEXIF;Alapvető Exif információk megjelenítése
 PREFERENCES_SHOWDATETIME;Megjeleníti a dátumot és az idő
 PREFERENCES_SHOWEXPOSURECOMPENSATION;Expozíció-kompenzáció hozzáfűzése
@@ -1207,6 +1232,7 @@ PREFERENCES_TAB_FASTEXPORT;Gyors exportálás
 PREFERENCES_TAB_GENERAL;Általános
 PREFERENCES_TAB_IMPROC;Képfeldolgozás
 PREFERENCES_TAB_PERFORMANCE;Teljesítmény
+PREFERENCES_TAB_SHORTCUTS;Billentyűparancsok
 PREFERENCES_TAB_SOUND;Hang
 PREFERENCES_THUMBNAIL_DELAY_UPDATE;A bélyegképek frissítésének késleltetése könyvtárak megnyitásakor
 PREFERENCES_THUMBNAIL_LAZY_CACHING;Lassú bélyegképek gyorsítótárazása
@@ -1716,6 +1742,7 @@ TP_LABMASKS_DELTAE_H;H
 TP_LABMASKS_DELTAE_RANGE;Tartomány
 TP_LABMASKS_DELTAE_DECAY;Átmeneti terület csökkentése
 TP_LABMASKS_DELTAE_PICK;Kiválaszt
+TP_LABMASKS_DELTAE_SIZE_TOOLTIP;A kiválasztó által mintavételezett négyzet mérete képpontokban
 TP_LABMASKS_DELTAE_CHAN_WEIGHT;Súly a ΔE számításban
 TP_LABMASKS_DELTAE_TOOLTIP;Válasszon ki hasonló színű régiókat\n(a CIELAB ΔE* mérőszáma szerint)
 TP_LABMASKS_DRAWNMASK;Ecsetmaszk
