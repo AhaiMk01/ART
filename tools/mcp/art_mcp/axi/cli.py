@@ -225,7 +225,8 @@ def failure_from(error: RenderError, path: str | None) -> Failure:
 
 class Parser(argparse.ArgumentParser):
     def error(self, message: str) -> NoReturn:
-        raise UsageError(message, f"art-axi {self.prog.split()[-1]} --help")
+        usage = " ".join(self.format_usage().split()).removeprefix("usage: ")
+        raise UsageError(message, [usage, f"art-axi {self.prog.split()[-1]} --help  (flags and examples)"])
 
 
 def comma_floats(count: int, name: str) -> Callable[[str], list[float]]:
@@ -300,6 +301,10 @@ class Command:
         )
         self.build(parser)
         return parser
+
+    def usage(self) -> str:
+        """The one-line usage, without the leading ``usage:``."""
+        return " ".join(self.parser().format_usage().split()).removeprefix("usage: ")
 
     def valid_flags(self) -> list[str]:
         flags = []
@@ -554,9 +559,10 @@ def run_preview(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
             ),
             path,
         )
+        file = result.path if a.out else named_after(result.path, path)
         out: dict[str, Any] = {
             "preview": prune(
-                {"file": shown(result.path), "width": result.width, "height": result.height, "shown": result.shown}
+                {"file": shown(file), "width": result.width, "height": result.height, "shown": result.shown}
             )
         }
         if result.tiles:
@@ -572,12 +578,28 @@ def run_preview(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
         raise UsageError("--stage and --zoom go with one image", "art-axi preview <path> --stage converted")
     call(lambda: preview_ops.check_preview_call(None, a.paths, a.out, a.overwrite, marks))
     batch = call(lambda: preview_ops.render_previews(session, a.paths, a.size, region, on_progress=progress("preview")))
-    items = [{"path": i.path, "file": shown(i.preview_path), "error": i.error} for i in batch.items]
+    items = [
+        {"path": i.path, "file": shown(named_after(i.preview_path, i.path)), "error": i.error} for i in batch.items
+    ]
     return {
         "previews": rows(items, ["path", "file", "error"]),
         "failed": batch.failed,
         "help": ["open each JPEG file to look at it"],
     }
+
+
+def named_after(file: str | None, image: str) -> str | None:
+    """A preview in the state folder renamed ``<image name>-<random>.jpg``, so
+    which image it shows can be read from its name."""
+    if file is None:
+        return None
+    rendered = Path(file)
+    target = rendered.with_name(f"{Path(image).name}-{rendered.name.rsplit('-', 1)[-1]}")
+    try:
+        os.replace(rendered, target)
+    except OSError:
+        return file
+    return str(target)
 
 
 def build_stats(p: Parser) -> None:
@@ -652,7 +674,8 @@ def build_sample(p: Parser) -> None:
     p.add_argument("path", metavar="PATH")
     p.add_argument(
         "--spot", dest="spots", action="append", type=spot, required=True, metavar="X,Y[,SIZE]",
-        help="frame pixel to sample (repeatable, up to 64)",
+        help="centre of a square to sample, in frame pixels (repeatable, up to 64); "
+        "the frame size is `art-axi inspect <path>`'s frame_width x frame_height",
     )  # fmt: skip
     p.add_argument("--size", type=int, default=32, help="square side in px, 2..256 (default %(default)s)")
     p.add_argument("--space", default="working", choices=("working", "input"), help="default %(default)s")
@@ -667,19 +690,20 @@ def run_sample(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
     spots = [Spot(**s) for s in a.spots]
     result = call(lambda: sampling_ops.sample_spots(session, a.path, spots, a.size, a.space, a.stage), a.path)
     data = prune(result)
+    data.pop("size", None)  # each spot's row has the size it was sampled at
     spot_rows = []
     for s in data.pop("spots"):
         row = {"x": s["x"], "y": s["y"], "size": s["size"]}
         for name in ("avg", "max", "sd"):
             if name in s:
-                row.update({f"{name}_{c}": v for c, v in zip("rgb", s[name], strict=True)})
+                row.update({f"{name}_{c}": round(v, 1) for c, v in zip("rgb", s[name], strict=True)})
         spot_rows.append(row)
     columns = list(dict.fromkeys(k for row in spot_rows for k in row))
     return {"path": a.path, **data, "spots": rows(spot_rows, columns)}
 
 
 def build_save(p: Parser) -> None:
-    p.add_argument("path", metavar="PATH")
+    p.add_argument("paths", nargs="+", metavar="PATH", help="open images whose sidecars to write")
     p.add_argument(
         "--on-conflict", choices=("merge", "overwrite"),
         help="when the sidecar changed on disk since it was loaded (default: fail with `conflict`)",
@@ -690,8 +714,23 @@ def run_save(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
     from art_mcp.render import save_ops
 
     session = ctx.session()
-    result = call(lambda: save_ops.save_sidecar(session, a.path, a.on_conflict), a.path)
-    return {"saved": {"sidecar": shown(result.path), "how": result.how}}
+    if len(a.paths) == 1:
+        result = call(lambda: save_ops.save_sidecar(session, a.paths[0], a.on_conflict), a.paths[0])
+        return {"saved": {"sidecar": shown(result.path), "how": result.how}}
+    # One after the other: a failure (a conflict) is that image's error and the
+    # others are still saved.
+    items = []
+    for path in a.paths:
+        try:
+            result = call(lambda path=path: save_ops.save_sidecar(session, path, a.on_conflict), path)
+            items.append({"path": shown(path), "sidecar": shown(result.path), "how": result.how})
+        except Failure as e:
+            items.append({"path": shown(path), "error": f"{e.code}: {e}"})
+    failed = sum(1 for i in items if "error" in i)
+    out: dict[str, Any] = {"saved": rows(items, ["path", "sidecar", "how", "error"]), "failed": failed}
+    if failed:
+        out["help"] = ["art-axi save <path> --on-conflict merge|overwrite  (for a conflict)"]
+    return out
 
 
 FORMATS = {".jpg": "jpeg", ".jpeg": "jpeg", ".png": "png", ".tif": "tiff", ".tiff": "tiff"}
@@ -699,7 +738,7 @@ FORMATS = {".jpg": "jpeg", ".jpeg": "jpeg", ".png": "png", ".tif": "tiff", ".tif
 
 def build_export(p: Parser) -> None:
     p.add_argument("path", metavar="PATH")
-    p.add_argument("--out", required=True, metavar="FILE", help="the image to write")
+    p.add_argument("--out", required=True, metavar="FILE", help="the image to write (its folder is created)")
     p.add_argument("--format", choices=("jpeg", "png", "tiff"), help="default: from --out's extension")
     p.add_argument("--quality", type=int, metavar="1..100", help="jpeg only")
     p.add_argument("--bit-depth", choices=("8", "16", "16f", "32"), help="png 8|16, tiff 8|16|16f|32")
@@ -715,6 +754,10 @@ def run_export(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
     if format is None:
         raise UsageError(f"can't tell the format from {a.out!r}", "add --format jpeg|png|tiff")
     session = ctx.session()
+    try:
+        Path(a.out).parent.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        raise Failure(f"can't create the folder for --out: {e}", code="not_found") from e
     result = call(
         lambda: export_ops.export_image(
             session, a.path, a.out, format, a.quality, a.bit_depth, a.write_profile, a.profile_name, a.overwrite
@@ -910,7 +953,11 @@ def unknown_flag_check(command: Command, argv: list[str]) -> None:
 def top_help() -> dict[str, Any]:
     return {
         "usage": "art-axi [<command>] [flags]   (no command: the open images)",
-        "commands": rows([{"name": c.name, "summary": c.summary} for c in COMMANDS.values()], ["name", "summary"]),
+        "workflow": "open -> stats/preview -> edit -> preview -> save -> export -> close",
+        "commands": rows(
+            [{"name": c.name, "summary": c.summary, "usage": c.usage()} for c in COMMANDS.values()],
+            ["name", "summary", "usage"],
+        ),
         "globals": "--art-dir <folder> (ART-cli's folder; default ART_DIR, PATH, newest install), --timeout <s>",
         "state": "working profiles persist between runs in ART_AXI_HOME (default: per-user state folder)",
         "help": ["art-axi <command> --help"],

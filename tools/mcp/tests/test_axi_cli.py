@@ -119,6 +119,54 @@ def test_preview_file_outlives_the_run(axi, image, tmp_path):
     line = next(line for line in out.splitlines() if line.strip().startswith("file:"))
     jpeg = Path(line.split(":", 1)[1].strip().strip('"'))
     assert jpeg.is_file() and jpeg.parent == tmp_path / "state" / "previews"
+    assert jpeg.name.startswith("IMG_1.ARW-")
+
+
+def test_save_takes_several_images(axi, tmp_path):
+    images = []
+    for name in ("A.ARW", "B.ARW"):
+        img = tmp_path / name
+        img.write_bytes(b"raw")
+        images.append(img)
+    axi("open", *images)
+    axi("edit", *images, "--set", "Exposure/Compensation=1")
+    code, out = axi("save", *images)
+
+    assert code == 0, out
+    assert "saved[2]{path,sidecar,how,error}:" in out and "failed: 0" in out
+    assert all(img.with_name(img.name + ".arp").is_file() for img in images)
+
+
+def test_extra_argument_error_shows_the_usage(axi, image):
+    code, out = axi("profile", image, image)
+
+    assert code == 2
+    assert "art-axi profile [-h]" in out
+
+
+def test_sample_rows_carry_the_size(axi, image):
+    axi("open", image)
+    code, out = axi("sample", image, "--spot", "100,100,16", "--spot", "200,200")
+
+    assert code == 0, out
+    assert "\nsize:" not in out
+    assert "100,100,16," in out and "200,200,32," in out
+
+
+def test_export_creates_its_folder(axi, image, tmp_path):
+    axi("open", image)
+    target = tmp_path / "new" / "deeper" / "out.jpg"
+    code, out = axi("export", image, "--out", target)
+
+    assert code == 0, out
+    assert target.is_file()
+
+
+def test_top_help_has_every_usage(axi):
+    code, out = axi("--help")
+
+    assert code == 0
+    assert "workflow:" in out and "art-axi sample [-h] --spot" in out
 
 
 def test_close_is_idempotent(axi, image):
