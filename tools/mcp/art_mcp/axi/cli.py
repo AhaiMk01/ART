@@ -11,6 +11,7 @@ module parses flags, calls them and shapes their results.
 
 import argparse
 import json
+import math
 import os
 import re
 import sys
@@ -88,6 +89,24 @@ def prune(value: Any) -> Any:
         return {k: v for k, v in pruned.items() if v is not None and v != {} and v != []}
     if isinstance(value, list):
         return [prune(v) for v in value]
+    return value
+
+
+def typed(groups: dict[str, dict[str, str]]) -> dict[str, dict[str, Any]]:
+    """Stored ``[Group] Key`` values (strings in the .arp) with the ones that
+    are numbers as numbers, so they print unquoted."""
+    return {group: {key: as_number(value) for key, value in entries.items()} for group, entries in groups.items()}
+
+
+def as_number(value: Any) -> Any:
+    if not isinstance(value, str):
+        return value
+    for kind in (int, float):
+        try:
+            number = kind(value)
+        except ValueError:
+            continue
+        return number if math.isfinite(number) else value
     return value
 
 
@@ -399,12 +418,24 @@ def run_reset(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
     from art_mcp.render import profile_ops
 
     session = ctx.session()
+    store = ctx.store()
+
+    def edits_of(path: str) -> int | None:
+        wp = store.get(Path(path).resolve())
+        return None if wp is None else edit_count(wp)
+
+    before = {path: edits_of(path) for path in a.paths}
     if len(a.paths) == 1:
-        result = call(lambda: profile_ops.reset_profile(session, a.to, a.paths[0]), a.paths[0])
-        return {"reset": {"path": a.paths[0], "from": result.profile_from}}
+        path = a.paths[0]
+        result = call(lambda: profile_ops.reset_profile(session, a.to, path), path)
+        return {"reset": {"path": shown(path), "from": result.profile_from, "discarded_edits": before[path]}}
     batch = call(lambda: profile_ops.reset_profile(session, a.to, None, a.paths, on_progress=progress("reset")))
-    items = [{"path": i.path, "from": i.profile_from, "error": i.error} for i in batch.items]
-    return {"reset": rows(items, ["path", "from", "error"]), "failed": batch.failed}
+    items = [
+        {"path": shown(i.path), "from": i.profile_from, "discarded_edits": None if i.error else before[i.path],
+         "error": i.error}
+        for i in batch.items
+    ]  # fmt: skip
+    return {"reset": rows(items, ["path", "from", "discarded_edits", "error"]), "failed": batch.failed}
 
 
 def build_profile(p: Parser) -> None:
@@ -423,7 +454,7 @@ def run_profile(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
     view = call(lambda: profile_ops.get_profile(session, a.path, a.groups, changed_only=not a.all), a.path)
     with session.image(a.path) as wp:
         edits = edit_count(wp)
-    body = prune({"adjustments": view.adjustments, "raw": view.raw})
+    body = prune({"adjustments": view.adjustments, "raw": typed(view.raw)})
     out: dict[str, Any] = {"path": a.path, "ppversion": view.ppversion, "unsaved_edits": edits}
     if not body:
         scope = f" in {','.join(a.groups)}" if a.groups else ""
@@ -455,29 +486,41 @@ def run_edit(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
 
     if not a.raw and a.adjust is None:
         raise UsageError("nothing to change: give --set and/or --adjust", "art-axi edit <path> --set Group/Key=value")
-    adjustments = None
-    if a.adjust is not None:
-        try:
-            adjustments = json.loads(a.adjust)
-        except json.JSONDecodeError as e:
-            raise UsageError(
-                f"--adjust is not JSON: {e}", "art-axi describe  (the adjustments and their fields)"
-            ) from e
-        if not isinstance(adjustments, dict):
-            raise UsageError("--adjust takes a JSON object", "art-axi describe")
+    adjustments = adjustments_arg(a.adjust)
     raw = [RawEdit(**r) for r in a.raw] or None
     session = ctx.session()
-    if len(a.paths) == 1:
-        result = call(lambda: profile_ops.edit_profile(session, a.paths[0], adjustments, raw, a.full), a.paths[0])
-        out = prune(result)
-        if not out.get("changed") and not out.get("implied") and not out.get("created"):
-            return {"edit": "no change (the values were already set)", **out}
-        return out
-    if a.full:
+    if a.full and len(a.paths) > 1:
         raise UsageError("--full goes with one image", "art-axi edit <path> --full ...")
-    batch = call(lambda: profile_ops.edit_profile(session, None, adjustments, raw, False, a.paths))
-    items = [{"path": i.path, "changed": i.changed, "error": i.error} for i in batch.items]
-    return {"edited": rows(items, ["path", "changed", "error"]), "failed": batch.failed}
+    # One image at a time, each all-or-nothing: an image that fails is its own
+    # error and the others still change, and every result lists its keys.
+    results: list[tuple[str, dict[str, Any] | None, str | None]] = []
+    for path in a.paths:
+        try:
+            result = call(lambda path=path: profile_ops.edit_profile(session, path, adjustments, raw, a.full), path)
+        except Failure as e:
+            if len(a.paths) == 1:
+                raise
+            results.append((path, None, f"{e.code}: {e}"))
+            continue
+        out = prune(result)
+        for name in ("changed", "implied"):
+            if name in out:
+                out[name] = typed(out[name])
+        if not out.get("changed") and not out.get("implied") and not out.get("created"):
+            out = {"edit": "no change (the values were already set)", **out}
+        results.append((path, out, None))
+    if len(a.paths) == 1:
+        return results[0][1] or {}
+    done = [out for _, out, _ in results if out is not None]
+    failed = len(results) - len(done)
+    if done and all(out == done[0] for out in done):
+        # The same change to every image: said once.
+        images = [{"path": shown(path), "error": error} for path, _, error in results]
+        return {**done[0], "images": rows(images, ["path", "error"]), "failed": failed}
+    items = [
+        {"path": shown(path), **(out or {}), **({"error": error} if error else {})} for path, out, error in results
+    ]
+    return {"edited": items, "failed": failed}
 
 
 def build_describe(p: Parser) -> None:
@@ -490,7 +533,9 @@ def run_describe(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
 
     description = describe_adjustments()
     if a.tool is None:
-        tools = [{"name": name, "group": t.group, "fields": len(t.fields)} for name, t in description.tools.items()]
+        tools = [
+            {"name": name, "group": t.group, "fields": " ".join(t.fields)} for name, t in description.tools.items()
+        ]
         return {
             "schema_ppversion": description.schema_ppversion,
             "tools": rows(tools, ["name", "group", "fields"]),
@@ -509,14 +554,16 @@ def run_describe(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
                 "min": f.minimum,
                 "max": f.maximum,
                 "unit": f.unit,
-                "default": f.default if toon.is_primitive(f.default) else json.dumps(f.default),
+                "art_default": f.default if toon.is_primitive(f.default) else json.dumps(f.default),
             }
         )
     out: dict[str, Any] = {
         "tool": a.tool,
         "group": tool.group,
         "description": truncated(tool.description, a.full),
-        "fields": rows(fields, ["name", "key", "type", "min", "max", "unit", "default"]),
+        "fields": rows(fields, ["name", "key", "type", "min", "max", "unit", "art_default"]),
+        "note": "art_default is ART's built-in value; an image starts from its processing profile, which can "
+        "differ (art-axi profile <path> --all shows it)",
     }
     if len(tool.description) > TRUNCATE and not a.full:
         out["help"] = [f"art-axi describe {a.tool} --full"]
@@ -616,6 +663,54 @@ def build_stats(p: Parser) -> None:
         "--size", type=int, default=PREVIEW_SIZE, help="long edge of the render measured (default %(default)s)"
     )
     p.add_argument("--stage", default="display", choices=("display", "converted"), help="default %(default)s")
+    p.add_argument(
+        "--set", dest="raw", action="append", type=raw_edit, default=[], metavar="GROUP/KEY=VALUE",
+        help="measure with this value instead of the stored one, without storing it (repeatable)",
+    )  # fmt: skip
+    p.add_argument("--adjust", metavar="JSON", help="the same with curated adjustments, as `edit --adjust`")
+    p.add_argument(
+        "--sweep", type=sweep, metavar="GROUP/KEY=V1,V2,...",
+        help="measure each value of one key in turn (one image; nothing stored), e.g. Exposure/Compensation=0.4,0.5",
+    )  # fmt: skip
+
+
+def sweep(text: str) -> tuple[str, str, list[str]]:
+    """``Group/Key=v1,v2,...``."""
+    edit = raw_edit(text)
+    values = [v for v in edit["value"].split(",") if v]
+    if not values:
+        raise argparse.ArgumentTypeError(f"--sweep takes Group/Key=v1,v2,..., not {text!r}")
+    return edit["group"], edit["key"], values
+
+
+def adjustments_arg(text: str | None) -> dict[str, Any] | None:
+    """``--adjust``'s JSON object (None without one)."""
+    if text is None:
+        return None
+    try:
+        adjustments = json.loads(text)
+    except json.JSONDecodeError as e:
+        raise UsageError(f"--adjust is not JSON: {e}", "art-axi describe  (the adjustments and their fields)") from e
+    if not isinstance(adjustments, dict):
+        raise UsageError("--adjust takes a JSON object", "art-axi describe")
+    return adjustments
+
+
+def scratch_session(session: Any, paths: list[str]) -> Any:
+    """A session over copies of ``paths``' working profiles held in memory:
+    edits to it render like the real ones and are never stored."""
+    import copy
+
+    from art_mcp.render.session import RenderSession
+    from art_mcp.render.store import MemoryStore
+
+    store = MemoryStore()
+    for path in paths:
+        with session.image(path) as wp:
+            store.put(copy.deepcopy(wp))
+    return RenderSession(
+        session.cli, session.config_dir, session.previews, session.exiftool, session.inline_previews, store=store
+    )
 
 
 def channel_table(stats: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -643,18 +738,47 @@ def channel_table(stats: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]
 
 
 def run_stats(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
-    from art_mcp.render import sampling_ops
+    from art_mcp.render import profile_ops, sampling_ops
     from art_mcp.render.preview_ops import Region
+    from art_mcp.schema import RawEdit
 
     region = Region(**dict(zip("xywh", a.region, strict=True))) if a.region else None
+    adjustments = adjustments_arg(a.adjust)
+    if a.sweep and len(a.paths) > 1:
+        raise UsageError("--sweep goes with one image", "art-axi stats <path> --sweep Group/Key=v1,v2,...")
     session = ctx.session()
+    if a.raw or adjustments is not None or a.sweep:
+        session = call(lambda: scratch_session(ctx.session(), a.paths), a.paths[0])
 
-    def measure(path: str | None, paths: list[str] | None) -> Any:
+    def override(path: str, raw: list[dict[str, str]]) -> None:
+        edits = [RawEdit(**r) for r in raw] or None
+        if edits or adjustments is not None:
+            call(lambda: profile_ops.edit_profile(session, path, adjustments, edits), path)
+
+    def measure(path: str | None, paths: list[str] | None, detail: str | None = a.detail) -> Any:
         return sampling_ops.image_stats(
-            session, path, paths, a.size, a.histogram, region, a.bins, a.detail, a.lum_min, a.lum_max,
+            session, path, paths, a.size, a.histogram, region, a.bins, detail, a.lum_min, a.lum_max,
             on_progress=progress("stats") if paths else None, stage=a.stage,
         )  # fmt: skip
 
+    for path in a.paths:
+        override(path, a.raw)
+    if a.sweep:
+        path = a.paths[0]
+        group, key, values = a.sweep
+        table: list[dict[str, Any]] = []
+        for value in values:
+            override(path, [{"group": group, "key": key, "value": value}])
+            stats = prune(call(lambda: measure(path, None, a.detail or "compact"), path))
+            rest, _ = channel_table(stats)
+            table.extend({"value": as_number(value), **row} for row in rest.get("channels", []))
+        columns = list(dict.fromkeys(k for row in table for k in row))
+        return {
+            "path": shown(path),
+            "sweep": f"{group}/{key} (nothing stored)",
+            "results": rows(table, columns),
+            "help": [f"art-axi edit {shown(path)} --set {group}/{key}=<chosen value>"],
+        }
     if len(a.paths) == 1:
         stats = prune(call(lambda: measure(a.paths[0], None), a.paths[0]))
         rest, lists = channel_table(stats)
@@ -855,10 +979,17 @@ COMMANDS = {
         ),
         Command(
             "stats",
-            "Clipping and percentiles of a rendered image, per channel.",
+            "Clipping and percentiles of a rendered image, per channel. clipped_high/clipped_low are fractions "
+            "(0..1) of the pixels at 255 / 0 of a render whose long edge is --size (raise it to catch small clipped "
+            "areas); percentiles are 8-bit values. --set measures values without storing them; --sweep measures "
+            "several values of one key in one call.",
             build_stats,
             run_stats,
-            ["art-axi stats IMG_1.ARW", "art-axi stats *.ARW --detail compact --lum-max 250"],
+            [
+                "art-axi stats IMG_1.ARW",
+                "art-axi stats *.ARW --detail compact --lum-max 250",
+                "art-axi stats IMG_1.ARW --sweep Exposure/Compensation=0.4,0.5,0.6,0.7",
+            ],
             {"--max-size": "use --size"},
         ),
         Command(

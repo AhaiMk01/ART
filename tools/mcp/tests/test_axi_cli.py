@@ -214,3 +214,88 @@ def test_messages_use_the_cli_names():
     assert cli.in_cli_terms("y already exists; pass overwrite=true to replace it") == (
         "y already exists; pass --overwrite to replace it"
     )
+
+
+def two_images(tmp_path):
+    images = []
+    for name in ("A.ARW", "B.ARW"):
+        img = tmp_path / name
+        img.write_bytes(b"raw")
+        images.append(img)
+    return images
+
+
+def test_edit_of_several_images_says_what_changed(axi, tmp_path):
+    images = two_images(tmp_path)
+    axi("open", *images)
+    code, out = axi("edit", *images, "--set", "Exposure/Compensation=1.5")
+
+    assert code == 0, out
+    # The same change to both: listed once, as a number.
+    assert out.count("Compensation: 1.5") == 1
+    assert "images[2]{path,error}:" in out and "failed: 0" in out
+
+
+def test_edit_of_several_images_with_one_failing(axi, tmp_path):
+    images = two_images(tmp_path)
+    axi("open", images[0])
+    code, out = axi("edit", *images, "--set", "Exposure/Compensation=1.5")
+
+    assert code == 0, out
+    assert "not_open" in out and "failed: 1" in out
+    assert "Compensation: 1.5" in out
+
+
+def test_reset_says_what_it_discarded(axi, image):
+    axi("open", image)
+    axi("edit", image, "--set", "Exposure/Compensation=1.5", "--set", "Exposure/Black=0.1")
+    code, out = axi("reset", image, "--to", "default")
+
+    assert code == 0, out
+    assert "discarded_edits: 2" in out
+
+
+@pytest.fixture
+def rendered_png(tmp_path, monkeypatch):
+    """What the fake art-cli renders for stats: a real 8-bit PNG."""
+    from PIL import Image
+
+    png = tmp_path / "render.png"
+    Image.new("RGB", (64, 48), (120, 130, 140)).save(png)
+    monkeypatch.setenv("FAKE_PNG_SOURCE", str(png))
+
+
+def test_stats_set_measures_without_storing(axi, image, rendered_png):
+    axi("open", image)
+    code, out = axi("stats", image, "--set", "Exposure/Compensation=2")
+    assert code == 0, out
+
+    _, profile = axi("profile", image, "--groups", "Exposure")
+    assert "unsaved_edits: 0" in profile
+
+
+def test_stats_sweep_measures_each_value(axi, image, rendered_png):
+    axi("open", image)
+    code, out = axi("stats", image, "--sweep", "Exposure/Compensation=0.5,1")
+
+    assert code == 0, out
+    assert "results[8]{value,ch," in out
+    assert "\n  0.5,r," in out and "\n  1,lum," in out
+    _, profile = axi("profile", image, "--groups", "Exposure")
+    assert "unsaved_edits: 0" in profile
+
+
+def test_sweep_goes_with_one_image(axi, tmp_path):
+    images = two_images(tmp_path)
+    code, out = axi("stats", *images, "--sweep", "Exposure/Compensation=0.5,1")
+
+    assert code == 2
+    assert "--sweep goes with one image" in out
+
+
+def test_describe_shows_field_names_and_art_default(axi):
+    _, listing = axi("describe")
+    _, exposure = axi("describe", "exposure")
+
+    assert "compensation" in listing
+    assert "art_default" in exposure and "note:" in exposure
