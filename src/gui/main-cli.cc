@@ -105,6 +105,12 @@ bool check_partial_profile(const PartialProfile &pp)
  *  -3 if at least one required procparam file was not found */
 int processLineParams(int argc, char **argv);
 
+void printVersion()
+{
+    std::cout << RTNAME << ", version " << RTVERSION << ", command line."
+              << std::endl;
+}
+
 std::pair<bool, int> dontLoadCache(int argc, char **argv);
 
 
@@ -276,14 +282,10 @@ int main(int argc, char **argv)
 
     int ret = 0;
 
-    // printing RT's version in all case, particularly useful for the 'verbose'
-    // mode, but also for the batch processing
-    std::cout << RTNAME << ", version " << RTVERSION << ", command line."
-              << std::endl;
-
     if (argc > 1) {
         ret = processLineParams(argc, argv);
     } else {
+        printVersion();
         std::cout << "Terminating without anything to do." << std::endl;
     }
 
@@ -309,8 +311,7 @@ std::pair<bool, int> dontLoadCache(int argc, char **argv)
                 quick = true;
                 break;
             case 'v':
-                std::cout << RTNAME << ", version " << RTVERSION
-                          << ", command line." << std::endl;
+                printVersion();
                 exit(0);
             case '?':
             case 'h':
@@ -324,6 +325,11 @@ std::pair<bool, int> dontLoadCache(int argc, char **argv)
             case '-':
                 if (currParam == "--progress") {
                     progress = true;
+                } else if (currParam == "--help") {
+                    ART_print_help(argv[0], false);
+                    std::cout << "\nOptions for --make-icc:\n";
+                    ART_makeicc_help(std::cout, 2);
+                    exit(0);
                 }
                 break;
             default:
@@ -467,8 +473,12 @@ int processLineParams(int argc, char **argv)
                         return bad("dng-clip", "min, max");
                     }
                     dngOpts.clip_max = (v == "max");
+                } else if (a != "--progress" && a != "--help") {
+                    std::cerr << "Error: unknown option '" << a
+                              << "'. Try '" << argv[0] << " --help'."
+                              << std::endl;
+                    return -3;
                 }
-                // otherwise a GTK --argument, we're skipping it
             } break;
 
             case 'O':
@@ -763,9 +773,14 @@ int processLineParams(int argc, char **argv)
 
             case 'h':
             case '?':
-            default:
                 ART_print_help(argv[0], false);
                 return -1;
+
+            default:
+                std::cerr << "Error: unknown option '" << currParam
+                          << "'. Try '" << argv[0] << " --help'."
+                          << std::endl;
+                return -3;
             }
         } else {
             argv1 = Glib::ustring(fname_to_utf8(argv[iArg]));
@@ -796,6 +811,11 @@ int processLineParams(int argc, char **argv)
             break;
         }
     }
+
+    // printing the version once the command line is known to be valid,
+    // particularly useful for the 'verbose' mode, but also for the batch
+    // processing
+    printVersion();
 
     if (bits == -1) {
         if (outputType == "jpg") {

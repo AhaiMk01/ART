@@ -221,6 +221,8 @@ inline void ART_print_help(std::ostream &out, const char *progname, bool gui)
                "not converted."
             << std::endl;
         out << "  -V               Verbose output." << std::endl;
+        out << "  -v               Print version number and exit." << std::endl;
+        out << "  -h, --help       Print this help and exit." << std::endl;
         out << "  --progress       Show progress info in a format compatible "
                "with zenity."
             << std::endl;
