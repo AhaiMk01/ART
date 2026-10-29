@@ -25,17 +25,12 @@ EXPORT_BIT_DEPTHS = {
 """Export formats and the bit depths art-cli takes for each."""
 
 
-def resolve_profile_args(image: Path, output: Path, sidecar: Path | None, preset: Path | None = None) -> list[str]:
+def resolve_profile_args(image: Path, output: Path, sidecar: Path | None) -> list[str]:
     """A fast render whose only purpose is the ``.arp`` that ``-O`` writes
     beside ``output``: the image's complete processing profile, built from its
-    sidecar or, without one, from ART's default profile. With ``preset`` (an
-    ``.arp``, full or partial) it is that file layered over ART's default
-    profile instead, as art-cli does for ``-d -p``; ``sidecar`` is then not
-    passed. No other layer is added, so nothing leaks into that profile."""
-    if preset:
-        base = ["-d", "-p", str(preset)]
-    else:
-        base = ["-p", str(sidecar)] if sidecar else ["-d"]
+    sidecar or, without one, from ART's default profile. No other layer is
+    added, so nothing leaks into that profile."""
+    base = ["-p", str(sidecar)] if sidecar else ["-d"]
     return ["-O", str(output), "-f", "-Y", "-a", *base, "-c", str(image)]
 
 
@@ -113,11 +108,9 @@ def export_args(
     quality: int | None,
     bit_depth: str | None,
     write_profile: bool,
-    *,
-    default_base: bool = False,
 ) -> list[str]:
-    """A full-size render (no ``-f``) of ``profiles`` layered in order, over
-    ART's default profile when ``default_base`` (``-d``). With
+    """A full-size render (no ``-f``) of ``profiles`` layered in order, with
+    no ART default profile under them. With
     ``write_profile``, ``-O`` also writes ``<output>.arp``. Raises ValueError
     for a format, quality or bit depth art-cli doesn't take."""
     if format not in EXPORT_BIT_DEPTHS:
@@ -138,7 +131,6 @@ def export_args(
         format_flags.append(f"-b{bit_depth}")
     return [
         "-O" if write_profile else "-o", str(output), "-Y", "-a",
-        *(["-d"] if default_base else []),
         *(arg for layer in profiles for arg in ("-p", str(layer))),
         *format_flags, "-c", str(image),
     ]  # fmt: skip

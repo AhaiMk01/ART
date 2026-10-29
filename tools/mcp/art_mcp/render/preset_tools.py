@@ -19,9 +19,8 @@ def register(server: MCPServer, session: RenderSession) -> None:
         working profile of each image in `paths` (open them first; one that
         isn't open is that image's error and the others still run). The
         file's keys win; every other value of the frame (crop, reference
-        spot, rotation, what you set before) stays. ART loads the file, so
-        its own rules for one apply (a file that turns a tool off can switch
-        related values off too). A complete profile sets every key it has,
+        spot, rotation, what you set before) stays, even a key of a group
+        the file has but doesn't list. A complete profile sets every key it has,
         the crop included: for a group's settings use a preset saved with
         save_partial_profile. Unlike open_image's `profile`, which starts the
         working profile over from the file, nothing is lost. The changes

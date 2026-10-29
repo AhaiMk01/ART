@@ -83,7 +83,8 @@ async def test_profiles_layer_over_arts_default_without_opening(server, images, 
     assert not result.is_error, result.content
     data = (out / "FILM_1.jpg").read_bytes()
     assert data.index(b"Enabled=true") < data.index(b"RefInput=1;2;3;")
-    assert b" -d " in data
+    # Laid over ART's default key by key here, and rendered as one complete profile.
+    assert b"AppVersion=9.9.9" in data and b" -d " not in data
 
 
 async def test_one_failing_item_does_not_stop_the_others(server, images, out):
@@ -274,7 +275,7 @@ async def test_source_folder_exports_its_images_in_sorted_order(server, images, 
     assert sorted(p.name for p in out.iterdir()) == ["FILM_1.jpg", "FILM_2.jpg", "FILM_3.jpg", "frame_0.jpg"]
     for item in items:  # the preset layers over ART's default on every image
         data = Path(item["output"]).read_bytes()
-        assert b"Enabled=true" in data and b" -d " in data
+        assert b"Enabled=true" in data and b"AppVersion=9.9.9" in data
 
 
 async def test_source_folder_without_profiles_exports_working_profiles(server, images, out):

@@ -18,7 +18,7 @@ from art_mcp.render.server import build_server
 FAKE = Path(__file__).with_name("fake_artcli.py")
 pytestmark = pytest.mark.anyio
 
-PRESET = "[Exposure]\nCompensation=1.5\n\n[Film Negative]\nEnabled=true\nRedRatio=1.3\n"
+PRESET = "[Exposure]\nCompensation=1.5\n\n[Film Negative]\nEnabled=true\nNamiColorMasterShift=0.3\n"
 FULL = """[Version]
 AppVersion=1.0.0
 Version=1040
@@ -139,7 +139,7 @@ async def test_the_presets_keys_land_and_the_frames_own_crop_stays(server, image
     assert (crop["enabled"], crop["x"], crop["y"], crop["w"], crop["h"]) == (True, 100, 200, 3000, 2000)  # its own
     item = result.structured_content["items"][0]
     assert item["path"] == str(images[0]) and item["error"] is None
-    assert item["keys_changed"] == 3  # Compensation, Enabled, RedRatio
+    assert item["keys_changed"] == 3  # Compensation, Enabled, NamiColorMasterShift
     assert item["groups"] == ["Exposure", "Film Negative"]
 
 
@@ -173,7 +173,7 @@ async def test_the_preset_wins_over_what_the_frame_set_and_the_rest_stays(server
     assert exposure["black"] == 0.5  # not in the preset
 
 
-async def test_the_working_profile_is_the_first_layer_and_no_default_profile_goes_under(
+async def test_art_cli_loads_one_merged_profile_and_no_default_profile_goes_under(
     server, images, preset, args_log
 ):
     async with Client(server) as client:
@@ -184,7 +184,10 @@ async def test_the_working_profile_is_the_first_layer_and_no_default_profile_goe
     (args,) = (json.loads(line) for line in args_log.read_text().splitlines())
     assert "-d" not in args
     layers = [args[i + 1] for i, a in enumerate(args) if a == "-p"]
-    assert len(layers) == 2 and layers[1] == str(preset.resolve())  # the preset last, over the working profile
+    # The preset's keys written over the working profile, not the preset as a
+    # layer of its own: ART's loader resets keys a group doesn't list.
+    assert len(layers) == 1 and layers[0] != str(preset.resolve())
+    assert not Path(layers[0]).exists()  # gone once the call is over
     assert args[-2] == "-c" and Path(args[-1]).resolve() == images[0].resolve()  # -c comes last: files only after
 
 
@@ -291,7 +294,7 @@ async def test_saving_afterwards_writes_over_the_unchanged_sidecar_without_a_con
     assert saved.structured_content["how"] == "written"  # the baseline is still the sidecar that was loaded
     written = keyfile.loads(sidecar_of(images[0]).read_text())
     assert written["Exposure"]["Compensation"] == "1.5"
-    assert written["Film Negative"]["RedRatio"] == "1.3"
+    assert written["Film Negative"]["NamiColorMasterShift"] == "0.3"
 
 
 async def test_a_sidecar_that_changed_meanwhile_conflicts_and_merges_only_the_presets_changes(server, images, preset):
@@ -305,11 +308,11 @@ async def test_a_sidecar_that_changed_meanwhile_conflicts_and_merges_only_the_pr
         merged = await client.call_tool("save_sidecar", {"path": str(images[0]), "on_conflict": "merge"})
 
     assert conflict.is_error and "conflict: " in text_of(conflict)
-    assert "[Exposure] Compensation, [Film Negative] Enabled, [Film Negative] RedRatio" in text_of(conflict)
+    assert "[Exposure] Compensation, [Film Negative] Enabled, [Film Negative] NamiColorMasterShift" in text_of(conflict)
     assert not merged.is_error, merged.content
     written = keyfile.loads(sidecar.read_text())
     assert written["Exposure"] == {"Enabled": "true", "Compensation": "1.5", "Black": "2"}  # theirs + the preset's
-    assert written["Film Negative"]["RedRatio"] == "1.3"
+    assert written["Film Negative"]["NamiColorMasterShift"] == "0.3"
 
 
 async def test_the_partial_profile_of_a_frame_includes_what_the_preset_changed(server, images, preset, tmp_path):
@@ -323,7 +326,7 @@ async def test_the_partial_profile_of_a_frame_includes_what_the_preset_changed(s
     assert not saved.is_error, saved.content
     partial = keyfile.loads(frame.read_text())
     assert partial["Exposure"] == {"Compensation": "1.5"}
-    assert partial["Film Negative"] == {"Enabled": "true", "RedRatio": "1.3"}
+    assert partial["Film Negative"] == {"Enabled": "true", "NamiColorMasterShift": "0.3"}
     assert partial["Crop"]["X"] == "100"
 
 
@@ -339,7 +342,7 @@ async def test_a_reset_forgets_the_preset(server, images, preset):
 
 # -- exclude: what of the preset is left out before it is laid over the frames ---------
 
-TWO_EXPOSURE_KEYS = "[Exposure]\nCompensation=1.5\nBlack=0.5\n\n[Film Negative]\nEnabled=true\nRedRatio=1.3\n"
+TWO_EXPOSURE_KEYS = "[Exposure]\nCompensation=1.5\nBlack=0.5\n\n[Film Negative]\nEnabled=true\nNamiColorMasterShift=0.3\n"  # noqa: E501
 
 
 async def set_compensation(client, image, value):
@@ -355,7 +358,7 @@ async def test_excluding_a_group_leaves_the_frames_own_values_of_it(server, imag
 
     assert not result.is_error, result.content
     assert profile["exposure"]["compensation"] == 3  # the frame's own, not the preset's 1.5
-    assert profile["film_negative"]["red_ratio"] == 1.3  # the rest of the preset landed
+    assert profile["film_negative"]["namicolor_master_shift"] == 0.3  # the rest of the preset landed
     item = result.structured_content["items"][0]
     assert (item["keys_changed"], item["groups"], item["error"]) == (2, ["Film Negative"], None)
     assert result.structured_content["excluded"] == {"Exposure": 1}  # what each entry took out of the preset
@@ -384,35 +387,24 @@ async def test_the_same_exclusions_apply_to_every_frame_and_each_keeps_its_own_v
         profiles = [await adjustments_of(client, p) for p in images]
 
     assert [p["exposure"]["compensation"] for p in profiles] == [1, 2, 3]
-    assert [p["film_negative"]["red_ratio"] for p in profiles] == [1.3] * 3
+    assert [p["film_negative"]["namicolor_master_shift"] for p in profiles] == [0.3] * 3
     assert [i["keys_changed"] for i in result.structured_content["items"]] == [2, 2, 2]
 
 
-async def test_art_cli_layers_a_filtered_copy_and_the_preset_file_is_left_alone(
-    server, images, preset, args_log
-):
+async def test_excluding_leaves_the_preset_file_alone_and_no_copy_behind(server, images, preset, tmp_path):
     async with Client(server) as client:
         await open_all(client, images[:1])
-        args_log.write_text("")
         await apply(client, images[:1], preset, exclude=["Exposure"])
 
-    (args,) = (json.loads(line) for line in args_log.read_text().splitlines())
-    layers = [args[i + 1] for i, a in enumerate(args) if a == "-p"]
-    assert len(layers) == 2 and layers[1] != str(preset.resolve())
-    assert not Path(layers[1]).exists()  # the copy is gone once the call is over
     assert preset.read_text() == PRESET
+    assert not list((tmp_path / "previews").glob("preset*.arp"))  # the filtered copy is gone
 
 
-async def test_without_exclude_the_preset_itself_is_layered_and_nothing_is_reported_excluded(
-    server, images, preset, args_log
-):
+async def test_without_exclude_nothing_is_reported_excluded(server, images, preset):
     async with Client(server) as client:
         await open_all(client, images[:1])
-        args_log.write_text("")
         result = await apply(client, images[:1], preset)
 
-    (args,) = (json.loads(line) for line in args_log.read_text().splitlines())
-    assert [args[i + 1] for i, a in enumerate(args) if a == "-p"][1] == str(preset.resolve())
     assert result.structured_content["excluded"] == {}
 
 

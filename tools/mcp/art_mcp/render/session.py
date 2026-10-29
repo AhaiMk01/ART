@@ -17,6 +17,7 @@ from typing import Literal
 from art_mcp import artdir, keyfile, sidecar
 from art_mcp.concurrency import ImageLocks, image_key
 from art_mcp.keyfile import KeyFile
+from art_mcp.layering import overlay
 from art_mcp.metadata import Exiftool
 from art_mcp.preview import PreviewFolder
 from art_mcp.profile import WorkingChanges, crop_problem, crop_rect, ppversion_of
@@ -40,6 +41,16 @@ ProfileSource = Literal["sidecar", "default"]
 OpenSource = Literal["sidecar", "default", "profile"]
 """Where ``open`` took the working profile from; ``profile`` is the file given
 to it."""
+
+
+def read_preset(path: Path) -> KeyFile:
+    """The keys of the ``.arp`` at ``path`` (partial or complete)."""
+    try:
+        return keyfile.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError as e:
+        raise render_error("not_found", f"profile {path} does not exist") from e
+    except ValueError as e:
+        raise render_error("out_of_range", f"profile {path} is not a processing profile (.arp): {e}") from e
 
 
 class RenderSession:
@@ -109,14 +120,13 @@ class RenderSession:
             raise render_error("not_open", f"{path} is not open; call open_image first")
         return wp
 
-    def _load(
-        self, image: Path, source: ProfileSource | None, preset: Path | None = None
-    ) -> OpenSource:
+    def _load(self, image: Path, source: ProfileSource | None, preset: Path | None = None) -> OpenSource:
         """Resolve ``image``'s complete processing profile with one art-cli
         run and make it the working profile. ``source`` None means the sidecar
         if there is one, else ART's default profile; ``preset`` (an ``.arp``)
-        means that file over ART's default profile, without looking at the
-        sidecar (so none is the baseline for saving). Caller holds the lock."""
+        means that file laid over ART's default profile (``layering.overlay``,
+        a second run), without looking at the sidecar (so none is the baseline
+        for saving). Caller holds the lock."""
         sidecar_bytes = None
         origin: OpenSource = "profile"
         if preset is None:
@@ -136,7 +146,8 @@ class RenderSession:
             if origin == "sidecar" and sidecar_bytes is not None:
                 sidecar_copy.write_bytes(sidecar_bytes)
                 base = sidecar_copy
-            self.run(resolve_profile_args(image, output, base, preset), output)
+            preset_keys = read_preset(preset) if preset is not None else None
+            self.run(resolve_profile_args(image, output, base), output)
             if not arp.is_file():
                 raise no_profile_written()
             profile = keyfile.loads(arp.read_text(encoding="utf-8"))
@@ -144,6 +155,10 @@ class RenderSession:
             output.unlink(missing_ok=True)
             arp.unlink(missing_ok=True)
             sidecar_copy.unlink(missing_ok=True)
+        default = None
+        if preset_keys is not None:
+            default = profile  # resolved with no base: ART's default profile
+            profile = self.complete_profile(image, overlay(default, preset_keys))
 
         self.store.put(
             WorkingProfile(
@@ -152,22 +167,27 @@ class RenderSession:
                 sidecar_keys=sidecar.parse(sidecar_bytes),
                 sidecar_hash=sidecar.hash_or_none(sidecar_bytes),
                 token=uuid.uuid4().hex,
+                default=default,
             )
         )
         return origin
 
     def layered_profile(self, wp: WorkingProfile, preset: Path) -> KeyFile:
         """``wp``'s working profile with ``preset`` (an ``.arp``, full or
-        partial) laid over it, as art-cli loads ``-p <working> -p <preset>``
-        and writes the complete result: the preset's keys win and the loader's
-        own rules apply, every other key stays. Doesn't change ``wp``; call
-        with the image's lock held."""
-        working = self.previews.new_file("working", ".arp")
+        partial) laid over it: the preset's keys win, every other key stays
+        (``layering.overlay``), and art-cli loads the result and writes it back
+        complete. Doesn't change ``wp``; call with the image's lock held."""
+        return self.complete_profile(wp.image, overlay(wp.changes.profile, read_preset(preset)))
+
+    def complete_profile(self, image: Path, profile: KeyFile) -> KeyFile:
+        """``profile`` as art-cli loads it for ``image`` and writes it back:
+        complete, in ART's own spelling of every value."""
+        source = self.previews.new_file("layered", ".arp")
         output = self.previews.new_file("layer", ".jpg")
         arp = Path(str(output) + ".arp")
         try:
-            working.write_text(keyfile.dumps(wp.changes.profile), encoding="utf-8")
-            self.run(layer_profile_args(wp.image, output, [working, preset]), output)
+            source.write_text(keyfile.dumps(profile), encoding="utf-8")
+            self.run(layer_profile_args(image, output, [source]), output)
             if not arp.is_file():
                 raise no_profile_written()
             try:
@@ -175,7 +195,7 @@ class RenderSession:
             except ValueError as e:
                 raise render_error("render_failed", f"art-cli wrote a profile that does not parse: {e}") from e
         finally:
-            for leftover in (working, output, arp):
+            for leftover in (source, output, arp):
                 leftover.unlink(missing_ok=True)
 
     def commit(self, wp: WorkingProfile) -> None:
@@ -236,6 +256,7 @@ class RenderSession:
     def check_crop(self, wp: WorkingProfile, crop: CropAdjustment) -> None:
         """Reject a crop rectangle that doesn't fit the image's frame; fields
         not in the request keep the working profile's values."""
+
         def frame() -> tuple[int, int]:
             whole = self.whole_frame(wp)
             return whole.w, whole.h

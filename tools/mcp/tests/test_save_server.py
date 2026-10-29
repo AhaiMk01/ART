@@ -317,7 +317,7 @@ async def test_partial_profile_verbose_lists_every_key_as_before_and_still_has_t
     assert not result.is_error, result.content
     assert result.structured_content["keys"] == [
         "[Exposure] Enabled", "[Exposure] Compensation", "[Exposure] Black",
-        "[Film Negative] Enabled", "[Film Negative] RedRatio", "[Version] Version",
+        "[Film Negative] Enabled", "[Film Negative] NamiColorMasterShift", "[Version] Version",
     ]  # fmt: skip
     assert result.structured_content["total"] == 6
 
@@ -482,7 +482,7 @@ async def test_partial_profile_exclude_of_an_unknown_name_is_unknown_key(
 ROLL_PRESET = (
     "[Version]\nAppVersion=1.0.0\nVersion=1000\n\n"
     "[Exposure]\nEnabled=false\nBlack=5\n\n"
-    "[Film Negative]\nEnabled=true\nRedRatio=1.5\n"
+    "[Film Negative]\nEnabled=true\nNamiColorMasterShift=1.5\n"
 )
 """A roll preset over ART's default profile (Exposure on, Black 0, no Film
 Negative group). Its Film Negative values need their source version, so a
@@ -515,7 +515,7 @@ async def test_partial_profile_vs_default_carries_the_keys_of_the_preset_the_fra
     assert not default.is_error, default.content
     assert keyfile.loads(dest.read_text()) == {
         "Exposure": {"Enabled": "false", "Compensation": "2", "Black": "5"},
-        "Film Negative": {"Enabled": "true", "RedRatio": "1.5"},
+        "Film Negative": {"Enabled": "true", "NamiColorMasterShift": "1.5"},
         "Version": {"Version": "1000"},  # the Film Negative values keep their source version
     }
     assert default.structured_content["vs"] == "default"
@@ -539,7 +539,7 @@ async def test_partial_profile_vs_default_leaves_out_what_equals_the_default(
     saved = keyfile.loads(dest.read_text())
     assert saved == {
         "Exposure": {"Enabled": "false", "Black": "5"},
-        "Film Negative": {"Enabled": "true", "RedRatio": "1.5"},
+        "Film Negative": {"Enabled": "true", "NamiColorMasterShift": "1.5"},
         "Version": {"Version": "1000"},
     }  # not White Balance, Crop, LensProfile (all the default's); [Version] only for Film Negative
     assert result.structured_content["keys"] == {"Exposure": 2, "Film Negative": 2, "Version": 1}
@@ -605,7 +605,7 @@ async def test_partial_profile_with_another_baseline_is_out_of_range(
     assert not dest.exists()
 
 
-async def test_the_default_profile_is_only_asked_for_with_vs_default_and_once_per_opened_image(
+async def test_the_default_profile_a_preset_was_opened_over_is_kept_for_vs_default(
     server, image, preset, tmp_path, monkeypatch
 ):
     log = tmp_path / "args.log"
@@ -617,10 +617,8 @@ async def test_the_default_profile_is_only_asked_for_with_vs_default_and_once_pe
     async with Client(server) as client:
         await open_from_preset_and_edit(client, image, preset, edit("Exposure", "Compensation", "2"))
         opened_runs = default_runs()
+        assert opened_runs == 1  # the default the preset was laid over
         await partial_dest(tmp_path, image, client)
+        await partial_dest(tmp_path, image, client, overwrite=True, vs="default")
+        await partial_dest(tmp_path, image, client, overwrite=True, vs="default")
         assert default_runs() == opened_runs
-
-        await partial_dest(tmp_path, image, client, overwrite=True, vs="default")
-        assert default_runs() == opened_runs + 1
-        await partial_dest(tmp_path, image, client, overwrite=True, vs="default")
-        assert default_runs() == opened_runs + 1

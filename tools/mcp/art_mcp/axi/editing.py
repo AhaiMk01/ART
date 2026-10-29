@@ -242,8 +242,8 @@ def run_preset(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
     }
     if result.excluded:
         out["excluded"] = result.excluded
-    # What changed in each image, old -> new: ART's loader can change keys the
-    # preset doesn't list (a group's missing keys go back to their defaults).
+    # What changed in each image, old -> new: what the preset lists and what
+    # ART derives from it (spelling, a Film Negative method).
     changes = {i.path: profile_changes(before[i.path], profile_before(session, i.path)) for i in done}
     tables = list(changes.values())
     if tables and all(t == tables[0] for t in tables):

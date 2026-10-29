@@ -12,9 +12,11 @@ from pydantic import BaseModel
 
 from art_mcp import artdir, keyfile
 from art_mcp.concurrency import image_key
+from art_mcp.layering import overlay
 from art_mcp.render.artcli import export_args
+from art_mcp.render.defaults import resolve_default_profile
 from art_mcp.render.errors import RenderError, no_profile_written, render_error
-from art_mcp.render.session import RenderSession
+from art_mcp.render.session import RenderSession, read_preset
 
 EXPORT_SUFFIXES = {"jpeg": ".jpg", "tiff": ".tif", "png": ".png"}
 PROFILE_NAMES = ("output", "source")
@@ -139,20 +141,19 @@ def render_to(
 ) -> None:
     """Render ``image`` at full size into a temp file, then move it to
     ``dest`` (and its `.arp` to ``profile_dest``). The profile is
-    ``profile_text`` (complete), or ``layers`` over ART's default profile."""
+    ``profile_text`` (complete), or ``layers`` laid over ART's default profile
+    (``layering.overlay``: keys a layer doesn't name keep the default's
+    values; one more art-cli run to resolve the default)."""
     previews = session.previews
     profile = previews.new_file("profile", ".arp")
     temp = previews.new_file("export", EXPORT_SUFFIXES.get(out.format, ".out"))
     temp_arp = Path(str(temp) + ".arp")
     try:
-        if profile_text is not None:
-            profile.write_text(profile_text, encoding="utf-8")
-            args = export_args(image, temp, [profile], out.format, out.quality, out.bit_depth, out.write_profile)
-        else:
-            args = export_args(
-                image, temp, layers or [], out.format, out.quality, out.bit_depth, out.write_profile,
-                default_base=True,
-            )  # fmt: skip
+        if profile_text is None:
+            default = resolve_default_profile(session.cli, previews, image)
+            profile_text = keyfile.dumps(overlay(default, *(read_preset(layer) for layer in layers or [])))
+        profile.write_text(profile_text, encoding="utf-8")
+        args = export_args(image, temp, [profile], out.format, out.quality, out.bit_depth, out.write_profile)
         session.run(args, temp, timeout=session.cli.export_timeout)
         if out.write_profile and not temp_arp.is_file():
             raise no_profile_written()
@@ -316,9 +317,7 @@ def export_batch(
             results[i].error = str(e)
 
     def run(job: Job) -> None:
-        render_to(
-            session, job.image, job.dest, job.profile_dest, out, profile_text=job.profile_text, layers=job.layers
-        )
+        render_to(session, job.image, job.dest, job.profile_dest, out, profile_text=job.profile_text, layers=job.layers)
 
     done = 0
     with ThreadPoolExecutor(max_workers=max(1, session.cli.max_processes)) as pool:
