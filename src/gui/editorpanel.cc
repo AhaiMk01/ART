@@ -2860,13 +2860,7 @@ void EditorPanel::refreshImageAreas()
 void EditorPanel::update_open_mark(Thumbnail *thm, bool yes)
 {
     if (fPanel) {
-        const auto entries = fPanel->fileCatalog->fileBrowser->getEntries();
-        for (auto e : entries) {
-            if (static_cast<const FileBrowserEntry *>(e)->thumbnail == thm) {
-                e->open_in_editor += (yes ? 1 : -1);
-                break;
-            }
-        }
+        fPanel->fileCatalog->fileBrowser->updateOpenInEditor(thm, yes ? 1 : -1);
     }
 }
 
