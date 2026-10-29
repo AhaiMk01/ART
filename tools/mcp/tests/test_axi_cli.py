@@ -133,7 +133,7 @@ def test_save_takes_several_images(axi, tmp_path):
     code, out = axi("save", *images)
 
     assert code == 0, out
-    assert "saved[2]{path,sidecar,how,error}:" in out and "failed: 0" in out
+    assert "saved: 2 of 2" in out
     assert all(img.with_name(img.name + ".arp").is_file() for img in images)
 
 
@@ -174,8 +174,8 @@ def test_close_is_idempotent(axi, image):
     _, first = axi("close", image)
     _, second = axi("close", image)
 
-    assert ",closed" in first
-    assert "not open (no-op)" in second
+    assert "closed: 1 of 1" in first
+    assert "closed: 0 of 1" in second and "IMG_1.ARW (no-op)" in second
 
 
 def test_edit_needs_something_to_change(axi, image):
@@ -233,7 +233,7 @@ def test_edit_of_several_images_says_what_changed(axi, tmp_path):
     assert code == 0, out
     # The same change to both: listed once, old and new value as numbers.
     assert out.count("Exposure/Compensation,0,1.5") == 1
-    assert "images[2]{path,error}:" in out and "failed: 0" in out
+    assert "edited: 2 of 2" in out
 
 
 def test_edit_of_several_images_with_one_failing(axi, tmp_path):
@@ -242,7 +242,7 @@ def test_edit_of_several_images_with_one_failing(axi, tmp_path):
     code, out = axi("edit", *images, "--set", "Exposure/Compensation=1.5")
 
     assert code == 0, out
-    assert "not_open" in out and "failed: 1" in out
+    assert "edited: 1 of 2" in out and "failed[1]{image,error}:" in out and "not_open" in out
     assert "Exposure/Compensation,0,1.5" in out
 
 
@@ -319,12 +319,66 @@ def test_paths_come_back_absolute(axi, image, monkeypatch):
     assert f"path: {image.as_posix()}" in out.replace('"', "")
 
 
-def test_sweep_goes_with_one_image(axi, tmp_path):
+def test_sweep_of_several_images_is_one_row_per_value(axi, tmp_path, rendered_png):
     images = two_images(tmp_path)
+    axi("open", *images)
     code, out = axi("stats", *images, "--sweep", "Exposure/Compensation=0.5,1")
 
+    assert code == 0, out
+    assert "results[2]{value,clipped_high_r," in out and "worst_high" in out
+    assert "no_clipping_high[2]: 0.5,1" in out
+    assert f"folder: {tmp_path.as_posix()}" in out.replace('"', "")
+
+
+def test_stats_of_several_images_is_one_row_each(axi, tmp_path, rendered_png):
+    images = two_images(tmp_path)
+    axi("open", *images)
+    code, out = axi("stats", *images)
+
+    assert code == 0, out
+    assert "images[2]{image,clipped_high_r," in out
+    assert "\n  A.ARW," in out and "\n  B.ARW," in out
+    assert "clipped_high: 0 of 2" in out
+
+
+def test_edit_and_save_of_several_images_summarise(axi, tmp_path):
+    images = two_images(tmp_path)
+    axi("open", *images)
+    _, edited = axi("edit", *images, "--set", "Exposure/Compensation=1")
+    _, saved = axi("save", *images)
+
+    assert "edited: 2 of 2" in edited and "A.ARW" not in edited
+    assert "saved: 2 of 2" in saved and "written: 2" in saved
+
+
+def test_export_of_several_images_into_a_folder(axi, tmp_path):
+    images = two_images(tmp_path)
+    axi("open", *images)
+    out_dir = tmp_path / "out" / "jpg"
+    code, out = axi("export", *images, "--out-dir", out_dir, "--quality", "85")
+
+    assert code == 0, out
+    assert "exported: 2 of 2" in out
+    assert sorted(p.name for p in out_dir.iterdir()) == ["A.jpg", "B.jpg"]
+
+
+def test_export_needs_out_or_out_dir(axi, image):
+    code, out = axi("export", image)
+
     assert code == 2
-    assert "--sweep goes with one image" in out
+    assert "--out-dir" in out
+
+
+def test_sheet_of_open_images(axi, tmp_path, monkeypatch):
+    monkeypatch.setenv("FAKE_REAL_JPEG", "1")
+    images = two_images(tmp_path)
+    axi("open", *images)
+    code, out = axi("sheet", *images)
+
+    assert code == 0, out
+    assert "frames[2]: A.ARW,B.ARW" in out
+    sheet = next(line for line in out.splitlines() if line.startswith("sheet:")).split(":", 1)[1].strip().strip('"')
+    assert Path(sheet).is_file()
 
 
 def test_describe_shows_field_names_and_art_default(axi):

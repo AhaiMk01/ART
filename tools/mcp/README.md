@@ -465,8 +465,13 @@ uv run --directory tools/mcp art-axi save /raw/IMG_1.ARW
 Commands: `open`, `close`, `reset`, `profile` (default: only values that
 differ from ART's default; `--all` for every one), `edit` (`--set
 Group/Key=value`, `--adjust '<json>'`), `describe`, `preview`, `stats`,
-`sample`, `save`, `export`, `inspect`. Contact sheets, presets, batch export
-and partial profiles are MCP-only for now.
+`sample`, `save`, `export` (one `--out` file, or several images into
+`--out-dir`), `inspect`, `sheet` (a contact sheet to look at; `--record
+<folder>` saves it as a numbered pass). `stats --set` measures values without
+storing them, and `stats --sweep Group/Key=0:1:0.1` measures a range in one call,
+over several images taking the worst one per value. Presets, pass comparison
+and partial profiles are MCP-only for now (`tests/test_axi_parity.py` lists
+them).
 
 Each run is its own process, so working profiles live on disk in a state
 folder (`ART_AXI_HOME`, default `%LOCALAPPDATA%\art-axi` or

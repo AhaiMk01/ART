@@ -123,7 +123,12 @@ def truncated(text: str, full: bool) -> str:
     return f"{text[:TRUNCATE]}... (truncated, {len(text)} chars total)"
 
 
-def progress(verb: str) -> Callable[[int, int], None]:
+def progress(verb: str) -> Callable[[int, int], None] | None:
+    """A progress reporter on stderr, only when stderr is a terminal: an agent
+    that captures both streams would read it as output."""
+    if not sys.stderr.isatty():
+        return None
+
     def report(done: int, total: int) -> None:
         print(f"{verb} {done}/{total}", file=sys.stderr, flush=True)
 
@@ -218,6 +223,8 @@ TOOL_NAMES = {
     "save_sidecar": "save",
     "export_image": "export",
     "inspect_image": "inspect",
+    "export_batch": "export",
+    "contact_sheet": "sheet",
 }
 """The MCP tool names the operations' messages use -> this CLI's commands."""
 
@@ -386,10 +393,17 @@ def run_open(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
             ],
         }
     batch = call(lambda: profile_ops.open_image(session, None, a.profile, a.paths, on_progress=progress("open")))
-    items = [{"path": shown(i.path), "from": i.profile_from, "error": i.error} for i in batch.items]
+    folder, label = image_labels(a.paths)
+    sources: dict[str, int] = {}
+    for i in batch.items:
+        if i.profile_from:
+            sources[i.profile_from] = sources.get(i.profile_from, 0) + 1
+    failures = [{"image": label[i.path], "error": i.error} for i in batch.items if i.error]
     return {
-        "opened": f"{len(items) - batch.failed} of {len(items)}",
-        "images": rows(items, ["path", "from", "error"]),
+        "opened": f"{len(batch.items) - batch.failed} of {len(batch.items)}",
+        **({"folder": folder} if folder else {}),
+        "profile_from": sources,
+        **({"failed": rows(failures, ["image", "error"])} if failures else {}),
         "help": [
             "art-axi preview <path>",
             "art-axi stats <path>...",
@@ -421,12 +435,18 @@ def run_close(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
     targets = [wp.image for wp in store.all()] if a.all else [Path(p).resolve() for p in a.paths]
     if not targets:
         return {"closed": "0 (no images were open)"}
-    items = []
+    folder, label = image_labels([str(t) for t in targets])
+    not_open = []
     for image in targets:
-        was_open = store.get(image) is not None
+        if store.get(image) is None:
+            not_open.append(label[str(image)])
         store.discard(image)
-        items.append({"path": shown(image), "state": "closed" if was_open else "not open (no-op)"})
-    return {"closed": rows(items, ["path", "state"])}
+    out: dict[str, Any] = {"closed": f"{len(targets) - len(not_open)} of {len(targets)}"}
+    if folder:
+        out["folder"] = folder
+    if not_open:
+        out["not_open"] = f"{' '.join(not_open)} (no-op)"
+    return out
 
 
 def build_reset(p: Parser) -> None:
@@ -604,15 +624,16 @@ def run_edit(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
     if len(a.paths) == 1:
         return results[0][1] or {}
     done = [out for _, out, _ in results if out is not None]
-    failed = len(results) - len(done)
+    folder, label = image_labels(a.paths)
+    failures = [{"image": label[path], "error": error} for path, _, error in results if error]
+    summary = {"edited": f"{len(done)} of {len(results)}", **({"folder": folder} if folder else {})}
+    if failures:
+        summary["failed"] = rows(failures, ["image", "error"])
     if done and all(out == done[0] for out in done):
         # The same change to every image: said once.
-        images = [{"path": shown(path), "error": error} for path, _, error in results]
-        return {**done[0], "images": rows(images, ["path", "error"]), "failed": failed}
-    items = [
-        {"path": shown(path), **(out or {}), **({"error": error} if error else {})} for path, out, error in results
-    ]
-    return {"edited": items, "failed": failed}
+        return {**summary, **done[0]}
+    items = [{"image": label[path], **out} for path, out, _ in results if out is not None]
+    return {**summary, "images": items}
 
 
 def profile_before(session: Any, path: str) -> dict[str, dict[str, str]]:
@@ -772,8 +793,8 @@ def build_stats(p: Parser) -> None:
     p.add_argument("--adjust", metavar="JSON", help="the same with curated adjustments, as `edit --adjust`")
     p.add_argument(
         "--sweep", type=sweep, metavar="GROUP/KEY=V1,V2,...",
-        help="measure each value of one key (one image, up to 50 values, nothing stored), one row per value: "
-        "Exposure/Compensation=0.4,0.5 or =0:2:0.1; --detail adds the percentiles",
+        help="measure each value of one key (up to 50 values, nothing stored), one row per value; with several "
+        "images each row is the worst image's: Exposure/Compensation=0.4,0.5 or =0:2:0.1; --detail adds percentiles",
     )  # fmt: skip
 
 
@@ -876,6 +897,44 @@ def sweep_row(stats: dict[str, Any], full: bool) -> dict[str, Any]:
     return row
 
 
+def image_row(stats: dict[str, Any]) -> dict[str, Any]:
+    """One image's statistics as one row: the clipped fractions per channel,
+    p99.9 per colour channel (how close the highlights are to 255) and the
+    median brightness."""
+    row = sweep_row(stats, full=False)
+    for ch in ("r", "g", "b"):
+        row[f"p99.9_{ch}"] = stats.get(ch, {}).get("percentiles", {}).get("99.9")
+    row["p50_lum"] = stats.get("lum", {}).get("percentiles", {}).get("50")
+    return row
+
+
+def worst_row(measured: dict[str, dict[str, Any]], label: dict[str, str], several: bool, full: bool) -> dict[str, Any]:
+    """One swept value's row: per channel the largest clipped fraction over
+    the images and, for several, the image with the most clipping at each end."""
+    each = {path: sweep_row(stats, full) for path, stats in measured.items()}
+    row: dict[str, Any] = {}
+    columns = list(dict.fromkeys(k for r in each.values() for k in r))
+    for column in columns:
+        values = [r[column] for r in each.values() if r.get(column) is not None]
+        row[column] = max(values) if values else None
+    if several:
+        for end in ("high", "low"):
+            score = {p: max(r.get(f"clipped_{end}_{c}") or 0 for c in "rgb") for p, r in each.items()}
+            worst = max(score, key=lambda p: score[p], default=None)
+            row[f"worst_{end}"] = label[worst] if worst is not None and score[worst] > 0 else None
+    return row
+
+
+def image_labels(paths: list[str]) -> tuple[str | None, dict[str, str]]:
+    """How tables name images: their file name when all are in one folder
+    (given once, as `folder`), else their absolute path."""
+    resolved = {p: Path(p).resolve() for p in paths}
+    parents = {r.parent for r in resolved.values()}
+    if len(parents) == 1 and len({r.name for r in resolved.values()}) == len(resolved):
+        return shown(parents.pop()), {p: r.name for p, r in resolved.items()}
+    return None, {p: shown(r) or p for p, r in resolved.items()}
+
+
 def run_stats(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
     from art_mcp.render import profile_ops, sampling_ops
     from art_mcp.render.preview_ops import Region
@@ -883,8 +942,6 @@ def run_stats(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
 
     region = Region(**dict(zip("xywh", a.region, strict=True))) if a.region else None
     adjustments = adjustments_arg(a.adjust)
-    if a.sweep and len(a.paths) > 1:
-        raise UsageError("--sweep goes with one image", "art-axi stats <path> --sweep Group/Key=v1,v2,...")
     session = ctx.session()
     if a.raw or adjustments is not None or a.sweep:
         session = call(lambda: scratch_session(ctx.session(), a.paths), a.paths[0])
@@ -902,37 +959,63 @@ def run_stats(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
 
     for path in a.paths:
         override(path, a.raw)
+    folder, label = image_labels(a.paths)
     if a.sweep:
-        path = a.paths[0]
         group, key, values = a.sweep
+        several = len(a.paths) > 1
         table: list[dict[str, Any]] = []
+        errors: dict[str, str] = {}
         render = None
         for value in values:
-            override(path, [{"group": group, "key": key, "value": value}])
-            stats = prune(call(lambda: measure(path, None, a.detail or "compact"), path))
-            render = f"{stats.get('width')}x{stats.get('height')}"
-            table.append({"value": as_number(value), **sweep_row(stats, full=a.detail is not None)})
+            for path in a.paths:
+                override(path, [{"group": group, "key": key, "value": value}])
+            if several:
+                batch = call(lambda: measure(None, a.paths, a.detail or "compact"))
+                measured = {i.path: prune(i.stats) for i in batch.items if not i.error}
+                errors.update({label[i.path]: i.error for i in batch.items if i.error})
+            else:
+                measured = {a.paths[0]: prune(call(lambda: measure(a.paths[0], None, a.detail or "compact")))}
+            if measured:
+                first = next(iter(measured.values()))
+                render = f"{first.get('width')}x{first.get('height')}"
+            table.append({"value": as_number(value), **worst_row(measured, label, several, a.detail is not None)})
         columns = list(dict.fromkeys(k for row in table for k in row))
-        return {
-            "path": shown(path),
+        out: dict[str, Any] = {
+            **({"folder": folder} if folder else {}),
+            "images": len(a.paths) if several else shown(a.paths[0]),
             "sweep": f"{group}/{key} (nothing stored)",
             "render": f"{render} (--size {a.size}; raise it to confirm small clipped areas)",
             "results": rows(table, columns),
-            "help": [f"art-axi edit {shown(path)} --set {group}/{key}=<chosen value>"],
         }
+        if several:
+            out["note"] = "clipped_* is the worst image's fraction for that value; worst_* names that image"
+        for end in ("high", "low"):
+            clean = [row["value"] for row in table if all(not row.get(f"clipped_{end}_{c}") for c in "rgb")]
+            out[f"no_clipping_{end}"] = clean if clean else "none of the values"
+        if errors:
+            out["errors"] = errors
+        target = "<path>..." if several else shown(a.paths[0])
+        out["help"] = [f"art-axi edit {target} --set {group}/{key}=<chosen value>"]
+        return out
     if len(a.paths) == 1:
         stats = prune(call(lambda: measure(a.paths[0], None), a.paths[0]))
         rest, lists = channel_table(stats)
         return {"path": shown(a.paths[0]), **rest, **lists}
     batch = call(lambda: measure(None, a.paths))
-    items = []
+    table = []
     for item in batch.items:
+        row: dict[str, Any] = {"image": label[item.path]}
         if item.error:
-            items.append({"path": shown(item.path), "error": item.error})
-            continue
-        rest, lists = channel_table(prune(item.stats))
-        items.append({"path": shown(item.path), **rest, **lists})
-    return {"items": items, "failed": batch.failed}
+            row["error"] = item.error
+        else:
+            row.update(image_row(prune(item.stats)))
+        table.append(row)
+    columns = list(dict.fromkeys(k for row in table for k in row))
+    out = {**({"folder": folder} if folder else {}), "images": rows(table, columns), "failed": batch.failed}
+    for end in ("high", "low"):
+        clipped = [row["image"] for row in table if any(row.get(f"clipped_{end}_{c}") for c in "rgb")]
+        out[f"clipped_{end}"] = f"{len(clipped)} of {len(table)}" + (f": {' '.join(clipped)}" if clipped else "")
+    return out
 
 
 def build_sample(p: Parser) -> None:
@@ -984,16 +1067,25 @@ def run_save(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
         return {"saved": {"sidecar": shown(result.path), "how": result.how}}
     # One after the other: a failure (a conflict) is that image's error and the
     # others are still saved.
-    items = []
+    folder, label = image_labels(a.paths)
+    how: dict[str, int] = {}
+    failures = []
+    example = None
     for path in a.paths:
         try:
             result = call(lambda path=path: save_ops.save_sidecar(session, path, a.on_conflict), path)
-            items.append({"path": shown(path), "sidecar": shown(result.path), "how": result.how})
+            how[result.how] = how.get(result.how, 0) + 1
+            example = example or shown(result.path)
         except Failure as e:
-            items.append({"path": shown(path), "error": f"{e.code}: {e}"})
-    failed = sum(1 for i in items if "error" in i)
-    out: dict[str, Any] = {"saved": rows(items, ["path", "sidecar", "how", "error"]), "failed": failed}
-    if failed:
+            failures.append({"image": label[path], "error": f"{e.code}: {e}"})
+    out: dict[str, Any] = {
+        "saved": f"{len(a.paths) - len(failures)} of {len(a.paths)}",
+        **({"folder": folder} if folder else {}),
+        "how": how,
+        **({"sidecar_of_first": example} if example else {}),
+    }
+    if failures:
+        out["failed"] = rows(failures, ["image", "error"])
         out["help"] = ["art-axi save <path> --on-conflict merge|overwrite  (for a conflict)"]
     return out
 
@@ -1002,19 +1094,40 @@ FORMATS = {".jpg": "jpeg", ".jpeg": "jpeg", ".png": "png", ".tif": "tiff", ".tif
 
 
 def build_export(p: Parser) -> None:
-    p.add_argument("path", metavar="PATH")
-    p.add_argument("--out", required=True, metavar="FILE", help="the image to write (its folder is created)")
-    p.add_argument("--format", choices=("jpeg", "png", "tiff"), help="default: from --out's extension")
+    p.add_argument("paths", nargs="+", metavar="PATH", help="open images to export")
+    p.add_argument("--out", metavar="FILE", help="the file to write, for one image (its folder is created)")
+    p.add_argument(
+        "--out-dir", metavar="DIR", help="write each image into this folder (created), named by --name"
+    )  # fmt: skip
+    p.add_argument(
+        "--name", default="{stem}", help="file name with --out-dir, {stem} = the image's name without extension; "
+        "the extension comes from --format (default %(default)s)",
+    )  # fmt: skip
+    p.add_argument(
+        "--format", choices=("jpeg", "png", "tiff"), help="default: from --out's extension; jpeg with --out-dir"
+    )
     p.add_argument("--quality", type=int, metavar="1..100", help="jpeg only")
     p.add_argument("--bit-depth", choices=("8", "16", "16f", "32"), help="png 8|16, tiff 8|16|16f|32")
     p.add_argument("--write-profile", action="store_true", help="also write the .arp beside it")
     p.add_argument("--profile-name", choices=("output", "source"), default="output", help="name of that .arp")
-    p.add_argument("--overwrite", action="store_true", help="replace an existing --out file")
+    p.add_argument("--overwrite", action="store_true", help="replace existing files")
 
 
 def run_export(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
     from art_mcp.render import export_ops
 
+    if (a.out is None) == (a.out_dir is None):
+        raise UsageError(
+            "give --out FILE (one image) or --out-dir DIR",
+            ["art-axi export <path> --out <file>", "art-axi export <path>... --out-dir <dir> [--quality 90]"],
+        )
+    if a.out is not None and len(a.paths) > 1:
+        raise UsageError(
+            "--out names one file; for several images use --out-dir", "art-axi export <path>... --out-dir <dir>"
+        )
+    if a.out_dir is not None:
+        return export_many(ctx, a)
+    a.path = a.paths[0]
     format = a.format or FORMATS.get(Path(a.out).suffix.lower())
     if format is None:
         raise UsageError(f"can't tell the format from {a.out!r}", "add --format jpeg|png|tiff")
@@ -1030,6 +1143,89 @@ def run_export(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
         a.path,
     )
     return {"exported": prune({"file": shown(result.path), "profile": shown(result.profile_path)})}
+
+
+def export_many(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
+    """``export --out-dir``: every image with its working profile, up to two at
+    a time; one that fails is its own error and the others still export."""
+    from art_mcp.render import export_ops
+    from art_mcp.render.export_ops import BatchItem
+
+    try:
+        Path(a.out_dir).mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        raise Failure(f"can't create --out-dir: {e}", code="not_found") from e
+    session = ctx.session()
+    format = a.format or "jpeg"
+    result = call(
+        lambda: export_ops.export_batch(
+            session, [BatchItem(path=p) for p in a.paths], a.out_dir, format, a.quality, a.bit_depth, a.name,
+            a.write_profile, a.profile_name, a.overwrite, on_progress=progress("export"),
+        )
+    )  # fmt: skip
+    _, label = image_labels(a.paths)
+    labels = {shown(p): name for p, name in label.items()}
+    exported = [Path(i.output).name for i in result.items if i.output]
+    failures = [{"image": labels.get(shown(i.path), i.path), "error": i.error} for i in result.items if i.error]
+    out: dict[str, Any] = {
+        "exported": f"{result.exported} of {len(result.items)}",
+        "folder": shown(a.out_dir),
+        "files": exported,
+    }
+    if failures:
+        out["failed"] = rows(failures, ["image", "error"])
+    return out
+
+
+def build_sheet(p: Parser) -> None:
+    p.add_argument("paths", nargs="+", metavar="PATH", help="open images, or a folder for the open images in it")
+    p.add_argument("--columns", type=int, metavar="N", help="frames per row (default 6)")
+    p.add_argument("--thumb", type=int, default=None, metavar="PX", help="long edge of each frame, 32..1024")
+    p.add_argument(
+        "--record", metavar="FOLDER",
+        help="also save it as the next numbered pass under FOLDER/sheets/ with a JSON of what changed since the "
+        "last pass (default: just a sheet to look at)",
+    )  # fmt: skip
+    p.add_argument("--label", help="a short name for the recorded pass")
+
+
+def run_sheet(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
+    from art_mcp.render import sheet_ops
+
+    if a.label and not a.record:
+        raise UsageError("--label goes with --record", "art-axi sheet <path>... --record <folder> --label <name>")
+    session = ctx.session()
+    thumb = a.thumb or sheet_ops.DEFAULT_THUMB_SIZE
+    result = call(
+        lambda: sheet_ops.contact_sheet(
+            session, a.paths, a.record, a.label, a.columns, thumb, on_progress=progress("sheet"),
+            record=a.record is not None,
+        )
+    )  # fmt: skip
+    count = len(result.images)
+    if a.columns:
+        columns = a.columns
+    elif a.record:
+        columns = min(count, sheet_ops.DEFAULT_COLUMNS)
+    else:
+        columns = sheet_ops.quick_columns(count, thumb)
+    out: dict[str, Any] = {
+        "sheet": shown(result.path),
+        "frames": [f.name for f in result.images],
+        "layout": f"{columns} per row, left to right then down; each frame's file name under it",
+    }
+    failures = [{"image": f.name, "error": f.error} for f in result.images if f.error]
+    if failures:
+        out["failed"] = rows(failures, ["image", "error"])
+    if result.index is not None:
+        out["pass"] = result.index
+        out["record"] = shown(result.json_path)
+        changes = prune(result.changes) if result.changes else None
+        out["changes"] = changes or "first pass for these frames (nothing to compare)"
+    if result.warnings:
+        out["warnings"] = result.warnings
+    out["help"] = ["open the sheet JPEG to look at the frames", "art-axi preview <path>  (one frame larger)"]
+    return out
 
 
 def build_inspect(p: Parser) -> None:
@@ -1169,6 +1365,18 @@ COMMANDS = {
             build_inspect,
             run_inspect,
             ["art-axi inspect IMG_1.ARW", "art-axi inspect *.ARW --tags Software"],
+        ),
+        Command(
+            "sheet",
+            "Render several open images into one contact-sheet JPEG to look at them in one read.",
+            build_sheet,
+            run_sheet,
+            [
+                "art-axi sheet roll/*.ARW",
+                "art-axi sheet roll/ --thumb 400 --columns 5",
+                "art-axi sheet roll/*.ARW --record ~/work --label exposure",
+            ],
+            {"--thumb-size": "use --thumb", "--folder": "use --record <folder>"},
         ),
     )  # fmt: skip
 }
