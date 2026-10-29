@@ -431,3 +431,33 @@ def test_batch_errors_use_cli_names(axi, tmp_path):
 
     assert code == 1
     assert "open_image" not in out and "art-axi open" in out
+
+
+def test_a_folder_stands_for_its_open_images(axi, tmp_path):
+    images = two_images(tmp_path)
+    other = tmp_path / "other" / "C.ARW"
+    other.parent.mkdir()
+    other.write_bytes(b"raw")
+    axi("open", *images, other)
+    code, out = axi("edit", tmp_path, "--set", "Exposure/Compensation=1")
+
+    assert code == 0, out
+    assert "edited: 2 of 2" in out
+    _, profile = axi("profile", other)
+    assert "unsaved_edits: 0" in profile
+
+
+def test_all_refuses_to_change_images_in_several_folders(axi, tmp_path):
+    images = two_images(tmp_path)
+    other = tmp_path / "other" / "C.ARW"
+    other.parent.mkdir()
+    other.write_bytes(b"raw")
+    axi("open", *images, other)
+
+    code, out = axi("save", "--all")
+    assert code == 2
+    assert "2 folders" in out and "<roll folder>" in out
+    assert not list(tmp_path.glob("*.arp"))
+
+    code, out = axi("close", "--all")
+    assert code == 0 and "closed: 3 of 3" in out

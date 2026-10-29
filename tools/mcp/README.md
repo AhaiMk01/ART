@@ -481,6 +481,13 @@ previews stay a day. `--art-dir <folder>` and `--timeout <seconds>` work on
 every command; ART-cli is found as for the server (`ART_DIR`, PATH, newest
 install).
 
+Commands that work on open images take paths, a folder (the open images
+directly in it: one roll), or `--all`. `--all` is every image open in the state
+folder, whatever roll or session opened it, so `edit`, `reset`, `save` and
+`export` refuse it when the open images are in more than one folder; give the
+roll's folder instead. Close a roll when done with it (`close <folder>`), and
+give jobs that must not see each other their own `ART_AXI_HOME`.
+
 ## Skills
 
 `skills/` holds Claude skills that teach an agent a workflow with these tools

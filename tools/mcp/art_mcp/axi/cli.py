@@ -381,10 +381,28 @@ SIDECAR_SUFFIXES = (".arp", ".bak")
 """Files a shell glob over a roll's folder picks up beside the images."""
 
 
+CHANGING = ("edit", "reset", "save", "export")
+"""Commands that change or write something: their --all must stay in one folder."""
+
+
 def add_paths(p: Parser, help: str) -> None:
     """The PATH arguments of a command that works on open images, and --all."""
-    p.add_argument("paths", nargs="*", metavar="PATH", help=f"{help}; sidecar files (.arp, .bak) are skipped")
-    p.add_argument("--all", action="store_true", help="every open image instead of PATHs")
+    p.add_argument(
+        "paths", nargs="*", metavar="PATH",
+        help=f"{help}; a folder stands for the open images in it; sidecar files (.arp, .bak) are skipped",
+    )  # fmt: skip
+    p.add_argument(
+        "--all", action="store_true",
+        help="every open image in art-axi, from any folder (changing commands refuse when that is more than one "
+        "folder: give the roll's folder instead)",
+    )  # fmt: skip
+
+
+def open_in(ctx: "Context", folder: Path) -> list[str]:
+    """The open images directly in ``folder``, by name."""
+    key = os.path.normcase(str(folder.resolve()))
+    found = [wp.image for wp in ctx.store().all() if os.path.normcase(str(wp.image.parent)) == key]
+    return [str(image) for image in sorted(found, key=lambda image: image.name.lower())]
 
 
 def select_paths(ctx: "Context", command: "Command", a: argparse.Namespace) -> str | None:
@@ -398,13 +416,32 @@ def select_paths(ctx: "Context", command: "Command", a: argparse.Namespace) -> s
         a.paths = [str(wp.image) for wp in ctx.store().all()]
         if not a.paths and command.name != "close":
             raise Failure("no images are open", "art-axi open <path>...", "not_open")
+        folders = sorted({shown(Path(p).parent) or "" for p in a.paths})
+        if command.name in CHANGING and len(folders) > 1:
+            raise UsageError(
+                f"--all would {command.name} open images in {len(folders)} folders: {' '.join(folders)}",
+                [f"art-axi {command.name} <roll folder>  (the open images in it)",
+                 "art-axi close <folder>  (close a roll you are done with)"],
+            )  # fmt: skip
         return None
-    kept = [path for path in a.paths if not path.lower().endswith(SIDECAR_SUFFIXES)]
-    skipped = len(a.paths) - len(kept)
+    kept: list[str] = []
+    for path in a.paths:
+        if path.lower().endswith(SIDECAR_SUFFIXES):
+            continue
+        if command.name != "open" and Path(path).is_dir():
+            inside = open_in(ctx, Path(path))
+            if not inside and command.name != "close":
+                raise Failure(f"no open images in {shown(path)}", f"art-axi open {shown(path)}/*", "not_open")
+            kept.extend(inside)
+        else:
+            kept.append(path)
+    skipped = sum(1 for path in a.paths if path.lower().endswith(SIDECAR_SUFFIXES))
     if not kept:
+        if command.name == "close" and a.paths:
+            return None
         what = "only sidecar files given" if a.paths else "no images given"
         raise UsageError(
-            what, [f"art-axi {command.name} <image>...", f"art-axi {command.name} --all  (every open image)"]
+            what, [f"art-axi {command.name} <image>... | <folder>", f"art-axi {command.name} --all  (every open image)"]
         )
     a.paths = kept
     return f"{skipped} sidecar file(s) among the paths (.arp or .bak)" if skipped else None
