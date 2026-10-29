@@ -21,8 +21,9 @@ def register(server: MCPServer, session: RenderSession) -> None:
         """Open an image and load its processing profile (from its sidecar,
         else ART's default profile) as the working profile. With `profile`, an
         `.arp` file (a complete profile or a partial one), the working profile
-        is that file laid over ART's default profile instead (as art-cli's
-        `-d -p`) and the image's own sidecar is neither read nor written;
+        is that file's keys written over ART's default profile instead (each
+        key it lists wins, every other one stays) and the image's own sidecar
+        is neither read nor written;
         `profile_from` says which source was used.
 
         `paths` (1 to 50 images; give `path` or `paths`) opens each one the

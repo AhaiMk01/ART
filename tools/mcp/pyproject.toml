@@ -8,6 +8,7 @@ dependencies = ["mcp>=2,<3", "pillow>=12.3.0"]
 [project.scripts]
 art-mcp-render = "art_mcp.render.server:main"
 art-mcp-live = "art_mcp.live.server:main"
+art-axi = "art_mcp.axi.main:main"
 
 [dependency-groups]
 dev = [

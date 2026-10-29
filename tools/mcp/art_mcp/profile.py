@@ -295,6 +295,18 @@ class WorkingChanges:
         """Value at load time (None: absent) of every key an edit has
         touched."""
 
+    def loaded_values(self) -> list[tuple[str, str, str | None]]:
+        """The load-time record as (group, key, value) triples, for a store
+        that keeps working profiles between processes (``restore`` reads it
+        back)."""
+        return [(group, key, value) for (group, key), value in self._loaded.items()]
+
+    @classmethod
+    def restore(cls, profile: KeyFile, loaded: list[tuple[str, str, str | None]]) -> "WorkingChanges":
+        changes = cls(profile)
+        changes._loaded = {(group, key): value for group, key, value in loaded}
+        return changes
+
     def _value(self, group: str, key: str) -> str | None:
         return self.profile.get(group, {}).get(key)
 
