@@ -45,11 +45,17 @@ def main():
     if not 0 < c < 0.5:
         raise SystemExit(f"black {c:.4f} of the curve range: check --ev and --w")
     # Curve points in sRGB-gamma-encoded values (as ART's tone curve takes them):
-    # zero up to the black, dense just above it where the curve bends, sparse above.
+    # zero up to the black, then geometrically spaced just above it, where the
+    # curve rises almost vertically (evenly spaced points there let the spline
+    # sag and crush shadows that have detail), even steps above.
     x0 = enc(c)
     xs = [0.0, x0]
-    xs += [x0 + (min(3 * x0, 0.5) - x0) * (i + 1) / 14 for i in range(14)]
-    xs += [xs[-1] + (1 - xs[-1]) * (i + 1) / 14 for i in range(14)]
+    d = 0.0005
+    while x0 + d < min(3 * x0, 0.6):
+        xs.append(x0 + d)
+        d *= 1.6
+    n = 31 - len(xs)
+    xs += [xs[-1] + (1 - xs[-1]) * (i + 1) / n for i in range(n)]
     pts = [[round(x, 4), round(enc(max(dec(x) - c, 0.0)), 4)] for x in xs]
 
     black = -a.w * b / (1 - b) * 2 ** a.ev * 65535 / 2000
