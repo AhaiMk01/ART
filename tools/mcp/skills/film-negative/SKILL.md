@@ -50,7 +50,7 @@ An optional digital mask can mix NamiColor's effective input densities before ch
 
 ## Processing order and domains
 
-Correct a negative's defects before inversion, a positive's after it. Lens-profile vignetting (lensfun, LCP, EXIF; raw only) and a raw flat-field act before inversion and are the right correction. The manual Vignetting Correction tool acts on the inverted positive and is wrong for negatives (see "Processing order and domains" in [reference.md](reference.md)); scans have no pre-inversion vignetting path. Denoise runs on the inverted positive; check its strength on a 1:1 crop of the darkest positive areas. Veiling light (`flare`) is an estimate, never a measurement. 
+Correct a negative's defects before inversion, a positive's after it. Lens-profile vignetting (lensfun, LCP, EXIF; raw only) and a raw flat-field act before inversion and are the right correction. A copy light falls off toward the edges, so the rebate reads denser than the base at the frame centre and the thinnest shadows decode below black: when the roll or the session has a frame of plain base or empty light from the same rig, set it as the raw flat-field before measuring the base and sampling, and measure the base after it ("Raw flat-field from a base frame" in [reference.md](reference.md)). The manual Vignetting Correction tool acts on the inverted positive and is wrong for negatives (see "Processing order and domains" in [reference.md](reference.md)); scans have no pre-inversion vignetting path. Denoise runs on the inverted positive; check its strength on a 1:1 crop of the darkest positive areas. Veiling light (`flare`) is an estimate, never a measurement. 
 
 ## Adapt scenes and finish the positive
 
