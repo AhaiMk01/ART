@@ -16,6 +16,7 @@ from art_mcp.render.artcli import (
     ArtCliError,
     ArtCliTimeout,
     Rect,
+    cli_warnings,
     crop_profile,
     looks_like_help,
     preview_args,
@@ -74,7 +75,7 @@ class FramePreview(BaseModel):
     # The JPEG's size in pixels; `shown` the frame pixels it shows.
     shown: dict[str, int] | None = None
     warnings: list[str] = []
-    """Which marks were not drawn, and why a mark may be misplaced."""
+    """Marks not drawn or maybe misplaced; art-cli's warnings."""
 
 
 class Preview(FramePreview):
@@ -90,6 +91,7 @@ class PreviewItem(BaseModel):
     width: int | None = None
     height: int | None = None
     shown: dict[str, int] | None = None
+    warnings: list[str] | None = None
     error: str | None = None
     """`<code>: <message>` when this image failed (the others still render);
     left out otherwise."""
@@ -165,6 +167,7 @@ def render_previews(
     def run(item: PreviewItem) -> None:
         done = render_preview(session, item.path, max_size, region)
         item.preview_path, item.width, item.height, item.shown = done.path, done.width, done.height, done.shown
+        item.warnings = done.warnings or None
 
     done = 0
     with ThreadPoolExecutor(max_workers=max(1, session.cli.max_processes)) as pool:
@@ -203,11 +206,12 @@ def render_jpeg(
     *,
     fast: bool,
     crop_text: str | None = None,
-) -> Path:
+) -> tuple[Path, list[str]]:
     """Render ``image`` with the complete profile ``profile_text`` (and the
     optional ``crop_text`` layer) to a new JPEG in the previews folder, its
     long edge at most ``max_size``; the caller removes the file. The ``fast``
-    flag makes art-cli resize before processing."""
+    flag makes art-cli resize before processing. Returns the JPEG and
+    art-cli's warnings."""
     previews = session.previews
     profile = previews.new_file("profile", ".arp")
     crop = previews.new_file("crop", ".arp")
@@ -218,7 +222,7 @@ def render_jpeg(
         if crop_text is not None:
             crop.write_text(crop_text, encoding="utf-8")
         resize.write_text(resize_profile(max_size), encoding="utf-8")
-        session.run(
+        warnings = session.run(
             preview_args(
                 image, output, profile, resize, fast=fast,
                 crop=crop if crop_text is not None else None,
@@ -231,7 +235,7 @@ def render_jpeg(
     finally:
         for temporary in (profile, crop, resize):
             temporary.unlink(missing_ok=True)
-    return output
+    return output, warnings
 
 
 def check_output(output: str, image: Path, overwrite: bool) -> Path:
@@ -318,16 +322,16 @@ def render_preview(
             whole = session.whole_frame(wp)
             check_marks(marks, (whole.w, whole.h), render_error)
         if zoom:
-            rendered = render_jpeg(
+            rendered, warnings = render_jpeg(
                 session, wp.image, keyfile.dumps(wp.changes.profile), max(shown.w, shown.h), fast=False
             )
             tiles = zoom_rendering(rendered, marks, shown)
         else:
-            rendered = render_jpeg(
+            rendered, warnings = render_jpeg(
                 session, wp.image, keyfile.dumps(wp.changes.profile), max_size, fast=fast, crop_text=crop_text
             )
             if marks:
-                warnings = mark_rendering(rendered, marks, shown)
+                warnings = mark_rendering(rendered, marks, shown) + warnings
     if dest is not None:
         place_output(rendered, dest, overwrite)
         rendered = dest
@@ -364,7 +368,7 @@ def render_stage_view(
             at = args.index("-c")
             args[at:at] = ["-o", str(rendered)]
             try:
-                session.cli.run(args)
+                warnings = cli_warnings(session.cli.run(args))
             except ArtCliTimeout as e:
                 raise render_error("timeout", str(e)) from e
             except ArtCliError as e:
@@ -382,7 +386,9 @@ def render_stage_view(
         place_output(rendered, dest, overwrite)
         rendered = dest
     width, height = jpeg_size(rendered)
-    return Preview(path=str(rendered), max_size=max_size, width=width, height=height, shown=shown_of(shown))
+    return Preview(
+        path=str(rendered), max_size=max_size, width=width, height=height, shown=shown_of(shown), warnings=warnings
+    )
 
 
 def shown_of(area: Rect) -> dict[str, int]:

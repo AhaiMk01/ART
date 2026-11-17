@@ -167,6 +167,10 @@ if "-x" in args:
         print("ART-SPOTS " + json.dumps({"width": 6000, "height": 4000, **extra, "spots": spots}))
     sys.exit(0)
 
+if os.environ.get("FAKE_ARTCLI_WARNING") and "-O" not in args:
+    # a non-fatal diagnostic, as ART-cli prints one for an input profile it can't load
+    print("Warning: " + os.environ["FAKE_ARTCLI_WARNING"], file=sys.stderr)
+
 layers = [Path(args[i + 1]).read_text() for i, a in enumerate(args) if a == "-p"]
 output = Path(value("-o") or value("-O"))
 FAKE_SIZE = (6000, 4000)

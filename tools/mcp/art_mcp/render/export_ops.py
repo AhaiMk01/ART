@@ -27,6 +27,8 @@ class ExportResult(BaseModel):
     """The exported image."""
     profile_path: str | None
     """The `.arp` written, when `write_profile` was set."""
+    warnings: list[str] = []
+    """art-cli's warnings (e.g. input profile replaced by the camera matrix)."""
 
 
 class BatchItem(BaseModel):
@@ -47,6 +49,7 @@ class BatchItemResult(BaseModel):
     """The `.arp` written, when `write_profile` was set."""
     error: str | None
     """`<code>: <message>` when this item failed; the others still run."""
+    warnings: list[str] = []
 
 
 class BatchResult(BaseModel):
@@ -138,12 +141,13 @@ def render_to(
     *,
     profile_text: str | None = None,
     layers: list[Path] | None = None,
-) -> None:
+) -> list[str]:
     """Render ``image`` at full size into a temp file, then move it to
     ``dest`` (and its `.arp` to ``profile_dest``). The profile is
     ``profile_text`` (complete), or ``layers`` laid over ART's default profile
     (``layering.overlay``: keys a layer doesn't name keep the default's
-    values; one more art-cli run to resolve the default)."""
+    values; one more art-cli run to resolve the default). Returns art-cli's
+    warnings."""
     previews = session.previews
     profile = previews.new_file("profile", ".arp")
     temp = previews.new_file("export", EXPORT_SUFFIXES.get(out.format, ".out"))
@@ -154,7 +158,7 @@ def render_to(
             profile_text = keyfile.dumps(overlay(default, *(read_preset(layer) for layer in layers or [])))
         profile.write_text(profile_text, encoding="utf-8")
         args = export_args(image, temp, [profile], out.format, out.quality, out.bit_depth, out.write_profile)
-        session.run(args, temp, timeout=session.cli.export_timeout)
+        warnings = session.run(args, temp, timeout=session.cli.export_timeout)
         if out.write_profile and not temp_arp.is_file():
             raise no_profile_written()
         replaced = dest.exists()
@@ -169,6 +173,7 @@ def render_to(
     finally:
         for leftover in (profile, temp, temp_arp):
             leftover.unlink(missing_ok=True)
+    return warnings
 
 
 def export_image(
@@ -191,8 +196,8 @@ def export_image(
         profile = profile_target(session, wp.image, dest, out)
         if not overwrite:
             refuse_existing(dest, profile)
-        render_to(session, wp.image, dest, profile, out, profile_text=keyfile.dumps(wp.changes.profile))
-    return ExportResult(path=str(dest), profile_path=str(profile) if profile else None)
+        warnings = render_to(session, wp.image, dest, profile, out, profile_text=keyfile.dumps(wp.changes.profile))
+    return ExportResult(path=str(dest), profile_path=str(profile) if profile else None, warnings=warnings)
 
 
 def output_name(name: str, image: Path, suffix: str) -> str:
@@ -317,7 +322,9 @@ def export_batch(
             results[i].error = str(e)
 
     def run(job: Job) -> None:
-        render_to(session, job.image, job.dest, job.profile_dest, out, profile_text=job.profile_text, layers=job.layers)
+        results[job.index].warnings = render_to(
+            session, job.image, job.dest, job.profile_dest, out, profile_text=job.profile_text, layers=job.layers
+        )
 
     done = 0
     with ThreadPoolExecutor(max_workers=max(1, session.cli.max_processes)) as pool:

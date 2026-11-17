@@ -182,6 +182,23 @@ def describe_exit(returncode: int, output: str) -> str:
     return f"{text}: {output.strip()}" if output.strip() else text
 
 
+WARNING_PREFIX = "Warning: "
+"""How art-cli starts a diagnostic that does not stop the render (an input
+profile it can't load and replaces with the camera matrix, for example)."""
+
+
+def cli_warnings(output: str) -> list[str]:
+    """art-cli's warnings in ``output``, without the prefix, each once."""
+    found: list[str] = []
+    for line in output.splitlines():
+        text = line.strip()
+        if text.startswith(WARNING_PREFIX):
+            text = text[len(WARNING_PREFIX) :].strip()
+            if text and text not in found:
+                found.append(text)
+    return found
+
+
 @dataclass(frozen=True)
 class Rect:
     x: int

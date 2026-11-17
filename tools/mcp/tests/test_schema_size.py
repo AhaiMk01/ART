@@ -36,9 +36,10 @@ TOTAL_CEILING = {"render": 25_000, "live": 22_000}
 before the titles and null defaults were dropped from every tool's schema; the typed
 film_negative fields were trimmed to fit again). Raise it deliberately for an option worth
 its characters; the bound is there to stop silent growth."""
-OUTPUT_CEILING = {"render": 20_000, "live": 15_000}
+OUTPUT_CEILING = {"render": 20_500, "live": 15_000}
 """All of a server's output schemas together: a client loads these as often as the input schemas
-(about 19,600 and 14,500 now, from 25,100 and 18,700)."""
+(about 19,600 and 14,500, from 25,100 and 18,700; render raised to 20,500 for the `warnings`
+of exports and batch previews, which pass on art-cli's warnings, ~20,150)."""
 
 
 @pytest.fixture

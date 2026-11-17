@@ -101,7 +101,10 @@ def run_export(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
         ),
         a.path,
     )
-    return {"exported": prune({"file": shown(result.path), "profile": shown(result.profile_path)})}
+    out: dict[str, Any] = {"exported": prune({"file": shown(result.path), "profile": shown(result.profile_path)})}
+    if result.warnings:
+        out["warnings"] = result.warnings
+    return out
 
 
 def export_many(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
@@ -133,6 +136,9 @@ def export_many(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
     }
     if failures:
         out["failed"] = rows(failures, ["image", "error"])
+    warned = [{"image": labels.get(shown(i.path), i.path), "warning": w} for i in result.items for w in i.warnings]
+    if warned:
+        out["warnings"] = rows(warned, ["image", "warning"])
     return out
 
 

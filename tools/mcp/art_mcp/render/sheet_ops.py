@@ -13,7 +13,7 @@ import math
 import re
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
@@ -122,6 +122,8 @@ class Frame:
     profile: KeyFile | None = None
     error: str | None = None
     thumbnail: Path | None = None
+    cli_warnings: list[str] = field(default_factory=list)
+    """What art-cli warned about while rendering the thumbnail."""
 
 
 def label_slug(label: str) -> str:
@@ -212,7 +214,9 @@ def render_all(
 
     def run(frame: Frame) -> None:
         assert frame.profile is not None
-        frame.thumbnail = render_jpeg(session, frame.image, keyfile.dumps(frame.profile), thumb_size, fast=fast)
+        frame.thumbnail, frame.cli_warnings = render_jpeg(
+            session, frame.image, keyfile.dumps(frame.profile), thumb_size, fast=fast
+        )
 
     done = 0
     with ThreadPoolExecutor(max_workers=max(1, session.cli.max_processes)) as pool:
@@ -296,6 +300,15 @@ def quick_columns(count: int, thumb_size: int) -> int:
     return max(1, min(square, fitting, MAX_COLUMNS))
 
 
+def frame_warnings(frames: list[Frame]) -> list[str]:
+    """art-cli's warnings, each with the frames it came from."""
+    by_text: dict[str, list[str]] = {}
+    for f in frames:
+        for text in f.cli_warnings:
+            by_text.setdefault(text, []).append(f.image.name)
+    return [f"{', '.join(names)}: {text}" for text, names in by_text.items()]
+
+
 def frame_cells(frames: list[Frame]) -> list[Cell]:
     return [Cell(f.image.name, f.thumbnail, (f.error or "").partition(":")[0]) for f in frames]
 
@@ -349,7 +362,7 @@ def save_look(
         json_path=None,
         rendered=rendered,
         failed=len(frames) - rendered,
-        warnings=size_warnings(grid),
+        warnings=size_warnings(grid) + frame_warnings(frames),
     )
 
 
@@ -431,7 +444,7 @@ def save_pass(
         raise render_error("render_failed", f"cannot write the pass into {sheets}: {e}") from e
 
     rendered = sum(f.thumbnail is not None for f in frames)
-    warnings = size_warnings(grid)
+    warnings = size_warnings(grid) + frame_warnings(frames)
     summary = summarise(((i.name, i.changes) for i in images), MAX_SHARED_CHANGES)
     if summary is not None and summary.more:
         warnings.append(

@@ -74,9 +74,11 @@ def run_preview(ctx: Context, a: argparse.Namespace) -> dict[str, Any]:
         {"path": shown(i.path), "file": shown(named_after(i.preview_path, i.path)), "error": i.error}
         for i in batch.items
     ]
+    warned = [{"path": shown(i.path), "warning": w} for i in batch.items for w in i.warnings or []]
     return {
         "previews": rows(items, ["path", "file", "error"]),
         "failed": batch.failed,
+        **({"warnings": rows(warned, ["path", "warning"])} if warned else {}),
         "help": ["open each JPEG file to look at it"],
     }
 

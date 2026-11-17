@@ -26,6 +26,7 @@ from art_mcp.render.artcli import (
     ArtCliError,
     ArtCliTimeout,
     Rect,
+    cli_warnings,
     frame_probe_layer,
     layer_profile_args,
     png_size,
@@ -220,17 +221,19 @@ class RenderSession:
                 self._art_version = self.cli.version()
             return self._art_version
 
-    def run(self, args: list[str], output: Path, timeout: float | None = None) -> None:
+    def run(self, args: list[str], output: Path, timeout: float | None = None) -> list[str]:
         """Run art-cli, mapping its failures to tool errors; ``output`` must
-        exist afterwards."""
+        exist afterwards. Returns art-cli's warnings (``cli_warnings``): the
+        render went on, but not quite as the profile asked."""
         try:
-            self.cli.run(args, timeout=timeout)
+            text = self.cli.run(args, timeout=timeout)
         except ArtCliTimeout as e:
             raise render_error("timeout", str(e)) from e
         except ArtCliError as e:
             raise render_error("render_failed", str(e)) from e
         if not output.is_file():
             raise render_error("render_failed", f"art-cli wrote no output to {output}")
+        return cli_warnings(text)
 
     # -- the frame (call with the image's lock held) -----------------------
 
