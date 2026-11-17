@@ -17,6 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include <iostream>
 #include "../utils/multilangmgr.h"
 #include "../gui/options.h"
 #include "clutstore.h"
@@ -404,6 +405,7 @@ private:
         if (params.filmNegative.colorSpace !=
             FilmNegativeParams::ColorSpace::INPUT) {
             {
+                ART_PROFILE_SCOPE("input-profile");
                 imgsrc->convertColorSpace(img, params.icm, currWB);
             }
             converted = true;
@@ -423,6 +425,7 @@ private:
 
         if (!converted) {
             {
+                ART_PROFILE_SCOPE("input-profile");
                 imgsrc->convertColorSpace(img, params.icm, currWB);
             }
         }
@@ -453,12 +456,6 @@ private:
         ImProcFunctions &ipf = *(ipf_p.get());
 
         sanitize("denoise");
-
-        LUTu hist16(65536);
-        {
-            ART_PROFILE_SCOPE("firstAnalysis");
-            ipf.firstAnalysis(img, params, hist16);
-        }
 
         stop = ipf.process(ImProcFunctions::Stage::STAGE_0, img);
 

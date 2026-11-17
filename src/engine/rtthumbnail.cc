@@ -17,6 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include <iostream>
 #include "rtthumbnail.h"
 #include "../gui/options.h"
 #include "../utils/ppversion.h"
@@ -1150,10 +1151,6 @@ IImage8 *Thumbnail::processImage(const procparams::ProcParams &params,
     // options.rtSettings.monitorIntent, false, false);
     ipf.setMonitorTransform(
         ICCStore::getInstance()->getThumbnailMonitorTransform());
-
-    LUTu hist16(65536);
-
-    ipf.firstAnalysis(baseImg, params, hist16);
 
     bool stop = ipf.process(ImProcFunctions::Stage::STAGE_0, baseImg);
 

@@ -18,6 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with ART.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include <iostream>
 #include "thumbnail.h"
 #include "../engine/imagedata.h"
 #include "../engine/mytime.h"
@@ -1332,7 +1333,20 @@ void Thumbnail::updateCache(bool updatePParams, bool updateCacheImageData)
 
     saveRating();
 
-    if (updatePParams && pparamsValid) {
+    // Don't rewrite sidecars that are already up to date: a sidecar created
+    // by someone else (e.g. a user command producing a new image together with
+    // its .arp) must not be overwritten by our normalized copy unless the
+    // params were actually modified (or the file is missing).
+    const bool sidecar_missing =
+        options.saveParamsFile &&
+        !Glib::file_test(options.getParamFile(fname), Glib::FILE_TEST_EXISTS);
+    const bool cache_missing =
+        options.saveParamsCache &&
+        !Glib::file_test(getCacheFileName("profiles", paramFileExtension),
+                         Glib::FILE_TEST_EXISTS);
+
+    if (updatePParams && pparamsValid &&
+        (pparamsDirty_ || sidecar_missing || cache_missing)) {
         if (pparams.save(
                 cachemgr->getProgressListener(),
                 options.saveParamsFile ? options.getParamFile(fname) : "",

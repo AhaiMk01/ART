@@ -73,6 +73,8 @@ public:
     EditorPanel *getActiveEditorPanel();
     // Every editor that has an image open.
     std::vector<EditorPanel *> getEditorPanels();
+    // write the current params of the editor of `name` (if any) to disk
+    void saveEditorProfile(const Glib::ustring &name);
 
     void addBatchQueueJob(BatchQueueEntry *bqe, bool head = false);
     void addBatchQueueJobs(const std::vector<BatchQueueEntry *> &entries);

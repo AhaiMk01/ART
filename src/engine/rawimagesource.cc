@@ -41,6 +41,7 @@
 #include "rtlensfun.h"
 #define BENCHMARK
 #include "StopWatch.h"
+#include "pipelineprofile.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -1905,6 +1906,7 @@ void RawImageSource::preprocess(const RAWParams &raw,
             bitmapBads.reset(new PixelsMap(W, H));
         }
 
+        ART_PROFILE_SCOPE("raw:preprocess:hotdead-find");
         int nFound =
             findHotDeadPixels(*(bitmapBads.get()), raw.hotdeadpix_thresh,
                               raw.hotPixelFilter, raw.deadPixelFilter);
@@ -1957,6 +1959,7 @@ void RawImageSource::preprocess(const RAWParams &raw,
         }
 
         if (pmap) {
+            ART_PROFILE_SCOPE("raw:preprocess:lens-vignette");
             LensCorrection &map = *pmap;
             if (ri->getSensorType() == ST_BAYER ||
                 ri->getSensorType() == ST_FUJI_XTRANS ||
@@ -2070,6 +2073,7 @@ void RawImageSource::preprocess(const RAWParams &raw,
     }
 
     if (totBP) {
+        ART_PROFILE_SCOPE("raw:preprocess:hotdead-fix");
         if (ri->getSensorType() == ST_BAYER) {
             if (numFrames == 4) {
                 for (int i = 0; i < 4; ++i) {
@@ -2115,6 +2119,7 @@ void RawImageSource::preprocess(const RAWParams &raw,
          fabs(raw.cablue) > 0.001) &&
         ri->getSensorType() == ST_BAYER &&
         raw.enable_ca) { // Auto CA correction disabled for X-Trans, for now...
+        ART_PROFILE_SCOPE("raw:preprocess:ca");
         if (plistener) {
             plistener->setProgressStr("CA Auto Correction...");
             plistener->setProgress(0.0);
@@ -3210,6 +3215,9 @@ bool RawImageSource::getPreprocessedRaw(PreprocessedRaw &out,
     }
     for (int i = 0; i < 4; ++i) {
         out.clip[i] = clmax[i];
+        out.black[i] = cblacksom[i];
+        out.white[i] = c_white[i];
+        out.scale[i] = scale_mul[i];
     }
     for (int i = 0; i < 3; ++i) {
         out.pre_mul[i] = ri->get_pre_mul(i);
@@ -3251,6 +3259,15 @@ void RawImageSource::scaleColors(int winx, int winy, int winw, int winh,
     bool isMono = false;
 
     double raw_expos = raw.enable_whitepoint ? raw.expos : 1.0;
+
+    // black subtraction; the samples below the black level are normally
+    // clipped to 0, unless they have to be kept (raw DNG export with the
+    // original levels)
+    const bool keep_neg = keep_negatives_;
+    auto sub_black = [keep_neg](float v, float black) -> float {
+        const float r = v - black;
+        return keep_neg ? r : std::max(0.f, r);
+    };
 
     if (getSensorType() == ST_BAYER || getSensorType() == ST_FOVEON) {
 
@@ -3338,7 +3355,7 @@ void RawImageSource::scaleColors(int winx, int winy, int winw, int winh,
                             val -= (b - cblacksom[c]);
                         }
                     }
-                    val = max(0.f, val - cblacksom[c4]) * scale_mul[c4];
+                    val = sub_black(val, cblacksom[c4]) * scale_mul[c4];
                     rawData[row][col] = val;
                     tmpchmax[c] = max(tmpchmax[c], val);
                 }
@@ -3366,7 +3383,7 @@ void RawImageSource::scaleColors(int winx, int winy, int winw, int winh,
             for (int row = winy; row < winy + winh; row++) {
                 for (int col = winx; col < winx + winw; col++) {
                     const float val =
-                        max(0.f, rawData[row][col] - cblacksom[0]) *
+                        sub_black(rawData[row][col], cblacksom[0]) *
                         scale_mul[0];
                     rawData[row][col] = val;
                     tmpchmax = max(tmpchmax, val);
@@ -3396,7 +3413,7 @@ void RawImageSource::scaleColors(int winx, int winy, int winw, int winh,
                 for (int col = winx; col < winx + winw; col++) {
                     const int c = ri->XTRANSFC(row, col);
                     const float val =
-                        max(0.f, rawData[row][col] - cblacksom[c]) *
+                        sub_black(rawData[row][col], cblacksom[c]) *
                         scale_mul[c];
                     rawData[row][col] = val;
                     tmpchmax[c] = max(tmpchmax[c], val);
@@ -3428,7 +3445,7 @@ void RawImageSource::scaleColors(int winx, int winy, int winw, int winh,
                     for (int c = 0; c < 3;
                          c++) { // three colors,  0=R, 1=G,  2=B
                         const float val =
-                            max(0.f, rawData[row][3 * col + c] - cblacksom[c]) *
+                            sub_black(rawData[row][3 * col + c], cblacksom[c]) *
                             scale_mul[c];
                         rawData[row][3 * col + c] = val;
                         tmpchmax[c] = max(tmpchmax[c], val);
@@ -4059,12 +4076,25 @@ void RawImageSource::colorSpaceConversion_(
         if (hTransform == nullptr) {
             // Fallback: create transform from camera profile. Should not happen
             // normally.
+            if (plistener) {
+                plistener->error(Glib::ustring::compose(
+                    art::utils::M("ERROR_MSG_INPUT_PROFILE_TRANSFORM"),
+                    cmp.inputProfile));
+            }
             lcmsMutex->lock();
             hTransform =
                 cmsCreateTransform(camprofile, TYPE_RGB_FLT, prophoto,
                                    TYPE_RGB_FLT, INTENT_RELATIVE_COLORIMETRIC,
                                    cmsFLAGS_NOOPTIMIZE | cmsFLAGS_NOCACHE);
             lcmsMutex->unlock();
+
+            if (hTransform == nullptr) {
+                if (plistener) {
+                    plistener->error(art::utils::M(
+                        "ERROR_MSG_CAMERA_PROFILE_TRANSFORM"));
+                }
+                return;
+            }
         }
 
         TMatrix toxyz = {}, torgb = {};
@@ -4361,7 +4391,7 @@ bool RawImageSource::findInputProfile(
 
         if (!in && !*dcpProf && !lut_prof && plistener) {
             plistener->error(
-                Glib::ustring::compose(art::utils::M("ERROR_MSG_FILE_READ"), normalName));
+                Glib::ustring::compose(art::utils::M("ERROR_MSG_INPUT_PROFILE"), normalName));
         }
     }
 

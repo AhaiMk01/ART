@@ -2484,14 +2484,15 @@ bool ColorCorrectionParams::Region::operator!=(const Region &other) const
 
 ColorCorrectionParams::ColorCorrectionParams()
     : enabled(false), regions{Region()}, masks{Mask()}, showMask(-1),
-      selectedRegion(0)
+      selectedRegion(0), disable_spatial_guides(false)
 {
 }
 
 bool ColorCorrectionParams::operator==(const ColorCorrectionParams &other) const
 {
     return enabled == other.enabled && regions == other.regions &&
-           masks == other.masks && showMask == other.showMask;
+           masks == other.masks && showMask == other.showMask &&
+           disable_spatial_guides == other.disable_spatial_guides;
 }
 
 bool ColorCorrectionParams::operator!=(const ColorCorrectionParams &other) const
@@ -4094,6 +4095,10 @@ int ProcParams::save(ProgressListener *pl, bool save_general, KeyFile &keyFile,
                           colorcorrection.showMask, keyFile);
             saveToKeyfile("ColorCorrection", "SelectedRegion",
                           colorcorrection.selectedRegion, keyFile);
+            if (colorcorrection.disable_spatial_guides) {
+                saveToKeyfile("ColorCorrection", "DisableSpatialGuides", true,
+                              keyFile);
+            }
         }
 
         // Raw
@@ -6239,6 +6244,8 @@ int ProcParams::load(ProgressListener *pl, bool load_general,
                               colorcorrection.showMask);
             assignFromKeyfile(keyFile, ccgroup, "SelectedRegion",
                               colorcorrection.selectedRegion);
+            assignFromKeyfile(keyFile, ccgroup, "DisableSpatialGuides",
+                              colorcorrection.disable_spatial_guides);
         }
 
         if (keyFile.has_group("RAW")) {
