@@ -67,6 +67,9 @@ ERROR_MSG_INVALID_PROFILE;Invalid profile: %1
 ERROR_MSG_INVALID_PSF;Invalid PSF file: %1
 ERROR_MSG_INVALID_LUT_PARAMS;Invalid LUT parameters for: %1
 ERROR_MSG_INVALID_WB;Invalid white balance coefficients
+ERROR_MSG_INPUT_PROFILE;Cannot load the input profile %1, using the camera colour matrix instead
+ERROR_MSG_INPUT_PROFILE_TRANSFORM;Cannot use the input profile %1 (no colour transform can be created from it), using the camera colour matrix instead
+ERROR_MSG_CAMERA_PROFILE_TRANSFORM;Cannot create the colour transform of the camera profile, the image is left unconverted
 EXIFFILTER_APERTURE;Aperture
 EXIFFILTER_CAMERA;Camera
 EXIFFILTER_DATE;Date
@@ -1028,6 +1031,10 @@ PARTIALPASTE_VIBRANCE;Vibrance
 PARTIALPASTE_VIGNETTING;Vignetting correction
 PARTIALPASTE_WHITEBALANCE;White balance
 PREFERENCES_ADD;Add
+PREFERENCES_ADJUSTER_DELAY;Slider update delay
+PREFERENCES_ADJUSTER_DELAY_TOOLTIP;How long (in ms) to wait after a slider stops changing before updating the preview. Lower values make the preview follow the slider more closely, but cause more frequent updates. 0 updates on every change.
+PREFERENCES_ADJUSTER_MAX_DELAY;Delay for slow tools (ms)
+PREFERENCES_ADJUSTER_MIN_DELAY;Delay for most tools (ms)
 PREFERENCES_ADJUSTER_FORCE_LINEAR;Force linear scale in adjuster sliders
 PREFERENCES_AI_ALLOW;Allow AI assistants to control the editor
 PREFERENCES_AI_ALLOW_TOOLTIP;Lets an AI assistant on this computer (for example Claude, through ART's MCP server) read and change the images open in the editor, through a token-protected local connection. Leave off unless you use one.
@@ -1178,6 +1185,8 @@ PREFERENCES_PREVDEMO;Preview Accuracy
 PREFERENCES_PREVDEMO_FAST;Fast
 PREFERENCES_PREVDEMO_LABEL;Demosaicing method used for the preview at <100% zoom:
 PREFERENCES_PREVDEMO_SIDECAR;As in ARP
+PREFERENCES_PREVIEW_ABORT_STALE;Interrupt preview updates when a newer edit arrives
+PREFERENCES_PREVIEW_ABORT_STALE_TOOLTIP;Improves responsiveness of the detail preview while dragging sliders, but the preview might not update until the slider stops moving if the processing is slow. Disable to restore the old behavior, where each update is always completed.
 PREFERENCES_PREVIEW_RESAMPLING_QUALITY;Resampling quality for the preview image at <100% zoom:
 PREFERENCES_PRINTER;Soft-Proofing
 PREFERENCES_PROFILEHANDLING;Processing Profile Handling

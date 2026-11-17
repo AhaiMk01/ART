@@ -36,6 +36,18 @@
 #include <tiff.h>
 #include <tiffio.h>
 
+// older libtiff (e.g. 4.3 on Ubuntu 22.04) does not define the DNG opcode list
+// tags
+#ifndef TIFFTAG_OPCODELIST1
+#define TIFFTAG_OPCODELIST1 51008
+#endif
+#ifndef TIFFTAG_OPCODELIST2
+#define TIFFTAG_OPCODELIST2 51009
+#endif
+#ifndef TIFFTAG_OPCODELIST3
+#define TIFFTAG_OPCODELIST3 51022
+#endif
+
 namespace art { namespace engine {
 
 using namespace procparams;
@@ -208,9 +220,45 @@ bool write_dng(const RawImageSource::PreprocessedRaw &raw,
         }
     }
 
-    // levels: black is always 0
-    const double data_scale = is_float ? 1.0 / 65535.0 : 1.0;
-    if (is_float) {
+    // channel (R G1 B G2 -> 0 1 2 3) of the sample at the given position
+    const bool bayer = raw.cfa_size == 2;
+    auto channel4 = [&](int y, int x, int c) {
+        if (raw.demosaiced) {
+            return c;
+        }
+        const int f = raw.cfa[y % raw.cfa_size][x % raw.cfa_size];
+        return (bayer && f == 1 && !(y & 1)) ? 3 : f;
+    };
+
+    // levels: black is 0, unless the original levels of the raw file are kept
+    const bool orig = opts.original_levels;
+    const double data_scale = (is_float && !orig) ? 1.0 / 65535.0 : 1.0;
+    if (orig) {
+        const int nch = (bayer && !raw.demosaiced) ? 4 : 3;
+        double wl = raw.white[0];
+        for (int c = 1; c < nch; ++c) {
+            wl = opts.clip_max ? std::max<double>(wl, raw.white[c])
+                               : std::min<double>(wl, raw.white[c]);
+        }
+        const uint32_t w1 = uint32_t(std::lround(wl));
+        const uint32_t w[3] = {w1, w1, w1};
+        TIFFSetField(out, TIFFTAG_WHITELEVEL, spp, w);
+
+        // one black level per position of the pattern (CFA), or per channel
+        // (linear DNG)
+        const int rep = raw.demosaiced ? 1 : raw.cfa_size;
+        const uint16_t bdim[2] = {uint16_t(rep), uint16_t(rep)};
+        std::vector<float> blk;
+        for (int i = 0; i < rep; ++i) {
+            for (int j = 0; j < rep; ++j) {
+                for (int c = 0; c < spp; ++c) {
+                    blk.push_back(raw.black[channel4(i, j, c)]);
+                }
+            }
+        }
+        TIFFSetField(out, TIFFTAG_BLACKLEVELREPEATDIM, bdim);
+        TIFFSetField(out, TIFFTAG_BLACKLEVEL, int(blk.size()), blk.data());
+    } else if (is_float) {
         // float DNG samples are nominally in 0..1
         uint32_t one = 1;
         TIFFSetField(out, TIFFTAG_WHITELEVEL, 1, &one);
@@ -248,6 +296,16 @@ bool write_dng(const RawImageSource::PreprocessedRaw &raw,
     bool ok = true;
     for (int y = 0; y < H && ok; ++y) {
         const float *src = &raw.data[size_t(y) * row_samples];
+        std::vector<float> orig_row;
+        if (orig) {
+            // undo the black subtraction and the scaling of scaleColors()
+            orig_row.resize(row_samples);
+            for (size_t i = 0; i < row_samples; ++i) {
+                const int c = channel4(y, int(i / spp), int(i % spp));
+                orig_row[i] = src[i] / raw.scale[c] + raw.black[c];
+            }
+            src = orig_row.data();
+        }
         void *buf;
         if (is_float) {
             for (size_t i = 0; i < row_samples; ++i) {
@@ -256,7 +314,7 @@ bool write_dng(const RawImageSource::PreprocessedRaw &raw,
             buf = rowf.data();
         } else {
             for (size_t i = 0; i < row_samples; ++i) {
-                const double lim = cfa_wl;
+                const double lim = orig ? 65535.0 : cfa_wl;
                 row16[i] = uint16_t(
                     std::lround(std::min<double>(std::max(src[i], 0.f), lim)));
             }
@@ -332,7 +390,11 @@ int processRawToDNG(InitialImage *ii, const ProcParams &params,
         }
     }
 
-    rs->setUniformScale(opts.neutral);
+    // the original levels can only be restored if all the channels have been
+    // scaled alike
+    rs->setUniformScale(opts.neutral || opts.original_levels);
+    // ... and the samples below the black level can be kept too
+    rs->setKeepNegatives(opts.original_levels);
     imgsrc->preprocess(rp, params.lensProf, params.coarse,
                        params.denoise.enabled, currWB);
     if (pl) {
@@ -357,7 +419,7 @@ int processRawToDNG(InitialImage *ii, const ProcParams &params,
         return 2;
     }
 
-    if (!opts.neutral && opts.bits == 32) {
+    if (!opts.neutral && !opts.original_levels && opts.bits == 32) {
         const double mn = std::min({raw.clip[0], raw.clip[1], raw.clip[2]});
         if (mn < 65535.0 * 0.999) {
             std::cerr << "warning: float DNG with white balance baked in: "
@@ -420,8 +482,13 @@ int processRawToDNG(InitialImage *ii, const ProcParams &params,
         try {
             auto &exif = meta.exifData();
             for (auto it = exif.begin(); it != exif.end();) {
-                if (it->tag() == 51008 || it->tag() == 51009 ||
-                    it->tag() == 51022) {
+                // drop the DNG-specific tags of the source (WhiteLevel,
+                // BlackLevel, ActiveArea, ColorMatrix, AsShotNeutral,
+                // illuminants, opcodes, ...): write_dng has already written
+                // the correct ones for the preprocessed data, and saveToImage
+                // would overwrite them. Keep only the lens info.
+                if (it->groupName() == "Image" && it->tag() >= 50706 &&
+                    it->tag() <= 52000 && it->tag() != 50736) {
                     it = exif.erase(it);
                 } else {
                     ++it;

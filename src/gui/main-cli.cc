@@ -25,7 +25,9 @@
 #endif
 
 #include "../engine/clutstore.h"
+#include "../engine/imagesource.h"
 #include "../engine/imgiomanager.h"
+#include "../engine/pipelineprofile.h"
 #include "../engine/profilestore.h"
 #include "../engine/settings.h"
 #include "../utils/config.h"
@@ -63,6 +65,24 @@
 #ifdef WITH_MIMALLOC
 #include <mimalloc.h>
 #endif
+
+namespace {
+
+// ART_PROFILE=1: wall-clock time of the phases around processImage() (start
+// is the process's static initialisation, i.e. before main())
+const std::chrono::steady_clock::time_point phase_t0 =
+    std::chrono::steady_clock::now();
+
+void phase(const char *name)
+{
+    if (art::engine::PipelineProfile::enabled()) {
+        std::chrono::duration<double, std::milli> d =
+            std::chrono::steady_clock::now() - phase_t0;
+        fprintf(stderr, "[phase] %-24s %8.1f ms\n", name, d.count());
+    }
+}
+
+} // namespace
 
 namespace art { namespace engine {
 extern const Settings *settings;
@@ -204,12 +224,14 @@ int main(int argc, char **argv)
     bool quickstart = p.first;
     int verbose = p.second;
 
+    phase("main");
     try {
         Options::load(quickstart, verbose);
     } catch (Options::Error &e) {
         std::cerr << std::endl << "Error:" << e.get_msg() << std::endl;
         return -2;
     }
+    phase("options loaded");
 
     if (options.is_defProfRawMissing()) {
         options.defProfRaw = Options::DEFPROFILE_RAW;
@@ -291,7 +313,9 @@ int main(int argc, char **argv)
 
     // as the GUI does on exit; among other things this stops the exiftool
     // process started for reading metadata, which would otherwise keep running
+    phase("processed");
     art::engine::cleanup();
+    phase("cleanup done");
 
     return ret;
 }
@@ -400,8 +424,10 @@ public:
         }
     }
 
-private:
+protected:
     MyMutex mutex_;
+
+private:
     int num_steps_;
     int percent_;
     bool quiet_ = false;
@@ -540,6 +566,19 @@ bool parseStageStatsArg(const std::string &arg,
     return true;
 }
 
+// Receives image-source diagnostics without reporting numeric progress.
+// The processing goes on after them, so they are printed as warnings.
+class ConsoleWarningListener: public ConsoleProgressListener {
+public:
+    ConsoleWarningListener(): ConsoleProgressListener(1) {}
+    void setProgress(double p) override {}
+    void error(const Glib::ustring &msg) override
+    {
+        MyMutex::MyLock l(mutex_);
+        std::cerr << "Warning: " << msg << std::endl;
+    }
+};
+
 int processLineParams(int argc, char **argv)
 {
     PartialProfile rawParams, imgParams;
@@ -562,6 +601,7 @@ int processLineParams(int argc, char **argv)
     std::string outputType = "";
     bool rawPreprocess = false;
     art::engine::RawDNGOptions dngOpts;
+    dngOpts.neutral = true; // --dng-wb=neutral is the default
     unsigned errors = 0;
     bool sampling = false;
     bool stageStatsMode = false;
@@ -608,6 +648,12 @@ int processLineParams(int argc, char **argv)
                         return bad("dng-bits", "16, 32");
                     }
                     dngOpts.bits = std::stoi(v);
+                } else if (a.compare(0, 13, "--dng-levels=") == 0) {
+                    const auto v = val("dng-levels");
+                    if (v != "normalized" && v != "original") {
+                        return bad("dng-levels", "normalized, original");
+                    }
+                    dngOpts.original_levels = (v == "original");
                 } else if (a == "--dng-lens-opcodes") {
                     dngOpts.lens_opcodes = true;
                 } else if (a.compare(0, 11, "--dng-clip=") == 0) {
@@ -1077,6 +1123,7 @@ int processLineParams(int argc, char **argv)
     ConsoleProgressListener cpl(inputFiles.size() + 1);
     cpl.setQuiet(sampling);
     art::engine::ProgressListener *pl = progress ? &cpl : nullptr;
+    ConsoleWarningListener cwl;
 
     if (progress) {
         const auto monitor = [&]() -> void {
@@ -1105,6 +1152,7 @@ int processLineParams(int argc, char **argv)
             cpl.info(Glib::ustring::compose("Processing: %1", inputFile));
         }
 
+        phase("frame start");
         art::engine::InitialImage *ii = nullptr;
         art::engine::ProcessingJob *job = nullptr;
         int errorCode;
@@ -1174,6 +1222,9 @@ int processLineParams(int argc, char **argv)
                                              inputFile));
             continue;
         }
+
+        // load() drops its listener when done, set it again for the processing
+        ii->getImageSource()->setProgressListener(&cwl);
 
         if (useDefault) {
             if (isRaw) {
@@ -1316,8 +1367,10 @@ int processLineParams(int argc, char **argv)
         }
 
         // Process image
+        phase("job ready");
         art::engine::IImagefloat *resultImage =
             art::engine::processImage(job, errorCode, pl);
+        phase("processImage done");
 
         if (!resultImage) {
             errors++;
@@ -1345,6 +1398,7 @@ int processLineParams(int argc, char **argv)
             // errorCode = resultImage->saveToFile(outputFile);
         }
 
+        phase("saved");
         if (errorCode) {
             errors++;
             cpl.error(

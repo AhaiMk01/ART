@@ -32,7 +32,7 @@
 #31 2026-04-26  Ohnishi, Yasuo, updates for 1.26.4
 #32 2026-06-10  Ohnishi, Yasuo, updates for 1.26.6
 #33 2026-10-07  Ohnishi, Yasuo, updates for 1.26.10
-#34 2026-10-29  Ohnishi, Yasuo, updates for 1.26.11
+#34 2026-11-04  Ohnishi, Yasuo, updates for 1.26.11
 ABOUT_TAB_BUILD;バージョン
 ABOUT_TAB_CREDITS;クレジット
 ABOUT_TAB_LICENSE;ライセンス
@@ -159,8 +159,8 @@ FILEBROWSER_AUTOFLATFIELD;オート･フラットフィールド
 FILEBROWSER_BROWSEPATHBUTTONHINT;サムネイルのリストを更新\nショートカット: <b>%shortcut(filecatalog.refresh)%</b>
 FILEBROWSER_BROWSEPATHHINT;参照するパスを入力します\n<b>%shortcut(filecatalog.focus_path)%</b> パスのテキストボックスにフォーカス\n<b>Enter</b> / <b>Ctrl-Enter</b>その場所をブラウズします\n<b>Esc</b> 変更をクリア\n<b>Shift-Esc</b>フォーカスを削除\nパスのショートカット:\n  <b>~</b> - ユーザーのホームディレクトリ\n  <b>!</b> - ユーザーの画像ディレクトリ
 FILEBROWSER_CACHE;キャッシュ
-FILEBROWSER_CACHECLEARFROMFULL;プロファイルを含めcache内をクリアにする
-FILEBROWSER_CACHECLEARFROMPARTIAL;プロファイルを除き cache内をクリアにする
+FILEBROWSER_CACHECLEARFROMFULL;プロファイルを含めキャッシュ内をクリアにする
+FILEBROWSER_CACHECLEARFROMPARTIAL;プロファイルを除き キャッシュ内をクリアにする
 FILEBROWSER_CLEARPROFILE;プロファイルのクリア
 FILEBROWSER_COLORLABEL_TOOLTIP;カラー･ラベル\n\nドロップダウン･メニューもしくは ショートカット:\n<b>%shortcut(filebrowser.set_label.0)%</b> カラーなし\n<b>%shortcut(filebrowser.set_label.1)%</b> レッド\n<b>%shortcut(filebrowser.set_label.2)%</b> イエロー\n<b>%shortcut(filebrowser.set_label.3)%</b> グリーン\n<b>%shortcut(filebrowser.set_label.4)%</b> ブルー\n<b>%shortcut(filebrowser.set_label.5)%</b> パープル
 FILEBROWSER_COPYPROFILE;プロファイルをコピー
@@ -1055,6 +1055,10 @@ PARTIALPASTE_VIBRANCE;自然な彩度
 PARTIALPASTE_VIGNETTING;周辺光量補正
 PARTIALPASTE_WHITEBALANCE;ホワイトバランス
 PREFERENCES_ADD;追加
+PREFERENCES_ADJUSTER_DELAY;スライダーの更新を遅らせる
+PREFERENCES_ADJUSTER_DELAY_TOOLTIP;スライダーの変化終了後プレビューを更新するまでの待機時間（ミリ秒単位） 値を小さくすると プレビューがスライダーの動きにより忠実に追従するようになりますが 更新頻度は高くなります 0に設定すると 変化のたびに更新されます
+PREFERENCES_ADJUSTER_MAX_DELAY;低速なツールに対する遅延 (ms)
+PREFERENCES_ADJUSTER_MIN_DELAY;大半のツールに対する遅延 (ms)
 PREFERENCES_ADJUSTER_FORCE_LINEAR;調整スライダーへのリニア尺度の強制適用
 PREFERENCES_APPEARANCE;外観
 PREFERENCES_APPEARANCE_COLORPICKERFONT;カラーピッカーのフォント
@@ -1073,12 +1077,12 @@ PREFERENCES_AUTOSAVE;自動保存
 PREFERENCES_AUTOSAVE_INTERVAL;ARP 自動保存間隔 (分単位, 0 は自動保存無効)
 PREFERENCES_BATCH_PROCESSING;バッチ処理
 PREFERENCES_CACHECLEAR;クリア
-PREFERENCES_CACHECLEAR_ALL;cacheに入れられたファイルを全てクリア:
-PREFERENCES_CACHECLEAR_ALLBUTPROFILES;cacheに入れた処理プロファイル以外をクリア:
-PREFERENCES_CACHECLEAR_ONLYPROFILES;cacheに入れた処理プロファイルだけをクリア:
-PREFERENCES_CACHECLEAR_SAFETY;casheに入れたファイルだけをクリア. 元画像に付随した処理プロファイルはそのまま
-PREFERENCES_CACHEMAXENTRIES;cacheに入れるファイルの最大数
-PREFERENCES_CACHEOPTS;cache オプション
+PREFERENCES_CACHECLEAR_ALL;キャッシュに入れられたファイルを全てクリア:
+PREFERENCES_CACHECLEAR_ALLBUTPROFILES;キャッシュに入れた処理プロファイル以外をクリア:
+PREFERENCES_CACHECLEAR_ONLYPROFILES;キャッシュに入れた処理プロファイルだけをクリア:
+PREFERENCES_CACHECLEAR_SAFETY;キャシュに入れたファイルだけをクリア. 元画像に付随した処理プロファイルはそのまま
+PREFERENCES_CACHEMAXENTRIES;キャッシュに入れるファイルの最大数
+PREFERENCES_CACHEOPTS;キャッシュ オプション
 PREFERENCES_CACHETHUMBHEIGHT;サムネイル縦の最大値
 PREFERENCES_CLIPPINGIND;クリッピング領域の表示
 PREFERENCES_CLUTSCACHE;カラーLUT キャッシュ
@@ -1150,8 +1154,8 @@ PREFERENCES_MONITOR_GAMUT;モニターの色域
 PREFERENCES_OSCOLORMGMT_INFO;カラーマネジメントは、オペレーティングシステム/デスクトップ環境に組み込まれており、グローバルに有効になっています。\n環境機能を使用してモニタープロファイルを設定し、ここで最適な色域を選択します。
 PREFERENCES_IMPROCPARAMS;画像処理のデフォルト値
 PREFERENCES_INSPECT_LABEL;画像確認
-PREFERENCES_INSPECT_MAXBUFFERS_LABEL;cacheに入れる画像の最大数
-PREFERENCES_INSPECT_MAXBUFFERS_TOOLTIP;ファイルブラウザの操作中にcacheに入れられる画像の最大数. RAM容量が小さい場合（2G以下）の場合は 設定値を1或いは2にするべき
+PREFERENCES_INSPECT_MAXBUFFERS_LABEL;キャッシュに入れる画像の最大数
+PREFERENCES_INSPECT_MAXBUFFERS_TOOLTIP;ファイルブラウザの操作中にキャッシュに入れられる画像の最大数. RAM容量が小さい場合（2G以下）の場合は 設定値を1或いは2にするべき
 PREFERENCES_INTENT_ABSOLUTE;絶対的な色域を維持
 PREFERENCES_INTENT_PERCEPTUAL;知覚的
 PREFERENCES_INTENT_RELATIVE;相対的な色域を維持
@@ -1198,14 +1202,16 @@ PREFERENCES_PREVDEMO;プレビューの正確度
 PREFERENCES_PREVDEMO_FAST;高速 (Fast)
 PREFERENCES_PREVDEMO_LABEL;プレビューのズームレベルが100％以下の場合に使うデモザイクアルゴリズム:
 PREFERENCES_PREVDEMO_SIDECAR;ARPの記述通り
+PREFERENCES_PREVIEW_ABORT_STALE;別編集に着手すると プレビューの更新を中断する
+PREFERENCES_PREVIEW_ABORT_STALE_TOOLTIP;スライダー操作中での詳細プレビューの応答性が向上しますが 処理に時間がかかる場合は スライダーの動きが止まるまでプレビューが更新されないことがあります 無効にすると 更新が中断なく常に行われる従来の動作に戻ります
 PREFERENCES_PREVIEW_RESAMPLING_QUALITY;100% 未満のズームでのプレビュー画像の再サンプリング品質:
 PREFERENCES_PRINTER;ソフトプルーフィング
 PREFERENCES_PROFILEHANDLING;処理プロファイルの取扱い
 PREFERENCES_PROFILELOADPR;処理プロファイル読み込みの優先
-PREFERENCES_PROFILEPRCACHE;cacheの中のプロファイル
+PREFERENCES_PROFILEPRCACHE;キャッシュの中のプロファイル
 PREFERENCES_PROFILEPRFILE;入力ファイルに隣接するプロファイル
-PREFERENCES_PROFILESAVEBOTH;処理プロファイルはcacheと入力ファイルの両方に関連付けて保存する
-PREFERENCES_PROFILESAVECACHE;処理プロファイルのパラメータをcacheに保存
+PREFERENCES_PROFILESAVEBOTH;処理プロファイルはキャッシュと入力ファイルの両方に関連付けて保存する
+PREFERENCES_PROFILESAVECACHE;処理プロファイルのパラメータをキャッシュに保存
 PREFERENCES_PROFILESAVEINPUT;処理プロファイルのパラメータを入力ファイルと同じディレクトリに保存
 PREFERENCES_PROFILESAVELOCATION;処理プロファイルが保存されている場所
 PREFERENCES_PROFILE_NONE;なし
@@ -1225,7 +1231,6 @@ PREFERENCES_SELECTLANG;言語選択 / Language
 PREFERENCES_SERIALIZE_TIFF_READ;TIFFファイルの読み込み設定
 PREFERENCES_SERIALIZE_TIFF_READ_LABEL;TIFFファイルの読み込みをシリアライズ
 PREFERENCES_SERIALIZE_TIFF_READ_TOOLTIP;画像フォルダーが多数の非圧縮のTIFFファイルで占められている場合 このオプションを有効にすることで サムネイル画像生成の効率が上がります
-
 PREFERENCES_SHORTCUTS_ACTION;動作
 PREFERENCES_SHORTCUTS_ADD;キーを追加...
 PREFERENCES_SHORTCUTS_ASSIGNANYWAY;強制的に割当
@@ -1251,7 +1256,6 @@ PREFERENCES_SHORTCUTS_SYSTEMNOTE;<b>%1</b> はシステムショートカット�
 PREFERENCES_SHORTCUTS_SEARCH;動作とキーを検索
 PREFERENCES_SHORTCUTS_RESTART;ショートカット設定は次に ART を再起動すると有効になります 変更点は太字で表示されます
 PREFERENCES_SHORTCUTS_SAVEERROR;ショートカット設定は保存できませんでした:\n%1
-
 PREFERENCES_SHOWBASICEXIF;基本Exif情報を表示
 PREFERENCES_SHOWDATETIME;日付表示
 PREFERENCES_SHOWEXPOSURECOMPENSATION;露出補正追加

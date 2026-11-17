@@ -209,7 +209,8 @@ bool get_CTL_guides(const Glib::ustring &filename, std::vector<CTLGuide> &out,
 /**
  * ART-compatible CTL scripts can contain parameters as additional uniform
  * input parameters to ART_main. The supported parameter types are "bool",
- * "int", "float" and arrays of floats. Each such parameter must come with an
+ * "int", "float" and arrays of floats (arrays of size 2 are hue/saturation
+ * parameters, other sizes are curves). Each such parameter must come with an
  * associated ART parameter definition in the CTL script. ART parameter
  * definitions are special comment lines of the following form:
  *
@@ -248,7 +249,9 @@ bool get_CTL_guides(const Glib::ustring &filename, std::vector<CTLGuide> &out,
  *         Equalizer" tool (regularization 4). It is a linear luminance,
  *         normalised like the tone equalizer does: 0.18 is middle grey.
  *  - "C": a chroma-like quantity: the smoothed value of the "cz" output of
- *         Color::rgb2jzczhz (i.e. the chroma in the JzAzBz colour space)
+ *         Color::rgb2jzczhz (i.e. the chroma in the JzAzBz colour space),
+ *         multiplied by 15, so that it is 0 for neutral colours and close to
+ *         1 for strongly saturated ones
  *  - "H": a hue-like quantity: the smoothed value of the "hz" output of
  *         Color::rgb2jzczhz (the hue angle in the JzAzBz colour space, in
  *         radians, in the range (-pi, pi]). Note that it is an angle, so the
@@ -348,7 +351,9 @@ bool get_CTL_params(const Glib::ustring &filename,
                     .cast<Ctl::ArrayType>()
                     ->elementType()
                     .cast<Ctl::FloatType>()) {
-                tp = CLUTParamType::PT_CURVE;
+                tp = a->type().cast<Ctl::ArrayType>()->size() == 2
+                         ? CLUTParamType::PT_HUESAT
+                         : CLUTParamType::PT_CURVE;
                 break;
             } else {
                 // fall back to error
@@ -368,9 +373,16 @@ bool get_CTL_params(const Glib::ustring &filename,
         desc.value_min = 0;
         desc.value_max = 1;
         desc.value_default = {0};
+        if (tp == CLUTParamType::PT_HUESAT) {
+            desc.value_default = {0, 0};
+        }
 
         if (a->hasDefaultValue()) {
             switch (tp) {
+            case CLUTParamType::PT_HUESAT: {
+                const float *d = reinterpret_cast<const float *>(a->data());
+                desc.value_default = {d[0], d[1]};
+            } break;
             case CLUTParamType::PT_BOOL:
                 desc.value_default[0] = *reinterpret_cast<bool *>(a->data());
                 break;
@@ -1050,6 +1062,13 @@ bool CTLApplication::set_params(const CLUTParamValueMap &values, int max_dim)
                                 curve->getVal(x);
                         }
                     } break;
+                    case CLUTParamType::PT_HUESAT: {
+                        const std::vector<double> &hs =
+                            vv.size() == 2 ? vv : desc.value_default;
+                        float *fd = reinterpret_cast<float *>(d);
+                        fd[0] = std::min(std::max(hs[0], -RT_PI), RT_PI);
+                        fd[1] = std::min(std::max(hs[1], 0.0), 1.0);
+                    } break;
                     case CLUTParamType::PT_INT:
                     case CLUTParamType::PT_CHOICE:
                     default:
@@ -1332,9 +1351,13 @@ constexpr float CH_EPSILON = 1e-3f;
 // cz is multiplied by this before filtering, so that it is roughly in [0, 1]
 // (like in the tone curve), and the same epsilon fits
 constexpr float CH_SCALE = 50.f;
+// the "C" guide is cz multiplied by this, so that strongly saturated colours
+// are near 1 (neutral greys are 0, skin tones are around 0.1-0.2), which makes
+// it easier to use in scripts
+constexpr float CH_OUT_SCALE = 15.f;
 
 void compute_Y_guide(Imagefloat *img, TMatrix ws, double scale, bool multithread,
-                     array2D<float> &guide)
+                     array2D<float> &guide, bool spatial)
 {
     // the luminance is the Y channel of the YUV mode (in 0..65535)
     const int W = img->getWidth();
@@ -1366,8 +1389,10 @@ void compute_Y_guide(Imagefloat *img, TMatrix ws, double scale, bool multithread
 
     // the same guide as the tone equalizer at regularization 4. This is the
     // only place to change if a different algorithm is wanted
-    constexpr int regularization = 4;
-    toneEqGuide(guide, regularization, scale, multithread);
+    if (spatial) {
+        constexpr int regularization = 4;
+        toneEqGuide(guide, regularization, scale, multithread);
+    }
 }
 
 /**
@@ -1381,7 +1406,7 @@ void compute_Y_guide(Imagefloat *img, TMatrix ws, double scale, bool multithread
  */
 void compute_CH_guides(Imagefloat *img, TMatrix ws, double scale,
                        bool multithread, bool want_c, bool want_h,
-                       array2D<float> &C, array2D<float> &Hz)
+                       array2D<float> &C, array2D<float> &Hz, bool spatial)
 {
     const int W = img->getWidth();
     const int H = img->getHeight();
@@ -1426,8 +1451,17 @@ void compute_CH_guides(Imagefloat *img, TMatrix ws, double scale,
 
     if (want_h) {
         array2D<float> bs(W, H, ARRAY2D_ALIGNED);
-        guidedFilter(cz, az, tmp, radius, CH_EPSILON, multithread);
-        guidedFilter(cz, bz, bs, radius, CH_EPSILON, multithread);
+        if (spatial) {
+            guidedFilter(cz, az, tmp, radius, CH_EPSILON, multithread);
+            guidedFilter(cz, bz, bs, radius, CH_EPSILON, multithread);
+        } else {
+            for (int y = 0; y < H; ++y) {
+                for (int x = 0; x < W; ++x) {
+                    tmp[y][x] = az[y][x];
+                    bs[y][x] = bz[y][x];
+                }
+            }
+        }
         Hz(W, H, ARRAY2D_ALIGNED);
 #ifdef _OPENMP
 #pragma omp parallel for if (multithread)
@@ -1441,14 +1475,22 @@ void compute_CH_guides(Imagefloat *img, TMatrix ws, double scale,
         }
     }
     if (want_c) {
-        guidedFilter(cz, cz, tmp, radius, CH_EPSILON, multithread);
+        if (spatial) {
+            guidedFilter(cz, cz, tmp, radius, CH_EPSILON, multithread);
+        } else {
+            for (int y = 0; y < H; ++y) {
+                for (int x = 0; x < W; ++x) {
+                    tmp[y][x] = cz[y][x];
+                }
+            }
+        }
         C(W, H, ARRAY2D_ALIGNED);
 #ifdef _OPENMP
 #pragma omp parallel for if (multithread)
 #endif
         for (int y = 0; y < H; ++y) {
             for (int x = 0; x < W; ++x) {
-                C[y][x] = std::max(tmp[y][x], 0.f) / CH_SCALE;
+                C[y][x] = std::max(tmp[y][x], 0.f) * (CH_OUT_SCALE / CH_SCALE);
             }
         }
     }
@@ -1458,7 +1500,7 @@ void compute_CH_guides(Imagefloat *img, TMatrix ws, double scale,
 
 void compute_ctl_guides(Imagefloat *img, unsigned kinds_mask,
                         const Glib::ustring &working_profile, double scale,
-                        bool multithread, CTLGuideSet &out)
+                        bool multithread, CTLGuideSet &out, bool spatial)
 {
     TMatrix ws = ICCStore::getInstance()->workingSpaceMatrix(working_profile);
     for (int i = 0; i < CTL_MAX_GUIDES; ++i) {
@@ -1466,7 +1508,8 @@ void compute_ctl_guides(Imagefloat *img, unsigned kinds_mask,
     }
 
     if (kinds_mask & ctl_guide_bit(CTLGuide::Y)) {
-        compute_Y_guide(img, ws, scale, multithread, out.plane[int(CTLGuide::Y)]);
+        compute_Y_guide(img, ws, scale, multithread, out.plane[int(CTLGuide::Y)],
+                         spatial);
         out.present[int(CTLGuide::Y)] = true;
     }
     const bool want_c = kinds_mask & ctl_guide_bit(CTLGuide::C);
@@ -1474,7 +1517,7 @@ void compute_ctl_guides(Imagefloat *img, unsigned kinds_mask,
     if (want_c || want_h) {
         compute_CH_guides(img, ws, scale, multithread, want_c, want_h,
                           out.plane[int(CTLGuide::C)],
-                          out.plane[int(CTLGuide::H)]);
+                          out.plane[int(CTLGuide::H)], spatial);
         out.present[int(CTLGuide::C)] = want_c;
         out.present[int(CTLGuide::H)] = want_h;
     }
